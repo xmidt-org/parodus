@@ -20,6 +20,10 @@
 #include <CUnit/Basic.h>
 #include <stdbool.h>
 
+#include <assert.h>
+#include <nanomsg/nn.h>
+#include <nanomsg/bus.h>
+
 void test_1()
 {
 }
@@ -48,6 +52,10 @@ int main( void )
             CU_basic_show_failures( CU_get_failure_list() );
             printf( "\n\n" );
             rv = CU_get_number_of_tests_failed();
+            printf("Creating NanoMsg Socket\n");
+            int sock = nn_socket (AF_SP, NN_BUS);
+            assert (sock >= 0);
+            printf("Socket creation successful sock=%d \n", sock);
         }
 
         CU_cleanup_registry();

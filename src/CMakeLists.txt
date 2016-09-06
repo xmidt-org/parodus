@@ -24,4 +24,5 @@ target_link_libraries (parodus
     -lm
     -lssl
     -lcrypto
+    -lnanomsg
     )

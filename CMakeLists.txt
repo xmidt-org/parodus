@@ -52,6 +52,16 @@ ExternalProject_Add(nopoll
 add_library(libnopoll STATIC SHARED IMPORTED)
 add_dependencies(libnopoll nopoll)
 
+# nanoMsg external dependency
+ExternalProject_Add(nanomsg
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
+    GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
+    GIT_TAG "master"
+    )
+add_library(libnanomsg STATIC SHARED IMPORTED)
+add_dependencies(libnanomsg nanomsg)
+
+
 
 # msgpack-c external dependency
 ExternalProject_Add(msgpack
