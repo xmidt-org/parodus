@@ -13,20 +13,24 @@
 #include "cJSON.h"
 #include "nopoll.h"
 #include <sys/time.h>
-
+#include <sys/sysinfo.h>
+#include "wss_mgr.h"
 #include "pthread.h"
 #include "msgpack.h"
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <getopt.h>
 #include "signal.h"
+#include "wrp-c.h"
+#include <assert.h>
 #include <nanomsg/nn.h>
-#include <nanomsg/bus.h>
-#include <nanomsg/reqrep.h>
+#include <nanomsg/pipeline.h>
+
+
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
-#define WEBPA_CLIENT					"webpa_client"
 
 /* WebPA default Config */
 #define WEBPA_SERVER_URL                                "talaria-beta.webpa.comcast.net"
@@ -34,16 +38,18 @@
 #define WEBPA_RETRY_INTERVAL_SEC                        10
 #define WEBPA_MAX_PING_WAIT_TIME_SEC                    180
 
-/* Notify Macros */
-#define WEBPA_SET_INITIAL_NOTIFY_RETRY_COUNT            5 
-#define WEBPA_SET_INITIAL_NOTIFY_RETRY_SEC              15
-#define WEBPA_NOTIFY_EVENT_HANDLE_INTERVAL_MSEC         250
-
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
-#define MAX_PARAMETERNAME_LEN				512
+#define WEBPA_UPSTREAM "tcp://127.0.0.1:6666"
+
+
+#define IOT "iot"
+#define HARVESTER "harvester"
+#define GET_SET "get_set"
+
 #define parodus_free(__x__) if(__x__ != NULL) { free((void*)(__x__)); __x__ = NULL;} else {printf("Trying to free null pointer\n");}
+
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -57,33 +63,46 @@ typedef struct WebpaMsg__
 	struct WebpaMsg__ *next;
 } WebpaMsg;
 
-
-typedef struct NanoMsg__
+typedef struct UpStreamMsg__
 {
-	char *nanoMsgData;
-	struct NanoMsg__ *next;
-} NanoMsg;
+	void *msg;
+	size_t len;
+	struct UpStreamMsg__ *next;
+} UpStreamMsg;
+
+typedef struct reg_client__
+{
+	int sock;
+	char service_name[32];
+	char url[100];
+} reg_client;
+
+static int numOfClients = 0;
+reg_client *clients[];
 
 
+typedef enum
+{
+    PAR_SUCCESS = 0,                    /**< Success. */
+    PAR_FAILURE                        /**< General Failure */
+} PAR_STATUS;
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-static WebPaCfg webPaCfg;
+
+static ParodusCfg parodusCfg;
 static noPollCtx *ctx = NULL;
 static noPollConn *conn = NULL;
 static pthread_t heartBeatThreadId;
 static char deviceMAC[32]={'\0'}; 
 static volatile int heartBeatTimer = 0;
 static volatile bool terminated = false;
-char *reconnect_reason = NULL;
-static bool LastReasonStatus = false;
-
-
-static NanoMsg *nanoMsgQ = NULL;
 static bool close_retry = false;
-
-
+static bool LastReasonStatus = false;
+char *reconnect_reason = NULL;
+static WebpaMsg *webpaMsgQ = NULL;
+static UpStreamMsg *UpStreamMsgQ = NULL;
 static void __close_and_unref_connection__(noPollConn *conn);
 
 pthread_mutex_t mut=PTHREAD_MUTEX_INITIALIZER;
@@ -99,42 +118,32 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 static char createNopollConnection();
-
+static void listenerOnMessage(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
 static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
 static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data);
-
 void getCurrentTime(struct timespec *timer);
 uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer);
-
 long timeValDiff(struct timespec *starttime, struct timespec *finishtime);
-static void getDeviceMac();
-static void initHeartBeatHandler();
-static void *heartBeatHandlerTask();
 
-
-static WAL_STATUS copyConfigFile();
 static int checkHostIp(char * serverIP);
-static WAL_STATUS __loadCfgFile(cJSON *config, WebPaCfg *cfg);
-static void macToLower(char macValue[], char macConverted[]);
-
-
-static void initNanoMsgTask();
-static void *NanoMsgHandlerTask();
-static void processNanomsgTask();
-static void *processHandlerTask();
-static void handleUpstreamMessage(UpstreamMsg *upstreamMsg);
-static void handleNanoMsgEvents();
-int server_recv ();
-
+static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
+static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data);
+static void initMessageHandler();
+static void *messageHandlerTask();
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
-
+void parStrncpy(char *destStr, const char *srcStr, size_t destSize);
 
 noPollPtr createMutex();
 void lockMutex(noPollPtr _mutex);
 void unlockMutex(noPollPtr _mutex);
 void destroyMutex(noPollPtr _mutex);
+PAR_STATUS __attribute__ ((weak)) checkDeviceInterface();
 
-WAL_STATUS __attribute__ ((weak)) checkDeviceInterface();
+static void initUpStreamTask();
+static void *handle_upstream();
+static void processUpStreamTask();
+static void *processUpStreamHandler();
+static void handleUpStreamEvents();
 
 /**
  * @brief __report_log Nopoll log handler 
@@ -144,7 +153,7 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 {
 	if (level == NOPOLL_LEVEL_DEBUG) 
 	{
-  	        printf("Debug: %s\n", log_msg);
+  	     printf("Debug: %s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_INFO) 
 	{
@@ -152,11 +161,11 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 	}
 	if (level == NOPOLL_LEVEL_WARNING) 
 	{
-  	        printf("Warning: %s\n", log_msg);
+  	     printf("Warning: %s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_CRITICAL) 
 	{
-  	        printf("Error: %s\n", log_msg);
+  	     printf("Error: %s\n", log_msg);
 	}
 	return;
 }
@@ -171,13 +180,13 @@ void __close_and_unref_connection__(noPollConn *conn)
     }
 }
 
-void __createSocketConnection(void *config_in, void (* initKeypress)())
-{
-    cJSON *config = (cJSON*) config_in;
 
-	__loadCfgFile(config, &webPaCfg);
-	printf("Port : %d and Address : %s and Outbound Interface: %s \n", webPaCfg.serverPort, webPaCfg.serverIP, webPaCfg.interfaceName);
-	
+void __createSocketConnection(void *config_in, void (* initKeypress)())
+
+{
+    ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
+   loadParodusCfg(tmpCfg,&parodusCfg);
+		
 	printf("Configure nopoll thread handlers in Webpa \n");
 	nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
 
@@ -191,22 +200,51 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
   		nopoll_log_set_handler (ctx, __report_log, NULL);
 	#endif
 
-
-	getDeviceMac();
 	createNopollConnection();
-	initNanoMsgTask();
-	processNanomsgTask();
+	
+	initUpStreamTask();
+	processUpStreamTask();
+		
 	initMessageHandler();
-	initHeartBeatHandler();
 	
 	if (NULL != initKeypress) 
 	{
   		(* initKeypress) ();
 	}
-
+	int intTimer=0;
 	do
 	{
+		printf("Inside do while\n");
 		nopoll_loop_wait(ctx, 5000000);
+		
+		intTimer = intTimer + 5;
+		printf("intTimer value is:%d\n", intTimer);
+		if(heartBeatTimer >= parodusCfg.webpa_ping_timeout) 
+		{
+			if(!close_retry) 
+			{
+				printf("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", parodusCfg.webpa_ping_timeout);
+							
+				reconnect_reason = "Ping_Miss";
+				LastReasonStatus = true;
+				pthread_mutex_lock (&close_mut);
+				close_retry = true;
+				pthread_mutex_unlock (&close_mut);
+			}
+			else
+			{
+				printf("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+			}
+			heartBeatTimer = 0;
+		}
+		else if(intTimer >= 30)
+		{
+			printf("heartBeatTimer %d\n",heartBeatTimer);
+			heartBeatTimer += HEARTBEAT_RETRY_SEC;	
+			intTimer = 0;		
+		}
+		
+		
 		if(close_retry)
 		{
 			printf("close_retry is %d, hence closing the connection and retrying\n", close_retry);
@@ -214,7 +252,8 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
 			conn = NULL;
 			createNopollConnection();
 		}		
-	} while(!close_retry);	
+	} while(!close_retry);
+	  	
 	__close_and_unref_connection__(conn);
 	nopoll_ctx_unref(ctx);
 	nopoll_cleanup_library();
@@ -244,14 +283,6 @@ void terminateSocketConnection()
 	
 	for (i=0; i<15; i++) 
 	{
-		sleep(2);
-		if (NULL == notifyMsgQ) 
-		{
-			break;
-		}
-	}
-	for (i=0; i<15; i++) 
-	{
 		pthread_mutex_lock (&mut);		
 		if(webpaMsgQ == NULL)
 		{
@@ -274,115 +305,81 @@ void terminateSocketConnection()
 	nopoll_cleanup_library();
 }
 
-
-/*
- * @brief __loadCfgFile To load the config file.
- */
-static WAL_STATUS __loadCfgFile(cJSON *config, WebPaCfg *cfg)
+static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 {
-	FILE *fp;
-	cJSON *webpa_cfg = NULL;
-	char *cfg_file_content = NULL, *temp_ptr = NULL;
-	int ch_count = 0;
-	cJSON *notifyArray = NULL;
-	int i = 0;
-
-  	if (NULL != config) 
-	{
-   	 	webpa_cfg = config;
-	} 
-	else // NULL == config
-	{ 
-
-		if(WAL_SUCCESS != copyConfigFile())
-		{
-			printf("Using the default configuration details.\n");
-			walStrncpy(cfg->serverIP,WEBPA_SERVER_URL,sizeof(cfg->serverIP));
-			cfg->serverPort = WEBPA_SERVER_PORT;
-			cfg->secureFlag = true;
-			walStrncpy(cfg->interfaceName, WEBPA_CFG_DEVICE_INTERFACE, sizeof(cfg->interfaceName));
-			cfg->retryIntervalInSec = WEBPA_RETRY_INTERVAL_SEC;
-			cfg->maxPingWaitTimeInSec = WEBPA_MAX_PING_WAIT_TIME_SEC;
-			printf("cfg->serverIP : %s cfg->serverPort : %d cfg->interfaceName :%s cfg->retryIntervalInSec : %d cfg->maxPingWaitTimeInSec : %d\n", cfg->serverIP, cfg->serverPort, cfg->interfaceName, cfg->retryIntervalInSec, cfg->maxPingWaitTimeInSec);
-			return WAL_SUCCESS;
-		}
-		else
-		{
-			fp = fopen(WEBPA_CFG_FILE, "r");
-		}
-	
-	if (fp == NULL) 
-	{
-		printf("Failed to open cfg file %s\n", WEBPA_CFG_FILE);
-		return WAL_FAILURE;
-	}
-	
-	fseek(fp, 0, SEEK_END);
-	ch_count = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	cfg_file_content = (char *) malloc(sizeof(char) * (ch_count + 1));
-	fread(cfg_file_content, 1, ch_count,fp);
-	cfg_file_content[ch_count] ='\0';
-	fclose(fp);
-
-	webpa_cfg = cJSON_Parse(cfg_file_content);
-	} // end NULL == config
-
-	if(webpa_cfg) 
-	{
-    		cJSON * json_obj;
-		printf("**********Loading Webpa Config***********\n");
-		temp_ptr = cJSON_GetObjectItem(webpa_cfg, WEBPA_CFG_SERVER_IP)->valuestring;
-		strncpy(cfg->serverIP, temp_ptr,strlen(temp_ptr));
-		cfg->serverPort = cJSON_GetObjectItem(webpa_cfg, WEBPA_CFG_SERVER_PORT)->valueint;
-    		json_obj = cJSON_GetObjectItem(webpa_cfg, WEBPA_CFG_SERVER_SECURE);
-		if (NULL == json_obj) 
-		{
-			cfg->secureFlag = true;
-		} 
-		else
- 		{
-			cfg->secureFlag = json_obj->valueint;
-		}
-		walStrncpy(cfg->interfaceName, WEBPA_CFG_DEVICE_INTERFACE, sizeof(cfg->interfaceName));
-		cfg->retryIntervalInSec = cJSON_GetObjectItem(webpa_cfg, WEBPA_CFG_RETRY_INTERVAL)->valueint;
-		cfg->maxPingWaitTimeInSec = cJSON_GetObjectItem(webpa_cfg, WEBPA_CFG_PING_WAIT_TIME)->valueint;
-		printf("cfg->serverIP : %s cfg->serverPort : %d\n cfg->secureFlag %d\n cfg->interfaceName :%s\n cfg->retryIntervalInSec : %d cfg>maxPingWaitTimeInSec : %d\n", 
-      cfg->serverIP, cfg->serverPort, cfg->secureFlag, cfg->interfaceName, cfg->retryIntervalInSec, cfg->maxPingWaitTimeInSec);
-
-		if(cJSON_GetObjectItem(webpa_cfg, WEBPA_CFG_FIRMWARE_VER) != NULL)
-		{
-			temp_ptr = cJSON_GetObjectItem(webpa_cfg, WEBPA_CFG_FIRMWARE_VER)->valuestring;
-			strncpy(cfg->oldFirmwareVersion, temp_ptr, strlen(temp_ptr)+1);
-			printf("cfg->oldFirmwareVersion : %s\n", cfg->oldFirmwareVersion);
-		}
-		else
-		{
-			strcpy(cfg->oldFirmwareVersion,"");
-		}
-
-		if (NULL == config) 
-		{		
-			cJSON_Delete(webpa_cfg);
-		}
-	}
-	else 
-	{
-		printf("Error parsing WebPA config file\n");
-	}
-	if (NULL == config) 
-	{
-		parodus_free(cfg_file_content);
-	}
-	return WAL_SUCCESS;
+    ParodusCfg *pConfig =config;
+    
+    if(strlen (pConfig->hw_model) !=0)
+    {
+        strncpy(cfg->hw_model, pConfig->hw_model,strlen(pConfig->hw_model)+1);
+        
+    }
+    else
+    {
+        //printf("hw_model is NULL. read from tmp file\n");
+    }
+    if( strlen(pConfig->hw_serial_number) !=0)
+    {
+        strncpy(cfg->hw_serial_number, pConfig->hw_serial_number,strlen(pConfig->hw_serial_number)+1);
+    }
+    else
+    {
+        //printf("hw_serial_number is NULL. read from tmp file\n");
+    }
+    if(strlen(pConfig->hw_manufacturer) !=0)
+    {
+        strncpy(cfg->hw_manufacturer, pConfig->hw_manufacturer,strlen(pConfig->hw_manufacturer)+1);
+    }
+    else
+    {
+        //printf("hw_manufacturer is NULL. read from tmp file\n");
+    }
+    if(strlen(pConfig->hw_mac) !=0)
+    {
+       strncpy(cfg->hw_mac, pConfig->hw_mac,strlen(pConfig->hw_mac)+1);
+    }
+    else
+    {
+        //printf("hw_mac is NULL. read from tmp file\n");
+    }
+    if(strlen (pConfig->hw_last_reboot_reason) !=0)
+    {
+         strncpy(cfg->hw_last_reboot_reason, pConfig->hw_last_reboot_reason,strlen(pConfig->hw_last_reboot_reason)+1);
+    }
+    else
+    {
+        //printf("hw_last_reboot_reason is NULL. read from tmp file\n");
+    }
+    if(strlen(pConfig->fw_name) !=0)
+    {   
+        strncpy(cfg->fw_name, pConfig->fw_name,strlen(pConfig->fw_name)+1);
+    }
+    else
+    {
+        //printf("fw_name is NULL. read from tmp file\n");
+    }
+    if( strlen(pConfig->webpa_url) !=0)
+    {
+        strncpy(cfg->webpa_url, pConfig->webpa_url,strlen(pConfig->webpa_url)+1);
+    }
+    else
+    {
+        //printf("webpa_url is NULL. read from tmp file\n");
+    }
+    if(strlen(pConfig->webpa_interface_used )!=0)
+    {
+        strncpy(cfg->webpa_interface_used, pConfig->webpa_interface_used,strlen(pConfig->webpa_interface_used)+1);
+    }
+    else
+    {
+        //printf("webpa_interface_used is NULL. read from tmp file\n");
+    }
+        
+    cfg->boot_time = pConfig->boot_time;
+    cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
+    cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
+      
 }
-
-WAL_STATUS loadCfgFile(const char *cfgFileName, WebPaCfg *cfg)
-{
-	// first parameter is not used
-	return __loadCfgFile (NULL, cfg);
-}
-
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -532,14 +529,14 @@ static char createNopollConnection()
 	char *temp_ptr;
 	cJSON *resParamObj1 = NULL ,*resParamObj2 = NULL,*resParamObj3 = NULL ,*resParamObj4 = NULL , *parameters = NULL;
 	cJSON *response = cJSON_CreateObject();
-	char *dbCID = NULL, *dbCMC = NULL, *buffer = NULL, *firmwareVersion = NULL, *modelName = NULL, *manufacturer = NULL;
+	char *buffer = NULL, *firmwareVersion = NULL, *modelName = NULL, *manufacturer = NULL;
 	
 	char *reboot_reason = NULL;
 	char encodedData[1024];
 	int  encodedDataSize = 1024;
 	int i=0, j=0, connErr=0;
 
-	time_t bootTime_sec;
+	int bootTime_sec;
 	struct sysinfo s_info;
 	unsigned int upTime=0;
 	struct timespec currentTime;
@@ -550,51 +547,32 @@ static char createNopollConnection()
 	endPtr = &end;
 	connErr_startPtr = &connErr_start;
 	connErr_endPtr = &connErr_end;
-	
+	strcpy(deviceMAC, parodusCfg.hw_mac);
 	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
 	printf("Device_id %s\n",device_id);
 
 	headerValues[0] = device_id;
-	headerValues[1] = "wrp-0.11,getset-0.1";
+	headerValues[1] = "wrp-0.11,getset-0.1";    
 	
-        
-	if(sysinfo(&s_info))
-	{   
-	    	printf("Failed to get system uptime, sysinfo retunrs failure\n");   
-		upTime = 0;
-	}      
-	else   
-	{     
-	    upTime = s_info.uptime;
-	    printf("upTime is:%d\n",  upTime);
 	
-	}              
-	
-	printf("upTime %d\n",upTime);
-	
-	gettimeofday(&currentTime, NULL);
-	bootTime_sec = currentTime.tv_sec - upTime;
-	info = gmtime(&bootTime_sec);
-	strftime(timeInUTC, sizeof(timeInUTC), "%a %b %d %H:%M:%S %Z %Y", info);
-	printf("UTC Boot time: %s, BootTime In sec: %d\n",timeInUTC, bootTime_sec);
-
-
+	bootTime_sec = parodusCfg.boot_time;
+	printf("BootTime In sec: %d\n", bootTime_sec);
+	firmwareVersion = parodusCfg.fw_name;
+    modelName = parodusCfg.hw_model;
+    manufacturer = parodusCfg.hw_manufacturer;
     	snprintf(user_agent, sizeof(user_agent),
              "WebPA-1.6 (%s; %s/%s;)",
-             ((NULL != firmwareVersion) ? firmwareVersion : "unknown"),
-             ((NULL != modelName) ? modelName : "unknown"),
-             ((NULL != manufacturer) ? manufacturer : "unknown"));
+             ((0 != strlen(firmwareVersion)) ? firmwareVersion : "unknown"),
+             ((0 != strlen(modelName)) ? modelName : "unknown"),
+             ((0 != strlen(manufacturer)) ? manufacturer : "unknown"));
 
 	printf("User-Agent: %s\n",user_agent);
 	headerValues[2] = user_agent;
-
-	
 	reconnect_reason = "webpa_process_starts";	
 	printf("Received reconnect_reason as:%s\n", reconnect_reason);
-
-	reboot_reason = "unknown";
+	reboot_reason = parodusCfg.hw_last_reboot_reason;
 	printf("Received reboot_reason as:%s\n", reboot_reason);
-		
+	
 	if(firmwareVersion != NULL )
 	{
 		cJSON_AddItemToObject(response, "parameters", parameters = cJSON_CreateArray());
@@ -670,14 +648,13 @@ static char createNopollConnection()
                 
 	}
 	
-	parodus_free(reconnect_reason);
-	parodus_free(reboot_reason);
 	cJSON_Delete(response);
-	parodus_free(buffer);
+	//parodus_free(buffer);
 	
-	snprintf(port,sizeof(port),"%d",webPaCfg.serverPort);
-	walStrncpy(server_Address, webPaCfg.serverIP, sizeof(server_Address));
+	snprintf(port,sizeof(port),"%d",8080);
+	parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
 	printf("server_Address %s\n",server_Address);
+	
 	do
 	{
 		/* Check if device interface is up and has IP then proceed with connection else wait till interface is up.
@@ -688,7 +665,7 @@ static char createNopollConnection()
 		{
 			getCurrentTime(startPtr);
 			int count = 0;
-			while(checkDeviceInterface() != WAL_SUCCESS)
+			while(checkDeviceInterface() != PAR_SUCCESS)
 			{
 				getCurrentTime(endPtr);
 
@@ -701,30 +678,32 @@ static char createNopollConnection()
 				}
 				if(count == 0)
 				{
-					printf("Interface %s is down, hence waiting\n",WEBPA_CFG_DEVICE_INTERFACE);
+					printf("Interface %s is down, hence waiting\n",parodusCfg.webpa_interface_used);
 				}
 				else if(count > 5)
 					count = -1;
 
-				sleep(webPaCfg.retryIntervalInSec);
+				sleep(10);
 				count++;
 			}
 		}	
-				
-		if(webPaCfg.secureFlag) 
+		parodusCfg.secureFlag = 1;	
+		if(parodusCfg.secureFlag) 
 		{
+		    printf("secure true\n");
 			/* disable verification */
 			opts = nopoll_conn_opts_new ();
 			nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
 			nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2); 
 			conn = nopoll_conn_tls_new(ctx, opts, server_Address, port, NULL,
-                               "/api/v2/device", NULL, NULL, webPaCfg.interfaceName,
+                               "/api/v2/device", NULL, NULL, parodusCfg.webpa_interface_used,
                                 headerNames, headerValues, headerCount);// WEBPA-787
 		}
 		else 
 		{
+		    printf("secure false\n");
 			conn = nopoll_conn_new(ctx, server_Address, port, NULL,
-                               "/api/v2/device", NULL, NULL, webPaCfg.interfaceName,
+                               "/api/v2/device", NULL, NULL, parodusCfg.webpa_interface_used,
                                 headerNames, headerValues, headerCount);// WEBPA-787
 		}
 
@@ -735,13 +714,13 @@ static char createNopollConnection()
 				printf("Error connecting to server\n");
 				printf("RDK-10037 - WebPA Connection Lost\n");
 				// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-				walStrncpy(server_Address, webPaCfg.serverIP, sizeof(server_Address));
+				parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
 				__close_and_unref_connection__(conn);
 				conn = NULL;
 				initial_retry = true;
 				// temp_retry flag if made false to force interface status check
 				temp_retry = false;
-				sleep(webPaCfg.retryIntervalInSec);
+				sleep(10);
 				continue;
 			}
 			else 
@@ -751,7 +730,7 @@ static char createNopollConnection()
 				temp_retry = false;
 			}
 
-			if(!nopoll_conn_wait_until_connection_ready(conn, webPaCfg.retryIntervalInSec, redirectURL)) 
+			if(!nopoll_conn_wait_until_connection_ready(conn, 10, redirectURL)) 
 			{
 				if (strncmp(redirectURL, "Redirect:", 9) == 0) // only when there is a http redirect
 				{
@@ -760,8 +739,8 @@ static char createNopollConnection()
 					temp_ptr = strtok(redirectURL , ":"); //skip Redirect 
 					temp_ptr = strtok(NULL , ":"); // skip https
 					temp_ptr = strtok(NULL , ":");
-					walStrncpy(server_Address, temp_ptr+2, sizeof(server_Address));
-					walStrncpy(port, strtok(NULL , "/"), sizeof(port));
+					parStrncpy(server_Address, temp_ptr+2, sizeof(server_Address));
+					parStrncpy(port, strtok(NULL , "/"), sizeof(port));
 					printf("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
 				}
 				else
@@ -769,8 +748,8 @@ static char createNopollConnection()
 					printf("Client connection timeout\n");	
 					printf("RDK-10037 - WebPA Connection Lost\n");
 					// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-					walStrncpy(server_Address, webPaCfg.serverIP, sizeof(server_Address));
-					sleep(webPaCfg.retryIntervalInSec);
+					parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
+					sleep(10);
 				}
 				__close_and_unref_connection__(conn);
 				conn = NULL;
@@ -790,7 +769,7 @@ static char createNopollConnection()
 			/* If the connect error is due to DNS resolving to 10.0.0.1 then start timer.
 			 * Timeout after 15 minutes if the error repeats continuously and kill itself. 
 			 */
-			if((checkHostIp(server_Address) == -2) && (checkDeviceInterface() == WAL_SUCCESS)) 	
+			if((checkHostIp(server_Address) == -2) && (checkDeviceInterface() == PAR_SUCCESS)) 	
 			{
 				if(connErr == 0)
 				{
@@ -814,13 +793,13 @@ static char createNopollConnection()
 			}
 			initial_retry = true;
 			temp_retry = false;
-			sleep(webPaCfg.retryIntervalInSec);
+			sleep(10);
 			// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-			walStrncpy(server_Address, webPaCfg.serverIP, sizeof(server_Address));
+			parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
 		}
 	}while(initial_retry);
-
-	if(webPaCfg.secureFlag) 
+	
+	if(parodusCfg.secureFlag) 
 	{
 		printf("Connected to server over SSL\n");
 	}
@@ -843,20 +822,20 @@ static char createNopollConnection()
 	reconnect_reason = "webpa_process_starts";
 	LastReasonStatus = true;
 
-	//nopoll_conn_set_on_msg(conn, (noPollOnMessageHandler) listenerOnMessage_queue, NULL);
+	nopoll_conn_set_on_msg(conn, (noPollOnMessageHandler) listenerOnMessage_queue, NULL);
 	nopoll_conn_set_on_ping_msg(conn, (noPollOnMessageHandler)listenerOnPingMessage, NULL);
 	nopoll_conn_set_on_close(conn, (noPollOnCloseHandler)listenerOnCloseMessage, NULL);
 	return nopoll_true;
 }
 
-WAL_STATUS checkDeviceInterface()
+PAR_STATUS checkDeviceInterface()
 {
 	int link[2];
 	pid_t pid;
 	char statusValue[512] = {'\0'};
-	char* data =NULL;
+	char *ipv4_valid =NULL, *addr_str = NULL, *ipv6_valid = NULL;
 	int nbytes =0;
-	WAL_STATUS status = WAL_FAILURE;
+	PAR_STATUS status = PAR_FAILURE;
 	
 	if (pipe(link) == -1)
 	{
@@ -878,22 +857,31 @@ WAL_STATUS checkDeviceInterface()
 		dup2 (link[1], STDOUT_FILENO);
 		close(link[0]);
 		close(link[1]);	
-		execl("/sbin/ifconfig", "ifconfig", WEBPA_CFG_DEVICE_INTERFACE, (char *)0);
+		execl("/sbin/ifconfig", "ifconfig", parodusCfg.webpa_interface_used, (char *)0);
 	}	
 	else 
 	{
 		close(link[1]);
-		nbytes = read(link[0], statusValue, sizeof(statusValue));
+		nbytes = read(link[0], statusValue, sizeof(statusValue)-1);
 		printf("statusValue is :%s\n", statusValue);
-		
-		if ((data = strstr(statusValue, "inet addr:")) !=NULL)
+		ipv4_valid = strstr(statusValue, "inet addr:");
+		printf("ipv4_valid %s\n", (ipv4_valid != NULL) ? ipv4_valid : "NULL");
+		addr_str = strstr(statusValue, "inet6 addr:");
+		printf("addr_str %s\n", (addr_str != NULL) ? addr_str : "NULL");
+		if(addr_str != NULL)
 		{
-			printf("Interface %s is up\n",WEBPA_CFG_DEVICE_INTERFACE);
-			status = WAL_SUCCESS;
+			ipv6_valid = strstr(addr_str, "Scope:Global");
+			printf("ipv6_valid %s\n", (ipv6_valid != NULL) ? ipv6_valid : "NULL");
+		}
+
+		if (ipv4_valid != NULL || ipv6_valid != NULL)
+		{
+			printf("Interface %s is up\n",parodusCfg.webpa_interface_used);
+			status = PAR_SUCCESS;
 		}
 		else
 		{
-			printf("Interface %s is down\n",WEBPA_CFG_DEVICE_INTERFACE);
+			printf("Interface %s is down\n",parodusCfg.webpa_interface_used);
 		}
 		
 		if(pid == wait(NULL))
@@ -964,217 +952,445 @@ static int checkHostIp(char * serverIP)
 	return status; 
 }    
        
-
-/*
- * @brief To initiate nanomessage handling
+ 
+ /*
+ * @brief To initiate UpStream message handling
  */
 
-static void initNanoMsgTask()
+static void initUpStreamTask()
 {
 	int err = 0;
-	pthread_t NanoMsgThreadId;
-	nanoMsgQ = NULL;
+	pthread_t UpStreamMsgThreadId;
+	UpStreamMsgQ = NULL;
 
-	err = pthread_create(&NanoMsgThreadId, NULL, NanoMsgHandlerTask, NULL);
+	err = pthread_create(&UpStreamMsgThreadId, NULL, handle_upstream, NULL);
 	if (err != 0) 
 	{
 		printf("Error creating messages thread :[%s]\n", strerror(err));
 	}
 	else
 	{
-		printf("NanoMsgHandlerTask thread created Successfully\n");
+		printf("handle_upstream thread created Successfully\n");
 	}
 }
 
 /*
- * @brief To handle nano messages which will receive msg from server socket
+ * @brief To handle UpStream messages which is received from nanomsg server socket
  */
-static void *NanoMsgHandlerTask()
+
+static void *handle_upstream()
 {
-	//while(1)
-	//{	
-	printf("server is starting..\n");	
-	server_recv();
-	printf("After server_recv..\n");
+		
+	UpStreamMsg *message;	
+		
+	int sock = nn_socket( AF_SP, NN_PULL );
+	nn_bind(sock, WEBPA_UPSTREAM );
 	
-				
-	//}
-	printf ("Ended NanoMsgHandlerTask\n");
-}
-
-
-int server_recv ()
-{
-	//check here
-	const char* url = NULL;
-	const char* msg = NULL;
-	
-	
-	printf("Inside Server function, URL = %s\n", url);
-	int sock = nn_socket (AF_SP, NN_BUS);
-	printf("Before Assert 1\n");
-	assert (sock >= 0);
-	printf("Before Assert 2\n");
-	nn_bind (sock, url);
-	//assert (nn_bind (sock, url) >= 0);
-	printf("Before While \n");
-
 	pthread_mutex_lock (&nano_prod_mut);
-	while(1)
+	while( 1 ) 
 	{
 	
-		char *buf = NULL;
-		printf("Gone into the listening mode...\n");
+		void *buf = NULL;
+		printf("nanomsg server gone into the listening mode...\n");
+		
 		int bytes = nn_recv (sock, &buf, NN_MSG, 0);
-		//      assert (bytes >= 0);
-		printf ("CLIENT: RECEIVED \"%s\"\n", buf);
-
-		//Producer adds the nanoMsg into queue
-		if(nanoMsgQ == NULL)
+		
+		printf ("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
+		message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
+		if(message)
 		{
-			nanoMsgQ->nanoMsgData = buf;
-			nanoMsgQ->next = NULL;
-			printf("Producer added message\n");
-		 	pthread_cond_signal(&nano_con);
-			pthread_mutex_unlock (&nano_prod_mut);
-			printf("mutex unlock in producer thread\n");
+			message->msg =buf;
+			message->len =bytes;
+			message->next=NULL;
+
+			//Producer adds the nanoMsg into queue
+			if(UpStreamMsgQ == NULL)
+			{
+	
+				UpStreamMsgQ = message;
+				
+				printf("Producer added message\n");
+			 	pthread_cond_signal(&nano_con);
+				pthread_mutex_unlock (&nano_prod_mut);
+				printf("mutex unlock in producer thread\n");
+			}
+			else
+			{
+				UpStreamMsg *temp = UpStreamMsgQ;
+				while(temp->next)
+				{
+					temp = temp->next;
+				}
+			
+				temp->msg = buf;
+				temp->len = bytes;
+				temp->next = NULL;
+			
+				pthread_mutex_unlock (&nano_prod_mut);
+			}
+			
+			nn_freemsg (buf);		
 		}
 		else
 		{
-			NanoMsg *temp = nanoMsgQ;
-			while(temp->next)
-			{
-				temp = temp->next;
-			}
-			
-			temp->nanoMsgData = buf;
-			temp->next = NULL;
-			
-			pthread_mutex_unlock (&nano_prod_mut);
+			printf("failure in alloaction for message\n");
 		}
-		
-	        nn_freemsg (buf);
+				
 	}
-
-	return nn_shutdown (sock, 0);
+	printf ("End of handle_upstream\n");
 }
+
 
 /*
  * @brief To process the received msg and to send upstream
  */
 
-static void processNanomsgTask()
+static void processUpStreamTask()
 {
 	int err = 0;
-	pthread_t processNanomsgThreadId;
-	nanoMsgQ = NULL;
+	pthread_t processUpStreamThreadId;
+	UpStreamMsgQ = NULL;
 
-	err = pthread_create(&processNanomsgThreadId, NULL, processHandlerTask, NULL);
+	err = pthread_create(&processUpStreamThreadId, NULL, processUpStreamHandler, NULL);
 	if (err != 0) 
 	{
 		printf("Error creating messages thread :[%s]\n", strerror(err));
 	}
 	else
 	{
-		printf("processHandlerTask thread created Successfully\n");
+		printf("processUpStreamHandler thread created Successfully\n");
 	}
 }
 
 
 
-static void *processHandlerTask()
+static void *processUpStreamHandler()
 {
-	printf("Inside processHandlerTask..\n");
-	handleNanoMsgEvents();
-	printf("After
+	printf("Inside processUpStreamHandler..\n");
+	handleUpStreamEvents();
 }
 
-static void handleNanoMsgEvents()
-{
-	printf("Inside handleNanoMsgEvents\n");	
-	msgpack_zone mempool;
-	msgpack_object deserialized;
-	msgpack_unpack_return unpack_ret;
-	char * decodeMsg =NULL;
-	int decodeMsgSize =0;
-	int size =0;
-	UpstreamMsg *upstreamMsg;
-
+static void handleUpStreamEvents()
+{		
+	int rv=-1;	
+	int msgType;
+	wrp_msg_t *msg;
+	UpStreamMsg *upStreamMsg;	
+	int i =0;
+	int matchFlag = 0;	
+	int sock =0;
+	
+	sock = nn_socket( AF_SP, NN_PUSH );
+	
 	pthread_mutex_lock (&nano_cons_mut);
 	printf("mutex lock in consumer thread\n");
-	if(nanoMsgQ != NULL)
+	while(1)
 	{
-		NanoMsg *message = nanoMsgQ;
-		nanoMsgQ = nanoMsgQ->next;
-		pthread_mutex_unlock (&nano_cons_mut);
-		printf("mutex unlock in consumer thread\n");
-		if (!terminated) 
+		if(UpStreamMsgQ != NULL)
 		{
-			
-			decodeMsgSize = b64_get_decoded_buffer_size(strlen(message->nanoMsgData));
-			decodeMsg = (char *) malloc(sizeof(char) * decodeMsgSize);
-		
-			size = b64_decode( message->nanoMsgData, strlen(message->nanoMsgData), decodeMsg );
-
-			//Start of msgpack decoding just to verify -->need to replace this with wrp-c msgpack apis
-			printf("----Start of msgpack decoding----\n");
-			msgpack_zone_init(&mempool, 2048);
-			unpack_ret = msgpack_unpack(decodeMsg, size, NULL, &mempool, &deserialized);
-			printf("unpack_ret is %d\n",unpack_ret);
-			switch(unpack_ret)
+			UpStreamMsg *message = UpStreamMsgQ;
+			UpStreamMsgQ = UpStreamMsgQ->next;
+			pthread_mutex_unlock (&nano_cons_mut);
+			printf("mutex unlock in consumer thread\n");
+			if (!terminated) 
 			{
-				case MSGPACK_UNPACK_SUCCESS:
-					printf("MSGPACK_UNPACK_SUCCESS :%d\n",unpack_ret);
-					printf("\nmsgpack decoded data is:");
-					msgpack_object_print(stdout, deserialized);
-				break;
-				case MSGPACK_UNPACK_EXTRA_BYTES:
-					printf("MSGPACK_UNPACK_EXTRA_BYTES :%d\n",unpack_ret);
-				break;
-				case MSGPACK_UNPACK_CONTINUE:
-					printf("MSGPACK_UNPACK_CONTINUE :%d\n",unpack_ret);
-				break;
-				case MSGPACK_UNPACK_PARSE_ERROR:
-					printf("MSGPACK_UNPACK_PARSE_ERROR :%d\n",unpack_ret);
-				break;
-				case MSGPACK_UNPACK_NOMEM_ERROR:
-					printf("MSGPACK_UNPACK_NOMEM_ERROR :%d\n",unpack_ret);
-				break;
-				default:
-					printf("Message Pack decode failed with error: %d\n", unpack_ret);	
+						
+				printf("----Start of msgpack decoding----\n");
+								
+				rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
+				if(rv > 0)
+				{
+				
+				   msgType = msg->msg_type;
+				   printf("handleUpStreamEvents::msgType received:%d\n", msgType);
+				
+				   if(msgType == 9)
+				   {
+					//Extract serviceName and url & store it in a struct for reg_clients
+					printf("Nanomsg client registration for upstream\n");
+					if(numOfClients !=0)
+					{
+					    for( i = 0; i < numOfClients; i++ ) 
+					    {
+																						
+						if(strcmp(clients[i]->service_name, msg->u.reg.service_name)==0)
+						{
+							printf("match found, client is already registered\n");
+							strcpy(clients[i]->url,msg->u.reg.url);
+							matchFlag = 1;
+							break;
+						}
+					    }
+
+					}
+
+					printf("numOfClients is:%d\n", numOfClients);
+					printf("matchFlag is :%d\n", matchFlag);
+
+					if((matchFlag == 0) || (numOfClients == 0))
+					{
+					
+						clients[numOfClients] = (reg_client*)malloc(sizeof(reg_client));
+
+						nn_connect(sock, msg->u.reg.url);  
+						clients[numOfClients]->sock = sock;
+						 
+						strcpy(clients[numOfClients]->service_name,msg->u.reg.service_name);
+						strcpy(clients[numOfClients]->url,msg->u.reg.url);
+
+						printf("%s\n",clients[numOfClients]->service_name);
+						printf("%s\n",clients[numOfClients]->url);
+						
+						numOfClients =numOfClients+1;
+						nn_shutdown(sock, 0);
+	
+					}
+										      
+
+				    }
+				    else
+				    {
+				    	//Sending to server will be put here for msgtype 5.6. 7. 8
+					//websocket calls will be put here
+					printf("Sending upstream msg to server\n");
+				       
+				    
+				    }
+					
+				}
+				else
+				{
+					printf("Error in msgpack decoding for upstream\n");
+				
+				}
+			
 			}
-
-			msgpack_zone_destroy(&mempool);
-			printf("----End of msgpack decoding----\n");
-			//End of msgpack decoding
-			
-			
-			printf("copying to upstreamMsg->msg,msgLength \n");
-
-			strcpy(	upstreamMsg->msg,  decodeMsg);
-			strcpy( upstreamMsg->msgLength,  size);
-			printf("calling handleUpstreamMessage\n");
-			handleUpstreamMessage(upstreamMsg);
-			
-			printf("After handleUpstreamMessage\n");
-			
-			
-		}
 		
-		//check for free here
-		parodus_free(message);
+			for( i = 0; i < numOfClients; i++ ) 
+			{										
+				printf("******clients[%d].service_name is:%s\n", i, clients[i]->service_name);
+				printf("******msg->u.reg.service_name is:%s\n", msg->u.reg.service_name);
+			}
+			parodus_free(message);
+		}
+		else
+		{
+			printf("Before pthread cond wait in consumer thread\n");   
+			pthread_cond_wait(&nano_con, &nano_prod_mut);
+			pthread_mutex_unlock (&nano_cons_mut);
+			printf("mutex unlock in consumer thread after cond wait\n");
+			if (terminated) {
+				break;
+			}
+		}
+	}
+
+}
+ 
+ 
+        
+/*
+ * @brief To initiate message handling
+ */
+
+static void initMessageHandler()
+{
+	int err = 0;
+	pthread_t messageThreadId;
+	webpaMsgQ = NULL;
+
+	err = pthread_create(&messageThreadId, NULL, messageHandlerTask, NULL);
+	if (err != 0) 
+	{
+		printf("Error creating messages thread :[%s]\n", strerror(err));
 	}
 	else
 	{
-		printf("Before pthread cond wait in consumer thread\n");   
-		pthread_cond_wait(&nano_con, &nano_prod_mut);
-		pthread_mutex_unlock (&nano_cons_mut);
-		printf("mutex unlock in consumer thread after cond wait\n");
-		if (terminated) {
-			break;
+		printf("messageHandlerTask thread created Successfully\n");
+	}
+}
+
+/*
+ * @brief To handle messages
+ */
+static void *messageHandlerTask()
+{
+	while(1)
+	{
+		pthread_mutex_lock (&mut);
+		printf("mutex lock in consumer thread\n");
+		if(webpaMsgQ != NULL)
+		{
+			WebpaMsg *message = webpaMsgQ;
+			webpaMsgQ = webpaMsgQ->next;
+			pthread_mutex_unlock (&mut);
+			printf("mutex unlock in consumer thread\n");
+			if (!terminated) 
+			{
+				listenerOnMessage(message->ctx,message->conn,message->msg,message->user_data);
+			}
+			nopoll_ctx_unref(message->ctx);
+			nopoll_conn_unref(message->conn);
+			nopoll_msg_unref(message->msg);
+			parodus_free(message);
+		}
+		else
+		{
+			printf("Before pthread cond wait in consumer thread\n");   
+			pthread_cond_wait(&con, &mut);
+			pthread_mutex_unlock (&mut);
+			printf("mutex unlock in consumer thread after cond wait\n");
+			if (terminated) 
+			{
+				break;
+			}
 		}
 	}
+	printf ("Ended messageHandlerTask\n");
+}
 
+/**
+ * @brief listenerOnMessage_queue function to add messages to the queue
+ *
+ * @param[in] ctx The context where the connection happens.
+ * @param[in] conn The Websocket connection object
+ * @param[in] msg The message received from server for various process requests
+ * @param[out] user_data data which is to be sent
+ */
+
+static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data)
+{
+	WebpaMsg *message;
+
+	if (terminated) 
+	{
+		return;
+	}
+
+	message = (WebpaMsg *)malloc(sizeof(WebpaMsg));
+
+	if(message)
+	{
+		message->ctx = ctx;
+		message->conn = conn;
+		message->msg = msg;
+		message->user_data = user_data;
+		message->next = NULL;
+
+		nopoll_ctx_ref(ctx);
+		nopoll_conn_ref(conn);
+		nopoll_msg_ref(msg);
+		
+		pthread_mutex_lock (&mut);		
+		printf("mutex lock in producer thread\n");
+		
+		if(webpaMsgQ == NULL)
+		{
+			webpaMsgQ = message;
+			printf("Producer added message\n");
+		 	pthread_cond_signal(&con);
+			pthread_mutex_unlock (&mut);
+			printf("mutex unlock in producer thread\n");
+		}
+		else
+		{
+			WebpaMsg *temp = webpaMsgQ;
+			while(temp->next)
+			{
+				temp = temp->next;
+			}
+			temp->next = message;
+			pthread_mutex_unlock (&mut);
+		}
+	}
+	else
+	{
+		//Memory allocation failed
+		printf("Memory allocation is failed\n");
+	}
+	printf("*****Returned from listenerOnMessage_queue*****\n");
+}
+
+/**
+ * @brief listenerOnMessage function to create WebSocket listener to receive connections
+ *
+ * @param[in] ctx The context where the connection happens.
+ * @param[in] conn The Websocket connection object
+ * @param[in] msg The message received from server for various process requests
+ * @param[out] user_data data which is to be sent
+ */
+static void listenerOnMessage(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data)
+{
+	
+	int msgSize = 0,rv;
+	wrp_msg_t *message;
+	char* destVal = NULL;
+	char dest[32] = {'\0'};
+	char *temp_ptr;
+	int msgType;
+	char* payload=NULL;
+	int p =0;
+	int bytes =0;
+	
+	const char *recivedMsg = NULL;
+	recivedMsg =  (const char *) nopoll_msg_get_payload (msg);
+	if(recivedMsg!=NULL) 
+	{
+		msgSize  = nopoll_msg_get_payload_size (msg);
+
+		rv = wrp_to_struct(recivedMsg, msgSize, WRP_BYTES, &message);
+		printf( "rv is %d\n", rv );
+		msgType = message->msg_type;
+		printf("msgType is:%d\n", msgType);
+		
+		if((message->u.req.dest !=NULL) && (message->u.req.payload !=NULL))
+		{
+			destVal = message->u.req.dest;
+			printf("destVal is :%s\n", destVal);
+			temp_ptr = strtok(destVal , "/");
+			strcpy(dest,strtok(NULL , "/"));
+			printf("dest is:%s\n", dest);
+
+			payload = message->u.req.payload;
+			printf("payload is:%s\n", payload);
+			
+			//Checking for individual clients & Sending to each client
+
+			if (strcmp(dest, "iot") == 0)
+			{
+				
+				for( p = 0; p < numOfClients; p++ ) 
+				{
+				    // Sending message to registered clients
+				    if( strcmp(dest, clients[p]->service_name) == 0) 
+				    {  
+				    	printf("sending to nanomsg client\n");     
+				   	bytes = nn_send(clients[p]->sock, payload, strlen(payload)+1, NN_DONTWAIT);
+					printf("Sent downstream message '%s' to reg_client '%s'\n",payload,clients[p]->url);
+					
+					sleep(10);
+				    }
+				}
+
+			}	
+			else if (strcmp(dest, "harvester") == 0)
+			{
+				printf("dest harvester \n");
+			}
+
+			else if (strcmp(dest, "get-set") == 0)
+			{
+				printf("dest get-set\n");
+			}
+			else
+			{
+			 	printf("unknown dest:%s\n", dest);
+			}
+	  	}
+
+        }
+                
+     
 }
 
 
@@ -1205,27 +1421,26 @@ static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg
 
 static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data)
 {
+		
 	printf("listenerOnCloseMessage(): mutex lock in producer thread\n");
-	WAL_STATUS setReconnectStatus = WAL_FAILURE;
+	PAR_STATUS setReconnectStatus = PAR_FAILURE;
 	
 	if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
 	{
-		
 		reconnect_reason = "Server_closed_connection";
 		LastReasonStatus = true;
 		
 	}
 	else if ((user_data == NULL) && !LastReasonStatus)
 	{
-		
 		reconnect_reason = "Unknown";
-		
 	}
 
 	pthread_mutex_lock (&close_mut);
 	close_retry = true;
 	pthread_mutex_unlock (&close_mut);
 	printf("listenerOnCloseMessage(): mutex unlock in producer thread\n");
+
 }
 
 
@@ -1245,7 +1460,7 @@ void getCurrentTime(struct timespec *timer)
 uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer)
 {
         uint64_t systime = 0;
-	clock_gettime(CLOCK_REALTIME, timer);       
+	    clock_gettime(CLOCK_REALTIME, timer);       
         printf("timer->tv_sec : %lu\n",timer->tv_sec);
         printf("timer->tv_nsec : %lu\n",timer->tv_nsec);
         systime = (uint64_t)timer->tv_sec * 1000000L + timer->tv_nsec/ 1000;
@@ -1267,213 +1482,116 @@ long timeValDiff(struct timespec *starttime, struct timespec *finishtime)
 }
 
 
-/*
- * @brief To get the Device Mac Address.
- * 
- * Device MAC will be CM MAC for RDKB devices and STB MAC for RDKV devices
- */
-static void getDeviceMac()
+
+void parStrncpy(char *destStr, const char *srcStr, size_t destSize)
 {
-
-	char deviceMACValue[32]={'\0'};
-
-	if(strlen(deviceMAC) == 0)
-	{	
-		
-		printf("Inside getDeviceMac\n");
-		FILE *fp;
-		char path[1035];
-
-		/* Open the command for reading. */
-		fp = popen("ifconfig|grep eth0|tr -s ' ' |cut -d ' ' -f5", "r");
-
-		if (fp == NULL) 
-		{
-			printf("Failed to run command\n" );
-			exit(1);
-		}
-
-
-		/* Read the output a line at a time - output it. */
-		if (fgets(path, sizeof(path)-1, fp) != NULL) 
-		{
-			printf("path:%scheck\n", path);
-		}
-
-		/* close */
-		pclose(fp);
-		path[strlen(path)-1] = '\0';
-		strcpy(deviceMACValue, path);
-		printf("getDeviceMacID: deviceMac:%scheck1\n",deviceMACValue);
-	
-		macToLower(deviceMACValue,deviceMAC);
-		printf("deviceMAC after macToLower..%s\n", deviceMAC);
-		
-	}
+    strncpy(destStr, srcStr, destSize-1);
+    destStr[destSize-1] = '\0';
 }
 
-/*
- * @brief To convert MAC to lower case without colon
- * assuming max MAC size as 32
- */
-static void macToLower(char macValue[],char macConverted[])
+int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
-	int i = 0;
-	int j;
-	char *token[32];
-	char tmp[32];
-	walStrncpy(tmp, macValue,sizeof(tmp));
-	token[i] = strtok(tmp, ":");
-	if(token[i]!=NULL)
-	{
-	    strncat(macConverted, token[i],31);
-	    macConverted[31]='\0';
-	    i++;
-	}
-	while ((token[i] = strtok(NULL, ":")) != NULL) 
-	{
-	    strncat(macConverted, token[i],31);
-	    macConverted[31]='\0';
-	    i++;
-	}
-	macConverted[31]='\0';
-	for(j = 0; macConverted[j]; j++)
-	{
-	    macConverted[j] = tolower(macConverted[j]);
-	}
+    
+     int c;
+    while (1)
+    {
+      static struct option long_options[] = {
+          {"hw-model",     required_argument,   0, 'm'},
+          {"hw-serial-number",  required_argument,  0, 's'},
+          {"hw-manufacturer",  required_argument, 0, 'f'},
+          {"hw-mac",  required_argument, 0, 'd'},
+          {"hw-last-reboot-reason",  required_argument, 0, 'r'},
+          {"fw-name",  required_argument, 0, 'n'},
+          {"boot-time",  required_argument, 0, 'b'},
+          {"webpa-url",  required_argument, 0, 'u'},
+          {"webpa-ping-timeout",    required_argument, 0, 'p'},
+          {"webpa-backoff-max",  required_argument, 0, 'o'},
+          {"webpa-inteface-used",    required_argument, 0, 'i'},
+          {0, 0, 0, 0}
+        };
+      /* getopt_long stores the option index here. */
+      int option_index = 0;
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:",long_options, &option_index);
+
+      /* Detect the end of the options. */
+      if (c == -1)
+        break;
+
+      switch (c)
+        {
+        case 'm':
+          strncpy(cfg->hw_model, optarg,strlen(optarg));
+          printf("hw-model is %s\n",cfg->hw_model);
+         break;
+        
+        case 's':
+          strncpy(cfg->hw_serial_number,optarg,strlen(optarg));
+          printf("hw_serial_number is %s\n",cfg->hw_serial_number);
+          break;
+
+        case 'f':
+          strncpy(cfg->hw_manufacturer, optarg,strlen(optarg));
+          printf("hw_manufacturer is %s\n",cfg->hw_manufacturer);
+          break;
+
+        case 'd':
+           strncpy(cfg->hw_mac, optarg,strlen(optarg));
+           printf("hw_mac is %s\n",cfg->hw_mac);
+          break;
+        
+        case 'r':
+          strncpy(cfg->hw_last_reboot_reason, optarg,strlen(optarg));
+          printf("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
+          break;
+
+        case 'n':
+          strncpy(cfg->fw_name, optarg,strlen(optarg));
+          printf("fw_name is %s\n",cfg->fw_name);
+          break;
+
+        case 'b':
+          cfg->boot_time = atoi(optarg);
+          printf("boot_time is %d\n",cfg->boot_time);
+          break;
+       
+         case 'u':
+          strncpy(cfg->webpa_url, optarg,strlen(optarg));
+          printf("webpa_url is %s\n",cfg->webpa_url);
+          break;
+        
+        case 'p':
+          cfg->webpa_ping_timeout = atoi(optarg);
+          printf("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
+          break;
+
+        case 'o':
+          cfg->webpa_backoff_max = atoi(optarg);
+          printf("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
+          break;
+
+        case 'i':
+          strncpy(cfg->webpa_interface_used, optarg,strlen(optarg));
+          printf("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
+          break;
+
+        case '?':
+          /* getopt_long already printed an error message. */
+          break;
+
+        default:
+           printf("Enter Valid commands..\n");
+          abort ();
+        }
+    }
+  
+
+  /* Print any remaining command line arguments (not options). */
+  if (optind < argc)
+    {
+      printf ("non-option ARGV-elements: ");
+      while (optind < argc)
+        printf ("%s ", argv[optind++]);
+      putchar ('\n');
+    }
+
 }
-
-/*
- * @brief To initiate heartbeat mechanism 
- */
-static void initHeartBeatHandler()
-{
-	int err = 0;
-	{
-		err = pthread_create(&heartBeatThreadId, NULL, heartBeatHandlerTask, NULL);
-		if (err != 0) 
-		{
-			printf("Error creating HeartBeat thread :[%s]\n", strerror(err));
-		}
-		else 
-		{
-			printf("heartBeatHandlerTask Thread created successfully\n");
-		}
-	}
-}
-
-
-/*
- * @brief To handle heartbeat mechanism
- */
-static void *heartBeatHandlerTask()
-{
-	WAL_STATUS setReconnectStatus = WAL_FAILURE;
-	while (!terminated)
-	{
-		sleep(HEARTBEAT_RETRY_SEC);
-		if(heartBeatTimer >= webPaCfg.maxPingWaitTimeInSec) 
-		{
-			if(!close_retry) 
-			{
-				printf("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", webPaCfg.maxPingWaitTimeInSec);
-				
-				
-				reconnect_reason = "Ping_Miss";
-				LastReasonStatus = true;
-				
-				pthread_mutex_lock (&close_mut);
-				close_retry = true;
-				pthread_mutex_unlock (&close_mut);
-			}
-			else
-			{
-				printf("heartBeatHandlerTask - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
-			}
-			heartBeatTimer = 0;
-		}
-		else 
-		{
-			printf("heartBeatTimer %d\n",heartBeatTimer);
-			heartBeatTimer += HEARTBEAT_RETRY_SEC;			
-		}
-	}
-	heartBeatTimer = 0;
-	return NULL;
-}
-
-
-/*
- * @brief to copy config file
- */
-static WAL_STATUS copyConfigFile()
-{
-	char ch;
-	FILE *source, *target;
-	if (access(WEBPA_CFG_FILE, F_OK) == -1) 
-	{
-		source = fopen(WEBPA_CFG_FILE_SRC, "r");
-		if(source == NULL)
-			return WAL_FAILURE;
-		if(ferror(source))
-		{
-			printf("Error while reading webpa config file under %s\n", WEBPA_CFG_FILE_SRC);
-			fclose(source);
-			return WAL_FAILURE;
-		}
-		target = fopen(WEBPA_CFG_FILE, "w");
-
-		if(target == NULL)
-		{
-			fclose(source);
-			return WAL_FAILURE;
-		}
-		if(ferror(target))
-		{
-			printf("Error while writing webpa config file under /nvram.\n");
-			fclose(source);
-			fclose(target);
-			return WAL_FAILURE;
-		}	
-		while ((ch = fgetc(source)) != EOF) 
-		{
-			fputc(ch, target);
-			if (feof(source))
-			{
-				break;
-			}
-		}
-		fclose(source);
-		fclose(target);
-		printf("Copied webpa_cfg.json to /nvram\n");
-	}
-	else 
-	{
-		printf("webpa_cfg.json already exist in /nvram\n");
-	}
-	return WAL_SUCCESS;
-}
-
-
-
-static void handleUpstreamMessage(UpstreamMsg *upstreamMsg)
-{
-	int bytesWritten = 0;
-	printf("handleUpstreamMessage length %d\n", upstreamMsg->msgLength);
-	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
-	{
-		bytesWritten = nopoll_conn_send_binary(conn, upstreamMsg->msg, upstreamMsg->msgLength);
-		printf("Number of bytes written: %d\n", bytesWritten);
-		if (bytesWritten != upstreamMsg->msgLength) 
-		{
-			printf("Failed to send bytes %d, bytes written were=%d (errno=%d, %s)..\n", upstreamMsg->msgLength, bytesWritten, errno, strerror(errno));
-		}
-	}
-	else
-	{
-		printf("Failed to send notification as connection is not OK\n");
-	}
-	parodus_free(upstreamMsg->msg);
-	printf("After upstreamMsg->msg free\n");
-}
-

@@ -16,6 +16,17 @@
  */
 #include <stdbool.h>
 #include <stdint.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "wss_mgr.h"
+#include <assert.h>
+#include <nanomsg/nn.h>
+#include <nanomsg/pipeline.h>
+#include "wrp-c.h"
+
+
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -40,8 +51,17 @@
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-int main( int argc, char *argv[] )
+int main( int argc, char **argv)
 {
+    ParodusCfg parodusCfg;
+    memset(&parodusCfg,0,sizeof(parodusCfg));
+    
+    parseCommandLine(argc,argv,&parodusCfg);
+       
+    __createSocketConnection(&parodusCfg,NULL);
+    
+    
+    
     return 0;
 }
 
