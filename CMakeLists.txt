@@ -43,7 +43,7 @@ ExternalProject_Add(trower-base64
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
-add_library(libtrower-base64 STATIC IMPORTED)
+add_library(libtrower-base64 STATIC SHARED IMPORTED)
 add_dependencies(libtrower-base64 trower-base64)
 
 
@@ -51,22 +51,22 @@ add_dependencies(libtrower-base64 trower-base64)
 set(PATCHES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/patches)
 set(NOPOLL_LOG_SRC ${PREFIX_DIR}/nopoll/src/nopoll/src/nopoll_log.c)
 ExternalProject_Add(nopoll
-PREFIX ${PREFIX_DIR}/nopoll
-GIT_REPOSITORY https://github.com/ASPLes/nopoll.git
-GIT_TAG "b18aacc06b4dc9700e0a261efc201a8e125e4328"
-PATCH_COMMAND patch -p1 < ${PATCHES_DIR}/nopoll.patch
-COMMAND touch NEWS README AUTHORS ChangeLog
-COMMAND libtoolize --force
-COMMAND aclocal
-COMMAND autoheader --warnings=error
-COMMAND automake --add-missing -Werror
-COMMAND autoconf --force --warnings=error
-CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/configure --prefix=${PREFIX}
---includedir=${INCLUDE_DIR}
---libdir=${LIBRARY_DIR}
-BUILD_IN_SOURCE 1
+    PREFIX ${PREFIX_DIR}/nopoll
+    GIT_REPOSITORY https://github.com/ASPLes/nopoll.git
+    GIT_TAG "b18aacc06b4dc9700e0a261efc201a8e125e4328"
+    PATCH_COMMAND patch -p1 < ${PATCHES_DIR}/nopoll.patch
+    COMMAND touch NEWS README AUTHORS ChangeLog
+    COMMAND libtoolize --force
+    COMMAND aclocal
+    COMMAND autoheader --warnings=error
+    COMMAND automake --add-missing -Werror
+    COMMAND autoconf --force --warnings=error
+    CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/configure --prefix=${PREFIX}
+                                                     --includedir=${INCLUDE_DIR}
+                                                     --libdir=${LIBRARY_DIR}
+    BUILD_IN_SOURCE 1
 )
-add_library(libnopoll STATIC IMPORTED)
+add_library(libnopoll STATIC SHARED IMPORTED)
 add_dependencies(libnopoll nopoll)
 
 
@@ -75,7 +75,8 @@ ExternalProject_Add(nanomsg
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
     GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
     GIT_TAG "master"
-    )
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
 add_library(libnanomsg STATIC SHARED IMPORTED)
 add_dependencies(libnanomsg nanomsg)
 
@@ -88,7 +89,7 @@ ExternalProject_Add(cJSON
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
-add_library(libcJSON STATIC IMPORTED)
+add_library(libcJSON STATIC SHARED IMPORTED)
 add_dependencies(libcJSON cJSON)
 
 

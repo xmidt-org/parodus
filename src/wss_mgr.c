@@ -5,24 +5,25 @@
  *
  * Copyright (c) 2015  Comcast
  */
-#include "stdlib.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
-#include "cJSON.h"
-#include "nopoll.h"
+#include <cJSON.h>
+#include <nopoll.h>
 #include <sys/time.h>
 #include <sys/sysinfo.h>
 #include "wss_mgr.h"
-#include "pthread.h"
-#include "msgpack.h"
+#include <pthread.h>
+#include <msgpack.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <getopt.h>
-#include "signal.h"
-#include "wrp-c.h"
-#include <assert.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <wrp-c.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 
@@ -48,18 +49,13 @@
 #define HARVESTER "harvester"
 #define GET_SET "get_set"
 
-#define parodus_free(__x__) if(__x__ != NULL) { free((void*)(__x__)); __x__ = NULL;} else {printf("Trying to free null pointer\n");}
-
-
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
 typedef struct WebpaMsg__
 {
-	noPollCtx * ctx;
-	noPollConn * conn;
-	noPollMsg * msg;
-	noPollPtr user_data;
+	void * msg;
+	size_t len;
 	struct WebpaMsg__ *next;
 } WebpaMsg;
 
@@ -81,12 +77,6 @@ static int numOfClients = 0;
 reg_client *clients[];
 
 
-typedef enum
-{
-    PAR_SUCCESS = 0,                    /**< Success. */
-    PAR_FAILURE                        /**< General Failure */
-} PAR_STATUS;
-
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -94,7 +84,7 @@ typedef enum
 static ParodusCfg parodusCfg;
 static noPollCtx *ctx = NULL;
 static noPollConn *conn = NULL;
-static pthread_t heartBeatThreadId;
+
 static char deviceMAC[32]={'\0'}; 
 static volatile int heartBeatTimer = 0;
 static volatile bool terminated = false;
@@ -118,7 +108,7 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 static char createNopollConnection();
-static void listenerOnMessage(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
+static void listenerOnMessage( void * msg, size_t msgSize);
 static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
 static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data);
 void getCurrentTime(struct timespec *timer);
@@ -137,7 +127,7 @@ noPollPtr createMutex();
 void lockMutex(noPollPtr _mutex);
 void unlockMutex(noPollPtr _mutex);
 void destroyMutex(noPollPtr _mutex);
-PAR_STATUS __attribute__ ((weak)) checkDeviceInterface();
+int __attribute__ ((weak)) checkDeviceInterface();
 
 static void initUpStreamTask();
 static void *handle_upstream();
@@ -535,13 +525,8 @@ static char createNopollConnection()
 	char encodedData[1024];
 	int  encodedDataSize = 1024;
 	int i=0, j=0, connErr=0;
-
 	int bootTime_sec;
-	struct sysinfo s_info;
-	unsigned int upTime=0;
-	struct timespec currentTime;
-	struct tm *info;
-	char timeInUTC[256] = {'\0'};
+	
 	struct timespec start,end,connErr_start,connErr_end,*startPtr,*endPtr,*connErr_startPtr,*connErr_endPtr;
 	startPtr = &start;
 	endPtr = &end;
@@ -613,7 +598,7 @@ static char createNopollConnection()
 		
 
 		buffer = cJSON_PrintUnformatted(response);
-		printf("X-WebPA-Convey Header: [%d]%s\n", strlen(buffer), buffer);
+		printf("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
 
 		if(nopoll_base64_encode (buffer, strlen(buffer), encodedData, &encodedDataSize) != nopoll_true)
 		{
@@ -638,7 +623,7 @@ static char createNopollConnection()
 			}
 			encodedData[j]='\0';
 			headerValues[3] = encodedData;
-			printf("Encoded X-WebPA-Convey Header: [%d]%s\n", strlen(encodedData), encodedData);
+			printf("Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
 		}
 	}
 	else
@@ -649,7 +634,8 @@ static char createNopollConnection()
 	}
 	
 	cJSON_Delete(response);
-	//parodus_free(buffer);
+	//free(buffer);
+	// buffer = NULL;
 	
 	snprintf(port,sizeof(port),"%d",8080);
 	parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
@@ -665,7 +651,7 @@ static char createNopollConnection()
 		{
 			getCurrentTime(startPtr);
 			int count = 0;
-			while(checkDeviceInterface() != PAR_SUCCESS)
+			while(checkDeviceInterface() != 0)
 			{
 				getCurrentTime(endPtr);
 
@@ -769,7 +755,7 @@ static char createNopollConnection()
 			/* If the connect error is due to DNS resolving to 10.0.0.1 then start timer.
 			 * Timeout after 15 minutes if the error repeats continuously and kill itself. 
 			 */
-			if((checkHostIp(server_Address) == -2) && (checkDeviceInterface() == PAR_SUCCESS)) 	
+			if((checkHostIp(server_Address) == -2) && (checkDeviceInterface() == 0)) 	
 			{
 				if(connErr == 0)
 				{
@@ -828,25 +814,25 @@ static char createNopollConnection()
 	return nopoll_true;
 }
 
-PAR_STATUS checkDeviceInterface()
+int checkDeviceInterface()
 {
 	int link[2];
 	pid_t pid;
 	char statusValue[512] = {'\0'};
 	char *ipv4_valid =NULL, *addr_str = NULL, *ipv6_valid = NULL;
 	int nbytes =0;
-	PAR_STATUS status = PAR_FAILURE;
+    int status = -3;
 	
 	if (pipe(link) == -1)
 	{
 		printf("Failed to create pipe for checking device interface (errno=%d, %s)\n",errno, strerror(errno));
-		return status;
+		return -1;
 	}
 
 	if ((pid = fork()) == -1)
 	{
 		printf("fork was unsuccessful while checking device interface (errno=%d, %s)\n",errno, strerror(errno));
-		return status;
+		return -2;
 	}
 	
 	if(pid == 0) 
@@ -877,7 +863,7 @@ PAR_STATUS checkDeviceInterface()
 		if (ipv4_valid != NULL || ipv6_valid != NULL)
 		{
 			printf("Interface %s is up\n",parodusCfg.webpa_interface_used);
-			status = PAR_SUCCESS;
+			status = 0;
 		}
 		else
 		{
@@ -980,7 +966,7 @@ static void initUpStreamTask()
 
 static void *handle_upstream()
 {
-		
+	printf("***********handle_upstream***********\n");
 	UpStreamMsg *message;	
 		
 	int sock = nn_socket( AF_SP, NN_PULL );
@@ -1028,8 +1014,7 @@ static void *handle_upstream()
 			
 				pthread_mutex_unlock (&nano_prod_mut);
 			}
-			
-			nn_freemsg (buf);		
+					
 		}
 		else
 		{
@@ -1074,8 +1059,7 @@ static void handleUpStreamEvents()
 {		
 	int rv=-1;	
 	int msgType;
-	wrp_msg_t *msg;
-	UpStreamMsg *upStreamMsg;	
+	wrp_msg_t *msg;	
 	int i =0;
 	int matchFlag = 0;	
 	int sock =0;
@@ -1098,6 +1082,8 @@ static void handleUpStreamEvents()
 				printf("----Start of msgpack decoding----\n");
 								
 				rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
+				nn_freemsg (message->msg);
+				
 				if(rv > 0)
 				{
 				
@@ -1142,7 +1128,6 @@ static void handleUpStreamEvents()
 						printf("%s\n",clients[numOfClients]->url);
 						
 						numOfClients =numOfClients+1;
-						nn_shutdown(sock, 0);
 	
 					}
 										      
@@ -1163,6 +1148,7 @@ static void handleUpStreamEvents()
 					printf("Error in msgpack decoding for upstream\n");
 				
 				}
+				
 			
 			}
 		
@@ -1171,7 +1157,8 @@ static void handleUpStreamEvents()
 				printf("******clients[%d].service_name is:%s\n", i, clients[i]->service_name);
 				printf("******msg->u.reg.service_name is:%s\n", msg->u.reg.service_name);
 			}
-			parodus_free(message);
+			free(message);
+			message = NULL;
 		}
 		else
 		{
@@ -1227,12 +1214,12 @@ static void *messageHandlerTask()
 			printf("mutex unlock in consumer thread\n");
 			if (!terminated) 
 			{
-				listenerOnMessage(message->ctx,message->conn,message->msg,message->user_data);
+				listenerOnMessage(message->msg, message->len);
 			}
-			nopoll_ctx_unref(message->ctx);
-			nopoll_conn_unref(message->conn);
-			nopoll_msg_unref(message->msg);
-			parodus_free(message);
+			
+			nopoll_msg_unref((noPollMsg *)message->msg);
+			free(message);
+			message = NULL;
 		}
 		else
 		{
@@ -1271,14 +1258,12 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
 
 	if(message)
 	{
-		message->ctx = ctx;
-		message->conn = conn;
-		message->msg = msg;
-		message->user_data = user_data;
+
+		message->msg = (void *)msg;
+		message->len = nopoll_msg_get_payload_size (msg);
 		message->next = NULL;
 
-		nopoll_ctx_ref(ctx);
-		nopoll_conn_ref(conn);
+	
 		nopoll_msg_ref(msg);
 		
 		pthread_mutex_lock (&mut);		
@@ -1319,31 +1304,29 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
  * @param[in] msg The message received from server for various process requests
  * @param[out] user_data data which is to be sent
  */
-static void listenerOnMessage(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data)
+static void listenerOnMessage(void * msg, size_t msgSize)
 {
 	
-	int msgSize = 0,rv;
+	int rv =0;
 	wrp_msg_t *message;
 	char* destVal = NULL;
 	char dest[32] = {'\0'};
 	char *temp_ptr;
 	int msgType;
-	char* payload=NULL;
 	int p =0;
 	int bytes =0;
 	
 	const char *recivedMsg = NULL;
-	recivedMsg =  (const char *) nopoll_msg_get_payload (msg);
+	recivedMsg =  (const char *) nopoll_msg_get_payload ((noPollMsg *)msg);
 	if(recivedMsg!=NULL) 
 	{
-		msgSize  = nopoll_msg_get_payload_size (msg);
 
 		rv = wrp_to_struct(recivedMsg, msgSize, WRP_BYTES, &message);
 		printf( "rv is %d\n", rv );
 		msgType = message->msg_type;
 		printf("msgType is:%d\n", msgType);
 		
-		if((message->u.req.dest !=NULL) && (message->u.req.payload !=NULL))
+		if((message->u.req.dest !=NULL))
 		{
 			destVal = message->u.req.dest;
 			printf("destVal is :%s\n", destVal);
@@ -1351,8 +1334,6 @@ static void listenerOnMessage(noPollCtx * ctx, noPollConn * conn, noPollMsg * ms
 			strcpy(dest,strtok(NULL , "/"));
 			printf("dest is:%s\n", dest);
 
-			payload = message->u.req.payload;
-			printf("payload is:%s\n", payload);
 			
 			//Checking for individual clients & Sending to each client
 
@@ -1365,8 +1346,8 @@ static void listenerOnMessage(noPollCtx * ctx, noPollConn * conn, noPollMsg * ms
 				    if( strcmp(dest, clients[p]->service_name) == 0) 
 				    {  
 				    	printf("sending to nanomsg client\n");     
-				   	bytes = nn_send(clients[p]->sock, payload, strlen(payload)+1, NN_DONTWAIT);
-					printf("Sent downstream message '%s' to reg_client '%s'\n",payload,clients[p]->url);
+					bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, NN_DONTWAIT);
+					printf("Sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
 					
 					sleep(10);
 				    }
@@ -1423,7 +1404,6 @@ static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPt
 {
 		
 	printf("listenerOnCloseMessage(): mutex lock in producer thread\n");
-	PAR_STATUS setReconnectStatus = PAR_FAILURE;
 	
 	if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
 	{

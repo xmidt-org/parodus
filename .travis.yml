@@ -1,0 +1,36 @@
+language: c
+compiler:
+    - gcc
+env:
+  global:
+#   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+#   #   via the "travis encrypt" command using the project repo's public key
+#   - secure: ""
+
+addons:
+#  coverity_scan:
+#    project:
+#      name: "Comcast/parodus"
+#      description: "The WebPA client."
+#    notification_email: weston_schmidt@alumni.purdue.edu
+#    build_command_prepend: "mkdir coverity_build && cd coverity_build && cmake .."
+#    build_command:   "make"
+#    branch_pattern: master
+
+before_install:
+    - sudo pip install codecov
+
+install:
+    - sudo apt-get update -qq
+    - sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
+
+script:
+    - mkdir build
+    - cd build
+    - cmake ..
+    - make
+    - make test
+    - make coverage
+
+after_success:
+    - codecov
