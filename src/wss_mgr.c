@@ -16,7 +16,7 @@
 #include <sys/sysinfo.h>
 #include "wss_mgr.h"
 #include <pthread.h>
-#include <msgpack.h>
+
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <getopt.h>
@@ -42,7 +42,7 @@
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
-#define WEBPA_UPSTREAM "tcp://127.0.0.1:6666"
+#define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
 
 
 #define IOT "iot"
@@ -52,12 +52,14 @@
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-typedef struct WebpaMsg__
+
+typedef struct ParodusMsg__
 {
-	void * msg;
+	noPollMsg * msg;
+	void * payload;
 	size_t len;
-	struct WebpaMsg__ *next;
-} WebpaMsg;
+	struct ParodusMsg__ *next;
+} ParodusMsg;
 
 typedef struct UpStreamMsg__
 {
@@ -91,7 +93,7 @@ static volatile bool terminated = false;
 static bool close_retry = false;
 static bool LastReasonStatus = false;
 char *reconnect_reason = NULL;
-static WebpaMsg *webpaMsgQ = NULL;
+static ParodusMsg *ParodusMsgQ = NULL;
 static UpStreamMsg *UpStreamMsgQ = NULL;
 static void __close_and_unref_connection__(noPollConn *conn);
 
@@ -134,10 +136,11 @@ static void *handle_upstream();
 static void processUpStreamTask();
 static void *processUpStreamHandler();
 static void handleUpStreamEvents();
+static void handleUpstreamMessage(void *msg, size_t len);
 
 /**
  * @brief __report_log Nopoll log handler 
- * Nopoll log handler for integrating nopoll logs with webpa logger
+ * Nopoll log handler for integrating nopoll logs 
  */
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
 {
@@ -177,7 +180,7 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
     ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
    loadParodusCfg(tmpCfg,&parodusCfg);
 		
-	printf("Configure nopoll thread handlers in Webpa \n");
+	printf("Configure nopoll thread handlers in Parodus \n");
 	nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
 
 	ctx = nopoll_ctx_new();
@@ -204,11 +207,11 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
 	int intTimer=0;
 	do
 	{
-		printf("Inside do while\n");
+		
 		nopoll_loop_wait(ctx, 5000000);
 		
 		intTimer = intTimer + 5;
-		printf("intTimer value is:%d\n", intTimer);
+		
 		if(heartBeatTimer >= parodusCfg.webpa_ping_timeout) 
 		{
 			if(!close_retry) 
@@ -274,7 +277,7 @@ void terminateSocketConnection()
 	for (i=0; i<15; i++) 
 	{
 		pthread_mutex_lock (&mut);		
-		if(webpaMsgQ == NULL)
+		if(ParodusMsgQ == NULL)
 		{
 		 	pthread_cond_signal(&con);
 			pthread_mutex_unlock (&mut);
@@ -634,8 +637,7 @@ static char createNopollConnection()
 	}
 	
 	cJSON_Delete(response);
-	//free(buffer);
-	// buffer = NULL;
+	
 	
 	snprintf(port,sizeof(port),"%d",8080);
 	parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
@@ -966,29 +968,38 @@ static void initUpStreamTask()
 
 static void *handle_upstream()
 {
-	printf("***********handle_upstream***********\n");
-	UpStreamMsg *message;	
-		
-	int sock = nn_socket( AF_SP, NN_PULL );
-	nn_bind(sock, WEBPA_UPSTREAM );
+
+	printf("******** Start of handle_upstream ********\n");
 	
-	pthread_mutex_lock (&nano_prod_mut);
+	UpStreamMsg *message;
+	int sock;
+	int bytes =0;
+	void *buf;
+		
+		
+	sock = nn_socket( AF_SP, NN_PULL );
+	nn_bind(sock, PARODUS_UPSTREAM );
+	
+	
 	while( 1 ) 
 	{
-	
-		void *buf = NULL;
+		
+		buf = NULL;
 		printf("nanomsg server gone into the listening mode...\n");
 		
-		int bytes = nn_recv (sock, &buf, NN_MSG, 0);
-		
+		bytes = nn_recv (sock, &buf, NN_MSG, 0);
+			
 		printf ("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
+		
 		message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
+		
 		if(message)
 		{
 			message->msg =buf;
 			message->len =bytes;
 			message->next=NULL;
-
+			pthread_mutex_lock (&nano_prod_mut);
+			
 			//Producer adds the nanoMsg into queue
 			if(UpStreamMsgQ == NULL)
 			{
@@ -1018,7 +1029,7 @@ static void *handle_upstream()
 		}
 		else
 		{
-			printf("failure in alloaction for message\n");
+			printf("failure in allocation for message\n");
 		}
 				
 	}
@@ -1059,41 +1070,51 @@ static void handleUpStreamEvents()
 {		
 	int rv=-1;	
 	int msgType;
-	wrp_msg_t *msg;	
+	wrp_msg_t *msg;
+	wrp_msg_t *decodemsg;	
 	int i =0;
+	int size=0;
 	int matchFlag = 0;	
 	int sock =0;
+	int byte = 0;
+	void *bytes;
 	
 	sock = nn_socket( AF_SP, NN_PUSH );
 	
-	pthread_mutex_lock (&nano_cons_mut);
-	printf("mutex lock in consumer thread\n");
+	
 	while(1)
 	{
+		pthread_mutex_lock (&nano_cons_mut);
+		printf("mutex lock in consumer thread\n");
+		
 		if(UpStreamMsgQ != NULL)
 		{
 			UpStreamMsg *message = UpStreamMsgQ;
 			UpStreamMsgQ = UpStreamMsgQ->next;
 			pthread_mutex_unlock (&nano_cons_mut);
 			printf("mutex unlock in consumer thread\n");
+			
 			if (!terminated) 
 			{
-						
-				printf("----Start of msgpack decoding----\n");
+				
+				/*** Decoding Upstream Msg to check msgType ***/
+				/*** For MsgType 9 Perform Nanomsg client Registration else Send to server ***/	
+				
+				printf("---- Decoding Upstream Msg ----\n");
 								
 				rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
-				nn_freemsg (message->msg);
 				
 				if(rv > 0)
 				{
 				
-				   msgType = msg->msg_type;
-				   printf("handleUpStreamEvents::msgType received:%d\n", msgType);
+				   msgType = msg->msg_type;				   
 				
 				   if(msgType == 9)
 				   {
+					printf("\n Nanomsg client Registration for Upstream\n");
+					
 					//Extract serviceName and url & store it in a struct for reg_clients
-					printf("Nanomsg client registration for upstream\n");
+					
 					if(numOfClients !=0)
 					{
 					    for( i = 0; i < numOfClients; i++ ) 
@@ -1103,6 +1124,8 @@ static void handleUpStreamEvents()
 						{
 							printf("match found, client is already registered\n");
 							strcpy(clients[i]->url,msg->u.reg.url);
+							nn_connect(sock, msg->u.reg.url);  
+							clients[i]->sock = sock;
 							matchFlag = 1;
 							break;
 						}
@@ -1110,7 +1133,6 @@ static void handleUpStreamEvents()
 
 					}
 
-					printf("numOfClients is:%d\n", numOfClients);
 					printf("matchFlag is :%d\n", matchFlag);
 
 					if((matchFlag == 0) || (numOfClients == 0))
@@ -1127,18 +1149,32 @@ static void handleUpStreamEvents()
 						printf("%s\n",clients[numOfClients]->service_name);
 						printf("%s\n",clients[numOfClients]->url);
 						
+						if((strcmp(clients[numOfClients]->service_name, msg->u.reg.service_name)==0)&& (strcmp(clients[numOfClients]->url, msg->u.reg.url)==0))
+					{
+						
 						numOfClients =numOfClients+1;
-	
+						printf("Number of clients registered= %d\n", numOfClients);
+						
+					
+					}
+					else
+					{
+						printf("nanomsg client registration failed\n");
+					}
+					
 					}
 										      
 
 				    }
 				    else
 				    {
-				    	//Sending to server will be put here for msgtype 5.6. 7. 8
-					//websocket calls will be put here
-					printf("Sending upstream msg to server\n");
-				       
+				    	//Sending to server for msgTypes 3, 4, 5, 6, 7, 8.
+					
+			   					
+					printf("\n Received upstream data with MsgType: %d\n", msgType);   					
+    					printf("Sending upstream msg to server\n");
+					handleUpstreamMessage(message->msg, message->len);
+							        
 				    
 				    }
 					
@@ -1152,11 +1188,8 @@ static void handleUpStreamEvents()
 			
 			}
 		
-			for( i = 0; i < numOfClients; i++ ) 
-			{										
-				printf("******clients[%d].service_name is:%s\n", i, clients[i]->service_name);
-				printf("******msg->u.reg.service_name is:%s\n", msg->u.reg.service_name);
-			}
+			
+			nn_freemsg (message->msg);
 			free(message);
 			message = NULL;
 		}
@@ -1184,7 +1217,7 @@ static void initMessageHandler()
 {
 	int err = 0;
 	pthread_t messageThreadId;
-	webpaMsgQ = NULL;
+	ParodusMsgQ = NULL;
 
 	err = pthread_create(&messageThreadId, NULL, messageHandlerTask, NULL);
 	if (err != 0) 
@@ -1206,18 +1239,19 @@ static void *messageHandlerTask()
 	{
 		pthread_mutex_lock (&mut);
 		printf("mutex lock in consumer thread\n");
-		if(webpaMsgQ != NULL)
+		if(ParodusMsgQ != NULL)
 		{
-			WebpaMsg *message = webpaMsgQ;
-			webpaMsgQ = webpaMsgQ->next;
+			ParodusMsg *message = ParodusMsgQ;
+			ParodusMsgQ = ParodusMsgQ->next;
 			pthread_mutex_unlock (&mut);
 			printf("mutex unlock in consumer thread\n");
 			if (!terminated) 
 			{
-				listenerOnMessage(message->msg, message->len);
+				
+				listenerOnMessage(message->payload, message->len);
 			}
-			
-			nopoll_msg_unref((noPollMsg *)message->msg);
+						
+			nopoll_msg_unref(message->msg);
 			free(message);
 			message = NULL;
 		}
@@ -1247,19 +1281,20 @@ static void *messageHandlerTask()
 
 static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data)
 {
-	WebpaMsg *message;
+	ParodusMsg *message;
 
 	if (terminated) 
 	{
 		return;
 	}
 
-	message = (WebpaMsg *)malloc(sizeof(WebpaMsg));
+	message = (ParodusMsg *)malloc(sizeof(ParodusMsg));
 
 	if(message)
 	{
 
-		message->msg = (void *)msg;
+		message->msg = msg;
+		message->payload = (void *)nopoll_msg_get_payload (msg);
 		message->len = nopoll_msg_get_payload_size (msg);
 		message->next = NULL;
 
@@ -1269,9 +1304,9 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
 		pthread_mutex_lock (&mut);		
 		printf("mutex lock in producer thread\n");
 		
-		if(webpaMsgQ == NULL)
+		if(ParodusMsgQ == NULL)
 		{
-			webpaMsgQ = message;
+			ParodusMsgQ = message;
 			printf("Producer added message\n");
 		 	pthread_cond_signal(&con);
 			pthread_mutex_unlock (&mut);
@@ -1279,7 +1314,7 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
 		}
 		else
 		{
-			WebpaMsg *temp = webpaMsgQ;
+			ParodusMsg *temp = ParodusMsgQ;
 			while(temp->next)
 			{
 				temp = temp->next;
@@ -1314,60 +1349,74 @@ static void listenerOnMessage(void * msg, size_t msgSize)
 	char *temp_ptr;
 	int msgType;
 	int p =0;
-	int bytes =0;
-	
+	int bytes =0;	
 	const char *recivedMsg = NULL;
-	recivedMsg =  (const char *) nopoll_msg_get_payload ((noPollMsg *)msg);
+	recivedMsg =  (const char *) msg;
+	
+	printf("Received msg from server:%s\n", recivedMsg);	
 	if(recivedMsg!=NULL) 
 	{
-
-		rv = wrp_to_struct(recivedMsg, msgSize, WRP_BYTES, &message);
-		printf( "rv is %d\n", rv );
-		msgType = message->msg_type;
-		printf("msgType is:%d\n", msgType);
+	
+		/*** Decoding downstream recivedMsg to check destination ***/
 		
-		if((message->u.req.dest !=NULL))
-		{
-			destVal = message->u.req.dest;
-			printf("destVal is :%s\n", destVal);
-			temp_ptr = strtok(destVal , "/");
-			strcpy(dest,strtok(NULL , "/"));
-			printf("dest is:%s\n", dest);
-
-			
-			//Checking for individual clients & Sending to each client
-
-			if (strcmp(dest, "iot") == 0)
-			{
+		rv = wrp_to_struct(recivedMsg, msgSize, WRP_BYTES, &message);
 				
-				for( p = 0; p < numOfClients; p++ ) 
+		if(rv > 0)
+		{
+			printf("\nDecoded recivedMsg of size:%d\n", rv);
+			msgType = message->msg_type;
+			printf("msgType received:%d\n", msgType);
+		
+			if((message->u.req.dest !=NULL))
+			{
+				destVal = message->u.req.dest;
+				temp_ptr = strtok(destVal , "/");
+				strcpy(dest,strtok(NULL , "/"));
+				printf("Received downstream dest as :%s\n", dest);
+			
+				//Checking for individual clients & Sending to each client
+
+				if (strcmp(dest, "iot") == 0)
 				{
-				    // Sending message to registered clients
-				    if( strcmp(dest, clients[p]->service_name) == 0) 
-				    {  
-				    	printf("sending to nanomsg client\n");     
-					bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, NN_DONTWAIT);
-					printf("Sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
+				
+					for( p = 0; p < numOfClients; p++ ) 
+					{
+					    // Sending message to registered clients
+					    if( strcmp(dest, clients[p]->service_name) == 0) 
+					    {  
+					    	printf("sending to nanomsg client\n");     
+						bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, 0);
+						printf("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
+						printf("downstream bytes sent:%d\n", bytes);
 					
-					sleep(10);
-				    }
+					    }
+					}
+
+				}
+				
+				else if (strcmp(dest, "harvester") == 0)
+				{
+					printf("dest harvester \n");
 				}
 
-			}	
-			else if (strcmp(dest, "harvester") == 0)
-			{
-				printf("dest harvester \n");
-			}
-
-			else if (strcmp(dest, "get-set") == 0)
-			{
-				printf("dest get-set\n");
-			}
-			else
-			{
-			 	printf("unknown dest:%s\n", dest);
-			}
+				else if (strcmp(dest, "get-set") == 0)
+				{
+					printf("dest get-set\n");
+				}
+			
+				else
+				{
+				 	printf("Unknown dest:%s\n", dest);
+				}
+			
+		  	    }
 	  	}
+	  	
+	  	else
+	  	{
+	  		printf( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
+	  	}
+	  
 
         }
                 
@@ -1564,6 +1613,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         }
     }
   
+ printf("argc is :%d\n", argc);
+ printf("optind is :%d\n", optind);
 
   /* Print any remaining command line arguments (not options). */
   if (optind < argc)
@@ -1575,3 +1626,27 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
     }
 
 }
+
+/** To send upstream msgs to server ***/
+
+static void handleUpstreamMessage(void *msg, size_t len)
+{
+	int bytesWritten = 0;
+	
+	printf("handleUpstreamMessage length %d\n", len);
+	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
+	{
+		bytesWritten = nopoll_conn_send_binary(conn, msg, len);
+		printf("Number of bytes written: %d\n", bytesWritten);
+		if (bytesWritten != len) 
+		{
+			printf("Failed to send bytes %d, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
+		}
+	}
+	else
+	{
+		printf("Failed to send msg upstream as connection is not OK\n");
+	}
+	
+}
+
