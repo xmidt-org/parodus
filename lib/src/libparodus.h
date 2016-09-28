@@ -17,7 +17,7 @@
 #ifndef  _LIBPARODUS_H
 #define  _LIBPARODUS_H
 
-#include <wrp-c.h>
+#include <wrp-c/wrp-c.h>
 
 /**
  * This module is linked with the client, and provides connectivity

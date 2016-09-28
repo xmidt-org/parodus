@@ -12,4 +12,15 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-#add_library(parodus_cli_ifc parodus_cli_ifc.c)
+set(PROJ_PARODUS_LIB parodus-lib)
+
+file(GLOB HEADERS libparodus.h)
+set(SOURCES libparodus.c)
+
+add_library(${PROJ_PARODUS_LIB} STATIC ${HEADERS} ${SOURCES})
+add_library(${PROJ_PARODUS_LIB}.shared SHARED ${HEADERS} ${SOURCES})
+set_target_properties(${PROJ_PARODUS_LIB}.shared PROPERTIES OUTPUT_NAME ${PROJ_PARODUS_LIB})
+
+install (TARGETS ${PROJ_PARODUS_LIB} DESTINATION lib${LIB_SUFFIX})
+install (TARGETS ${PROJ_PARODUS_LIB}.shared DESTINATION lib${LIB_SUFFIX})
+install (FILES libparodus.h DESTINATION include/${PROJ_PARODUS_LIB})
