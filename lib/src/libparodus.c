@@ -58,7 +58,7 @@ static void *wrp_receiver_thread (void *arg);
 #define RUN_STATE_DONE			-1234
 
 static volatile int run_state = 0;
-
+static volatile bool auth_received = false;
 
 #define LEVEL_NO_LOGGER 99
 #define LEVEL_ERROR 0
@@ -145,6 +145,15 @@ static int create_thread (pthread_t *tid, void *(*thread_func) (void*))
 		libpd_log (LEVEL_ERROR, rtn, "Unable to create thread\n");
 	return rtn; 
 }
+
+static int send_registration_msg (const char *service_name)
+{
+	wrp_msg_t reg_msg;
+	reg_msg.msg_type = WRP_MSG_TYPE__SVC_REGISTRATION;
+	reg_msg.u.reg.service_name = (char *) service_name;
+	reg_msg.u.reg.url = CLIENT_URL;
+	return libparodus_send (&reg_msg);
+}
  
 int libparodus_init (const char *service_name)
 {
@@ -157,6 +166,7 @@ int libparodus_init (const char *service_name)
 		return EBUSY;
 	}
 
+	auth_received = false;
 	selected_service = service_name;
 	if (connect_receiver (CLIENT_URL) != 0)
 		return -1;
@@ -171,6 +181,7 @@ int libparodus_init (const char *service_name)
 		shutdown_socket (&send_sock);
 		return -1;
 	}
+
 	raw_queue = create_queue ("/LIBPD_RAW_QUEUE", 256);
 	if (raw_queue < 0) {
 		shutdown_socket (&rcv_sock);
@@ -204,6 +215,14 @@ int libparodus_init (const char *service_name)
 		return -1;
 	}
 	
+	run_state = RUN_STATE_RUNNING;
+
+	if (send_registration_msg (selected_service) != 0) {
+		libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error sending registration msg\n");
+		libparodus_shutdown ();
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -280,6 +299,7 @@ int libparodus_shutdown (void)
 	shutdown_socket (&send_sock);
 	shutdown_socket (&stop_rcv_sock);
 	run_state = 0;
+	auth_received = false;
 	return 0;
 }
 
@@ -365,6 +385,11 @@ int libparodus_send (wrp_msg_t *msg)
 		return -1;
 	}
 
+	if (!auth_received) {
+		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: AUTH not received at send\n");
+		return -1;
+	}
+
 	msg_len = wrp_struct_to (msg, WRP_BYTES, &msg_bytes);
 	if (msg_len < 1) {
 		libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error converting WRP to bytes\n");
@@ -413,8 +438,6 @@ static char *find_wrp_msg_dest (wrp_msg_t *wrp_msg)
 		return wrp_msg->u.crud.dest;
 	if (wrp_msg->msg_type == WRP_MSG_TYPE__DELETE)
 		return wrp_msg->u.crud.dest;
-	if (wrp_msg->msg_type == WRP_MSG_TYPE__SVC_REGISTRATION)
-		return wrp_msg->u.reg.service_name;
 	return NULL;
 }
 
@@ -444,15 +467,30 @@ static void *wrp_receiver_thread (void *arg)
 			libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error converting bytes to WRP\n");
 			continue;
 		}
-		// Pass thru all AUTH messages
+		if (wrp_msg->msg_type == WRP_MSG_TYPE__AUTH) {
+			if (auth_received)
+				libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: extra AUTH msg received\n");
+			auth_received = true;
+			wrp_free_struct (wrp_msg);
+			continue;
+		}
+		if (!auth_received) {
+			libpd_log (LEVEL_ERROR, 0, "LIBPARADOS: AUTH msg not received\n");
+			wrp_free_struct (wrp_msg);
+			continue;
+		}
+
 		// Pass thru REQ, EVENT, and CRUD if dest matches the selected service
-		// Pass thru Registration messages if service name matches the selected service.
 		dest = find_wrp_msg_dest (wrp_msg);
-		if (NULL != dest) {
-			if (strcmp (dest, selected_service) != 0) {
-				wrp_free_struct (wrp_msg);
-				continue;
-			}
+		if (NULL == dest) {
+			libpd_log (LEVEL_ERROR, 0, "LIBPARADOS: Unprocessed msg type %d received\n",
+				wrp_msg->msg_type);
+			wrp_free_struct (wrp_msg);
+			continue;
+		}
+		if (strcmp (dest, selected_service) != 0) {
+			wrp_free_struct (wrp_msg);
+			continue;
 		}
 		queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &wrp_msg, 
 			sizeof(wrp_msg_t *));
