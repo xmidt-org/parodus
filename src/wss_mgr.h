@@ -42,6 +42,6 @@ void createSocketConnection();
  * @brief Interface to terminate WebSocket client connections and clean up resources.
  */
 void terminateSocketConnection();
-int parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
+void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 #endif /* WEBSOCKET_MGR_H_ */
 

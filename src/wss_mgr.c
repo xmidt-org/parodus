@@ -76,7 +76,8 @@ typedef struct reg_client__
 } reg_client;
 
 static int numOfClients = 0;
-reg_client *clients[];
+//Currently set the max mumber of clients as 10
+reg_client *clients[10];
 
 
 /*----------------------------------------------------------------------------*/
@@ -88,7 +89,7 @@ static noPollCtx *ctx = NULL;
 static noPollConn *conn = NULL;
 
 static char deviceMAC[32]={'\0'}; 
-static volatile int heartBeatTimer = 0;
+static volatile unsigned int heartBeatTimer = 0;
 static volatile bool terminated = false;
 static bool close_retry = false;
 static bool LastReasonStatus = false;
@@ -118,7 +119,7 @@ uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer);
 long timeValDiff(struct timespec *starttime, struct timespec *finishtime);
 
 static int checkHostIp(char * serverIP);
-static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
+static void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data);
 static void initMessageHandler();
 static void *messageHandlerTask();
@@ -298,7 +299,7 @@ void terminateSocketConnection()
 	nopoll_cleanup_library();
 }
 
-static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
+static void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 {
     ParodusCfg *pConfig =config;
     
@@ -309,7 +310,7 @@ static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        //printf("hw_model is NULL. read from tmp file\n");
+        printf("hw_model is NULL. read from tmp file\n");
     }
     if( strlen(pConfig->hw_serial_number) !=0)
     {
@@ -317,7 +318,7 @@ static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        //printf("hw_serial_number is NULL. read from tmp file\n");
+        printf("hw_serial_number is NULL. read from tmp file\n");
     }
     if(strlen(pConfig->hw_manufacturer) !=0)
     {
@@ -325,7 +326,7 @@ static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        //printf("hw_manufacturer is NULL. read from tmp file\n");
+        printf("hw_manufacturer is NULL. read from tmp file\n");
     }
     if(strlen(pConfig->hw_mac) !=0)
     {
@@ -333,7 +334,7 @@ static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        //printf("hw_mac is NULL. read from tmp file\n");
+        printf("hw_mac is NULL. read from tmp file\n");
     }
     if(strlen (pConfig->hw_last_reboot_reason) !=0)
     {
@@ -341,7 +342,7 @@ static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        //printf("hw_last_reboot_reason is NULL. read from tmp file\n");
+        printf("hw_last_reboot_reason is NULL. read from tmp file\n");
     }
     if(strlen(pConfig->fw_name) !=0)
     {   
@@ -349,7 +350,7 @@ static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        //printf("fw_name is NULL. read from tmp file\n");
+        printf("fw_name is NULL. read from tmp file\n");
     }
     if( strlen(pConfig->webpa_url) !=0)
     {
@@ -357,7 +358,7 @@ static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        //printf("webpa_url is NULL. read from tmp file\n");
+        printf("webpa_url is NULL. read from tmp file\n");
     }
     if(strlen(pConfig->webpa_interface_used )!=0)
     {
@@ -365,7 +366,7 @@ static int loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        //printf("webpa_interface_used is NULL. read from tmp file\n");
+        printf("webpa_interface_used is NULL. read from tmp file\n");
     }
         
     cfg->boot_time = pConfig->boot_time;
@@ -822,7 +823,7 @@ int checkDeviceInterface()
 	pid_t pid;
 	char statusValue[512] = {'\0'};
 	char *ipv4_valid =NULL, *addr_str = NULL, *ipv6_valid = NULL;
-	int nbytes =0;
+
     int status = -3;
 	
 	if (pipe(link) == -1)
@@ -850,7 +851,8 @@ int checkDeviceInterface()
 	else 
 	{
 		close(link[1]);
-		nbytes = read(link[0], statusValue, sizeof(statusValue)-1);
+		read(link[0], statusValue, sizeof(statusValue)-1);
+		
 		printf("statusValue is :%s\n", statusValue);
 		ipv4_valid = strstr(statusValue, "inet addr:");
 		printf("ipv4_valid %s\n", (ipv4_valid != NULL) ? ipv4_valid : "NULL");
@@ -903,7 +905,7 @@ static int checkHostIp(char * serverIP)
 	void *ptr;
 	char *localIp = "10.0.0.1";
 
-	struct addrinfo hints = {};
+	struct addrinfo hints;
 	memset(&hints,0,sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
@@ -1034,6 +1036,7 @@ static void *handle_upstream()
 				
 	}
 	printf ("End of handle_upstream\n");
+	return 0;
 }
 
 
@@ -1064,24 +1067,27 @@ static void *processUpStreamHandler()
 {
 	printf("Inside processUpStreamHandler..\n");
 	handleUpStreamEvents();
+	return 0;
 }
 
 static void handleUpStreamEvents()
 {		
 	int rv=-1;	
 	int msgType;
-	wrp_msg_t *msg;
-	wrp_msg_t *decodemsg;	
-	int i =0;
+	wrp_msg_t *msg;		
+	int i =0;	
 	int size=0;
 	int matchFlag = 0;	
 	int sock =0;
 	int byte = 0;
-	void *bytes;
-	
-	sock = nn_socket( AF_SP, NN_PUSH );
-	
-	
+	void *bytes;	
+	void *auth_bytes;
+	wrp_msg_t auth_msg_var;
+
+
+	auth_msg_var.msg_type = WRP_MSG_TYPE__AUTH;
+	auth_msg_var.u.auth.status = 200;
+		
 	while(1)
 	{
 		pthread_mutex_lock (&nano_cons_mut);
@@ -1124,8 +1130,22 @@ static void handleUpStreamEvents()
 						{
 							printf("match found, client is already registered\n");
 							strcpy(clients[i]->url,msg->u.reg.url);
-							nn_connect(sock, msg->u.reg.url);  
-							clients[i]->sock = sock;
+							nn_shutdown(clients[i]->sock, 0);
+
+
+							clients[i]->sock = nn_socket( AF_SP, NN_PUSH );
+							int t = 20000;
+							nn_setsockopt(clients[i]->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+							
+							nn_connect(clients[i]->sock, msg->u.reg.url);  
+			
+							
+							size = wrp_struct_to( &auth_msg_var, WRP_BYTES, &auth_bytes );
+							printf("Client registered before. Sending acknowledgement \n");
+							byte = nn_send (clients[i]->sock, auth_bytes, size, 0);
+						
+							byte = 0;
+							size = 0;
 							matchFlag = 1;
 							break;
 						}
@@ -1140,8 +1160,11 @@ static void handleUpStreamEvents()
 					
 						clients[numOfClients] = (reg_client*)malloc(sizeof(reg_client));
 
-						nn_connect(sock, msg->u.reg.url);  
-						clients[numOfClients]->sock = sock;
+						clients[numOfClients]->sock = nn_socket( AF_SP, NN_PUSH );
+						nn_connect(clients[numOfClients]->sock, msg->u.reg.url);  
+
+						int t = 20000;
+						nn_setsockopt(clients[numOfClients]->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
 						 
 						strcpy(clients[numOfClients]->service_name,msg->u.reg.service_name);
 						strcpy(clients[numOfClients]->url,msg->u.reg.url);
@@ -1151,9 +1174,30 @@ static void handleUpStreamEvents()
 						
 						if((strcmp(clients[numOfClients]->service_name, msg->u.reg.service_name)==0)&& (strcmp(clients[numOfClients]->url, msg->u.reg.url)==0))
 					{
+
+
+						//Sending success status to clients after each nanomsg registration
+						size = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
+
+						printf("Client %s Registered successfully. Sending Acknowledgement... \n ", clients[numOfClients]->service_name);
+
+						byte = nn_send (clients[numOfClients]->sock, auth_bytes, size, 0);
 						
+						//condition needs to be changed depending upon acknowledgement
+						if(byte >=0)
+						{
+							printf("send registration success status to client\n");
+						}
+						else
+						{
+							printf("send registration failed\n");
+						}
 						numOfClients =numOfClients+1;
 						printf("Number of clients registered= %d\n", numOfClients);
+						byte = 0;
+						size = 0;
+						free(auth_bytes);
+
 						
 					
 					}
@@ -1267,7 +1311,9 @@ static void *messageHandlerTask()
 			}
 		}
 	}
+	
 	printf ("Ended messageHandlerTask\n");
+	return 0;
 }
 
 /**
@@ -1346,10 +1392,11 @@ static void listenerOnMessage(void * msg, size_t msgSize)
 	wrp_msg_t *message;
 	char* destVal = NULL;
 	char dest[32] = {'\0'};
-	char *temp_ptr;
+	
 	int msgType;
 	int p =0;
-	int bytes =0;	
+	int bytes =0;
+	int destFlag =0;	
 	const char *recivedMsg = NULL;
 	recivedMsg =  (const char *) msg;
 	
@@ -1370,46 +1417,33 @@ static void listenerOnMessage(void * msg, size_t msgSize)
 			if((message->u.req.dest !=NULL))
 			{
 				destVal = message->u.req.dest;
-				temp_ptr = strtok(destVal , "/");
+				strtok(destVal , "/");
 				strcpy(dest,strtok(NULL , "/"));
 				printf("Received downstream dest as :%s\n", dest);
 			
 				//Checking for individual clients & Sending to each client
-
-				if (strcmp(dest, "iot") == 0)
-				{
 				
-					for( p = 0; p < numOfClients; p++ ) 
-					{
-					    // Sending message to registered clients
-					    if( strcmp(dest, clients[p]->service_name) == 0) 
-					    {  
-					    	printf("sending to nanomsg client\n");     
-						bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, 0);
-						printf("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
-						printf("downstream bytes sent:%d\n", bytes);
-					
-					    }
-					}
-
+				for( p = 0; p < numOfClients; p++ ) 
+				{
+				    // Sending message to registered clients
+				    if( strcmp(dest, clients[p]->service_name) == 0) 
+				    {  
+				    	printf("sending to nanomsg client %s\n", dest);     
+					bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, 0);
+					printf("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
+					printf("downstream bytes sent:%d\n", bytes);
+					destFlag =1;
+			
+				    } 
+				    
 				}
 				
-				else if (strcmp(dest, "harvester") == 0)
+				if(destFlag ==0)
 				{
-					printf("dest harvester \n");
-				}
-
-				else if (strcmp(dest, "get-set") == 0)
-				{
-					printf("dest get-set\n");
+					printf("Unknown dest:%s\n", dest);
 				}
 			
-				else
-				{
-				 	printf("Unknown dest:%s\n", dest);
-				}
-			
-		  	    }
+		  	 }
 	  	}
 	  	
 	  	else
@@ -1439,7 +1473,7 @@ static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg
 
 	if ((payload!=NULL) && !terminated) 
 	{
-		printf("Ping received with payload %s, opcode %d\n",payload, nopoll_msg_opcode(msg));
+		printf("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
 		if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 
 		{
 			nopoll_conn_send_frame (conn, nopoll_true, nopoll_true, NOPOLL_PONG_FRAME, strlen(payload), payload, 0);
@@ -1518,7 +1552,7 @@ void parStrncpy(char *destStr, const char *srcStr, size_t destSize)
     destStr[destSize-1] = '\0';
 }
 
-int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
+void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     
      int c;
@@ -1633,14 +1667,14 @@ static void handleUpstreamMessage(void *msg, size_t len)
 {
 	int bytesWritten = 0;
 	
-	printf("handleUpstreamMessage length %d\n", len);
+	printf("handleUpstreamMessage length %zu\n", len);
 	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
 	{
 		bytesWritten = nopoll_conn_send_binary(conn, msg, len);
 		printf("Number of bytes written: %d\n", bytesWritten);
-		if (bytesWritten != len) 
+		if (bytesWritten != (int) len) 
 		{
-			printf("Failed to send bytes %d, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
+			printf("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
 		}
 	}
 	else

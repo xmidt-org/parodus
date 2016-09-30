@@ -8,13 +8,14 @@ addons:
 before_install:
 - sudo pip install codecov
 install:
+- travis_wait 
 - sudo apt-get update -qq
 - sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
 script:
 - mkdir build
 - cd build
 - cmake ..
-- make
+- sudo make
 - make test
 - make coverage
 after_success:
