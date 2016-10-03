@@ -404,6 +404,10 @@ void main( void )
 		printf("child process execution with pid:%d\n", pid);
 		
 		err = execv("../src/parodus", command);
+		if(errno == 2)
+		{
+			err = execv("./src/parodus", command);
+		}
 		printf("err is %d, errno is %d\n",err, errno);		
 	
 	}
