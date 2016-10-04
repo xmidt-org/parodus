@@ -1,37 +1,20 @@
 language: c
 compiler:
-    - gcc
+- gcc
 env:
   global:
-	secure: "T6Beoqy6N3mG9XCbe03fuGfMYMtSDha57ugU1TT9M5yMd9P7KslaQdZLNHiZ98g6Ilcx4TPIEp0O/WYYjaxxbqNJqF04cUWdP7u455gUy+vx6Sn7tyA8feDbTxSdztNqQgKc4JE3mQtETSEznAV8nIG0FiDDwMNWwe2V6BQa4oIqw5GfD7MkfAoMvUHkgag09K+M3oSMi2Qw0jQ2bwhO2+X7B1e2005kSUv2bCVyuNXlBZou+dETwAzmUgxhlPq8dwAJp2VPy7DNlHsMBIkxU/gVk+CoRStB4crLfnBWR0MClYTJvRmaI5wxFOrwlVdWhPDQEY63bxG8A/ScSzmhdNH0AUz9WoX0oOSlZVdXYHy7KV/JDDIckkJKK71ITrAaNPVd4K4T90iJAUJtz1nNSqno1CaE3rgVtzGH/dubW81aZVxGWSn/bbznHL1gP1d+HUKTpqBkGk53UwmvlssYVPoP0HGQ/sUy9UtnKQeuifp6jt1JxAfSw/Rygzm7WbSk7EIduCOGRZRKJNka6JyvgjNF3/2zSFy9ytKo8er6iLeN7a1nOnlPC4rDaE2fQ1AH0MtuYD5FC/vETvbqzO4AE6ff5azyJMPJY5cszdyBoWr/A5ldRtP/Gk/ztO3OhjoURoMb1JLzGgocbgsW7ZM/Eb/FGfudq8ow9gn1UeAGk0M="
-#   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-#   #   via the "travis encrypt" command using the project repo's public key
-#   - secure: ""
-
-addons:
-#  coverity_scan:
-#    project:
-#      name: "Comcast/parodus"
-#      description: "The WebPA client."
-#    notification_email: weston_schmidt@alumni.purdue.edu
-#    build_command_prepend: "mkdir coverity_build && cd coverity_build && cmake .."
-#    build_command:   "make"
-#    branch_pattern: master
-
+    secure: ZzXSXA8FHjCgVMpHTyCw7elrRa9LTHkMWRZyt2DNxcNra8URZuhoHUoa+D/bxIEOMp0vOYliHg/Umn6hWDV9wi2CRWVZdcYLhMvHRdDfM+uW7fS0R8/cFkfoGsit88IfYC865Xs/IsWhdMhXG9DSiRaaOmQI9nSnekrAFmQ3S7yht5Nk77+X7O+hVdXAMjhi7CVwQhCY+H5nRa7qSd+7SxCmShhAh4dosPmNVphQPJ1BE18jad0R3YxHjn3tpiN1z2NrWJQt7Ce+hdu9fR7P+vNXIcbFxjn2bC6nbnUY6/fKshOw9TD2qNhQlk6H37oanbIlWYGmdxpeqlyhCP0HSixtfYojkvEQ90+sp6tIm329acXXih/WHG2opgMAfFsn79ynzTl1BIFIIDMYkhOBaR/ziDuy/Ck7QUSnl/wioWqbCX8ndZ+dqUzUtT2LqmN6o1RuDtDcfCV5NvxQ322zm9OBrIBbSvXj1IMB2muCI4mmGips3kud359HCL93PeuaBnqaBmv3lbwatdEgiQArwxuFXwD9ibdFA71GmJEOohIGyGyXV5y9V5dWNQcgAGT1QgWCjeQWiA/aMV496CHDcIby5sWJqFnhfcpamsbV5JGrVKxsgliOQKt07gcFhdFI+BeEp6B79LfaVUJsYUP/vddNFK7wLReipBIwl6cJ2vg=
 before_install:
-    - sudo pip install codecov
-
+- sudo pip install codecov
 install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
-
+- sudo apt-get update -qq
+- sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
 script:
-    - mkdir build
-    - cd build
-    - cmake ..
-    - make
-    - make test
-    - make coverage
-
+- mkdir build
+- cd build
+- cmake ..
+- make
+- make test
+- make coverage
 after_success:
-    - codecov
+- codecov
