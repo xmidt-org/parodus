@@ -1,37 +1,21 @@
 language: c
 compiler:
-    - gcc
+- gcc
 env:
   global:
-    secure: gVS8YeO4IyL60A0olrIsvIAAc8LGdqKi2TeNR4AM4MdcOGKMDiHUFehv0OLzSpFVw+TPgrYR8SD9wc73O761HR6vbZuKsh0IzlmXp07dBvFJDSa5gnX9lULW1XylJHQM+vevuvuA6T5xDK/VWH0vItw9CRg4XMVEvuWTYVjaFeEjk1nj3fpCu3Kd85TZNnDcz08lqUpbkVN6jnmWw7gtfHFXKyU+itA+F9orgXkvwjemdSMvsk3rl7n+Wp5FZ76R0HN2jSr7esoAt2zXUAeQRJ38G7jcVlfqXeeA9ZWUPCfuoa95N6o/4vGriaLST29UyMMn57cOB03Pw28gyStP+vsQBGzV7fDGCt19SI9nSb93wWrJqSFeCKeMwNUYORDC5v/s/b5F2uHOOhWWqQHaqvFHTXAmI7bAff8Faht3OOOy6KiFSEjEkvhNjP6TaCnRj5pY1awE+EvDP7GrqyxTG/zPA/8PfoalsiYrlfcaRBjeqCulIELUoIXp+XRKOg/GDXHYu+43NGEicYkTQI/ETkM+e6wpoAXhyNBBSFlz5OsI2JywV0KgyuK3lMpO4B/1BKKSAWJxCqnKg1xcRNXj2ceISsqsNdmk9baiEft3FzCx56j5pU9rTBknD5CSCLaV4P37G07o2/Ycad8wG+ZLkJjN/swoGy0V4O5lTxhqfl0=
-#   # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
-#   #   via the "travis encrypt" command using the project repo's public key
-#   - secure: ""
-
-addons:
-#  coverity_scan:
-#    project:
-#      name: "Comcast/parodus"
-#      description: "The WebPA client."
-#    notification_email: weston_schmidt@alumni.purdue.edu
-#    build_command_prepend: "mkdir coverity_build && cd coverity_build && cmake .."
-#    build_command:   "make"
-#    branch_pattern: master
-
+  - secure: bIXOO027RJ3MIuf/N3OTkIfyZ5UmkKBPNRfW6u9QTTKRAfMcE9wZTC5VkVtS9wtP+KyRiboObrPoBECYgQ9U+j/ikBFl79CL64O7kYT+bBb4nOvaXZy3GouV7/Mxom3QDVYhNtSdMGPRuDi4aBdEUmMW0m+x9Indm9wGPGgKMy+T1xpkTtK9C9Xqo1Pws6x8YExQvSB2PmtEAnhwFfk/RCm8WcX48wgbhyibLvCrwapt+Yuql0JOFGsotEpEooWphGKpkNMNyqgCw/n17Ev26Nu/ONi8NGVxVXdVZAISaH0wCJhHr/yX52lRlUT97svDg84OTEW/yYh1pqSyIYtpGdAdRKOETPj8l+fHP7krsM2cvB0OLRVbix9oef+Ym/pOW7Vvozr9LhFFx+VELUysmq/hykrZA4nDNcQtUFMimLYBRCfsPkRvRZVTDix7l4VNXmPgThDUSxaIvhTPPll4fW4XDRudkY0OhNNZQ192pod2fihO+CI6wAmL6JI/MvBMuqbq2RE3cXADdptcuI1aEdJivpCatJDlh7No58l72Xi/5j7GfBGdCXzeZgg0HCnjn3cCppJthxJxaiBp/RVry8RfGEZ46tQoIsGl0Q6QwCGaYT0VVDD+MkwGUpJ/GggvugpkE1c9iRz9B5hhPVbuFKRLaydgP5/vdJoauQc5ERM=
+  - secure: pIx2SvRUKFagCM7Ay/J21pgAHUaEg+Oah9LxfDkWg+9P+ylRh2tVgp76v/fqIbnLC0HgbQGBM4d6DSJcfmm195J4aSa0LBzTjzWPenBfNUAxPE0t5SCqdVfQ0nT5zDX0vkVkzhw1A/G+QO9S7kLEnrypHgdS4gYVuIgfQbZoqbB5M7maPopyoVS+U/RvTXO6ZXVh+vDvzGVoGV6t851HHNWSqiJUKHdG0ZgEBz37MegGE0wTbMX7CSxOqBo7I9EVoC1E8IAKsCVBbBoHWMkf997Ke6469OFiJ2M2pR4nfclIHJQQUcKALmYxJ2Ui2c6DJ1dXRUXgnDUZHggIEGVdNt+JEDXD4kMkg9dZudQFCcCxj28zhJ98xIwldTSTd2eutM4SoN2TjKoAqXcPLkj3qwvfBJYZg+DShLFTgOkIXMZP3zhjZyDWuej8eoz3pVRDzGYuA+jNSnJrpjV0tNt8Tcj41a0qdufYji15munbxDSNpqQ12tdkaQNfnTcQGp9NfbmYRAiLctomvWuaziB/QoI11fSBxoPBzwug8rIn6HCE+zmuEjCI+0z+TyDT+Jf5nNO+m96fXRDWWH4VD3n9bP1OLDUDMJD26B27mwCyxe5URXCoxbAig9NNAXAnVPwOt6If9FzoEdiGrSLltrb45WoqjG8F+rIAuuUkIwniZ+g=
 before_install:
-    - sudo pip install codecov
-
+- sudo pip install codecov
 install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
-
+- sudo apt-get update -qq
+- sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
 script:
-    - mkdir build
-    - cd build
-    - cmake ..
-    - make
-    - make test
-    - make coverage
-
+- mkdir build
+- cd build
+- cmake ..
+- make
+- make test
+- make coverage
 after_success:
-    - codecov
+- codecov

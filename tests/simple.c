@@ -380,7 +380,7 @@ void main( void )
 
 	printf("****************** WEBPA_AUTH_HEADER = %s \n", s);
 
-	sprintf(commandUrl, "curl -i -H \"Authorization:Basic %s -H \"Accept: application/json\" -w %%{time_total} -k \"https://api-cd.webpa.comcast.net:8090/api/v2/device/mac:bccab5f17962/iot?names=Device.DeviceInfo.Webpa.X_COMCAST-COM_SyncProtocolVersion\"", s);	
+	sprintf(commandUrl, "curl -i -H \"Authorization:Basic %s\" -H \"Accept: application/json\" -w %%{time_total} -k \"https://api-cd.webpa.comcast.net:8090/api/v2/device/mac:bccab5f17962/iot?names=Device.DeviceInfo.Webpa.X_COMCAST-COM_SyncProtocolVersion\"", s);	
 	printf("---------------------->>>>Executing system(commandUrl)\n");
 	printf("commandUrl is:%s\n\n", commandUrl);
 	curl_pid = getpid();
@@ -404,6 +404,10 @@ void main( void )
 		printf("child process execution with pid:%d\n", pid);
 		
 		err = execv("../src/parodus", command);
+		if(errno == 2)
+		{
+			err = execv("./src/parodus", command);
+		}
 		printf("err is %d, errno is %d\n",err, errno);		
 	
 	}
