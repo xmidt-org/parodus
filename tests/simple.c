@@ -378,11 +378,11 @@ void main( void )
 	const char *s = getenv("WEBPA_AUTH_HEADER");
 	
 
-	printf("****************** WEBPA_AUTH_HEADER = %s \n", s);
+	//printf("****************** WEBPA_AUTH_HEADER = %s \n", s);
 
 	sprintf(commandUrl, "curl -i -H \"Authorization:Basic %s\" -H \"Accept: application/json\" -w %%{time_total} -k \"https://api-cd.webpa.comcast.net:8090/api/v2/device/mac:bccab5f17962/iot?names=Device.DeviceInfo.Webpa.X_COMCAST-COM_SyncProtocolVersion\"", s);	
 	printf("---------------------->>>>Executing system(commandUrl)\n");
-	printf("commandUrl is:%s\n\n", commandUrl);
+	//printf("commandUrl is:%s\n\n", commandUrl);
 	curl_pid = getpid();
 	printf("child process execution with curl_pid:%d\n", curl_pid);
 
