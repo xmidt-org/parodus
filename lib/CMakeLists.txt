@@ -20,6 +20,7 @@ include(ExternalProject)
 include(CTest)
 
 set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
+set(BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib${LIB_SUFFIX})
 
