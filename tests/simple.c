@@ -370,7 +370,7 @@ void main( void )
 	pid_t curl_pid;
   
 
-	char * command[] = {"parodus","--hw-model=TG1682", "--hw-serial-number=Fer23u948590","--hw-manufacturer=ARRISGroup,Inc.","--hw-mac=bccab5f17962","--hw-last-reboot-reason=unknown","--fw-name=TG1682_DEV_master_2016000000sdy","--webpa-ping-time=180","--webpa-inteface-used=eth0","--webpa-url=fabric-cd.webpa.comcast.net","--webpa-backoff-max=0", NULL};
+	char * command[] = {"parodus","--hw-model=TG1682", "--hw-serial-number=Fer23u948590","--hw-manufacturer=ARRISGroup,Inc.","--hw-mac=123567892366","--hw-last-reboot-reason=unknown","--fw-name=TG1682_DEV_master_2016000000sdy","--webpa-ping-time=180","--webpa-inteface-used=eth0","--webpa-url=fabric-cd.webpa.comcast.net","--webpa-backoff-max=0", NULL};
 	printf("command is:%s\n", command);
 	
     	printf("Starting parodus process \n");
@@ -378,11 +378,11 @@ void main( void )
 	const char *s = getenv("WEBPA_AUTH_HEADER");
 	
 
-	printf("****************** WEBPA_AUTH_HEADER = %s \n", s);
+	//printf("****************** WEBPA_AUTH_HEADER = %s \n", s);
 
-	sprintf(commandUrl, "curl -i -H \"Authorization:Basic %s -H \"Accept: application/json\" -w %%{time_total} -k \"https://api-cd.webpa.comcast.net:8090/api/v2/device/mac:bccab5f17962/iot?names=Device.DeviceInfo.Webpa.X_COMCAST-COM_SyncProtocolVersion\"", s);	
+	sprintf(commandUrl, "curl -i -H \"Authorization:Basic %s\" -H \"Accept: application/json\" -w %%{time_total} -k \"https://api-cd.webpa.comcast.net:8090/api/v2/device/mac:123567892366/iot?names=Device.DeviceInfo.Webpa.X_COMCAST-COM_SyncProtocolVersion\"", s);	
 	printf("---------------------->>>>Executing system(commandUrl)\n");
-	printf("commandUrl is:%s\n\n", commandUrl);
+	//printf("commandUrl is:%s\n\n", commandUrl);
 	curl_pid = getpid();
 	printf("child process execution with curl_pid:%d\n", curl_pid);
 
@@ -404,6 +404,10 @@ void main( void )
 		printf("child process execution with pid:%d\n", pid);
 		
 		err = execv("../src/parodus", command);
+		if(errno == 2)
+		{
+			err = execv("./src/parodus", command);
+		}
 		printf("err is %d, errno is %d\n",err, errno);		
 	
 	}
@@ -468,7 +472,7 @@ void main( void )
 			close(link[1]);
 			nbytes = read(link[0], value, sizeof(value));
 			   
-		      	printf("value is :%s\n", value);
+		      	//printf("value is :%s\n", value);
 		      	if ((data = strstr(value, "message:Success")) !=NULL)
 		      	{
 		      		printf("curl success\n");
