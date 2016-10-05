@@ -370,7 +370,7 @@ void main( void )
 	pid_t curl_pid;
   
 
-	char * command[] = {"parodus","--hw-model=TG1682", "--hw-serial-number=Fer23u948590","--hw-manufacturer=ARRISGroup,Inc.","--hw-mac=bccab5f17962","--hw-last-reboot-reason=unknown","--fw-name=TG1682_DEV_master_2016000000sdy","--webpa-ping-time=180","--webpa-inteface-used=eth0","--webpa-url=fabric-cd.webpa.comcast.net","--webpa-backoff-max=0", NULL};
+	char * command[] = {"parodus","--hw-model=TG1682", "--hw-serial-number=Fer23u948590","--hw-manufacturer=ARRISGroup,Inc.","--hw-mac=123567892366","--hw-last-reboot-reason=unknown","--fw-name=TG1682_DEV_master_2016000000sdy","--webpa-ping-time=180","--webpa-inteface-used=eth0","--webpa-url=fabric-cd.webpa.comcast.net","--webpa-backoff-max=0", NULL};
 	printf("command is:%s\n", command);
 	
     	printf("Starting parodus process \n");
@@ -472,7 +472,7 @@ void main( void )
 			close(link[1]);
 			nbytes = read(link[0], value, sizeof(value));
 			   
-		      	printf("value is :%s\n", value);
+		      	//printf("value is :%s\n", value);
 		      	if ((data = strstr(value, "message:Success")) !=NULL)
 		      	{
 		      		printf("curl success\n");
