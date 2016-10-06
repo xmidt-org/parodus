@@ -40,6 +40,7 @@
 #define WEBPA_MAX_PING_WAIT_TIME_SEC                    180
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
+#define METADATA_COUNT 					8			
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
 #define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
@@ -75,10 +76,6 @@ typedef struct reg_client__
 	char url[100];
 } reg_client;
 
-static int numOfClients = 0;
-//Currently set the max mumber of clients as 10
-reg_client *clients[10];
-
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -87,6 +84,13 @@ reg_client *clients[10];
 static ParodusCfg parodusCfg;
 static noPollCtx *ctx = NULL;
 static noPollConn *conn = NULL;
+static int numOfClients = 0;
+
+//Currently set the max mumber of clients as 10
+reg_client *clients[10];
+
+void *metadataPack;
+size_t metaPackSize=-1;
 
 static char deviceMAC[32]={'\0'}; 
 static volatile unsigned int heartBeatTimer = 0;
@@ -178,8 +182,9 @@ void __close_and_unref_connection__(noPollConn *conn)
 void __createSocketConnection(void *config_in, void (* initKeypress)())
 
 {
-    ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
-   loadParodusCfg(tmpCfg,&parodusCfg);
+	int intTimer=0;	
+    	ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
+   	loadParodusCfg(tmpCfg,&parodusCfg);
 		
 	printf("Configure nopoll thread handlers in Parodus \n");
 	nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
@@ -205,7 +210,7 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
 	{
   		(* initKeypress) ();
 	}
-	int intTimer=0;
+	
 	do
 	{
 		
@@ -530,6 +535,7 @@ static char createNopollConnection()
 	int  encodedDataSize = 1024;
 	int i=0, j=0, connErr=0;
 	int bootTime_sec;
+	char boot_time[256]={'\0'};
 	
 	struct timespec start,end,connErr_start,connErr_end,*startPtr,*endPtr,*connErr_startPtr,*connErr_endPtr;
 	startPtr = &start;
@@ -804,6 +810,28 @@ static char createNopollConnection()
 	pthread_mutex_unlock (&close_mut);
 	printf("createNopollConnection(): close_mutex unlock\n");
 	heartBeatTimer = 0;
+	
+	
+	//Pack the metadata initially to reuse for every upstream msg sending to server
+  	printf("-------------- Packing metadata ----------------\n");
+  	sprintf(boot_time, "%d", bootTime_sec);
+ 
+  		
+	struct data meta_pack[METADATA_COUNT] = {{"hw-model", modelName}, {"hw-serial-number", parodusCfg.hw_serial_number},{"hw-manufacturer", manufacturer},{"hw-mac", parodusCfg.hw_mac},{"hw_last_reboot_reason", reboot_reason},{"fw-name", firmwareVersion},{"boot_time", boot_time},{"webpa-last-reconnect-reason",reconnect_reason}};
+	const data_t metapack = {METADATA_COUNT, meta_pack};
+	
+	metaPackSize = wrp_pack_metadata( &metapack , &metadataPack );
+
+	if (metaPackSize > 0) 
+	{
+		printf("metadata encoding is successful with size %zu\n", metaPackSize);
+	}
+	else
+	{
+		printf("Failed to encode metadata\n");
+
+	}
+	
 
 	// Reset connErr flag on successful connection
 	connErr = 0;
@@ -1078,13 +1106,12 @@ static void handleUpStreamEvents()
 	int i =0;	
 	int size=0;
 	int matchFlag = 0;	
-	int sock =0;
-	int byte = 0;
-	void *bytes;	
+	int byte = 0;	
 	void *auth_bytes;
 	wrp_msg_t auth_msg_var;
-
-
+	void *appendData;
+	size_t encodedSize;
+	
 	auth_msg_var.msg_type = WRP_MSG_TYPE__AUTH;
 	auth_msg_var.u.auth.status = 200;
 		
@@ -1216,8 +1243,28 @@ static void handleUpStreamEvents()
 					
 			   					
 					printf("\n Received upstream data with MsgType: %d\n", msgType);   					
-    					printf("Sending upstream msg to server\n");
-					handleUpstreamMessage(message->msg, message->len);
+					//Appending metadata with packed msg received from client
+					
+					if(metaPackSize > 0)
+					{
+					   	printf("Appending received msg with metadata\n");
+					   	encodedSize = appendEncodedData( &appendData, message->msg, message->len, metadataPack, metaPackSize );
+					   	printf("encodedSize after appending :%zu\n", encodedSize);
+					   	printf("metadata appended upstream msg %s\n", (char *)appendData);
+					   
+						printf("Sending metadata appended upstream msg to server\n");
+					   	handleUpstreamMessage(appendData, encodedSize);
+					   	
+						free( appendData);
+						appendData =NULL;
+					}
+					
+					else
+					{		
+						printf("Failed to send upstream as metadata packing is not successful\n");
+			
+					}
+    					
 							        
 				    
 				    }
