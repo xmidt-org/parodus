@@ -45,15 +45,23 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler);
  *  @param msg the pointer to receive the next msg struct
  *  @param ms the number of milliseconds to wait for the next message
  *
- *  @return 0 on success, failure otherwise
+ *  @return 0 on success, 2 if closed msg received, 1 if timed out, 
+ *   -1 if receive error, -2 if msg not a ptr
+ *
+ *  @note don't free the msg when return is 2. 
  */
 int libparodus_receive (wrp_msg_t **msg, uint32_t ms);
 
+/**
+ * Sends a close message to the receiver
+ *
+ */
+int libparodus_close_receiver (void);
 
 /**
  * Shut down the parodus wrp interface
  *
- */
+*/
 int libparodus_shutdown (void);
 
 

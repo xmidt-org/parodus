@@ -30,7 +30,11 @@
 //#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
 
 #define END_MSG "---END-PARODUS---\n"
-const char *end_msg = END_MSG;
+static const char *end_msg = END_MSG;
+
+static char *closed_msg = "---CLOSED---\n";
+static wrp_msg_t wrp_closed_msg;
+static wrp_msg_t *closed_msg_ptr = &wrp_closed_msg;
 
 typedef struct {
 	int len;
@@ -54,6 +58,7 @@ static pthread_t wrp_receiver_tid;
 
 static const char *selected_service;
 
+static void make_closed_msg (wrp_msg_t *msg);
 static int wrp_sock_send (wrp_msg_t *msg);
 static int flush_wrp_queue (uint32_t delay_ms);
 static void *raw_receiver_thread (void *arg);
@@ -197,6 +202,7 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 		return -1;
 	}
 
+	make_closed_msg (&wrp_closed_msg);
 	auth_received = false;
 	selected_service = service_name;
 	if (connect_receiver (CLIENT_URL) != 0)
@@ -303,6 +309,11 @@ int libparodus_shutdown (void)
 {
 	int rtn;
 
+	if (RUN_STATE_RUNNING != run_state) {
+		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: not running at shutdown\n");
+		return -1;
+	}
+
 	run_state = RUN_STATE_DONE;
 	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Shutting Down\n");
 	sock_send (stop_rcv_sock, end_msg, -1);
@@ -348,6 +359,7 @@ static int timed_wrp_queue_receive (wrp_msg_t **msg, struct timespec *expire_tim
 {
 	ssize_t bytes;
 	char msgbuf[MAX_QUEUE_MSG_SIZE];
+	wrp_msg_t **wrp_msg_buf = (wrp_msg_t **) msgbuf; 
 
 	bytes = mq_timedreceive (wrp_queue, msgbuf, MAX_QUEUE_MSG_SIZE, NULL,
 		expire_time);
@@ -363,11 +375,32 @@ static int timed_wrp_queue_receive (wrp_msg_t **msg, struct timespec *expire_tim
 				bytes);
 		return -2;
 	}
-	memcpy ((void*) msg, (const void*)msgbuf, sizeof(wrp_msg_t *));
-
+	*msg = *wrp_msg_buf;
+	//libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: receive msg on WRP QUEUE\n");
 	return 0;
 }
 
+static void make_closed_msg (wrp_msg_t *msg)
+{
+	msg->msg_type = WRP_MSG_TYPE__REQ;
+	msg->u.req.transaction_uuid = closed_msg;
+	msg->u.req.source = closed_msg;
+	msg->u.req.dest = closed_msg;
+	msg->u.req.payload = (void*) closed_msg;
+	msg->u.req.payload_size = strlen(closed_msg);
+}
+
+static bool is_closed_msg (wrp_msg_t *msg)
+{
+	return (msg->msg_type == WRP_MSG_TYPE__REQ) &&
+		(strcmp (msg->u.req.dest, closed_msg) == 0);
+}
+
+// returns 0 OK
+//  2 closed msg received
+//  1 timed out
+// -1 mq_receive error
+// -2 msg size error, not a ptr
 int libparodus_receive (wrp_msg_t **msg, uint32_t ms)
 {
 	struct timespec ts;
@@ -384,13 +417,26 @@ int libparodus_receive (wrp_msg_t **msg, uint32_t ms)
 	}
 
 	err = timed_wrp_queue_receive (msg, &ts);
-	if (err == 1)
-		return ETIMEDOUT;
 	if (err != 0)
-		return -1;
+		return err;
+	if (is_closed_msg (*msg)) {
+		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: closed msg received\n");
+		return 2;
+	}
 	return 0;
 }
 
+int libparodus_close_receiver (void)
+{
+	if (RUN_STATE_RUNNING != run_state) {
+		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: not running at close receiver\n");
+		return -1;
+	}
+	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &closed_msg_ptr, 
+		sizeof(wrp_msg_t *));
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Sent closed msg\n");
+	return 0;
+}
 
 static int wrp_sock_send (wrp_msg_t *msg)
 {
@@ -442,6 +488,7 @@ static void *raw_receiver_thread (void *arg)
 			nn_freemsg (msg.msg);
 			continue;
 		}
+		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: received raw msg from parodus service\n");
 		queue_send (raw_queue, "/RAW_QUEUE", (const char *) &msg, sizeof(raw_msg_t));
 
 	}
@@ -472,7 +519,7 @@ static void *wrp_receiver_thread (void *arg)
 	raw_msg_t raw_msg;
 	wrp_msg_t *wrp_msg;
 	int end_msg_len = strlen(end_msg);
-	char *dest;
+	char *msg_dest, *msg_service;
 	char msg_buf[MAX_QUEUE_MSG_SIZE];
 
 	libpd_log (LEVEL_DEBUG, 0, "Starting wrp receiver thread\n");
@@ -488,6 +535,7 @@ static void *wrp_receiver_thread (void *arg)
 			nn_freemsg (raw_msg.msg);
 			continue;
 		}
+		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Converting bytes to WRP\n"); 
  		msg_len = (int) wrp_to_struct (raw_msg.msg, raw_msg.len, WRP_BYTES, &wrp_msg);
 		if (msg_len < 1) {
 			libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error converting bytes to WRP\n");
@@ -509,17 +557,25 @@ static void *wrp_receiver_thread (void *arg)
 		}
 
 		// Pass thru REQ, EVENT, and CRUD if dest matches the selected service
-		dest = find_wrp_msg_dest (wrp_msg);
-		if (NULL == dest) {
+		msg_dest = find_wrp_msg_dest (wrp_msg);
+		if (NULL == msg_dest) {
 			libpd_log (LEVEL_ERROR, 0, "LIBPARADOS: Unprocessed msg type %d received\n",
 				wrp_msg->msg_type);
 			wrp_free_struct (wrp_msg);
 			continue;
 		}
-		if (strcmp (dest, selected_service) != 0) {
+		msg_service = strrchr (msg_dest, '/');
+		if (NULL == msg_service) {
 			wrp_free_struct (wrp_msg);
 			continue;
 		}
+		msg_service++;
+		if (strcmp (msg_service, selected_service) != 0) {
+			wrp_free_struct (wrp_msg);
+			continue;
+		}
+		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: received msg directed to service %s\n",
+			selected_service);
 		queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &wrp_msg, 
 			sizeof(wrp_msg_t *));
 	}
@@ -531,6 +587,7 @@ static int flush_wrp_queue (uint32_t delay_ms)
 {
 	wrp_msg_t *wrp_msg;
 	struct timespec ts;
+	int count = 0;
 	int err = get_expire_time (delay_ms, &ts);
 	if (err != 0) {
 		return err;
@@ -538,6 +595,10 @@ static int flush_wrp_queue (uint32_t delay_ms)
 
 	while (1) {
 		err = timed_wrp_queue_receive (&wrp_msg, &ts);
+		if (err == 2) { // closed msg
+			count++;
+			continue;
+		}
 		if (err == 1)	// timed out
 			break;
 		if (err == -2) // bad msg
@@ -545,7 +606,10 @@ static int flush_wrp_queue (uint32_t delay_ms)
 		if (err != 0)
 			return -1;
 		wrp_free_struct (wrp_msg);
+		count++;
 	}
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: flushed %d messages out of WRP Queue\n", 
+		count);
 	return 0;
 }
 
