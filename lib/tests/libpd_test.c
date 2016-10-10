@@ -85,10 +85,77 @@ void send_reply (wrp_msg_t *wrp_msg)
 	libparodus_send (wrp_msg);
 }
 
+char *new_str (const char *str)
+{
+	char *buf = malloc (strlen(str) + 1);
+	if (NULL == buf)
+		return NULL;
+	strcpy (buf, str);
+	return buf;
+}
+
+void insert_number_into_buf (char *buf, unsigned num)
+{
+	char *pos = strrchr (buf, '#');
+	if (NULL == pos)
+		return;
+	while (true) {
+		*pos = (num%10) + '0';
+		num /= 10;
+		if (pos <= buf)
+			break;
+		pos--;
+		if (*pos != '#')
+			break;
+	}
+}
+
+void send_event_msg (const char *src, const char *dest, 
+	const char *payload, unsigned event_num)
+{
+	char *payload_buf;
+	wrp_msg_t *new_msg = malloc (sizeof (wrp_msg_t));
+	if (NULL == new_msg)
+		return;
+	printf ("Making event msg\n");
+	new_msg->msg_type = WRP_MSG_TYPE__EVENT;
+	new_msg->u.event.source = new_str (src);
+	new_msg->u.event.dest = new_str (dest);
+	new_msg->u.event.headers = NULL;
+	new_msg->u.event.metadata = NULL;
+	payload_buf = new_str (payload);
+	insert_number_into_buf (payload_buf, event_num);
+	new_msg->u.event.payload = (void*) payload_buf;
+	new_msg->u.event.payload_size = strlen (payload) + 1;
+	printf ("Sending event msg %u\n", event_num);
+	libparodus_send (new_msg);
+	//printf ("Freeing event msg\n");
+	wrp_free_struct (new_msg);
+	//printf ("Freed event msg\n");
+}
+
+void send_event_msgs (unsigned *msg_num, unsigned *event_num)
+{
+	int i;
+	unsigned msg_num_mod;
+
+	(*msg_num)++;
+	msg_num_mod = (*msg_num) % 3;
+	if (msg_num_mod != 0)
+		return;
+	for (i=0; i<5; i++) {
+		(*event_num)++;
+		send_event_msg ("---LIBPARODUS---", "---ParodusService---",
+			"---EventMessagePayload####", *event_num);
+	}
+}
+
 void test_1()
 {
 	int rtn;
 	wrp_msg_t *wrp_msg;
+	unsigned event_num = 0;
+	unsigned msg_num = 0;
 
 	CU_ASSERT (libparodus_init (service_name, NULL) == 0);
 	initEndKeypressHandler ();
@@ -96,6 +163,7 @@ void test_1()
 		rtn = libparodus_receive (&wrp_msg, 2000);
 		if (rtn == 1) {
 			printf ("Timed out waiting for msg\n");
+			send_event_msgs (&msg_num, &event_num);
 			continue;
 		}
 		if (rtn != 0)
@@ -104,6 +172,7 @@ void test_1()
 		if (wrp_msg->msg_type == WRP_MSG_TYPE__REQ)
 			send_reply (wrp_msg);
 		wrp_free_struct (wrp_msg);
+		send_event_msgs (&msg_num, &event_num);
 	}
 	CU_ASSERT (libparodus_shutdown () == 0);
 }

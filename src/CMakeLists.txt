@@ -24,8 +24,10 @@ target_link_libraries (parodus
     -lm
     -lssl
     -lcrypto
-    -lnanomsg
+    ${INSTALL_DIR}/lib64/libnanomsg.so
     -lcJSON
     -lpthread
     -lrt
     )
+
+#  -lnanomsg
