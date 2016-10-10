@@ -481,16 +481,18 @@ static void *raw_receiver_thread (void *arg)
 		rtn = sock_receive (&msg);
 		if (rtn != 0)
 			break;
-		if (msg.len >= end_msg_len)
-			if (strncmp (msg.msg, end_msg, end_msg_len) == 0)
+		if (msg.len >= end_msg_len) {
+			if (strncmp (msg.msg, end_msg, end_msg_len) == 0) {
+				nn_freemsg (msg.msg);
 				break;
+			}
+		}
 		if (RUN_STATE_RUNNING != run_state) {
 			nn_freemsg (msg.msg);
 			continue;
 		}
 		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: received raw msg from parodus service\n");
 		queue_send (raw_queue, "/RAW_QUEUE", (const char *) &msg, sizeof(raw_msg_t));
-
 	}
 	libpd_log (LEVEL_DEBUG, 0, "Ended raw receiver thread\n");
 	return NULL;
@@ -537,6 +539,7 @@ static void *wrp_receiver_thread (void *arg)
 		}
 		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Converting bytes to WRP\n"); 
  		msg_len = (int) wrp_to_struct (raw_msg.msg, raw_msg.len, WRP_BYTES, &wrp_msg);
+		nn_freemsg (raw_msg.msg);
 		if (msg_len < 1) {
 			libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error converting bytes to WRP\n");
 			continue;

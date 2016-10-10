@@ -30,8 +30,8 @@ static void *endKeypressHandlerTask();
 
 static pthread_t endKeypressThreadId;
 
-//static const char *service_name = "iot";
-static const char *service_name = "config";
+static const char *service_name = "iot";
+//static const char *service_name = "config";
 
 void show_src_dest_payload (char *src, char *dest, void *payload, size_t payload_size)
 {
@@ -139,6 +139,7 @@ void send_event_msgs (unsigned *msg_num, unsigned *event_num)
 	int i;
 	unsigned msg_num_mod;
 
+	return;
 	(*msg_num)++;
 	msg_num_mod = (*msg_num) % 3;
 	if (msg_num_mod != 0)
