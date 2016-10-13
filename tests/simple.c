@@ -108,7 +108,7 @@ void test_nanomsg_client_registration1()
 	nn_freemsg(buf);	
 
 	free(bytes);	
-	sleep(2);
+	wrp_free_struct(msg1);
 	nn_shutdown(sock, 0);
 	nn_shutdown(sock1, 0);
 	
@@ -184,7 +184,7 @@ void test_nanomsg_client_registration2()
 	nn_freemsg(buf1);	
 	
 	free(bytes);
-	sleep(2);
+	wrp_free_struct(msg1);
 	nn_shutdown(sock, 0);
 	nn_shutdown(sock1, 0);
 
@@ -260,7 +260,7 @@ void test_nanomsg_client_registration3()
 	nn_freemsg(buf2);
 	
 	free(bytes);
-	sleep(2);
+	wrp_free_struct(msg1);
 	nn_shutdown(sock, 0);
 	nn_shutdown(sock1, bind);
 	
@@ -317,7 +317,9 @@ void test_nanomsg_downstream_success()
 	
 	nn_freemsg(buf);
 	nn_shutdown(sock, bind);
-	sleep(60);
+	
+	//Need to wait for parodus to finish it's task.
+	sleep(10);
 
 
 }
@@ -375,7 +377,7 @@ void main( void )
 	pid_t curl_pid;
   
 
-	char * command[] = {"parodus","--hw-model=TG1682", "--hw-serial-number=Fer23u948590","--hw-manufacturer=ARRISGroup,Inc.","--hw-mac=123567892366","--hw-last-reboot-reason=unknown","--fw-name=TG1682_DEV_master_2016000000sdy","--boot-time=10","--webpa-ping-time=180","--webpa-inteface-used=eth0","--webpa-url=fabric-cd.webpa.comcast.net","--webpa-backoff-max=0", NULL};
+	char * command[] = {"parodus","--hw-model=TG1682", "--hw-serial-number=Fer23u948590","--hw-manufacturer=ARRISGroup,Inc.","--hw-mac=123567892366","--hw-last-reboot-reason=unknown","--fw-name=TG1682_DEV_master_2016000000sdy","--boot-time=10","--webpa-ping-time=180","--webpa-inteface-used=eth0","--webpa-url=fabric-cd.webpa.comcast.net","--webpa-backoff-max=9", NULL};
 	printf("command is:%s\n", command);
 	
     	printf("Starting parodus process \n");
@@ -452,15 +454,21 @@ void main( void )
 	
 		else if(pid1 == 0) 
 		{
-			
-			sleep(120);							
+									
+									
+			FILE *fp;
+			while(NULL == fopen("/tmp/parodus_ready", "r"))
+			{
+				
+				sleep(5);
+			}
 	    		dup2 (link[1], STDOUT_FILENO);
 	    		close(link[0]);
 	    		close(link[1]);
-
+			sleep(40);
 			system(commandUrl);			
 			printf("\n----Executed first Curl request for downstream ------- \n");
-			sleep(2);
+			
 		
 		}
 	
@@ -500,7 +508,7 @@ int handle_testsuites(void* pid)
 	pid_t pid_parodus = *((int *)pid);
 	
 	printf("Starting handle_testsuites thread\n");
-	sleep(40);
+	sleep(25);
 
     	if( CUE_SUCCESS == CU_initialize_registry() ) {
 		add_suites( &suite );
@@ -603,7 +611,7 @@ static void send_nanomsg_upstream(char **buf, int size)
 	printf("----->Expected byte to be sent:%d\n", resp_size);
 	printf("----->actual byte sent:%d\n", byte);
 	CU_ASSERT(byte==resp_size );
-	
+	wrp_free_struct(message);
 	
 	free(bytes);
 	nn_shutdown(sock, 0);

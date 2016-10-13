@@ -24,7 +24,6 @@ add_executable(simple simple.c ../src/wss_mgr.c )
 
 target_link_libraries (simple gcov
                               cunit
-													    ${INSTALL_DIR}/lib64/libnanomsg.so
                               -lnanomsg
                               -lcJSON
                               -lcJSON
