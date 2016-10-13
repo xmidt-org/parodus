@@ -40,7 +40,7 @@
 #define WEBPA_MAX_PING_WAIT_TIME_SEC                    180
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
-#define METADATA_COUNT 					8			
+#define METADATA_COUNT 					11			
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
 #define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
@@ -134,7 +134,6 @@ noPollPtr createMutex();
 void lockMutex(noPollPtr _mutex);
 void unlockMutex(noPollPtr _mutex);
 void destroyMutex(noPollPtr _mutex);
-int __attribute__ ((weak)) checkDeviceInterface();
 
 static void initUpStreamTask();
 static void *handle_upstream();
@@ -377,6 +376,10 @@ static void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->boot_time = pConfig->boot_time;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
+       
+    strncpy(cfg->webpa_uuid, "1234567-345456546", strlen("1234567-345456546")+1);
+    printf("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
+    
       
 }
 
@@ -515,7 +518,9 @@ void destroyMutex(noPollPtr _mutex)
 static char createNopollConnection()
 {
 	bool initial_retry = false;
-	bool temp_retry = false;
+	int backoffRetryTime = 0;
+	int max_retry_sleep;
+	
 	char device_id[32]={'\0'};
 	char user_agent[512]={'\0'};
 	const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
@@ -536,6 +541,19 @@ static char createNopollConnection()
 	int i=0, j=0, connErr=0;
 	int bootTime_sec;
 	char boot_time[256]={'\0'};
+	char webpaProtocol[16]={'\0'};
+	//Retry Backoff count shall start at c=2 & calculate 2^c - 1.
+	int c=2;
+
+	FILE *fp;
+	fp = fopen("/tmp/parodus_ready", "r");
+
+	if (fp!=NULL)
+	{
+		unlink("/tmp/parodus_ready");
+		printf("Closing Parodus_Ready FIle \n");
+		fclose(fp);
+	}
 	
 	struct timespec start,end,connErr_start,connErr_end,*startPtr,*endPtr,*connErr_startPtr,*connErr_endPtr;
 	startPtr = &start;
@@ -650,39 +668,22 @@ static char createNopollConnection()
 	parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
 	printf("server_Address %s\n",server_Address);
 	
+	parodusCfg.secureFlag = 1;	
+			
+	max_retry_sleep = (int) pow(2, parodusCfg.webpa_backoff_max) -1;
+	printf("max_retry_sleep is %d\n", max_retry_sleep );
+	
 	do
 	{
-		/* Check if device interface is up and has IP then proceed with connection else wait till interface is up.
-		 * Interface status will be checked during retry for all nopoll connect errors. This check will be done always except during redirect scenario. 
-		 * As a fall back if interface is down for more than 15 minutes, try the connection as there might be some issue.
-		 */
-		if(!temp_retry)
+		
+		//calculate backoffRetryTime and to perform exponential increment during retry
+		
+		if(backoffRetryTime < max_retry_sleep)
 		{
-			getCurrentTime(startPtr);
-			int count = 0;
-			while(checkDeviceInterface() != 0)
-			{
-				getCurrentTime(endPtr);
-
-				// If interface status check fails for more than 15 minutes, proceed with webpa connection.
-				printf("Elapsed time for checking interface status is: %ld ms\n", timeValDiff(startPtr, endPtr));
-				if(timeValDiff(startPtr, endPtr) >= (15*60*1000))
-				{
-					printf("Proceeding to webpa connection retry irrespective of interface status as interface is down for more than 15 minutes\n");
-					break;
-				}
-				if(count == 0)
-				{
-					printf("Interface %s is down, hence waiting\n",parodusCfg.webpa_interface_used);
-				}
-				else if(count > 5)
-					count = -1;
-
-				sleep(10);
-				count++;
-			}
-		}	
-		parodusCfg.secureFlag = 1;	
+			backoffRetryTime = (int) pow(2, c) -1;
+		}
+		printf("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
+								
 		if(parodusCfg.secureFlag) 
 		{
 		    printf("secure true\n");
@@ -713,20 +714,26 @@ static char createNopollConnection()
 				__close_and_unref_connection__(conn);
 				conn = NULL;
 				initial_retry = true;
-				// temp_retry flag if made false to force interface status check
-				temp_retry = false;
-				sleep(10);
+				
+				printf("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+				sleep(backoffRetryTime);
 				continue;
 			}
 			else 
 			{
 				printf("Connected to Server but not yet ready\n");
 				initial_retry = false;
-				temp_retry = false;
+						
+				//reset backoffRetryTime back to the starting value, as next reason can be different					
+				c = 2;
+				backoffRetryTime = (int) pow(2, c) -1;
+						
+									
 			}
 
 			if(!nopoll_conn_wait_until_connection_ready(conn, 10, redirectURL)) 
 			{
+				
 				if (strncmp(redirectURL, "Redirect:", 9) == 0) // only when there is a http redirect
 				{
 					printf("Received temporary redirection response message %s\n", redirectURL);
@@ -737,6 +744,10 @@ static char createNopollConnection()
 					parStrncpy(server_Address, temp_ptr+2, sizeof(server_Address));
 					parStrncpy(port, strtok(NULL , "/"), sizeof(port));
 					printf("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
+					
+					//reset c=2 to start backoffRetryTime as retrying using new redirect server
+					c = 2;
+					
 				}
 				else
 				{
@@ -744,27 +755,28 @@ static char createNopollConnection()
 					printf("RDK-10037 - WebPA Connection Lost\n");
 					// Copy the server address from config to avoid retrying to the same failing talaria redirected node
 					parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
-					sleep(10);
+					printf("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+					sleep(backoffRetryTime);
+					c++;
 				}
 				__close_and_unref_connection__(conn);
 				conn = NULL;
 				initial_retry = true;
-				// temp_retry flag if made true to avoid interface status check
-				temp_retry = true;
+				
 			}
 			else 
 			{
-				initial_retry = false;
-				temp_retry = false;
+				initial_retry = false;				
 				printf("Connection is ready\n");
 			}
 		}
 		else
 		{
+			
 			/* If the connect error is due to DNS resolving to 10.0.0.1 then start timer.
 			 * Timeout after 15 minutes if the error repeats continuously and kill itself. 
 			 */
-			if((checkHostIp(server_Address) == -2) && (checkDeviceInterface() == 0)) 	
+			if((checkHostIp(server_Address) == -2)) 	
 			{
 				if(connErr == 0)
 				{
@@ -787,11 +799,13 @@ static char createNopollConnection()
 				}			
 			}
 			initial_retry = true;
-			temp_retry = false;
-			sleep(10);
+			printf("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+			sleep(backoffRetryTime);
+			c++;
 			// Copy the server address from config to avoid retrying to the same failing talaria redirected node
 			parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
 		}
+				
 	}while(initial_retry);
 	
 	if(parodusCfg.secureFlag) 
@@ -802,6 +816,9 @@ static char createNopollConnection()
 	{
 		printf("Connected to server\n");
 	}
+	
+	//creating tmp file to signal parodus_ready status once connection is successful
+	fp = fopen("/tmp/parodus_ready", "w");
 	
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	printf("createNopollConnection(): close_mutex lock\n");
@@ -816,8 +833,18 @@ static char createNopollConnection()
   	printf("-------------- Packing metadata ----------------\n");
   	sprintf(boot_time, "%d", bootTime_sec);
  
-  		
-	struct data meta_pack[METADATA_COUNT] = {{"hw-model", modelName}, {"hw-serial-number", parodusCfg.hw_serial_number},{"hw-manufacturer", manufacturer},{"hw-mac", parodusCfg.hw_mac},{"hw_last_reboot_reason", reboot_reason},{"fw-name", firmwareVersion},{"boot_time", boot_time},{"webpa-last-reconnect-reason",reconnect_reason}};
+  	if(parodusCfg.secureFlag)
+	{
+		strcpy(webpaProtocol,"https");
+	}
+	else
+	{
+		strcpy(webpaProtocol,"http");
+	}
+	printf("webpaProtocol is %s\n", webpaProtocol);
+  	
+	struct data meta_pack[METADATA_COUNT] = {{"hw-model", modelName}, {"hw-serial-number", parodusCfg.hw_serial_number},{"hw-manufacturer", manufacturer},{"hw-mac", parodusCfg.hw_mac},{"hw_last_reboot_reason", reboot_reason},{"fw-name", firmwareVersion},{"boot_time", boot_time},{"webpa-last-reconnect-reason",reconnect_reason}, {"webpa_protocol",webpaProtocol}, {"webpa_uuid",parodusCfg.webpa_uuid}, {"webpa_interface_used", parodusCfg.webpa_interface_used}};
+	
 	const data_t metapack = {METADATA_COUNT, meta_pack};
 	
 	metaPackSize = wrp_pack_metadata( &metapack , &metadataPack );
@@ -845,78 +872,6 @@ static char createNopollConnection()
 	return nopoll_true;
 }
 
-int checkDeviceInterface()
-{
-	int link[2];
-	pid_t pid;
-	char statusValue[512] = {'\0'};
-	char *ipv4_valid =NULL, *addr_str = NULL, *ipv6_valid = NULL;
-
-    int status = -3;
-	
-	if (pipe(link) == -1)
-	{
-		printf("Failed to create pipe for checking device interface (errno=%d, %s)\n",errno, strerror(errno));
-		return -1;
-	}
-
-	if ((pid = fork()) == -1)
-	{
-		printf("fork was unsuccessful while checking device interface (errno=%d, %s)\n",errno, strerror(errno));
-		return -2;
-	}
-	
-	if(pid == 0) 
-	{
-		printf("child process created\n");
-		pid = getpid();
-		printf("child process execution with pid:%d\n", pid);
-		dup2 (link[1], STDOUT_FILENO);
-		close(link[0]);
-		close(link[1]);	
-		execl("/sbin/ifconfig", "ifconfig", parodusCfg.webpa_interface_used, (char *)0);
-	}	
-	else 
-	{
-		close(link[1]);
-		read(link[0], statusValue, sizeof(statusValue)-1);
-		
-		printf("statusValue is :%s\n", statusValue);
-		ipv4_valid = strstr(statusValue, "inet addr:");
-		printf("ipv4_valid %s\n", (ipv4_valid != NULL) ? ipv4_valid : "NULL");
-		addr_str = strstr(statusValue, "inet6 addr:");
-		printf("addr_str %s\n", (addr_str != NULL) ? addr_str : "NULL");
-		if(addr_str != NULL)
-		{
-			ipv6_valid = strstr(addr_str, "Scope:Global");
-			printf("ipv6_valid %s\n", (ipv6_valid != NULL) ? ipv6_valid : "NULL");
-		}
-
-		if (ipv4_valid != NULL || ipv6_valid != NULL)
-		{
-			printf("Interface %s is up\n",parodusCfg.webpa_interface_used);
-			status = 0;
-		}
-		else
-		{
-			printf("Interface %s is down\n",parodusCfg.webpa_interface_used);
-		}
-		
-		if(pid == wait(NULL))
-		{
-			printf("child process pid %d terminated successfully\n", pid);
-		}
-		else
-		{
-			printf("Error reading wait status of child process pid %d, killing it\n", pid);
-			kill(pid, SIGKILL);
-		}
-		close(link[0]);
-
-	}
-	printf("checkDeviceInterface:%d\n", status);
-	return status;
-}
 
 /**
  * @brief checkHostIp interface to check if the Host server DNS is resolved to correct IP Address.
@@ -1174,6 +1129,8 @@ static void handleUpStreamEvents()
 							byte = 0;
 							size = 0;
 							matchFlag = 1;
+							free(auth_bytes);
+							auth_bytes = NULL;
 							break;
 						}
 					    }
@@ -1224,6 +1181,7 @@ static void handleUpStreamEvents()
 						byte = 0;
 						size = 0;
 						free(auth_bytes);
+						auth_bytes = NULL;
 
 						
 					
@@ -1268,6 +1226,7 @@ static void handleUpStreamEvents()
 							        
 				    
 				    }
+				    
 					
 				}
 				else
@@ -1275,7 +1234,9 @@ static void handleUpStreamEvents()
 					printf("Error in msgpack decoding for upstream\n");
 				
 				}
-				
+				printf("Free for upstream decoded msg\n");
+			        wrp_free_struct(msg);
+			        				
 			
 			}
 		
@@ -1341,7 +1302,7 @@ static void *messageHandlerTask()
 				
 				listenerOnMessage(message->payload, message->len);
 			}
-						
+								
 			nopoll_msg_unref(message->msg);
 			free(message);
 			message = NULL;
@@ -1497,6 +1458,9 @@ static void listenerOnMessage(void * msg, size_t msgSize)
 	  	{
 	  		printf( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
 	  	}
+	  	
+	  	printf("free for downstream decoded msg\n");
+	  	wrp_free_struct(message);
 	  
 
         }

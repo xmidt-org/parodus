@@ -22,6 +22,8 @@ typedef struct
     char webpa_url[124];
     unsigned int webpa_backoff_max;
     char webpa_interface_used[16];
+    char webpa_protocol[16];
+    char webpa_uuid[64];
     unsigned int secureFlag;
 } ParodusCfg;
 
