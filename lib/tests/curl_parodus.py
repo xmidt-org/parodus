@@ -9,7 +9,7 @@ import sys
 
 HEADER_AUTH = "Authorization"
 
-BASIC_AUTH_VALUE = "Basic d2VicGFfcmVsZWFzZTEuMA=="
+BASIC_AUTH_VALUE = "XXXXXXXXXXXXXXXXXXXXXXX"
 
 SERVICE_NAME = "config"
 
