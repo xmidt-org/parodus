@@ -139,7 +139,6 @@ void send_event_msgs (unsigned *msg_num, unsigned *event_num)
 	int i;
 	unsigned msg_num_mod;
 
-	return;
 	(*msg_num)++;
 	msg_num_mod = (*msg_num) % 3;
 	if (msg_num_mod != 0)

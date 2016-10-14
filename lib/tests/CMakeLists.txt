@@ -22,7 +22,6 @@ set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-cov
 add_executable(nmsg nmsg.c)
 
 target_link_libraries (nmsg
- ${INSTALL_DIR}/lib64/libnanomsg.so
  -lnanomsg
  -lm
  -lpthread
@@ -33,10 +32,10 @@ add_executable(libpd libpd_test.c)
 target_link_libraries (libpd
  cunit
  ${BUILD_DIR}/src/libparodus-lib.so
- ${INSTALL_DIR}/lib64/libnanomsg.so
  ${INSTALL_DIR}/lib/libwrp-c.so
  ${INSTALL_DIR}/lib/libmsgpackc.so
  ${INSTALL_DIR}/lib/libtrower-base64.so
+ -lnanomsg
  -lm
  -lpthread
 )

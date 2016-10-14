@@ -30,4 +30,3 @@ target_link_libraries (parodus
     -lrt
     )
 
-#  -lnanomsg

@@ -22,7 +22,8 @@ include(CTest)
 set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
-set(LIBRARY_DIR ${INSTALL_DIR}/lib${LIB_SUFFIX})
+set(LIBRARY_DIR ${INSTALL_DIR}/lib)
+set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE")
 
@@ -77,7 +78,7 @@ add_dependencies(libwrp-c wrp-c)
 include_directories ( ${INCLUDE_DIR} )
 include_directories ( SYSTEM /usr/include )
 
-link_directories ( ${LIBRARY_DIR} )
+link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
 
 add_definitions(-std=c99)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall")
