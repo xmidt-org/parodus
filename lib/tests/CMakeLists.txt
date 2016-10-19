@@ -40,6 +40,17 @@ target_link_libraries (libpd
  -lpthread
 )
 
+add_executable(mock_parodus mock_parodus.c)
+
+target_link_libraries (mock_parodus
+ ${INSTALL_DIR}/lib/libwrp-c.so
+ ${INSTALL_DIR}/lib/libmsgpackc.so
+ ${INSTALL_DIR}/lib/libtrower-base64.so
+ -lnanomsg
+ -lm
+ -lpthread
+)
+
 #target_link_libraries (simple gcov)
 #target_link_libraries (simple cunit)
 

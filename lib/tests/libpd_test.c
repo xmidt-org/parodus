@@ -152,6 +152,7 @@ void send_event_msgs (unsigned *msg_num, unsigned *event_num)
 
 void test_1()
 {
+	bool any_req_msgs_received = false;
 	int rtn;
 	wrp_msg_t *wrp_msg;
 	unsigned event_num = 0;
@@ -163,12 +164,14 @@ void test_1()
 		rtn = libparodus_receive (&wrp_msg, 2000);
 		if (rtn == 1) {
 			printf ("Timed out waiting for msg\n");
-			send_event_msgs (&msg_num, &event_num);
+			if (any_req_msgs_received)
+				send_event_msgs (&msg_num, &event_num);
 			continue;
 		}
 		if (rtn != 0)
 			break;
 		show_wrp_msg (wrp_msg);
+		any_req_msgs_received = true;
 		if (wrp_msg->msg_type == WRP_MSG_TYPE__REQ)
 			send_reply (wrp_msg);
 		wrp_free_struct (wrp_msg);

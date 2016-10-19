@@ -5,11 +5,9 @@
 import subpro as SUBP
 import datetime as DT
 import time
-import sys
+import sys, os
 
 HEADER_AUTH = "Authorization"
-
-BASIC_AUTH_VALUE = "XXXXXXXXXXXXXXXXXXXXXXX"
 
 SERVICE_NAME = "config"
 
@@ -28,6 +26,13 @@ if len(sys.argv) > 3:
 if len(device_id) != 12:
   print "Expecting 12 digit mac address"
   sys.exit(4)
+
+auth_str = os.environ.get ("WEBPA_AUTH_HEADER", "")
+if not auth_str:
+  print "Missing environment variable WEBPA_AUTH_HEADER"
+  sys.exit(4)
+
+BASIC_AUTH_VALUE = "Basic " + auth_str
 
 try:
   fin = open (file_name, "r")
