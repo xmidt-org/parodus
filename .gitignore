@@ -32,3 +32,6 @@
 *.dSYM/
 *.su
 tags
+
+# Build directory
+build/

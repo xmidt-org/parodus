@@ -15,6 +15,7 @@
 #include <sys/time.h>
 #include <sys/sysinfo.h>
 #include "wss_mgr.h"
+#include "internals.h"
 #include <pthread.h>
 
 #include <netdb.h>
@@ -140,7 +141,6 @@ static void *handle_upstream();
 static void processUpStreamTask();
 static void *processUpStreamHandler();
 static void handleUpStreamEvents();
-static void handleUpstreamMessage(void *msg, size_t len);
 
 /**
  * @brief __report_log Nopoll log handler 
@@ -1211,7 +1211,7 @@ static void handleUpStreamEvents()
 					   	printf("metadata appended upstream msg %s\n", (char *)appendData);
 					   
 						printf("Sending metadata appended upstream msg to server\n");
-					   	handleUpstreamMessage(appendData, encodedSize);
+					   	handleUpstreamMessage(conn, appendData, encodedSize);
 					   	
 						free( appendData);
 						appendData =NULL;
@@ -1671,27 +1671,3 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
     }
 
 }
-
-/** To send upstream msgs to server ***/
-
-static void handleUpstreamMessage(void *msg, size_t len)
-{
-	int bytesWritten = 0;
-	
-	printf("handleUpstreamMessage length %zu\n", len);
-	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
-	{
-		bytesWritten = nopoll_conn_send_binary(conn, msg, len);
-		printf("Number of bytes written: %d\n", bytesWritten);
-		if (bytesWritten != (int) len) 
-		{
-			printf("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
-		}
-	}
-	else
-	{
-		printf("Failed to send msg upstream as connection is not OK\n");
-	}
-	
-}
-
