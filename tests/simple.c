@@ -14,20 +14,18 @@
  *  limitations under the License.
  */
 #include <stdarg.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+
 #include <CUnit/Basic.h>
 #include <stdbool.h>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/time.h>
+
 #include <assert.h>
-#include <nanomsg/nn.h>
-#include <nanomsg/bus.h>
-#include <nanomsg/pipeline.h>
+
+//#include <nanomsg/bus.h>
+
 #include "../src/wss_mgr.h"
+#include "../src/ParodusInternal.h"
 #include "wrp-c.h"
+
 #include<errno.h>
 
 /* Nanomsg related Macros */
@@ -348,6 +346,55 @@ void test_nanomsg_downstream_failure()
 }
 
 
+void test_checkHostIp()
+{
+	printf("**********************************Calling check_host_ip \n");
+
+	int ret;
+	
+	ret = checkHostIp("fabric.webpa.comcast.net");
+	printf("------------------> Ret = %d \n", ret);
+	CU_ASSERT_EQUAL(ret, 0);
+	
+}
+
+void test_parseCommandLine()
+{
+    int argc =11;
+    char * command[15]={'\0'};
+     
+    command[0] = "parodus";
+    command[1] = "--hw-model=TG1682";
+    command[2] = "--hw-serial-number=Fer23u948590";
+    command[3] = "--hw-manufacturer=ARRISGroup,Inc.";
+    command[4] = "--hw-mac=123567892366";
+    command[5] = "--hw-last-reboot-reason=unknown";
+    command[6] = "--fw-name=TG1682_DEV_master_2016000000sdy";
+    command[7] = "--webpa-ping-time=180";
+    command[8] = "--webpa-inteface-used=eth0";
+    command[9] = "--webpa-url=fabric.webpa.comcast.net";
+    command[10] = "--webpa-backoff-max=0";
+    
+    ParodusCfg parodusCfg;
+    memset(&parodusCfg,0,sizeof(parodusCfg));
+    printf("call parseCommand\n");
+    parseCommandLine(argc,command,&parodusCfg);
+   
+    printf("parodusCfg.webpa_ping_timeout is %d\n", parodusCfg.webpa_ping_timeout);
+    printf("parodusCfg.webpa_backoff_max is %d\n", parodusCfg.webpa_backoff_max);
+    CU_ASSERT_STRING_EQUAL( parodusCfg.hw_model, "TG1682");
+    CU_ASSERT_STRING_EQUAL( parodusCfg.hw_serial_number, "Fer23u948590");
+    CU_ASSERT_STRING_EQUAL( parodusCfg.hw_manufacturer, "ARRISGroup,Inc.");
+    CU_ASSERT_STRING_EQUAL( parodusCfg.hw_mac, "123567892366");	
+    CU_ASSERT_STRING_EQUAL( parodusCfg.hw_last_reboot_reason, "unknown");	
+    CU_ASSERT_STRING_EQUAL( parodusCfg.fw_name, "TG1682_DEV_master_2016000000sdy");	
+    CU_ASSERT( parodusCfg.webpa_ping_timeout==180);	
+    CU_ASSERT_STRING_EQUAL( parodusCfg.webpa_interface_used, "eth0");	
+    CU_ASSERT_STRING_EQUAL( parodusCfg.webpa_url, "fabric.webpa.comcast.net");
+    CU_ASSERT( parodusCfg.webpa_backoff_max==0);
+}
+
+
 void add_suites( CU_pSuite *suite )
 {
     printf("--------Start of Test Cases Execution ---------\n");
@@ -357,6 +404,13 @@ void add_suites( CU_pSuite *suite )
     CU_add_test( *suite, "Test 3", test_nanomsg_client_registration3 );
     CU_add_test( *suite, "Test 4", test_nanomsg_downstream_success );
     //CU_add_test( *suite, "Test 5", test_nanomsg_downstream_failure );
+
+    printf("-------------Integration testing is completed-----------\n");
+    printf("******************************************************************\n");
+    //sleep(10);
+    printf("-------------Start of Unit Test Cases Execution---------\n");
+    CU_add_test( *suite, "UnitTest 1", test_parseCommandLine );
+    CU_add_test( *suite, "UnitTest 2", test_checkHostIp );
     
     
 }
