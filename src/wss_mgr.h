@@ -27,6 +27,9 @@ typedef struct
     unsigned int secureFlag;
 } ParodusCfg;
 
+
+#define HTTP_CUSTOM_HEADER_COUNT                    	4
+
 /**
  * @brief Interface to create WebSocket client connections.
  * Loads the WebPA config file, if not provided by the caller,
@@ -45,5 +48,6 @@ void createSocketConnection();
  */
 void terminateSocketConnection();
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
+void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 #endif /* WEBSOCKET_MGR_H_ */
 
