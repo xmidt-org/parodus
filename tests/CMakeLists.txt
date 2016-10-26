@@ -20,10 +20,11 @@ set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-cov
 
 link_directories ( ${LIBRARY_DIR} )
 
-add_executable(simple simple.c ../src/wss_mgr.c )
+add_executable(simple simple.c ../src/wss_mgr.c ../src/ParodusInternal.c )
 
 target_link_libraries (simple gcov
                               cunit
+			      -lnopoll
                               -lnanomsg
                               -lcJSON
                               -lcJSON
