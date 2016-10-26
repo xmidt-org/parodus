@@ -19,6 +19,7 @@
 #include <stdbool.h>
 
 #include <assert.h>
+#include <nopoll.h>
 
 //#include <nanomsg/bus.h>
 
@@ -358,6 +359,46 @@ void test_checkHostIp()
 	
 }
 
+void test_handleUpstreamMessage()
+{
+
+	printf("**********************************Calling handleUpstreamMessage \n");
+	
+	noPollConnOpts * opts;
+	noPollCtx *ctx = NULL;
+	noPollConn *conn = NULL;
+
+	const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
+	const char * headerValues[HTTP_CUSTOM_HEADER_COUNT];
+
+	headerValues[0] = "123567892366";
+	headerValues[1] = "wrp-0.11,getset-0.1";  
+	headerValues[2] = "WebPA-1.6 (TG1682_DEV_master_2016000000sdy;TG1682/ARRISGroup,Inc.;)";
+	headerValues[3] = "zacbvfxcvglodfjdigjkdshuihgkvn";
+
+	int headerCount = HTTP_CUSTOM_HEADER_COUNT;
+
+	//ctx = nopoll_ctx_new();
+
+	opts = nopoll_conn_opts_new ();
+	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
+	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2); 
+	conn = nopoll_conn_tls_new(ctx, opts, "fabric.webpa.comcast.net", 8080, NULL, "/api/v2/device", NULL, NULL, "eth0",
+                                headerNames, headerValues, headerCount);
+	/*while(conn == NULL)
+	{
+		opts = nopoll_conn_opts_new ();
+		nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
+		nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2); 
+		conn = nopoll_conn_tls_new(ctx, opts, "fabric.webpa.comcast.net", 8080, NULL, "/api/v2/device", NULL, NULL, "eth0",
+                                headerNames, headerValues, headerCount);
+	}*/
+
+	printf("Sending conn as %p \n", conn);
+	handleUpstreamMessage(conn, "hello", 6);
+
+}
+
 void test_parseCommandLine()
 {
     int argc =11;
@@ -395,6 +436,36 @@ void test_parseCommandLine()
 }
 
 
+void test_loadParodusCfg()
+{
+	
+	printf("Calling test_loadParodusCfg \n");
+	ParodusCfg parodusCfg, tmpcfg;
+
+	ParodusCfg *Cfg;
+
+	Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
+	
+	strcpy(Cfg->hw_model, "TG1682");
+	strcpy(Cfg->hw_serial_number, "Fer23u948590");
+	strcpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.");
+	strcpy(Cfg->hw_mac , "123567892366");
+	
+	
+	memset(&tmpcfg,0,sizeof(tmpcfg));
+	
+	
+	loadParodusCfg(Cfg,&tmpcfg);
+
+	printf("tmpcfg.hw_model = %s, tmpcfg.hw_serial_number = %s, tmpcfg.hw_manufacturer = %s, tmpcfg.hw_mac = %s, \n", tmpcfg.hw_model,tmpcfg.hw_serial_number, tmpcfg.hw_manufacturer,   tmpcfg.hw_mac);
+
+	CU_ASSERT_STRING_EQUAL( tmpcfg.hw_model, "TG1682");
+	CU_ASSERT_STRING_EQUAL( tmpcfg.hw_serial_number, "Fer23u948590");
+	CU_ASSERT_STRING_EQUAL( tmpcfg.hw_manufacturer, "ARRISGroup,Inc.");
+	CU_ASSERT_STRING_EQUAL( tmpcfg.hw_mac, "123567892366");	
+
+}
+
 void add_suites( CU_pSuite *suite )
 {
     printf("--------Start of Test Cases Execution ---------\n");
@@ -411,9 +482,15 @@ void add_suites( CU_pSuite *suite )
     printf("-------------Start of Unit Test Cases Execution---------\n");
     CU_add_test( *suite, "UnitTest 1", test_parseCommandLine );
     CU_add_test( *suite, "UnitTest 2", test_checkHostIp );
+	
+    CU_add_test( *suite, "UnitTest 3", test_handleUpstreamMessage );
+
+    CU_add_test( *suite, "UnitTest 4", test_loadParodusCfg );
+    
     
     
 }
+
 
 
 
@@ -583,6 +660,9 @@ int handle_testsuites(void* pid)
     	
     	kill(pid_parodus, SIGKILL);
 	printf("parodus process with pid %d is stopped\n", pid_parodus);
+
+
+	
 		
     	if( 0 != rv ) 
 	{

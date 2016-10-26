@@ -64,4 +64,32 @@ int checkHostIp(char * serverIP)
 		freeaddrinfo(result);
 	}
 	return status; 
-}    
+}  
+
+
+
+
+/** To send upstream msgs to server ***/
+
+void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len)
+{
+	int bytesWritten = 0;
+	
+	printf("handleUpstreamMessage length %zu\n", len);
+	printf("conn object is %s \n", conn);
+	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
+	{
+		bytesWritten = nopoll_conn_send_binary(conn, msg, len);
+		printf("Number of bytes written: %d\n", bytesWritten);
+		if (bytesWritten != (int) len) 
+		{
+			printf("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
+		}
+	}
+	else
+	{
+		printf("Failed to send msg upstream as connection is not OK\n");
+	}
+	
+}
+  

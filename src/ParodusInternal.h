@@ -86,5 +86,6 @@ typedef struct reg_client__
 /*----------------------------------------------------------------------------*/
 
 int checkHostIp(char * serverIP);
+void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len);
 
 

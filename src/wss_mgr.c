@@ -39,7 +39,7 @@
 #define WEBPA_RETRY_INTERVAL_SEC                        10
 #define WEBPA_MAX_PING_WAIT_TIME_SEC                    180
 
-#define HTTP_CUSTOM_HEADER_COUNT                    	4
+
 #define METADATA_COUNT 					11			
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
@@ -122,7 +122,7 @@ void getCurrentTime(struct timespec *timer);
 uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer);
 long timeValDiff(struct timespec *starttime, struct timespec *finishtime);
 
-static void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
+
 static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data);
 static void initMessageHandler();
 static void *messageHandlerTask();
@@ -139,7 +139,7 @@ static void *handle_upstream();
 static void processUpStreamTask();
 static void *processUpStreamHandler();
 static void handleUpStreamEvents();
-static void handleUpstreamMessage(void *msg, size_t len);
+
 
 /**
  * @brief __report_log Nopoll log handler 
@@ -302,7 +302,7 @@ void terminateSocketConnection()
 	nopoll_cleanup_library();
 }
 
-static void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
+void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 {
     ParodusCfg *pConfig =config;
     
@@ -1160,7 +1160,7 @@ static void handleUpStreamEvents()
 					   	printf("metadata appended upstream msg %s\n", (char *)appendData);
 					   
 						printf("Sending metadata appended upstream msg to server\n");
-					   	handleUpstreamMessage(appendData, encodedSize);
+					   	handleUpstreamMessage(conn,appendData, encodedSize);
 					   	
 						free( appendData);
 						appendData =NULL;
@@ -1621,26 +1621,4 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
 }
 
-/** To send upstream msgs to server ***/
-
-static void handleUpstreamMessage(void *msg, size_t len)
-{
-	int bytesWritten = 0;
-	
-	printf("handleUpstreamMessage length %zu\n", len);
-	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
-	{
-		bytesWritten = nopoll_conn_send_binary(conn, msg, len);
-		printf("Number of bytes written: %d\n", bytesWritten);
-		if (bytesWritten != (int) len) 
-		{
-			printf("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
-		}
-	}
-	else
-	{
-		printf("Failed to send msg upstream as connection is not OK\n");
-	}
-	
-}
 
