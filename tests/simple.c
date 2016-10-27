@@ -30,10 +30,10 @@
 #include<errno.h>
 
 /* Nanomsg related Macros */
-#define ENDPOINT "tcp://127.0.0.1:6666"
-#define CLIENT1_URL "tcp://127.0.0.1:6667"
-#define CLIENT2_URL "tcp://127.0.0.1:6668"
-#define CLIENT3_URL "tcp://127.0.0.1:6669"
+#define ENDPOINT "tcp://192.168.101.1:6666"
+#define CLIENT1_URL "tcp://192.168.101.3:6667"
+#define CLIENT2_URL "tcp://192.168.101.3:6668"
+#define CLIENT3_URL "tcp://192.168.101.3:6669"
 
 static void send_nanomsg_upstream(char **buf, int size);
 int handle_testsuites();
@@ -539,12 +539,12 @@ void main( void )
 		pid = getpid();
 		printf("child process execution with pid:%d\n", pid);
 		
-		err = execv("../src/parodus", command);
-		if(errno == 2)
-		{
-			err = execv("./src/parodus", command);
-		}
-		printf("err is %d, errno is %d\n",err, errno);		
+		//err = execv("../src/parodus", command);
+		//if(errno == 2)
+		//{
+			//err = execv("./src/parodus", command);
+		//}
+		//printf("err is %d, errno is %d\n",err, errno);		
 	
 	}
 	else if (pid > 0)
@@ -658,8 +658,8 @@ int handle_testsuites(void* pid)
 		
     	}
     	
-    	kill(pid_parodus, SIGKILL);
-	printf("parodus process with pid %d is stopped\n", pid_parodus);
+    	//kill(pid_parodus, SIGKILL);
+	//printf("parodus process with pid %d is stopped\n", pid_parodus);
 
 
 	

@@ -43,7 +43,7 @@
 #define METADATA_COUNT 					11			
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
-#define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
+#define PARODUS_UPSTREAM "tcp://192.168.101.1:6666"
 
 
 #define IOT "iot"
