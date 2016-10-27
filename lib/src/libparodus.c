@@ -29,6 +29,8 @@
 #define CLIENT_URL "tcp://127.0.0.1:6667"
 //#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
 
+#define SOCK_SEND_TIMEOUT_MS 2000
+
 #define END_MSG "---END-PARODUS---\n"
 static const char *end_msg = END_MSG;
 
@@ -127,6 +129,7 @@ static void shutdown_socket (int *sock)
 static int connect_sender (const char *send_url)
 {
 	int sock;
+	int send_timeout = SOCK_SEND_TIMEOUT_MS;
 
 	if (NULL == send_url) {
 		return -1;
@@ -134,6 +137,11 @@ static int connect_sender (const char *send_url)
   sock = nn_socket (AF_SP, NN_PUSH);
 	if (sock < 0) {
 		libpd_log (LEVEL_ERROR, errno, "Unable to create send socket: %s\n");
+ 		return -1;
+	}
+	if (nn_setsockopt (sock, NN_SOL_SOCKET, NN_SNDTIMEO, 
+				&send_timeout, sizeof (send_timeout)) < 0) {
+		libpd_log (LEVEL_ERROR, errno, "Unable to set socket timeout: %s\n");
  		return -1;
 	}
   if (nn_connect (sock, send_url) < 0) {
