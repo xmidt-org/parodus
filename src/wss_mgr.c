@@ -104,8 +104,7 @@ static void __close_and_unref_connection__(noPollConn *conn);
 
 pthread_mutex_t mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t nano_prod_mut=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t nano_cons_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t con=PTHREAD_COND_INITIALIZER;
 pthread_cond_t close_con=PTHREAD_COND_INITIALIZER;
@@ -932,7 +931,7 @@ static void *handle_upstream()
 			message->msg =buf;
 			message->len =bytes;
 			message->next=NULL;
-			pthread_mutex_lock (&nano_prod_mut);
+			pthread_mutex_lock (&nano_mut);
 			
 			//Producer adds the nanoMsg into queue
 			if(UpStreamMsgQ == NULL)
@@ -942,7 +941,7 @@ static void *handle_upstream()
 				
 				printf("Producer added message\n");
 			 	pthread_cond_signal(&nano_con);
-				pthread_mutex_unlock (&nano_prod_mut);
+				pthread_mutex_unlock (&nano_mut);
 				printf("mutex unlock in producer thread\n");
 			}
 			else
@@ -957,7 +956,7 @@ static void *handle_upstream()
 				temp->len = bytes;
 				temp->next = NULL;
 			
-				pthread_mutex_unlock (&nano_prod_mut);
+				pthread_mutex_unlock (&nano_mut);
 			}
 					
 		}
@@ -1021,14 +1020,14 @@ static void handleUpStreamEvents()
 		
 	while(1)
 	{
-		pthread_mutex_lock (&nano_cons_mut);
+		pthread_mutex_lock (&nano_mut);
 		printf("mutex lock in consumer thread\n");
 		
 		if(UpStreamMsgQ != NULL)
 		{
 			UpStreamMsg *message = UpStreamMsgQ;
 			UpStreamMsgQ = UpStreamMsgQ->next;
-			pthread_mutex_unlock (&nano_cons_mut);
+			pthread_mutex_unlock (&nano_mut);
 			printf("mutex unlock in consumer thread\n");
 			
 			if (!terminated) 
@@ -1197,8 +1196,8 @@ static void handleUpStreamEvents()
 		else
 		{
 			printf("Before pthread cond wait in consumer thread\n");   
-			pthread_cond_wait(&nano_con, &nano_prod_mut);
-			pthread_mutex_unlock (&nano_cons_mut);
+			pthread_cond_wait(&nano_con, &nano_mut);
+			pthread_mutex_unlock (&nano_mut);
 			printf("mutex unlock in consumer thread after cond wait\n");
 			if (terminated) {
 				break;
