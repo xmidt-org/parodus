@@ -29,7 +29,7 @@ add_executable(test_internals test_internals.c ../src/ParodusInternal.c )
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} -lnopoll -lnanomsg -lrt )
 
 
-target_link_libraries (test_internals ${PARODUS_COMMON_LIBS} )
+target_link_libraries (test_internals ${PARODUS_COMMON_LIBS} -lnopoll -lnanomsg -lrt )
 
 
 add_custom_target(coverage

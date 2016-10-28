@@ -88,4 +88,15 @@ typedef struct reg_client__
 int checkHostIp(char * serverIP);
 void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len);
 
+void listenerOnMessage( void * msg, size_t msgSize, int *numOfClients, reg_client **clients);
+
+void parStrncpy(char *destStr, const char *srcStr, size_t destSize);
+
+noPollPtr createMutex();
+
+void lockMutex(noPollPtr _mutex);
+
+void unlockMutex(noPollPtr _mutex);
+
+void destroyMutex(noPollPtr _mutex);
 
