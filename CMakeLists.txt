@@ -25,7 +25,7 @@ set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -DNOPOLL_LOGGER")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -DNOPOLL_LOGGER ")
 
 include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/cJSON
@@ -65,6 +65,7 @@ ExternalProject_Add(nopoll
     CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/configure --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}
+						     --host=arm-oe-linux-gnueabi
     BUILD_IN_SOURCE 1
 )
 add_library(libnopoll STATIC SHARED IMPORTED)
@@ -109,7 +110,7 @@ add_dependencies(libmsgpack msgpack)
 # wrp-c external dependency
 ExternalProject_Add(wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
-    GIT_REPOSITORY https://github.com/Comcast/wrp-c.git
+    GIT_REPOSITORY https://github.com/selvamKrish/wrp-c.git
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF

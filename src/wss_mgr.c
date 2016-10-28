@@ -27,6 +27,7 @@
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 
+#include "ParodusInternal.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -54,7 +55,7 @@
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
 
-typedef struct ParodusMsg__
+/*typedef struct ParodusMsg__
 {
 	noPollMsg * msg;
 	void * payload;
@@ -74,7 +75,7 @@ typedef struct reg_client__
 	int sock;
 	char service_name[32];
 	char url[100];
-} reg_client;
+} reg_client;*/
 
 
 /*----------------------------------------------------------------------------*/
@@ -114,7 +115,7 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 static char createNopollConnection();
-static void listenerOnMessage( void * msg, size_t msgSize);
+
 static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
 static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data);
 void getCurrentTime(struct timespec *timer);
@@ -126,12 +127,7 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
 static void initMessageHandler();
 static void *messageHandlerTask();
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
-void parStrncpy(char *destStr, const char *srcStr, size_t destSize);
 
-noPollPtr createMutex();
-void lockMutex(noPollPtr _mutex);
-void unlockMutex(noPollPtr _mutex);
-void destroyMutex(noPollPtr _mutex);
 
 static void initUpStreamTask();
 static void *handle_upstream();
@@ -385,129 +381,11 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
 
-/** 
- * @brief createMutex Nopoll create mutex handler
- */ 
-noPollPtr createMutex()
-{
-  	pthread_mutexattr_t attr;
-	pthread_mutex_t * mutex;
-  	int rtn;
-	mutex = nopoll_new (pthread_mutex_t, 1);
-	if (mutex == NULL)
-	{
-		printf("Failed to create mutex\n");
-		return NULL;
-	}
-	pthread_mutexattr_init( &attr);
-	/*pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_ERRORCHECK);*/
-	pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE);
-	
-	/* init the mutex using default values */
-	rtn = pthread_mutex_init (mutex, &attr);
-  	pthread_mutexattr_destroy (&attr);
-	if (rtn != 0) 
-	{
-		printf("Error in init Mutex\n");
-		nopoll_free(mutex);
-		return NULL;
-	}
-	else 
-	{
-		printf("mutex init successfully\n");
-	} 
 
-	return mutex;
-}
 
-/** 
- * @brief lockMutex Nopoll lock mutex handler
- */
-void lockMutex(noPollPtr _mutex)
-{
-	int rtn;
-	char errbuf[100];
-	/* printf("Inside Lock mutex\n"); */
-	if (_mutex == NULL)
-	{
-		printf("Received null mutex\n");
-		return;
-	}
-	pthread_mutex_t * mutex = _mutex;
 
-	/* lock the mutex */
-	rtn = pthread_mutex_lock (mutex);
-	if (rtn != 0) 
-	{
-		strerror_r (rtn, errbuf, 100);
-		printf("Error in Lock mutex: %s\n", errbuf);
-		/* do some reporting */
-		return;
-	}
-	else
-	{
-		/* printf("Mutex locked \n"); */
-	} /* end if */
-	return;
-}
 
-/** 
- * @brief unlockMutex Nopoll unlock mutex handler
- */
-void unlockMutex(noPollPtr _mutex)
-{
-	int rtn;
-	char errbuf[100];
-	/* printf("Inside unlock mutex\n"); */
-	if (_mutex == NULL)
-	{
-		printf("Received null mutex\n");
-		return;
-	}
-	pthread_mutex_t * mutex = _mutex;
 
-	/* unlock mutex */
-	rtn = pthread_mutex_unlock (mutex);
-	if (rtn != 0) 
-	{
-		/* do some reporting */
-		strerror_r (rtn, errbuf, 100);
-		printf("Error in unlock mutex: %s\n", errbuf);
-		return;
-	}
-	else
-	{
-		/* printf("Mutex unlocked \n"); */
-	} /* end if */
-	return;
-}
-
-/** 
- * @brief destroyMutex Nopoll destroy mutex handler
- */
-void destroyMutex(noPollPtr _mutex)
-{
-	if (_mutex == NULL)
-	{
-		printf("Received null mutex\n");
-		return;
-	}
-	pthread_mutex_t * mutex = _mutex;
-	
-	if (pthread_mutex_destroy (mutex) != 0) 
-	{
-		/* do some reporting */
-		printf("problem in destroy\n");
-		return;
-	}
-	else
-	{
-		printf("Mutex destroyed \n");
-	}
-	nopoll_free (mutex);
-
-	return;
-}
 
 /**
  * @brief createNopollConnection interface to create WebSocket client connections.
@@ -1248,7 +1126,7 @@ static void *messageHandlerTask()
 			if (!terminated) 
 			{
 				
-				listenerOnMessage(message->payload, message->len);
+				listenerOnMessage(message->payload, message->len, &numOfClients, &clients);
 			}
 								
 			nopoll_msg_unref(message->msg);
@@ -1333,88 +1211,7 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
 	printf("*****Returned from listenerOnMessage_queue*****\n");
 }
 
-/**
- * @brief listenerOnMessage function to create WebSocket listener to receive connections
- *
- * @param[in] ctx The context where the connection happens.
- * @param[in] conn The Websocket connection object
- * @param[in] msg The message received from server for various process requests
- * @param[out] user_data data which is to be sent
- */
-static void listenerOnMessage(void * msg, size_t msgSize)
-{
-	
-	int rv =0;
-	wrp_msg_t *message;
-	char* destVal = NULL;
-	char dest[32] = {'\0'};
-	
-	int msgType;
-	int p =0;
-	int bytes =0;
-	int destFlag =0;	
-	const char *recivedMsg = NULL;
-	recivedMsg =  (const char *) msg;
-	
-	printf("Received msg from server:%s\n", recivedMsg);	
-	if(recivedMsg!=NULL) 
-	{
-	
-		/*** Decoding downstream recivedMsg to check destination ***/
-		
-		rv = wrp_to_struct(recivedMsg, msgSize, WRP_BYTES, &message);
-				
-		if(rv > 0)
-		{
-			printf("\nDecoded recivedMsg of size:%d\n", rv);
-			msgType = message->msg_type;
-			printf("msgType received:%d\n", msgType);
-		
-			if((message->u.req.dest !=NULL))
-			{
-				destVal = message->u.req.dest;
-				strtok(destVal , "/");
-				strcpy(dest,strtok(NULL , "/"));
-				printf("Received downstream dest as :%s\n", dest);
-			
-				//Checking for individual clients & Sending to each client
-				
-				for( p = 0; p < numOfClients; p++ ) 
-				{
-				    // Sending message to registered clients
-				    if( strcmp(dest, clients[p]->service_name) == 0) 
-				    {  
-				    	printf("sending to nanomsg client %s\n", dest);     
-					bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, 0);
-					printf("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
-					printf("downstream bytes sent:%d\n", bytes);
-					destFlag =1;
-			
-				    } 
-				    
-				}
-				
-				if(destFlag ==0)
-				{
-					printf("Unknown dest:%s\n", dest);
-				}
-			
-		  	 }
-	  	}
-	  	
-	  	else
-	  	{
-	  		printf( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
-	  	}
-	  	
-	  	printf("free for downstream decoded msg\n");
-	  	wrp_free_struct(message);
-	  
 
-        }
-                
-     
-}
 
 
 /**
@@ -1505,11 +1302,7 @@ long timeValDiff(struct timespec *starttime, struct timespec *finishtime)
 
 
 
-void parStrncpy(char *destStr, const char *srcStr, size_t destSize)
-{
-    strncpy(destStr, srcStr, destSize-1);
-    destStr[destSize-1] = '\0';
-}
+
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
