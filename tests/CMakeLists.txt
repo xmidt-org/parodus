@@ -12,7 +12,6 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-add_test(NAME Simple COMMAND simple)
 add_test(NAME test_internals COMMAND test_internals)
 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g -fprofile-arcs -ftest-coverage -O0")
@@ -34,7 +33,6 @@ target_link_libraries (test_internals ${PARODUS_COMMON_LIBS} )
 
 add_custom_target(coverage
                   COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_internals.dir/__/src --output-file coverage.info
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/simple.dir/__/src --output-file coverage.info
                   COMMAND genhtml coverage.info
                   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
