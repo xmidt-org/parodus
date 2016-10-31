@@ -12,27 +12,41 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-add_test(NAME test_internals COMMAND test_internals)
-
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
 set (PARODUS_COMMON_LIBS gcov cunit -lwrp-c -lpthread -lm -lmsgpackc -lcJSON -ltrower-base64)
 
-
 link_directories ( ${LIBRARY_DIR} )
 
-add_executable(simple simple.c ../src/wss_mgr.c ../src/ParodusInternal.c )
-add_executable(test_internals test_internals.c ../src/ParodusInternal.c )
+#-------------------------------------------------------------------------------
+#   test_networking
+#-------------------------------------------------------------------------------
+add_test(NAME test_networking COMMAND test_networking)
+add_executable(test_networking test_networking.c ../src/networking.c )
+target_link_libraries (test_networking ${PARODUS_COMMON_LIBS})
 
-target_link_libraries (simple ${PARODUS_COMMON_LIBS} -lnopoll -lnanomsg -lrt )
+#-------------------------------------------------------------------------------
+#   test_nopoll_helpers
+#-------------------------------------------------------------------------------
+add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c )
+target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg)
 
-
-target_link_libraries (test_internals ${PARODUS_COMMON_LIBS} -lnopoll -lnanomsg -lrt )
-
+if(NOT SKIP_SIMPLE)
+    add_test(NAME simple COMMAND simple)
+    add_executable(simple simple.c
+                          ../src/wss_mgr.c
+                          ../src/networking.c
+                          ../src/nopoll_helpers.c
+                          ../src/string_helpers.c
+                          ../src/mutex.c )
+    target_link_libraries (simple ${PARODUS_COMMON_LIBS} -lnopoll -lnanomsg -lrt )
+endif(NOT SKIP_SIMPLE)
 
 add_custom_target(coverage
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_internals.dir/__/src --output-file coverage.info
+                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_networking.dir/__/src --output-file coverage.info
+                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_nopoll_helpers.dir/__/src --output-file coverage.info
                   COMMAND genhtml coverage.info
                   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 

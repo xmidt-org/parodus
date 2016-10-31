@@ -38,23 +38,7 @@
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-nopoll_bool nopoll_conn_is_ok__rv = nopoll_false;
-nopoll_bool nopoll_conn_is_ok( noPollConn *conn )
-{
-    return nopoll_conn_is_ok__rv;
-}
-
-nopoll_bool nopoll_conn_is_ready__rv = nopoll_false;
-nopoll_bool nopoll_conn_is_ready( noPollConn *conn )
-{
-    return nopoll_conn_is_ready__rv;
-}
-
-int nopoll_conn_send_binary_rv = 0;
-int nopoll_conn_send_binary( noPollConn *conn, const char *content, long length ) 	
-{
-    return nopoll_conn_send_binary_rv;
-}
+/* none */
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
@@ -64,17 +48,11 @@ void test_checkHostIp()
     CU_ASSERT_EQUAL(0, checkHostIp("fabric.webpa.comcast.net"))
 }
 
-void test_handleUpstreamMessage()
-{
-    handleUpstreamMessage(NULL, "hello", 6);
-}
-
 void add_suites( CU_pSuite *suite )
 {
     printf("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
     CU_add_test( *suite, "Test checkHostIp()", test_checkHostIp );
-    CU_add_test( *suite, "Test handleUpstreamMessage()", test_handleUpstreamMessage );
 }
 
 
