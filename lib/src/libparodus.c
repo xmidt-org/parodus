@@ -152,7 +152,7 @@ static int connect_sender (const char *send_url)
 	return sock;
 }
 
-static mqd_t create_queue (const char *qname, int qsize)
+static mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) )
 {
 	mqd_t q = -1;
 	struct mq_attr attr;
@@ -478,7 +478,7 @@ int libparodus_send (wrp_msg_t *msg)
 	return wrp_sock_send (msg);
 }
 
-static void *raw_receiver_thread (void *arg)
+static void *raw_receiver_thread (void *arg __attribute__ ((unused)) )
 {
 	int rtn;
 	raw_msg_t msg;
@@ -523,7 +523,7 @@ static char *find_wrp_msg_dest (wrp_msg_t *wrp_msg)
 	return NULL;
 }
 
-static void *wrp_receiver_thread (void *arg)
+static void *wrp_receiver_thread (void *arg __attribute__ ((unused)) )
 {
 	int rtn, msg_len;
 	raw_msg_t raw_msg;

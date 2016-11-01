@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 2.8.7)
 project(parodus_lib)
 
 include(ExternalProject)
-include(CTest)
+enable_testing()
 
 set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -85,6 +85,6 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
 
 add_subdirectory(src)
-if (BUILD_TESTING)
-    add_subdirectory(tests)
-endif (BUILD_TESTING)
+# if (BUILD_TESTING)
+add_subdirectory(tests)
+# endif (BUILD_TESTING)

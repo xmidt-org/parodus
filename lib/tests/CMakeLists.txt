@@ -27,17 +27,20 @@ target_link_libraries (nmsg
  -lpthread
 )
 
-add_executable(libpd libpd_test.c)
+add_executable(libpd libpd_test.c
+  ../src/libparodus.c
+  ../src/libparodus_time.c
+  ../src/libparodus_log.c
+)
 
 target_link_libraries (libpd
- cunit
- ${BUILD_DIR}/src/libparodus-lib.so
  ${INSTALL_DIR}/lib/libwrp-c.so
  ${INSTALL_DIR}/lib/libmsgpackc.so
  ${INSTALL_DIR}/lib/libtrower-base64.so
  -lnanomsg
  -lm
  -lpthread
+ -lrt
 )
 
 add_executable(mock_parodus mock_parodus.c)
@@ -51,10 +54,10 @@ target_link_libraries (mock_parodus
  -lpthread
 )
 
-#target_link_libraries (simple gcov)
-#target_link_libraries (simple cunit)
+target_link_libraries (libpd gcov)
+target_link_libraries (libpd cunit)
 
-#add_custom_target(coverage
-#                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/simple.dir/__/src --output-file coverage.info
-#                  COMMAND genhtml coverage.info
-#                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+add_custom_target(coverage
+                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/libpd.dir/__/src --output-file coverage.info
+                  COMMAND genhtml coverage.info
+                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})

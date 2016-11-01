@@ -199,7 +199,7 @@ int main (const int argc, const char **argv)
 
 	if ((NULL == rcv_id) && (NULL == send_id)) {
 		printf ("Nothing to do\n");
-		exit(1);
+		exit(0);
 	}
 
 	if (NULL != rcv_id)

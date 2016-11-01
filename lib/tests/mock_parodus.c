@@ -9,7 +9,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <stdarg.h>
 //#include <cJSON.h>
 #include <sys/time.h>
@@ -37,15 +40,21 @@
 
 #define TEST_MSG_BUF_LEN 6000
 
+#define END_PIPE_NAME "mock_parodus_end.txt"
+#define END_PIPE_MSG  "--END--\n"
+#define PIPE_BUFLEN 32
+#define NAME_BUFLEN 128
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
 
 typedef struct
 {
-    char test_msgs_file[128];
+    char test_msgs_file[NAME_BUFLEN];
     unsigned long test_msg_delay;
     unsigned long test_msg_count;
+		unsigned long create_pipe_opt;
 } Cfg_t;
 
 
@@ -83,6 +92,11 @@ static int numOfClients = 0;
 //Currently set the max mumber of clients as 10
 reg_client *clients[10];
 
+static char pipe_buf[PIPE_BUFLEN];
+static int end_pipe_fd = -1;
+static char end_pipe_name[NAME_BUFLEN];
+static char *end_pipe_msg = END_PIPE_MSG;
+
 //static char deviceMAC[32]={'\0'}; 
 static volatile bool terminated = false;
 static ParodusMsg *ParodusMsgQ = NULL;
@@ -93,11 +107,16 @@ pthread_t processUpStreamThreadId;
 pthread_t messageThreadId;
 
 pthread_mutex_t parodus_mut=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t nano_prod_mut=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t nano_cons_mut=PTHREAD_MUTEX_INITIALIZER;
-
 pthread_cond_t parodus_con=PTHREAD_COND_INITIALIZER;
+
+pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
+
+pthread_mutex_t reply_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t reply_con=PTHREAD_COND_INITIALIZER;
+static unsigned reply_trans = 0;
+static const char *trans_format = "aaaa-bbbb-####";
+
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -129,6 +148,70 @@ static void dbg_err (int err, const char *fmt, ...)
     vprintf(fmt, arg_ptr);
     va_end(arg_ptr);
 		printf ("%s\n", strerror_r (err, errbuf, 100));
+}
+
+static bool make_end_pipe_name (void)
+{
+	char *slash_pos;
+	unsigned head_len, total_len;
+	const char *end_pipe_name__ = END_PIPE_NAME;
+
+	strncpy (end_pipe_name, Cfg.test_msgs_file, NAME_BUFLEN);
+	end_pipe_name[NAME_BUFLEN-1] = '\0';
+	slash_pos = strrchr (end_pipe_name, '/');
+	if (NULL == slash_pos) {
+		strncpy (end_pipe_name, end_pipe_name__, NAME_BUFLEN);
+		end_pipe_name[NAME_BUFLEN-1] = '\0';
+		return true;
+	}
+	head_len = (slash_pos + 1) - end_pipe_name;
+	total_len = head_len + strlen(end_pipe_name__);
+	if (total_len >= NAME_BUFLEN) {
+		printf ("end pipe name too long\n");
+		return false;
+	}
+	strcpy (slash_pos+1, end_pipe_name__);
+	return true;		
+}
+
+static int open_end_pipe (bool create_pipe_opt)
+{
+	int err;
+
+	if (!make_end_pipe_name ())
+		return -1;
+
+	if (create_pipe_opt) {
+		err = remove (end_pipe_name);
+		if ((err != 0) && (errno != ENOENT)) {
+			dbg_err (errno, "Error removing pipe %s\n", end_pipe_name);
+			return -1;
+		}
+		printf ("Removed pipe %s\n", end_pipe_name);
+		err = mkfifo (end_pipe_name, 0666);
+		if (err != 0) {
+			dbg_err (errno, "Error creating pipe %s\n", end_pipe_name);
+			return -1;
+		}
+		printf ("Created fifo %s\n", end_pipe_name);
+	}
+	end_pipe_fd = open (end_pipe_name, O_RDONLY, 0444);
+	if (end_pipe_fd == -1) {
+		dbg_err (errno, "Error opening pipe %s\n", end_pipe_name);
+		return -1;
+	}
+	printf ("Opened end pipe\n");
+	return 0;
+}
+
+static int read_end_pipe (void)
+{
+	int nbytes = read (end_pipe_fd, pipe_buf, strlen (end_pipe_msg));
+	if (nbytes < 0) {
+		dbg_err (errno, "Error reading pipe %s\n", end_pipe_name);
+		return -1;
+	}
+	return nbytes;
 }
 
 void initTasks(void (* initKeypress)())
@@ -239,7 +322,7 @@ static void *handle_upstream()
 			message->msg =buf;
 			message->len =bytes;
 			message->next=NULL;
-			pthread_mutex_lock (&nano_prod_mut);
+			pthread_mutex_lock (&nano_mut); // was nano_prod_mut
 			
 			//Producer adds the nanoMsg into queue
 			if(UpStreamMsgQ == NULL)
@@ -249,7 +332,7 @@ static void *handle_upstream()
 				
 				printf("UpStreamMsgQ producer added message\n");
 			 	pthread_cond_signal(&nano_con);
-				pthread_mutex_unlock (&nano_prod_mut);
+				pthread_mutex_unlock (&nano_mut); // was nano_prod_mut
 				printf("mutex unlock in UpStreamMsgQ producer thread\n");
 			}
 			else
@@ -260,11 +343,9 @@ static void *handle_upstream()
 					temp = temp->next;
 				}
 			
-				temp->msg = buf;
-				temp->len = bytes;
-				temp->next = NULL;
+				temp->next = message;
 			
-				pthread_mutex_unlock (&nano_prod_mut);
+				pthread_mutex_unlock (&nano_mut); // was nano_prod_mut
 			}
 					
 		}
@@ -330,14 +411,14 @@ static void handleUpStreamEvents()
 		
 	while(1)
 	{
-		pthread_mutex_lock (&nano_cons_mut);
+		pthread_mutex_lock (&nano_mut); // was nano_cons_mut
 		printf("mutex lock in UpStreamMsgQ consumer thread\n");
 		
 		if(UpStreamMsgQ != NULL)
 		{
 			UpStreamMsg *message = UpStreamMsgQ;
 			UpStreamMsgQ = UpStreamMsgQ->next;
-			pthread_mutex_unlock (&nano_cons_mut);
+			pthread_mutex_unlock (&nano_mut); // was nano_cons_mut
 			printf("mutex unlock in UpStreamMsgQ consumer thread\n");
 			
 			if (!terminated) 
@@ -480,9 +561,9 @@ static void handleUpStreamEvents()
 		else
 		{
 			printf("Before pthread cond wait in UpStreamMsgQ consumer thread\n");   
-			pthread_cond_wait(&nano_con, &nano_prod_mut);
-			pthread_mutex_unlock (&nano_cons_mut);
-			printf("mutex unlock in UpStramMsgQ consumer thread after cond wait\n");
+			pthread_cond_wait(&nano_con, &nano_mut); // was nano_prod_mut
+			pthread_mutex_unlock (&nano_mut); // was nano_cons_mut
+			printf("mutex unlock in UpStreamMsgQ consumer thread after cond wait\n");
 			if (terminated) {
 				break;
 			}
@@ -520,6 +601,8 @@ static void initMessageHandler()
  */
 static void *messageHandlerTask()
 {
+	int p;
+
 	while(1)
 	{
 		pthread_mutex_lock (&parodus_mut);
@@ -547,6 +630,8 @@ static void *messageHandlerTask()
 	}
 	
 	printf ("Ended messageHandlerTask\n");
+	for( p = 0; p < numOfClients; p++ ) 
+		nn_shutdown(clients[p]->sock, 0);
 	return 0;
 } // End messageHandlerTask
 
@@ -809,15 +894,17 @@ static int parseCommandLine(int argc,char **argv,Cfg_t * cfg)
 {
     
   int c;
+  static struct option long_options[] = {
+     {"test-file",  required_argument, 0, 'f'},
+     {"delay",  required_argument, 0, 'd'},
+     {"msg-count",  optional_argument, 0, 'c'},
+		 {"create-pipe", optional_argument, 0, 'p'},
+     {0, 0, 0, 0}
+  };
+
 	memset(cfg,0,sizeof(Cfg_t));
     while (1)
     {
-      static struct option long_options[] = {
-          {"test-file",  required_argument, 0, 'f'},
-          {"delay",  required_argument, 0, 'd'},
-          {"msg-count",  required_argument, 0, 'c'},
-          {0, 0, 0, 0}
-        };
       /* getopt_long stores the option index here. */
       int option_index = 0;
       c = getopt_long (argc, argv, "f:d:c:",long_options, &option_index);
@@ -839,8 +926,13 @@ static int parseCommandLine(int argc,char **argv,Cfg_t * cfg)
 					return -1;
         case 'c':
 					if (convert_num (optarg, "test_msg_count", &cfg->test_msg_count,
-							5, 500) == 0)
+							0, 500) == 0)
             break;
+					return -1;
+				case 'p':
+					if (convert_num (optarg, "create_pipe_opt", &cfg->create_pipe_opt,
+							0,1) == 0)
+						break;
 					return -1;
         case '?':
           /* getopt_long already printed an error message. */
@@ -901,12 +993,59 @@ void show_wrp_msg (wrp_msg_t *wrp_msg)
 	}
 	return;
 }
-/** To send upstream msgs to server ***/
 
+static int get_trans_num (wrp_msg_t *msg)
+{
+	unsigned trans = 0;
+	int i;
+	char fc, mc;
+	const char *msg_trans;
+
+	if (msg->msg_type != WRP_MSG_TYPE__REQ)
+		return -1;
+	msg_trans = msg->u.req.transaction_uuid;
+	for (i=0; (fc=trans_format[i]) != 0; i++)
+	{
+		mc = msg_trans[i];
+		if (mc == 0)
+			return -1;
+		if (fc == '#') {
+			if ((mc >= '0') && (mc <= '9')) {
+				trans = 10*trans + (mc - '0');
+				continue;
+			}
+			return -1;
+		}
+		if (fc != mc)
+			return -1;
+	}
+	if (msg_trans[i] != 0)
+		return -1;
+	return (int) trans;
+}
+
+/** To send upstream msgs to server ***/
 static void handleUpstreamMessage(wrp_msg_t *msg)
 {
+	int trans_num;
 	show_wrp_msg (msg);
-	
+	if (msg->msg_type != WRP_MSG_TYPE__REQ)
+		return;
+	trans_num = get_trans_num (msg);
+	if (trans_num < 0) {
+		printf ("Invalid transaction uuid in REQ msg\n");
+		return;
+	}
+	pthread_mutex_lock (&reply_mut);
+	if ((unsigned) trans_num != reply_trans) {
+		pthread_mutex_unlock (&reply_mut);
+		printf ("Unmatched transaction uuid in REQ msg\n");
+		return;
+	}
+	printf ("Mock Parodus Got reply to trans %u on UpStreamMsgQ\n", trans_num);
+	reply_trans = 0;
+	pthread_cond_signal (&reply_con);
+	pthread_mutex_unlock (&reply_mut);
 }
 
 static int rewind_test_msg_file (void)
@@ -922,7 +1061,7 @@ static int test_file_read (char *buf, char **dest, char **payload)
 {
 	char *endpos;
 	char *space_pos;
-	const char *errmsg = "Format error in test msgs file\n";
+	const char *errmsg = "Format error in test msgs file";
 
 	*dest = NULL;
 	*payload = NULL;
@@ -930,18 +1069,18 @@ static int test_file_read (char *buf, char **dest, char **payload)
 		return 1;
 	endpos = strchr (buf, '\n');
 	if (NULL == endpos) {
-		printf (errmsg);
+		puts (errmsg);
 		return -1;
 	}
 	*endpos = '\0';
 	space_pos = strchr (buf, ' ');
 	if (NULL == space_pos) {
-		printf (errmsg);
+		puts (errmsg);
 		return -1;
 	}
 	*space_pos = '\0';
 	if (space_pos == buf) {
-		printf (errmsg);
+		puts (errmsg);
 		return -1;
 	}
 	*dest = buf;
@@ -949,17 +1088,85 @@ static int test_file_read (char *buf, char **dest, char **payload)
 	return 0;
 }
 
+static int wait_end_pipe_msg (time_t nsecs)
+{
+	struct timeval tv;
+	int rtn;
+	int nfds = end_pipe_fd + 1;
+	fd_set readfds;
+	tv.tv_sec = nsecs;
+	tv.tv_usec = 0;
+	FD_ZERO (&readfds);
+	FD_SET (end_pipe_fd, &readfds);
+	rtn = select (nfds, &readfds, NULL, NULL, &tv);
+	if (rtn == 0)
+		return 0;
+	if (rtn == -1) {
+		dbg_err (errno, "Error on select\n");
+		return -1;
+	}
+	return read_end_pipe ();
+}
+
+int get_expire_time (uint32_t ms, struct timespec *ts)
+{
+	struct timeval tv;
+	int err = gettimeofday (&tv, NULL);
+	if (err != 0) {
+		dbg_err (errno, "Error getting time of day\n");
+		return err;
+	}
+	tv.tv_sec += ms/1000;
+	tv.tv_usec += (ms%1000) * 1000;
+	if (tv.tv_usec >= 1000000) {
+		tv.tv_sec += 1;
+		tv.tv_usec -= 1000000;
+	}
+
+	ts->tv_sec = tv.tv_sec;
+	ts->tv_nsec = tv.tv_usec * 1000L;
+	return 0;
+}
+
+static int wait_trans (unsigned trans_num)
+{
+	int rtn;
+	struct timespec ts;
+
+	pthread_mutex_lock (&reply_mut);
+	reply_trans = trans_num;
+
+	while (true) {
+		rtn = get_expire_time (20000, &ts);
+		if (rtn != 0)
+			return -1;
+		rtn = pthread_cond_timedwait (&reply_con, &reply_mut, &ts);
+		if (rtn == ETIMEDOUT) {
+			pthread_mutex_unlock (&reply_mut);
+			printf ("Mock Parodus Timed out waiting for reply to trans %u\n", trans_num);
+			return 1;
+		}
+		if (reply_trans == 0) {
+			pthread_mutex_unlock (&reply_mut);
+			printf ("Mock Parodus Got reply to trans %u\n", trans_num);
+			return 0;
+		}
+		pthread_mutex_unlock (&reply_mut);
+		pthread_mutex_lock (&reply_mut);
+	}
+}
+
 static void read_and_send_test_msgs (void)
 {
-	const char *trans = "aaaa-bbbb-####";
 	unsigned trans_num = 0;
 	const char *source = "---MOCK_PARODUS---";
 	char file_buf[TEST_MSG_BUF_LEN];
 	char *dest;
 	char *payload;
+	int rtn;
 
 	while (1) {
-		int rtn = test_file_read (file_buf, &dest, &payload);
+		rtn = test_file_read (file_buf, &dest, &payload);
 		if (rtn == 1) {
 			if (trans_num == 0)
 				break;
@@ -969,14 +1176,18 @@ static void read_and_send_test_msgs (void)
 		if (rtn == -1)
 			break;
 		trans_num++;
-		enqueue_test_msg (trans, trans_num, source, dest, payload);
-		if (trans_num >= Cfg.test_msg_count)
+		enqueue_test_msg (trans_format, trans_num, source, dest, payload);
+		if (wait_trans (trans_num) != 0)
 			break;
-		sleep (Cfg.test_msg_delay);
+		if ((Cfg.test_msg_count != 0) && (trans_num >= Cfg.test_msg_count))
+			break;
+		if (wait_end_pipe_msg (Cfg.test_msg_delay) != 0)
+			break;
 	}
 	trans_num++;
-	enqueue_test_msg (trans, trans_num, source, "END", "END");
+	enqueue_test_msg (trans_format, trans_num, source, "END", "END");
 	fclose (test_msgs_fp);
+	close (end_pipe_fd);
 }
 
 int main( int argc, char **argv)
@@ -987,7 +1198,9 @@ int main( int argc, char **argv)
 	if (NULL == test_msgs_fp) {
 		dbg_err (errno, "Error opening file %s\n", Cfg.test_msgs_file);
 		return 4;
-	}       
+	} 
+	if (open_end_pipe( (bool) Cfg.create_pipe_opt) != 0)
+		return 4;      
 	initTasks(NULL);
 	read_and_send_test_msgs ();
 	terminateTasks ();
