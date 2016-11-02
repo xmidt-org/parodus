@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-set(PROJ_PARODUS_LIB parodus-lib)
+set(PROJ_PARODUS_LIB libparodus)
 
 file(GLOB HEADERS libparodus.h)
 set(SOURCES libparodus.c libparodus_log.c libparodus_time.c)
