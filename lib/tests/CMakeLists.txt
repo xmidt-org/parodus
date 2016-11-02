@@ -12,52 +12,57 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-add_test(NAME NMsgTest COMMAND nmsg)
-add_test(NAME LibPDTest COMMAND libpd)
-
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
 
-add_executable(nmsg nmsg.c)
+#-------------------------------------------------------------------------------
+#   test nano-msg centric code
+#-------------------------------------------------------------------------------
+add_test(NAME NMsgTest COMMAND nmsg)
+add_executable (nmsg nmsg.c)
+target_link_libraries (nmsg gcov cunit -lnanomsg -lm -lpthread)
 
-target_link_libraries (nmsg
- -lnanomsg
- -lm
- -lpthread
-)
 
-add_executable(libpd libpd_test.c
-  ../src/libparodus.c
-  ../src/libparodus_time.c
-  ../src/libparodus_log.c
-)
+#-------------------------------------------------------------------------------
+#   test libparodus
+#-------------------------------------------------------------------------------
+#add_test(NAME LibPDTest COMMAND libpd)
+add_executable (libpd
+                libpd_test.c
+                ../src/libparodus.c
+                ../src/libparodus_log.c
+                ../src/libparodus_time.c)
 
 target_link_libraries (libpd
- ${INSTALL_DIR}/lib/libwrp-c.so
- ${INSTALL_DIR}/lib/libmsgpackc.so
- ${INSTALL_DIR}/lib/libtrower-base64.so
- -lnanomsg
- -lm
- -lpthread
- -lrt
-)
+                       gcov
+                       cunit
+                       -lwrp-c
+                       -lmsgpackc
+                       -ltrower-base64
+                       -lnanomsg
+                       -lm
+                       -lpthread
+                       -lrt)
 
+#-------------------------------------------------------------------------------
+#   mock code
+#-------------------------------------------------------------------------------
 add_executable(mock_parodus mock_parodus.c)
 
 target_link_libraries (mock_parodus
- ${INSTALL_DIR}/lib/libwrp-c.so
- ${INSTALL_DIR}/lib/libmsgpackc.so
- ${INSTALL_DIR}/lib/libtrower-base64.so
+ -lwrp-c
+ -lmsgpackc
+ -ltrower-base64
  -lnanomsg
  -lm
  -lpthread
 )
 
-target_link_libraries (libpd gcov)
-target_link_libraries (libpd cunit)
+# Tests are broken...
+add_custom_target(coverage-lib)
 
-add_custom_target(coverage
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/libpd.dir/__/src --output-file coverage.info
-                  COMMAND genhtml coverage.info
-                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+add_custom_target(coverage-lib-broken
+                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/nmsg.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
+                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/libpd.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
+                  )

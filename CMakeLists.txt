@@ -24,8 +24,8 @@ set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -DNOPOLL_LOGGER ")
+set(TEST_RESULTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_results)
+file(MAKE_DIRECTORY ${TEST_RESULTS_DIR})
 
 include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/cJSON
@@ -35,9 +35,20 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c
                    )
 
+# Compile options/flags
+#-------------------------------------------------------------------------------
+add_definitions(-std=c99)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -DNOPOLL_LOGGER ")
+
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
+
+# pthread external dependency
+#-------------------------------------------------------------------------------
 find_package (Threads)
 
 # base64 external dependency
+#-------------------------------------------------------------------------------
 ExternalProject_Add(trower-base64
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/trower-base64
     GIT_REPOSITORY https://github.com/Comcast/trower-base64.git
@@ -49,6 +60,7 @@ add_dependencies(libtrower-base64 trower-base64)
 
 
 # nopoll external dependency
+#-------------------------------------------------------------------------------
 set(PATCHES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/patches)
 set(NOPOLL_LOG_SRC ${PREFIX_DIR}/nopoll/src/nopoll/src/nopoll_log.c)
 ExternalProject_Add(nopoll
@@ -65,7 +77,7 @@ ExternalProject_Add(nopoll
     CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/configure --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}
-						     --host=arm-oe-linux-gnueabi
+                                                     ${CUSTOM_HOST}
     BUILD_IN_SOURCE 1
 )
 add_library(libnopoll STATIC SHARED IMPORTED)
@@ -73,6 +85,7 @@ add_dependencies(libnopoll nopoll)
 
 
 # nanoMsg external dependency
+#-------------------------------------------------------------------------------
 ExternalProject_Add(nanomsg
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
     GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
@@ -84,6 +97,7 @@ add_dependencies(libnanomsg nanomsg)
 
 
 # cJSON external dependency
+#-------------------------------------------------------------------------------
 ExternalProject_Add(cJSON
     #PREFIX ${PREFIX_DIR}/cJSON
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cJSON
@@ -96,6 +110,7 @@ add_dependencies(libcJSON cJSON)
 
 
 # msgpack-c external dependency
+#-------------------------------------------------------------------------------
 ExternalProject_Add(msgpack
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/msgpack
     GIT_REPOSITORY https://github.com/msgpack/msgpack-c.git
@@ -107,10 +122,12 @@ ExternalProject_Add(msgpack
 add_library(libmsgpack STATIC SHARED IMPORTED)
 add_dependencies(libmsgpack msgpack)
 
+
 # wrp-c external dependency
+#-------------------------------------------------------------------------------
 ExternalProject_Add(wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
-    GIT_REPOSITORY https://github.com/selvamKrish/wrp-c.git
+    GIT_REPOSITORY https://github.com/Comcast/wrp-c.git
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
@@ -122,11 +139,16 @@ add_dependencies(libwrp-c wrp-c)
 
 link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
 
-add_definitions(-std=c99)
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
-
 add_subdirectory(src)
 if (BUILD_TESTING)
+    set (COVERAGE_DEPENDS ${COVERAGE_DEPENDS} coverage-prog)
     add_subdirectory(tests)
 endif (BUILD_TESTING)
+
+if (BUILD_TESTING)
+    set (COVERAGE_DEPENDS ${COVERAGE_DEPENDS} coverage-lib)
+endif (BUILD_TESTING)
+add_subdirectory(lib)
+
+add_custom_target(coverage DEPENDS ${COVERAGE_DEPENDS}
+                  COMMAND genhtml  `find . -name *.info`)

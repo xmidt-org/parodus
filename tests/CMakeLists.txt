@@ -33,7 +33,7 @@ add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
 add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c )
 target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg)
 
-if(NOT SKIP_SIMPLE)
+if(NOT ${SKIP_SIMPLE})
     add_test(NAME simple COMMAND simple)
     add_executable(simple simple.c
                           ../src/wss_mgr.c
@@ -42,11 +42,10 @@ if(NOT SKIP_SIMPLE)
                           ../src/string_helpers.c
                           ../src/mutex.c )
     target_link_libraries (simple ${PARODUS_COMMON_LIBS} -lnopoll -lnanomsg -lrt )
-endif(NOT SKIP_SIMPLE)
+endif(NOT ${SKIP_SIMPLE})
 
-add_custom_target(coverage
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_networking.dir/__/src --output-file coverage.info
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_nopoll_helpers.dir/__/src --output-file coverage.info
-                  COMMAND genhtml coverage.info
-                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+add_custom_target(coverage-prog
+                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_networking.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
+                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_nopoll_helpers.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
+                 )
 
