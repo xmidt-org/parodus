@@ -33,8 +33,8 @@
 #define MOCK_MSG_COUNT 10
 #define MOCK_MSG_COUNT_STR "10"
 #define TESTS_DIR_TAIL "/parodus/lib/tests"
-#define BUILD_DIR_TAIL "/parodus/lib/build"
-#define BUILD_TESTS_DIR_TAIL "/parodus/lib/build/tests"
+#define BUILD_DIR_TAIL "/parodus/build"
+#define BUILD_TESTS_DIR_TAIL "/parodus/build/lib/tests"
 #define END_PIPE_MSG  "--END--\n"
 #define SEND_EVENT_MSGS 1
 
@@ -49,12 +49,12 @@ static int current_dir_id = CURRENT_DIR_IS_BUILD;
 
 #define RUN_TESTS_NAME(name) ( \
   (current_dir_id == CURRENT_DIR_IS_TESTS) ? "./" name : \
-  (current_dir_id == CURRENT_DIR_IS_BUILD) ? "../tests/" name : \
-  "../../tests/" name )   
+  (current_dir_id == CURRENT_DIR_IS_BUILD) ? "../lib/tests/" name : \
+  "../../lib/tests/" name )   
 
 #define BUILD_TESTS_NAME(name) ( \
-  (current_dir_id == CURRENT_DIR_IS_TESTS) ? "../build/tests/" name : \
-  (current_dir_id == CURRENT_DIR_IS_BUILD) ? "./tests/" name : \
+  (current_dir_id == CURRENT_DIR_IS_TESTS) ? "../../build/lib/tests/" name : \
+  (current_dir_id == CURRENT_DIR_IS_BUILD) ? "./lib/tests/" name : \
   "./" name )
 
 
