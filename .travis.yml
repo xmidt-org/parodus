@@ -1,27 +1,21 @@
 language: c
-
 compiler:
-    - gcc
-
+- gcc
 before_install:
-    - sudo pip install codecov
-
+- sudo pip install codecov
 install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
-
+- sudo apt-get update -qq
+- sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
 script:
-    - mkdir build
-    - cd build
-    - cmake .. -DSKIP_SIMPLE=TRUE
-    - make
-    - make test
-    - make coverage
-
+- mkdir build
+- cd build
+- cmake .. -DSKIP_SIMPLE=TRUE
+- make
+- make test
+- make coverage
 after_success:
-    - codecov
-
+- codecov
 env:
   global:
-    - secure: JSXFxhhczQs9XLqluGacv7t1RXxaGcIXKuNY60etcTT1pvH3RwxRqbm6KhN2T5ScK1P0Onj0+pL4v5HHYiMhZWUXFyLBzD8nWQYfyOljpY438I1BvZs3osAfeXK1qXOXWfe0J48JR4FYXioNc5supGRavCojgv2MtTv87+jkrQORSdGT/qu3XnH1iEZsyZWn0RiyVe+NUylxdII4bUfm4Gj6MmcsH07m/dCF6Du19dHbeVhxb4jdpqzerz/H+Xvy29q2GyjxoZUMR8OYfKgHKEyvFMLvw7lq47IQM3sSBdI9AxsBPziLnp51VcZ+QxGNx6z70E2CzEi8m421VGyTapJZJmtxg4TrcJhqlblSGfUbM4R5A152xJImA02t2vsuNuFxEN2HiOUleO8g8mrSqyslHP5/XqIeu+3YIIAGzKtmf8/Qn9N3O4FOI6HTtfgdLITMRVM7rh0PkK+jPyfYPxOkOlAhVdrTPH8x89ELOPJQUVWOQL4BGDTQuLKHTazGp04yg9cuXaAhgRS1OkuXv2hK2od1/wXpcN3ikmPY7UtpmYUZW9EFMWfbtrUlY6zZzLILm6CtDkdU2U5DCM5fjRyVM/6IHSF5Q+cVFTp1d6Gnb9U3DI69j612K5hTFh8ZC6eCJXVVHHM2FY1BJiG3nJFM3EWXIhK9d47XBkw8j/o=
-    - secure: Y6yH5T4NmV00fwFgHUr+sBC14wCoTEtGBseOB7pwjgIXR8j1cSg7z9jfNiiWI9ccLu3MdNeKl/UbtMAQ++RpSNfC0yYHErgjk1k+DdhEszawr/PMyeSShmEu47EaGHxmbHT3m+4fgOKfzg0eztJfzM3YD3El+sYtaQcxTaPHGqGMTP5Gp7bZM/sUSTGTqpI+8E1oM/QpfzM7zjjNkXWiqx9DxDyXOX1Gimjpp31+L9caKTAofHnwKlDqx1nGIT3SAzvfIZtBEid1XBcxdhcQ2Uj612FgJ56afQroOBoO7bxqeKEesfV9g+SH27DXKEP581BNK1Ai/1VbhUUfxwUY936903WEjGzn/HYzd72WtbVlZinnBnqSjm2FUytXkfQxRYl7KPNZOuO32C7lJ+Lofeg8Y+nbi2XEg7pspC1rdZJY8KB8FRN1ApucMTKWJt+K9b9SZZ7e3YnsZeQJsKGhao6JUzqKVnk0UdhbeJMGhVdhZUZmHjqHmoAO+XOzE+Q+l9/PVwVWwnG0avvFY7Lp6a8o2woTlTQOp3XY5NcPQDiB6tkUYQgf8Qjue4GQSihqkdAEvJOKCd8heC5TGOLMdVNxAPc55cOl8V7ncprfJS6tbqaLa/xpQ2mLeIKaUxLnokZfFZw2rLbdRBCoFqalVedSYObTTnh9TmmrlVx0nYs=
+  - secure: EwQu1WDUgIF5qM5tnKj/+NCPz9t15y289bbqFo0wDhyfTlJGS9buQeJNeVLtNJBEOngpo+AkaPGvh/d9NZ0vLdxu+K/e+HhA6kOTxUrCHD8+4oX9XpVs/XvQmD1COlJYeeqd8bJMKtlFtonGdMJogxpEFQzv4fQjmoARvL2ciV4OB0MBcD5Lsb72L3a0aJT69F6WFuDpgGj2eIQyCDSTPNIi2X7EA8R33lxnntFDn8Vj6qSBbVOI2S5R5S+JUCMp1Q1ZbEqmh6j+wKtszWj8wGqfz8Ol5+GYl511bExb+hwvV5zen0Ol0+2LQmSpYhbQZ7prfI8AclLLwhDUrP+WDOv34vwd4EWQ1OoLqG23HbBygCxPSBIB6ZxPtVkzjVlOK8qqIB5QXqCyq8sPKlrXfntOQ+Ha938cIA+A0ag+26MLbhDGj8k3Os7BdY/oqNTKADZQdxfGKhCiA9qO2clpMyRXoE0q6hv9dYoG/2c4sxH8DKsT8XY/QbGmiBsk0DWHcpxkObCsHUxVKi+gIBGSL/tSjz2IJfQVZkdl2hhcyStGuPKbiwAlW3HydMk0VgRhVmHBIc41Cv7vPdMEVf/XiFhr2utRX468M/LR8vkhhokKl1xkVIiquwCPYPzZVAFARHTlaBMhz9kQVtTAHf2JkHuM9XcLWKW996FiSeswKyI=
+  - secure: LQK36EsQdIJw7eSW1yz+yh3+yJdp8cznynBjE3whOEVI2KHZimr+vtK5hxE6TH0QjYyrb/BFgRql6CtLprpaABSEC9gpqpahu50jiAkjKC8DtfSloAbH5jj+ZllaPjURocerllNLVZxiRM/WCuJAy0nzBpAyx62YmVlEYi+zYD67d3wG6gLwso6l2DWuPPze6t5NmbUmH9hNk52++TZalwMtZFdibQoYm64vCTT5gycujw6ZDa8GD0m+Yryvc20kLlWPOVS9lN1iEGo98/gj8Ops8w0iw6k7SfEkvvFsKEUDr77wAN5Tk4tGq7odVrD/y3W9AsHkkSb1B6RqVWkcW3SjCAQc03jhdaBxXwcoJZcYahY21CB12EP7p0HSjEbvIzNpk0D9MulsGaMPlOudnKdG0/kmD7oIAiXjfC7PiPBBFIc/cVF5VAKNTUInEVfcKvlLpqDatwjB+qgb7pld24dUPuJw+yOgglk7J7xckJYHFTHhk0PWI5oN66dndj3yyJp4dz1v64ViFFTG4PO4YPJydZxRxolg1eGMuG0UIYJK6RWcSQ+ZPBm4p78J8xfHtgUkvWvrHJoXC1qAzqx1XRzbHEeTJgbKgLrWY+B6nbNotw1RDX4lNDirp5EI6GqezoFJToZkqe3MRs8DrqhaFjUbbEzAxznRWmxnWNN3Ujc=
