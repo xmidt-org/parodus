@@ -144,7 +144,7 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 {
 	if (level == NOPOLL_LEVEL_DEBUG) 
 	{
-  	     printf("Debug: %s\n", log_msg);
+  	    // printf("Debug: %s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_INFO) 
 	{
