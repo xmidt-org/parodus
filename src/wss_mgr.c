@@ -144,7 +144,7 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 {
 	if (level == NOPOLL_LEVEL_DEBUG) 
 	{
-  	     printf("Debug: %s\n", log_msg);
+  	    // printf("Debug: %s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_INFO) 
 	{
@@ -830,9 +830,7 @@ static void *handle_upstream()
 					temp = temp->next;
 				}
 			
-				temp->msg = buf;
-				temp->len = bytes;
-				temp->next = NULL;
+				temp->next = message;
 			
 				pthread_mutex_unlock (&nano_mut);
 			}
