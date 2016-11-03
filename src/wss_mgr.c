@@ -830,9 +830,7 @@ static void *handle_upstream()
 					temp = temp->next;
 				}
 			
-				temp->msg = buf;
-				temp->len = bytes;
-				temp->next = NULL;
+				temp->next = message;
 			
 				pthread_mutex_unlock (&nano_mut);
 			}
