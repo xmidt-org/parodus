@@ -13,7 +13,7 @@ install:
 script:
     - mkdir build
     - cd build
-    - cmake .. -DSKIP_SIMPLE=TRUE
+    - cmake ..
     - make
     - make test
     - make coverage
