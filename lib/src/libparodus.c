@@ -91,7 +91,7 @@ static void libpd_log ( int level, int os_errno, const char *msg, ...)
 }
 #endif
 
-static int connect_receiver (const char *rcv_url)
+int connect_receiver (const char *rcv_url)
 {
 	int sock;
 
@@ -115,14 +115,14 @@ static int connect_receiver (const char *rcv_url)
 		nn_shutdown ((sock), 0); \
 	(sock) = 0;
 
-static void shutdown_socket (int *sock)
+void shutdown_socket (int *sock)
 {
 	if (*sock != -1)
 		nn_shutdown (*sock, 0);
 	*sock = -1;
 }
 
-static int connect_sender (const char *send_url)
+int connect_sender (const char *send_url)
 {
 	int sock;
 	int send_timeout = SOCK_SEND_TIMEOUT_MS;

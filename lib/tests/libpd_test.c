@@ -38,6 +38,13 @@
 #define END_PIPE_MSG  "--END--\n"
 #define SEND_EVENT_MSGS 1
 
+#define TEST_RCV_URL1 "tcp://127.0.0.1:6006"
+#define BAD_RCV_URL1 "tcp://127.0.0.1:X006"
+//#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
+#define TEST_SEND_URL1 "tcp://127.0.0.1:6007"
+#define BAD_SEND_URL1 "tcp://127.0.0.1:x007"
+//#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
+
 static char current_dir_buf[256];
 
 #define CURRENT_DIR_IS_BUILD	0
@@ -74,6 +81,12 @@ static const char *service_name = "iot";
 //static const char *service_name = "config";
 
 static bool using_mock = false;
+
+// libparodus functions to be tested
+extern int connect_receiver (const char *rcv_url);
+extern int connect_sender (const char *send_url);
+extern void shutdown_socket (int *sock);
+
 
 int check_current_dir (void)
 {
@@ -328,6 +341,7 @@ void test_1()
 	unsigned msgs_received_count = 0;
 	unsigned timeout_cnt = 0;
 	int rtn;
+	int test_sock;
 	wrp_msg_t *wrp_msg;
 	unsigned event_num = 0;
 	unsigned msg_num = 0;
@@ -352,6 +366,24 @@ void test_1()
 			return; // if in child process
 		rtn = open_end_pipe ();
 	}
+
+	CU_ASSERT_FATAL (log_init (".", NULL) == 0);
+
+	test_sock = connect_receiver (TEST_RCV_URL1);
+	CU_ASSERT (test_sock != -1) ;
+	if (test_sock != -1)
+		shutdown_socket(&test_sock);
+	test_sock = connect_receiver (BAD_RCV_URL1);
+	CU_ASSERT (test_sock == -1);
+	test_sock = connect_sender (TEST_SEND_URL1);
+	CU_ASSERT (test_sock != -1) ;
+	if (test_sock != -1)
+		shutdown_socket(&test_sock);
+	test_sock = connect_sender (BAD_SEND_URL1);
+	CU_ASSERT (test_sock == -1);
+
+	log_shutdown ();
+
 	CU_ASSERT (libparodus_init (service_name, NULL) == 0);
 	initEndKeypressHandler ();
 	while (true) {
