@@ -52,6 +52,9 @@ static int send_sock = -1;
 #define RAW_QUEUE_NAME "/LIBPD_RAW_QUEUE"
 #define WRP_QUEUE_NAME "/LIBPD_WRP_QUEUE"
 
+const char *raw_queue_name = RAW_QUEUE_NAME;
+const char *wrp_queue_name = WRP_QUEUE_NAME;
+
 static mqd_t raw_queue = (mqd_t)-1;
 static mqd_t wrp_queue = (mqd_t)-1;
 
@@ -117,8 +120,10 @@ int connect_receiver (const char *rcv_url)
 
 void shutdown_socket (int *sock)
 {
-	if (*sock != -1)
+	if (*sock != -1) {
 		nn_shutdown (*sock, 0);
+		nn_close (*sock);
+	}
 	*sock = -1;
 }
 
@@ -148,7 +153,7 @@ int connect_sender (const char *send_url)
 	return sock;
 }
 
-static mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) )
+mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) )
 {
 	mqd_t q = -1;
 	struct mq_attr attr;
@@ -224,14 +229,14 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 		return -1;
 	}
 	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Opened sockets\n");
-	raw_queue = create_queue (RAW_QUEUE_NAME, 256);
+	raw_queue = create_queue (raw_queue_name, 256);
 	if (raw_queue == (mqd_t)-1) {
 		shutdown_socket(&rcv_sock);
 		shutdown_socket(&send_sock);
 		shutdown_socket(&stop_rcv_sock);
 		return -1;
 	}
-	wrp_queue = create_queue (WRP_QUEUE_NAME, 24);
+	wrp_queue = create_queue (wrp_queue_name, 24);
 	if (wrp_queue == (mqd_t)-1) {
 		shutdown_socket(&rcv_sock);
 		mq_close (raw_queue);
@@ -337,8 +342,8 @@ int libparodus_shutdown (void)
 	mq_close (wrp_queue);
 	shutdown_socket(&send_sock);
 	shutdown_socket(&stop_rcv_sock);
-	mq_unlink (RAW_QUEUE_NAME);
-	mq_unlink (WRP_QUEUE_NAME);
+	mq_unlink (raw_queue_name);
+	mq_unlink (wrp_queue_name);
 	run_state = 0;
 	auth_received = false;
 	log_shutdown ();

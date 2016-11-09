@@ -28,6 +28,7 @@
 
 #include "../src/libparodus.h"
 #include "../src/libparodus_time.h"
+#include <mqueue.h>
 #include <pthread.h>
 
 #define MOCK_MSG_COUNT 10
@@ -86,6 +87,10 @@ static bool using_mock = false;
 extern int connect_receiver (const char *rcv_url);
 extern int connect_sender (const char *send_url);
 extern void shutdown_socket (int *sock);
+extern mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) );
+
+extern const char *raw_queue_name;
+
 
 
 int check_current_dir (void)
@@ -342,11 +347,12 @@ void test_1()
 	unsigned timeout_cnt = 0;
 	int rtn;
 	int test_sock;
+	mqd_t test_q = -1;
 	wrp_msg_t *wrp_msg;
 	unsigned event_num = 0;
 	unsigned msg_num = 0;
 	char timestamp[20];
-
+	const char *raw_queue_orig_name = raw_queue_name;
 
 	rtn = make_current_timestamp (timestamp);
 	if (rtn == 0)
@@ -375,12 +381,25 @@ void test_1()
 		shutdown_socket(&test_sock);
 	test_sock = connect_receiver (BAD_RCV_URL1);
 	CU_ASSERT (test_sock == -1);
+	test_sock = connect_receiver (TEST_RCV_URL1);
+	CU_ASSERT (test_sock != -1) ;
+	if (test_sock != -1)
+		shutdown_socket(&test_sock);
 	test_sock = connect_sender (TEST_SEND_URL1);
 	CU_ASSERT (test_sock != -1) ;
 	if (test_sock != -1)
 		shutdown_socket(&test_sock);
 	test_sock = connect_sender (BAD_SEND_URL1);
 	CU_ASSERT (test_sock == -1);
+	test_q = create_queue ("/LIBPD_TEST_QUEUE", 256);
+	CU_ASSERT (test_q != -1);
+	mq_close (test_q);
+	test_q = create_queue ("$$LIBPD_BAD_QUEUE&&", 256);
+	CU_ASSERT (test_q == -1);
+	test_q = -1;
+	raw_queue_name = "$$LIBPD_BAD_QUEUE&&";
+	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
+	raw_queue_name = raw_queue_orig_name;
 
 	log_shutdown ();
 

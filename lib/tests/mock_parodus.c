@@ -1088,14 +1088,19 @@ static int test_file_read (char *buf, char **dest, char **payload)
 	return 0;
 }
 
-static int wait_end_pipe_msg (time_t nsecs)
+static int wait_end_pipe_msg (time_t nsecs, unsigned short_wait)
 {
 	struct timeval tv;
 	int rtn;
 	int nfds = end_pipe_fd + 1;
 	fd_set readfds;
-	tv.tv_sec = nsecs;
-	tv.tv_usec = 0;
+	if (short_wait) {
+		tv.tv_sec = 0;
+		tv.tv_usec = 250000;
+	} else { 
+		tv.tv_sec = nsecs;
+		tv.tv_usec = 0;
+	}
 	FD_ZERO (&readfds);
 	FD_SET (end_pipe_fd, &readfds);
 	rtn = select (nfds, &readfds, NULL, NULL, &tv);
@@ -1181,7 +1186,7 @@ static void read_and_send_test_msgs (void)
 			break;
 		if ((Cfg.test_msg_count != 0) && (trans_num >= Cfg.test_msg_count))
 			break;
-		if (wait_end_pipe_msg (Cfg.test_msg_delay) != 0)
+		if (wait_end_pipe_msg (Cfg.test_msg_delay, trans_num&1) != 0)
 			break;
 	}
 	trans_num++;
