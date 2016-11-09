@@ -58,7 +58,7 @@ static int current_dir_id = CURRENT_DIR_IS_BUILD;
 #define RUN_TESTS_NAME(name) ( \
   (current_dir_id == CURRENT_DIR_IS_TESTS) ? "./" name : \
   (current_dir_id == CURRENT_DIR_IS_BUILD) ? "../lib/tests/" name : \
-  "../../lib/tests/" name )   
+  "../../../lib/tests/" name )   
 
 #define BUILD_TESTS_NAME(name) ( \
   (current_dir_id == CURRENT_DIR_IS_TESTS) ? "../../build/lib/tests/" name : \
@@ -142,13 +142,13 @@ static int create_end_pipe (void)
 		libpd_log (LEVEL_NO_LOGGER, errno, "Error removing pipe %s\n", end_pipe_name);
 		return -1;
 	}
-	printf ("Removed pipe %s\n", end_pipe_name);
+	printf ("LIBPD TEST: Removed pipe %s\n", end_pipe_name);
 	err = mkfifo (end_pipe_name, 0666);
 	if (err != 0) {
 		libpd_log (LEVEL_NO_LOGGER, errno, "Error creating pipe %s\n", end_pipe_name);
 		return -1;
 	}
-	printf ("Created fifo %s\n", end_pipe_name);
+	printf ("LIBPD_TEST: Created fifo %s\n", end_pipe_name);
 	return 0;
 }
 
@@ -160,7 +160,7 @@ static int open_end_pipe (void)
 		libpd_log (LEVEL_NO_LOGGER, errno, "Error opening pipe %s\n", end_pipe_name);
 		return -1;
 	}
-	printf ("Opened fifo %s\n", end_pipe_name);
+	printf ("LIBPD_TEST: Opened fifo %s\n", end_pipe_name);
 	return 0;
 }
 
@@ -315,7 +315,7 @@ int send_event_msgs (unsigned *msg_num, unsigned *event_num)
 	return 0;
 }
 
-int start_mock_parodus (void)
+int start_mock_parodus ()
 {
 	int pid;
 	const char *mock_parodus_path = MOCK_PARODUS_PATH();
@@ -356,9 +356,9 @@ void test_1()
 
 	rtn = make_current_timestamp (timestamp);
 	if (rtn == 0)
-		printf ("Current time is %s\n", timestamp);
+		printf ("LIBPD_TEST: Current time is %s\n", timestamp);
 	else
-		printf ("make timestamp error %d\n", rtn);
+		printf ("LIBPD_TEST: make timestamp error %d\n", rtn);
 	CU_ASSERT (rtn == 0);
 
 	CU_ASSERT_FATAL (check_current_dir() == 0);

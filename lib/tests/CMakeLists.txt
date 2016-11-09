@@ -27,7 +27,7 @@ target_link_libraries (nmsg gcov cunit -lnanomsg -lm -lpthread)
 #-------------------------------------------------------------------------------
 #   test libparodus
 #-------------------------------------------------------------------------------
-#add_test(NAME LibPDTest COMMAND libpd)
+add_test(NAME LibPDTest COMMAND libpd)
 add_executable (libpd
                 libpd_test.c
                 ../src/libparodus.c
@@ -59,10 +59,6 @@ target_link_libraries (mock_parodus
  -lpthread
 )
 
-# Tests are broken...
-add_custom_target(coverage-lib)
-
-add_custom_target(coverage-lib-broken
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/nmsg.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
+add_custom_target(coverage-lib
                   COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/libpd.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
                   )
