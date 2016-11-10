@@ -29,6 +29,9 @@
 #define CLIENT_URL "tcp://127.0.0.1:6667"
 //#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
 
+const char *parodus_url = PARODUS_URL;
+const char *client_url = CLIENT_URL;
+
 #define SOCK_SEND_TIMEOUT_MS 2000
 
 #define END_MSG "---END-PARODUS---\n"
@@ -214,15 +217,15 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 	make_closed_msg (&wrp_closed_msg);
 	auth_received = false;
 	selected_service = service_name;
-	rcv_sock = connect_receiver (CLIENT_URL);
+	rcv_sock = connect_receiver (client_url);
 	if (rcv_sock == -1) 
 		return -1;
-	send_sock = connect_sender (PARODUS_URL);
+	send_sock = connect_sender (parodus_url);
 	if (send_sock == -1) {
 		shutdown_socket(&rcv_sock);
 		return -1;
 	}
-	stop_rcv_sock = connect_sender (CLIENT_URL);
+	stop_rcv_sock = connect_sender (client_url);
 	if (stop_rcv_sock == -1) {
 		shutdown_socket(&rcv_sock);
 		shutdown_socket(&send_sock);

@@ -41,9 +41,11 @@
 
 #define TEST_RCV_URL1 "tcp://127.0.0.1:6006"
 #define BAD_RCV_URL1 "tcp://127.0.0.1:X006"
+#define BAD_CLIENT_URL "tcp://127.0.0.1:X006"
 //#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
 #define TEST_SEND_URL1 "tcp://127.0.0.1:6007"
 #define BAD_SEND_URL1 "tcp://127.0.0.1:x007"
+#define BAD_PARODUS_URL "tcp://127.0.0.1:x007"
 //#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
 
 static char current_dir_buf[256];
@@ -90,7 +92,8 @@ extern void shutdown_socket (int *sock);
 extern mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) );
 
 extern const char *raw_queue_name;
-
+extern const char *parodus_url;
+extern const char *client_url;
 
 
 int check_current_dir (void)
@@ -353,6 +356,8 @@ void test_1()
 	unsigned msg_num = 0;
 	char timestamp[20];
 	const char *raw_queue_orig_name = raw_queue_name;
+	const char *parodus_url_orig = parodus_url;
+	const char *client_url_orig = client_url;
 
 	rtn = make_current_timestamp (timestamp);
 	if (rtn == 0)
@@ -397,6 +402,13 @@ void test_1()
 	test_q = create_queue ("$$LIBPD_BAD_QUEUE&&", 256);
 	CU_ASSERT (test_q == -1);
 	test_q = -1;
+
+	parodus_url = BAD_PARODUS_URL;
+	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
+	parodus_url = parodus_url_orig;
+	client_url = BAD_CLIENT_URL;
+	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
+	client_url = client_url_orig;
 	raw_queue_name = "$$LIBPD_BAD_QUEUE&&";
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	raw_queue_name = raw_queue_orig_name;
