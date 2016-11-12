@@ -256,10 +256,15 @@ int log_init (const char *log_directory, parlibLogHandler handler)
 	if (NULL != log_handler)
 		return 0;
 
-	if (NULL == log_directory)
-		libpd_log_dir = "./libpd_logs";
-	else
+	if (NULL == log_directory) {
+		libpd_log_dir = getenv ("LIBPARODUS_LOG_DIRECTORY");
+		if (NULL != libpd_log_dir)
+			if (libpd_log_dir[0] == '\0')
+				libpd_log_dir = NULL;
+	} else
 		libpd_log_dir = log_directory;
+	if (NULL == libpd_log_dir)
+		return 0;
 	err = mkdir (libpd_log_dir, 0777);
 	if ((err == -1) && (errno != EEXIST)) {
 		libpd_log (LEVEL_NO_LOGGER, errno, "Failed to create directory %s\n", log_directory);
@@ -319,6 +324,9 @@ int output_log (int level, char *msg_buf, const char *fmt, va_list arg_ptr, int 
 #ifdef TEST_ENVIRONMENT
 	write (STDOUT_FILENO, msg_buf, nbytes);
 #endif
+
+	if (NULL == libpd_log_dir)
+		return 0;
 
 	pthread_mutex_lock (&log_mutex);
 	
