@@ -92,6 +92,7 @@ extern void shutdown_socket (int *sock);
 extern mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) );
 
 extern const char *raw_queue_name;
+extern const char *wrp_queue_name;
 extern const char *parodus_url;
 extern const char *client_url;
 
@@ -344,6 +345,40 @@ int start_mock_parodus ()
 	return pid;	
 }
 
+void test_time (void)
+{
+	int rtn;
+	char timestamp[20];
+	struct timespec ts1;
+	struct timespec ts2;
+	bool ts2_greater;
+
+	rtn = make_current_timestamp (timestamp);
+	if (rtn == 0)
+		printf ("LIBPD_TEST: Current time is %s\n", timestamp);
+	else
+		printf ("LIBPD_TEST: make timestamp error %d\n", rtn);
+	CU_ASSERT (rtn == 0);
+	rtn = get_expire_time (500, &ts1);
+	CU_ASSERT (rtn == 0);
+	rtn = get_expire_time (500, &ts2);
+	CU_ASSERT (rtn == 0);
+	if (ts2.tv_sec != ts1.tv_sec)
+		ts2_greater = (bool) (ts2.tv_sec > ts1.tv_sec);
+	else
+		ts2_greater = (bool) (ts2.tv_nsec > ts1.tv_nsec);
+	CU_ASSERT (ts2_greater);
+	rtn = get_expire_time (5000, &ts1);
+	CU_ASSERT (rtn == 0);
+	rtn = get_expire_time (500, &ts2);
+	CU_ASSERT (rtn == 0);
+	if (ts2.tv_sec != ts1.tv_sec)
+		ts2_greater = (bool) (ts2.tv_sec > ts1.tv_sec);
+	else
+		ts2_greater = (bool) (ts2.tv_nsec > ts1.tv_nsec);
+	CU_ASSERT (!ts2_greater);
+}
+
 void test_1()
 {
 	unsigned msgs_received_count = 0;
@@ -354,18 +389,12 @@ void test_1()
 	wrp_msg_t *wrp_msg;
 	unsigned event_num = 0;
 	unsigned msg_num = 0;
-	char timestamp[20];
 	const char *raw_queue_orig_name = raw_queue_name;
+	const char *wrp_queue_orig_name = wrp_queue_name;
 	const char *parodus_url_orig = parodus_url;
 	const char *client_url_orig = client_url;
 
-	rtn = make_current_timestamp (timestamp);
-	if (rtn == 0)
-		printf ("LIBPD_TEST: Current time is %s\n", timestamp);
-	else
-		printf ("LIBPD_TEST: make timestamp error %d\n", rtn);
-	CU_ASSERT (rtn == 0);
-
+	test_time ();
 	CU_ASSERT_FATAL (check_current_dir() == 0);
 
 	if (using_mock) {
@@ -412,6 +441,10 @@ void test_1()
 	raw_queue_name = "$$LIBPD_BAD_QUEUE&&";
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	raw_queue_name = raw_queue_orig_name;
+	wrp_queue_name = "$$LIBPD_BAD_QUEUE&&";
+	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
+	wrp_queue_name = wrp_queue_orig_name;
+
 
 	log_shutdown ();
 
