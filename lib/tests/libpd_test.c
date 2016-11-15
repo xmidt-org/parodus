@@ -363,10 +363,13 @@ void test_time (void)
 	CU_ASSERT (rtn == 0);
 	rtn = get_expire_time (500, &ts2);
 	CU_ASSERT (rtn == 0);
+	printf ("ts1: (%u, %u), ts2: (%u, %u)\n", 
+		(unsigned)ts1.tv_sec, (unsigned)ts1.tv_nsec,
+		(unsigned)ts2.tv_sec, (unsigned)ts2.tv_nsec);
 	if (ts2.tv_sec != ts1.tv_sec)
 		ts2_greater = (bool) (ts2.tv_sec > ts1.tv_sec);
 	else
-		ts2_greater = (bool) (ts2.tv_nsec > ts1.tv_nsec);
+		ts2_greater = (bool) (ts2.tv_nsec >= ts1.tv_nsec);
 	CU_ASSERT (ts2_greater);
 	rtn = get_expire_time (5000, &ts1);
 	CU_ASSERT (rtn == 0);
@@ -375,7 +378,7 @@ void test_time (void)
 	if (ts2.tv_sec != ts1.tv_sec)
 		ts2_greater = (bool) (ts2.tv_sec > ts1.tv_sec);
 	else
-		ts2_greater = (bool) (ts2.tv_nsec > ts1.tv_nsec);
+		ts2_greater = (bool) (ts2.tv_nsec >= ts1.tv_nsec);
 	CU_ASSERT (!ts2_greater);
 }
 
@@ -450,6 +453,7 @@ void test_1()
 
 	CU_ASSERT (libparodus_init (service_name, NULL) == 0);
 	initEndKeypressHandler ();
+
 	while (true) {
 		rtn = libparodus_receive (&wrp_msg, 2000);
 		if (rtn == 1) {
