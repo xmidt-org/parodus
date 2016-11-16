@@ -20,6 +20,14 @@ set (PARODUS_COMMON_LIBS gcov cunit -lwrp-c -lpthread -lm -lmsgpackc -lcJSON -lt
 link_directories ( ${LIBRARY_DIR} )
 
 #-------------------------------------------------------------------------------
+#   test_mutex
+#-------------------------------------------------------------------------------
+add_test(NAME test_mutex COMMAND test_mutex)
+add_executable(test_mutex test_mutex.c ../src/mutex.c )
+target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS})
+
+
+#-------------------------------------------------------------------------------
 #   test_networking
 #-------------------------------------------------------------------------------
 add_test(NAME test_networking COMMAND test_networking)
