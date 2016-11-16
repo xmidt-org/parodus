@@ -97,6 +97,11 @@ static void libpd_log ( int level, int os_errno, const char *msg, ...)
 }
 #endif
 
+bool is_auth_received (void)
+{
+	return auth_received;
+}
+
 int connect_receiver (const char *rcv_url)
 {
 	int sock;

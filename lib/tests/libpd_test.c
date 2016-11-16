@@ -90,7 +90,7 @@ extern int connect_receiver (const char *rcv_url);
 extern int connect_sender (const char *send_url);
 extern void shutdown_socket (int *sock);
 extern mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) );
-
+extern bool is_auth_received (void);
 extern const char *raw_queue_name;
 extern const char *wrp_queue_name;
 extern const char *parodus_url;
@@ -453,6 +453,20 @@ void test_1()
 
 	CU_ASSERT (libparodus_init (service_name, NULL) == 0);
 	initEndKeypressHandler ();
+
+	if (!is_auth_received ()) {
+		printf ("Waiting for auth received\n");
+		sleep(1);
+	}
+	if (!is_auth_received ()) {
+		printf ("Waiting for auth received\n");
+		sleep(1);
+	}
+	CU_ASSERT (is_auth_received ());
+	if (is_auth_received()) {
+		wrp_msg = (wrp_msg_t *) "*** Invalid WRP message\n";
+		CU_ASSERT (libparodus_send (wrp_msg) != 0);
+	}
 
 	while (true) {
 		rtn = libparodus_receive (&wrp_msg, 2000);
