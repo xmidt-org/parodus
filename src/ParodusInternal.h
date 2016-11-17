@@ -12,7 +12,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <cJSON.h>
+#include <cjson/cJSON.h>
 #include <nopoll.h>
 #include <sys/time.h>
 #include <sys/sysinfo.h>

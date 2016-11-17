@@ -24,6 +24,7 @@ set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
+set(LIBPD_DIR ${CMAKE_CURRENT_BINARY_DIR}/lib/src)
 set(TEST_RESULTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_results)
 file(MAKE_DIRECTORY ${TEST_RESULTS_DIR})
 
@@ -137,7 +138,7 @@ ExternalProject_Add(wrp-c
 add_library(libwrp-c STATIC SHARED IMPORTED)
 add_dependencies(libwrp-c wrp-c)
 
-link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
+link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64} ${LIBPD_DIR})
 
 add_subdirectory(src)
 if (BUILD_TESTING)

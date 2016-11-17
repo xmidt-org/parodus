@@ -414,16 +414,6 @@ void test_1()
 	test_time ();
 	CU_ASSERT_FATAL (check_current_dir() == 0);
 
-	if (using_mock) {
-		rtn = create_end_pipe ();
-		CU_ASSERT_FATAL (rtn == 0);
-		if (rtn != 0)
-			return;
-		if (start_mock_parodus () == 0)
-			return; // if in child process
-		rtn = open_end_pipe ();
-	}
-
 	CU_ASSERT_FATAL (log_init (".", NULL) == 0);
 
 	test_sock = connect_receiver (TEST_RCV_URL1);
@@ -482,7 +472,19 @@ void test_1()
 
 	log_shutdown ();
 
+	if (using_mock) {
+		rtn = create_end_pipe ();
+		CU_ASSERT_FATAL (rtn == 0);
+		if (rtn != 0)
+			return;
+		if (start_mock_parodus () == 0)
+			return; // if in child process
+		printf ("LIBPD mock_parodus started\n");
+		rtn = open_end_pipe ();
+	}
+
 	CU_ASSERT (libparodus_init (service_name, NULL) == 0);
+	printf ("LIBPD libparodus_init successful\n");
 	initEndKeypressHandler ();
 
 	if (!is_auth_received ()) {
@@ -499,6 +501,7 @@ void test_1()
 		CU_ASSERT (libparodus_send (wrp_msg) != 0);
 	}
 
+	printf ("LIBPD starting msg receive loop\n");
 	while (true) {
 		rtn = libparodus_receive (&wrp_msg, 2000);
 		if (rtn == 1) {
@@ -535,7 +538,9 @@ void test_1()
 		bool close_pipe = true;
 #endif
 		if (close_pipe) {
+			printf ("LIBPD writing end pipe\n");
 			write_end_pipe (); 
+			printf ("LIBPD closing end pipe\n");
 			close (end_pipe_fd);
 			wait (NULL);
 		}

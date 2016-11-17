@@ -25,7 +25,7 @@ target_link_libraries (parodus
     -lssl
     -lcrypto
     -lnanomsg
-    -lcJSON
+    -lcjson
     -lpthread
     -lrt
     )

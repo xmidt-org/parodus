@@ -111,7 +111,7 @@ int connect_receiver (const char *rcv_url)
 	}
   sock = nn_socket (AF_SP, NN_PULL);
 	if (sock < 0) {
-		libpd_log (LEVEL_ERROR, errno, "Unable to create rcv socket\n");
+		libpd_log (LEVEL_ERROR, errno, "Unable to create rcv socket %s\n", rcv_url);
  		return -1;
 	}
   if (nn_bind (sock, rcv_url) < 0) {
@@ -145,12 +145,12 @@ int connect_sender (const char *send_url)
 	}
   sock = nn_socket (AF_SP, NN_PUSH);
 	if (sock < 0) {
-		libpd_log (LEVEL_ERROR, errno, "Unable to create send socket: %s\n");
+		libpd_log (LEVEL_ERROR, errno, "Unable to create send socket: %s\n", send_url);
  		return -1;
 	}
 	if (nn_setsockopt (sock, NN_SOL_SOCKET, NN_SNDTIMEO, 
 				&send_timeout, sizeof (send_timeout)) < 0) {
-		libpd_log (LEVEL_ERROR, errno, "Unable to set socket timeout: %s\n");
+		libpd_log (LEVEL_ERROR, errno, "Unable to set socket timeout: %s\n", send_url);
  		return -1;
 	}
   if (nn_connect (sock, send_url) < 0) {
@@ -222,9 +222,11 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 	make_closed_msg (&wrp_closed_msg);
 	auth_received = false;
 	selected_service = service_name;
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: connecting receiver\n");
 	rcv_sock = connect_receiver (client_url);
 	if (rcv_sock == -1) 
 		return -1;
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: connecting sender\n");
 	send_sock = connect_sender (parodus_url);
 	if (send_sock == -1) {
 		shutdown_socket(&rcv_sock);
@@ -273,6 +275,7 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 	
 	run_state = RUN_STATE_RUNNING;
 
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: sending registration msg\n");
 	if (send_registration_msg (selected_service) != 0) {
 		libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error sending registration msg\n");
 		libparodus_shutdown ();

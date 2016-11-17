@@ -184,23 +184,23 @@ static int open_end_pipe (bool create_pipe_opt)
 	if (create_pipe_opt) {
 		err = remove (end_pipe_name);
 		if ((err != 0) && (errno != ENOENT)) {
-			dbg_err (errno, "Error removing pipe %s\n", end_pipe_name);
+			dbg_err (errno, "MOCKPD Error removing pipe %s\n", end_pipe_name);
 			return -1;
 		}
-		printf ("Removed pipe %s\n", end_pipe_name);
+		printf ("MOCKPD Removed pipe %s\n", end_pipe_name);
 		err = mkfifo (end_pipe_name, 0666);
 		if (err != 0) {
-			dbg_err (errno, "Error creating pipe %s\n", end_pipe_name);
+			dbg_err (errno, "MOCKPD Error creating pipe %s\n", end_pipe_name);
 			return -1;
 		}
-		printf ("Created fifo %s\n", end_pipe_name);
+		printf ("MOCKPD Created fifo %s\n", end_pipe_name);
 	}
 	end_pipe_fd = open (end_pipe_name, O_RDONLY, 0444);
 	if (end_pipe_fd == -1) {
-		dbg_err (errno, "Error opening pipe %s\n", end_pipe_name);
+		dbg_err (errno, "MOCKPD Error opening pipe %s\n", end_pipe_name);
 		return -1;
 	}
-	printf ("Opened end pipe\n");
+	printf ("MOCKPD Opened end pipe\n");
 	return 0;
 }
 
@@ -1170,6 +1170,7 @@ static void read_and_send_test_msgs (void)
 	char *payload;
 	int rtn;
 
+	printf ("MOCKPD read and send test msgs\n");
 	while (1) {
 		rtn = test_file_read (file_buf, &dest, &payload);
 		if (rtn == 1) {
