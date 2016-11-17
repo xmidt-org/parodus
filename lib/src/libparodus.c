@@ -358,7 +358,7 @@ int libparodus_shutdown (void)
 	return 0;
 }
 
-// msgbuf must be MAX_MSG_QUEUE_SIZE bytes long
+// msgbuf must be MAX_QUEUE_MSG_SIZE bytes long
 static int raw_queue_receive (char *msgbuf, int *len)
 {
 	ssize_t bytes = mq_receive (raw_queue, msgbuf, MAX_QUEUE_MSG_SIZE, NULL);
@@ -420,15 +420,10 @@ static bool is_closed_msg (wrp_msg_t *msg)
 //  1 timed out
 // -1 mq_receive error
 // -2 msg size error, not a ptr
-int libparodus_receive (wrp_msg_t **msg, uint32_t ms)
+int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms)
 {
 	struct timespec ts;
 	int err;
-
-	if (RUN_STATE_RUNNING != run_state) {
-		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: not running at receive\n");
-		return -1;
-	}
 
 	err = get_expire_time (ms, &ts);
 	if (err != 0) {
@@ -443,6 +438,20 @@ int libparodus_receive (wrp_msg_t **msg, uint32_t ms)
 		return 2;
 	}
 	return 0;
+}
+
+// returns 0 OK
+//  2 closed msg received
+//  1 timed out
+// -1 mq_receive error
+// -2 msg size error, not a ptr
+int libparodus_receive (wrp_msg_t **msg, uint32_t ms)
+{
+	if (RUN_STATE_RUNNING != run_state) {
+		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: not running at receive\n");
+		return -1;
+	}
+	return libparodus_receive__ (msg, ms);
 }
 
 int libparodus_close_receiver (void)
@@ -474,19 +483,23 @@ static int wrp_sock_send (wrp_msg_t *msg)
 	return rtn;
 }
 
-int libparodus_send (wrp_msg_t *msg)
+int libparodus_send__ (wrp_msg_t *msg)
 {
-	if (RUN_STATE_RUNNING != run_state) {
-		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: not running at send\n");
-		return -1;
-	}
-
 	if (!auth_received) {
 		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: AUTH not received at send\n");
 		return -1;
 	}
 
 	return wrp_sock_send (msg);
+}
+
+int libparodus_send (wrp_msg_t *msg)
+{
+	if (RUN_STATE_RUNNING != run_state) {
+		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: not running at send\n");
+		return -1;
+	}
+	return libparodus_send__ (msg);
 }
 
 static void *raw_receiver_thread (void *arg __attribute__ ((unused)) )
@@ -635,6 +648,67 @@ static int flush_wrp_queue (uint32_t delay_ms)
 	return 0;
 }
 
+// Functions used by libpd_test.c
+
+bool test_create_raw_queue (void)
+{
+	raw_queue = create_queue (raw_queue_name, 256);
+	return (bool) (raw_queue != (mqd_t)-1);
+}
+
+bool test_create_wrp_queue (void)
+{
+	wrp_queue = create_queue (wrp_queue_name, 24);
+	return (bool) (wrp_queue != (mqd_t)-1);
+}
+
+void test_close_raw_queue (void)
+{
+	mq_close (raw_queue);
+}
+
+void test_close_wrp_queue (void)
+{
+	mq_close (wrp_queue);
+}
+
+void test_send_raw_queue_ok (void)
+{
+	raw_msg_t msg;
+	msg.msg = "Test message";
+	msg.len = strlen(msg.msg);
+	queue_send (raw_queue, "/RAW_QUEUE", (const char *) &msg, sizeof(raw_msg_t));
+}
+
+void test_send_raw_queue_error (void)
+{
+	queue_send (raw_queue, "/RAW_QUEUE", "***Invalid RAW message\n", -1);
+}
+
+int test_raw_queue_receive (void)
+{
+	int rtn;
+	int len;
+	char buf[MAX_QUEUE_MSG_SIZE];
+	rtn = raw_queue_receive (buf, &len);
+	if (rtn != 0)
+		return -1;
+	if (len == sizeof (raw_msg_t))
+		return 0;
+  return -2;
+}
+
+void test_send_wrp_queue_ok (void)
+{
+	wrp_msg_t *msg;
+	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &msg, 
+		sizeof(wrp_msg_t *));
+}
+
+void test_send_wrp_queue_error (void)
+{
+	queue_send (wrp_queue, "/WRP_QUEUE", "***Invalid WRP message\n", -1);
+}
 
 
 

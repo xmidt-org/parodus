@@ -90,7 +90,21 @@ extern int connect_receiver (const char *rcv_url);
 extern int connect_sender (const char *send_url);
 extern void shutdown_socket (int *sock);
 extern mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) );
+
 extern bool is_auth_received (void);
+extern int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms);
+
+extern bool test_create_raw_queue (void);
+extern bool test_create_wrp_queue (void);
+extern void test_close_raw_queue (void);
+extern void test_close_wrp_queue (void);
+extern void test_send_raw_queue_ok (void);
+extern void test_send_raw_queue_error (void);
+extern int test_raw_queue_receive (void);
+extern void test_send_wrp_queue_ok (void);
+extern void test_send_wrp_queue_error (void);
+
+
 extern const char *raw_queue_name;
 extern const char *wrp_queue_name;
 extern const char *parodus_url;
@@ -434,6 +448,23 @@ void test_1()
 	test_q = create_queue ("$$LIBPD_BAD_QUEUE&&", 256);
 	CU_ASSERT (test_q == -1);
 	test_q = -1;
+
+	CU_ASSERT (test_create_raw_queue ());
+	test_send_raw_queue_ok ();
+	CU_ASSERT (test_raw_queue_receive() == 0);
+	test_send_raw_queue_error ();
+	CU_ASSERT (test_raw_queue_receive() == -2);
+	test_close_raw_queue ();
+
+	CU_ASSERT (test_create_wrp_queue ());
+	test_send_wrp_queue_ok ();
+	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == 0);
+	test_send_wrp_queue_error ();
+	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == -2);
+	test_close_wrp_queue ();
+
+	CU_ASSERT (libparodus_receive (&wrp_msg, 500) == -1);
+	CU_ASSERT (libparodus_send (wrp_msg) == -1);
 
 	parodus_url = BAD_PARODUS_URL;
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
