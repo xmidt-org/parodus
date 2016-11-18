@@ -35,8 +35,8 @@
 #define CLIENT2_URL "tcp://127.0.0.1:6668"
 #define CLIENT3_URL "tcp://127.0.0.1:6669"
 
-static void send_nanomsg_upstream(char **buf, int size);
-int handle_testsuites();
+static void send_nanomsg_upstream(void **buf, int size);
+void *handle_testsuites();
 headers_t headers = { 2, {"Header 1", "Header 2"}};
 
 void test_nanomsg_client_registration1()
@@ -51,8 +51,8 @@ void test_nanomsg_client_registration1()
 	  
 	void *bytes;
 	int size =0;
-	int rv, rv1;
-	wrp_msg_t *message, *msg1;
+	int rv1;
+	wrp_msg_t  *msg1;
 	int sock;
 	int byte =0;
 	int t=25000;
@@ -86,7 +86,7 @@ void test_nanomsg_client_registration1()
 
 	int sock1 = nn_socket (AF_SP, NN_PULL);
 	byte = 0;
-	int bind = nn_bind(sock1, reg.u.reg.url);
+	nn_bind(sock1, reg.u.reg.url);
 	
 	void *buf = NULL;
 	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
@@ -126,8 +126,8 @@ void test_nanomsg_client_registration2()
 	  
 	void *bytes;
 	int size;
-	int rv, rv1;
-	wrp_msg_t *message, *msg1;
+	int rv1;
+	wrp_msg_t  *msg1;
 	int sock;
 	int byte =0;
 	int t=28000;
@@ -161,7 +161,7 @@ void test_nanomsg_client_registration2()
 	int sock1 = nn_socket (AF_SP, NN_PULL);
 	byte = 0;
 	
-	int bind = nn_bind(sock1, reg.u.reg.url);
+	nn_bind(sock1, reg.u.reg.url);
 	
 	void *buf1 = NULL;
 	
@@ -201,8 +201,8 @@ void test_nanomsg_client_registration3()
 	  .u.reg.url = CLIENT3_URL};
 	void *bytes;
 	int size;
-	int rv, rv1;
-	wrp_msg_t *message, *msg1;
+	int rv1;
+	wrp_msg_t *msg1;
 	int sock;
 	int byte =0;
 	int t=35000;
@@ -274,12 +274,12 @@ void test_nanomsg_downstream_success()
 	
 	int sock;
 	int bit=0;
-	int rv =0;
 	wrp_msg_t *message;
 	void *buf =NULL;
 	char* destVal = NULL;
-	char dest[32] = {'\0'};
-	char *temp_ptr;
+//	char dest[32] = {'\0'};
+	char *dest = NULL;
+	//char *temp_ptr;
 	int bind = -1;
 	
 	const wrp_msg_t msg = { .msg_type = WRP_MSG_TYPE__SVC_REGISTRATION,
@@ -303,9 +303,11 @@ void test_nanomsg_downstream_success()
 	
 	//Decode and verify downstream request has received by correct registered client
 	
-	rv = wrp_to_struct(buf, bit, WRP_BYTES, &message);		
+	wrp_to_struct(buf, bit, WRP_BYTES, &message);		
 	destVal = message->u.req.dest;
-	temp_ptr = strtok(destVal , "/");
+	dest = strtok(destVal , "/");
+	//temp_ptr = strtok(destVal , "/");
+//	printf("temp_ptr = %s \n", temp_ptr);
 	strcpy(dest,strtok(NULL , "/"));
 	printf("------>decoded dest:%s\n", dest);	
 	CU_ASSERT_STRING_EQUAL( msg.u.reg.service_name, dest );	
@@ -383,7 +385,7 @@ void test_handleUpstreamMessage()
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2); 
-	conn = nopoll_conn_tls_new(ctx, opts, "fabric.webpa.comcast.net", 8080, NULL, "/api/v2/device", NULL, NULL, "eth0",
+	conn = nopoll_conn_tls_new(ctx, opts, "fabric.webpa.comcast.net", "8080", NULL, "/api/v2/device", NULL, NULL, "eth0",
                                 headerNames, headerValues, headerCount);
 	/*while(conn == NULL)
 	{
@@ -440,7 +442,8 @@ void test_loadParodusCfg()
 {
 	
 	printf("Calling test_loadParodusCfg \n");
-	ParodusCfg parodusCfg, tmpcfg;
+	//ParodusCfg parodusCfg, tmpcfg;
+	ParodusCfg  tmpcfg;
 
 	ParodusCfg *Cfg;
 
@@ -497,21 +500,26 @@ void add_suites( CU_pSuite *suite )
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-void main( void )
+int main( void )
 {
     	pid_t pid, pid1;
     	char value[512] = {'\0'};
   	char* data =NULL;
-  	int nbytes =0;
   	int status;
 	char commandUrl[255];
 	pid_t curl_pid;
   
 
 	char * command[] = {"parodus","--hw-model=TG1682", "--hw-serial-number=Fer23u948590","--hw-manufacturer=ARRISGroup,Inc.","--hw-mac=123567892366","--hw-last-reboot-reason=unknown","--fw-name=TG1682_DEV_master_2016000000sdy","--boot-time=10","--webpa-ping-time=180","--webpa-inteface-used=eth0","--webpa-url=fabric-cd.webpa.comcast.net","--webpa-backoff-max=9", NULL};
-	printf("command is:%s\n", command);
-	
-    	printf("Starting parodus process \n");
+
+
+	int size = sizeof(command)/sizeof(command[0]);
+	int i;
+	printf("commad: ");
+        for(i=0;i<size-1;i++)
+        printf("%s",command[i]);
+
+    	printf("\n Starting parodus process \n");
 
 	const char *s = getenv("WEBPA_AUTH_HEADER");
 	
@@ -587,7 +595,6 @@ void main( void )
 		{
 									
 									
-			FILE *fp;
 			while(NULL == fopen("/tmp/parodus_ready", "r"))
 			{
 				
@@ -612,7 +619,8 @@ void main( void )
 			//reading from pipe
 			printf("parent process...:%d\n", pid1);
 			close(link[1]);
-			nbytes = read(link[0], value, sizeof(value));
+			int nbytes = read(link[0], value, sizeof(value));
+			printf("Read %d \n", nbytes);
 			   
 		      	if ((data = strstr(value, "message:Success")) !=NULL)
 		      	{
@@ -628,11 +636,11 @@ void main( void )
 		}
 	}	
 
-
+return 0;
 }
 
 
-int handle_testsuites(void* pid)
+void *handle_testsuites(void* pid)
 {
 	unsigned rv = 1;
 	CU_pSuite suite = NULL;
@@ -674,7 +682,7 @@ int handle_testsuites(void* pid)
 }
 
 
-static void send_nanomsg_upstream(char **buf, int size)
+static void send_nanomsg_upstream(void **buf, int size)
 {
 	/**** To send nanomsg response to server ****/
 	
@@ -687,7 +695,7 @@ static void send_nanomsg_upstream(char **buf, int size)
 	
 		
 	printf("Decoding downstream request received from server\n");
-	rv = wrp_to_struct((void*)(*buf), size, WRP_BYTES, &message);
+	rv = wrp_to_struct(*buf, size, WRP_BYTES, &message);
 	printf("after downstream req decode:%d\n", rv);	
 		
 	
@@ -709,7 +717,7 @@ static void send_nanomsg_upstream(char **buf, int size)
         
         resp_m.u.req.headers = NULL;
         resp_m.u.req.payload = "{statusCode:200,message:Success}";
-        printf("------resp_m.u.req.payload is:%s\n", resp_m.u.req.payload);
+        printf("------resp_m.u.req.payload is:%s\n", (char *)resp_m.u.req.payload);
         resp_m.u.req.payload_size = strlen(resp_m.u.req.payload);
         
         resp_m.u.req.metadata = NULL;

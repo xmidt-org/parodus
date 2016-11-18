@@ -24,12 +24,11 @@ set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
-set(LIBPD_DIR ${CMAKE_CURRENT_BINARY_DIR}/lib/src)
 set(TEST_RESULTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_results)
 file(MAKE_DIRECTORY ${TEST_RESULTS_DIR})
 
 include_directories(${INCLUDE_DIR}
-                    ${INCLUDE_DIR}/cJSON
+                    ${INCLUDE_DIR}/cjson
                     ${INCLUDE_DIR}/nopoll
                     ${INCLUDE_DIR}/msgpack
                     ${INCLUDE_DIR}/trower-base64
@@ -41,12 +40,15 @@ include_directories(${INCLUDE_DIR}
 add_definitions(-std=c99)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -DNOPOLL_LOGGER ")
 
-#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-missing-field-initializers")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
+
 
 # pthread external dependency
 #-------------------------------------------------------------------------------
 find_package (Threads)
+
+if (NOT BUILD_YOCTO)
 
 # base64 external dependency
 #-------------------------------------------------------------------------------
@@ -138,7 +140,9 @@ ExternalProject_Add(wrp-c
 add_library(libwrp-c STATIC SHARED IMPORTED)
 add_dependencies(libwrp-c wrp-c)
 
-link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64} ${LIBPD_DIR})
+endif ()
+
+link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
 
 add_subdirectory(src)
 if (BUILD_TESTING)

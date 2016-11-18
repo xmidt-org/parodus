@@ -10,12 +10,14 @@
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
-#include <cjson/cJSON.h>
+#include <cJSON.h>
 #include <nopoll.h>
 #include <sys/time.h>
 #include <sys/sysinfo.h>
 #include "wss_mgr.h"
 #include <pthread.h>
+#include <math.h>
+#include <nopoll.h>
 
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -50,6 +52,8 @@
 #define IOT "iot"
 #define HARVESTER "harvester"
 #define GET_SET "get_set"
+
+#define UNUSED(x) (void)(x)
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -116,8 +120,11 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 static char createNopollConnection();
 
+
 static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
+
 static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data);
+
 void getCurrentTime(struct timespec *timer);
 uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer);
 long timeValDiff(struct timespec *starttime, struct timespec *finishtime);
@@ -127,7 +134,6 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
 static void initMessageHandler();
 static void *messageHandlerTask();
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
-
 
 static void initUpStreamTask();
 static void *handle_upstream();
@@ -142,6 +148,9 @@ static void handleUpStreamEvents();
  */
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
 {
+	
+	UNUSED(ctx);
+	UNUSED(user_data);
 	if (level == NOPOLL_LEVEL_DEBUG) 
 	{
   	    // printf("Debug: %s\n", log_msg);
@@ -431,9 +440,10 @@ static char createNopollConnection()
 		fclose(fp);
 	}
 	
-	struct timespec start,end,connErr_start,connErr_end,*startPtr,*endPtr,*connErr_startPtr,*connErr_endPtr;
-	startPtr = &start;
-	endPtr = &end;
+	//struct timespec start,end,connErr_start,connErr_end,*startPtr,*endPtr,*connErr_startPtr,*connErr_endPtr;
+	struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
+	//startPtr = &start;
+	//endPtr = &end;
 	connErr_startPtr = &connErr_start;
 	connErr_endPtr = &connErr_end;
 	strcpy(deviceMAC, parodusCfg.hw_mac);
@@ -1124,7 +1134,7 @@ static void *messageHandlerTask()
 			if (!terminated) 
 			{
 				
-				listenerOnMessage(message->payload, message->len, &numOfClients, &clients);
+				listenerOnMessage(message->payload, message->len, &numOfClients, clients);
 			}
 								
 			nopoll_msg_unref(message->msg);
@@ -1159,6 +1169,11 @@ static void *messageHandlerTask()
 
 static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data)
 {
+
+	UNUSED(ctx);
+	UNUSED(conn);
+	UNUSED(user_data);
+
 	ParodusMsg *message;
 
 	if (terminated) 
@@ -1222,6 +1237,10 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
  */
 static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data)
 {
+
+	UNUSED(ctx);
+	UNUSED(user_data);
+
     noPollPtr payload = NULL;
 	payload = (noPollPtr ) nopoll_msg_get_payload(msg);
 
@@ -1239,7 +1258,11 @@ static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg
 
 static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data)
 {
-		
+	
+
+	UNUSED(ctx);
+	UNUSED(conn);
+	
 	printf("listenerOnCloseMessage(): mutex lock in producer thread\n");
 	
 	if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
