@@ -27,7 +27,7 @@
 #include <nanomsg/pipeline.h>
 
 #include "ParodusInternal.h"
-#include "parodus_utils.h"
+#include "time.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */

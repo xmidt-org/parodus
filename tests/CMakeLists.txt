@@ -43,7 +43,7 @@ add_executable(simple simple.c
                       ../src/nopoll_helpers.c
                       ../src/string_helpers.c
                       ../src/mutex.c
-                      ../src/parodus_utils.c )
+                      ../src/time.c )
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
 
 

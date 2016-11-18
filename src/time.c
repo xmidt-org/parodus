@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-#include "parodus_utils.h"
+#include "time.h"
 
 void getCurrentTime(struct timespec *timer)
 {
