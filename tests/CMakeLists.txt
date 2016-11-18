@@ -42,7 +42,8 @@ add_executable(simple simple.c
                       ../src/networking.c
                       ../src/nopoll_helpers.c
                       ../src/string_helpers.c
-                      ../src/mutex.c )
+                      ../src/mutex.c
+                      ../src/parodus_utils.c )
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
 
 
