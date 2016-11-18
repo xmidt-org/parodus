@@ -49,7 +49,7 @@ noPollPtr createMutex()
     pthread_mutex_t * mutex;
     int rtn;
 
-    mutex = nopoll_new (pthread_mutex_t, 1);
+    mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
 
     if (mutex == NULL) {
         printf("Failed to create mutex\n");
@@ -64,7 +64,7 @@ noPollPtr createMutex()
     pthread_mutexattr_destroy (&attr);
     if (rtn != 0) {
         printf("Error in init Mutex\n");
-        nopoll_free(mutex);
+        free(mutex);
         return NULL;
     } else {
         printf("mutex init successfully\n");
@@ -146,7 +146,7 @@ void destroyMutex(noPollPtr _mutex)
     } else {
         printf("Mutex destroyed \n");
     }
-    nopoll_free (mutex);
+    free(mutex);
 
     return;
 }
