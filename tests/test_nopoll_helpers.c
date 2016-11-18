@@ -35,24 +35,31 @@
 #define CLIENT2_URL "tcp://127.0.0.1:6668"
 #define CLIENT3_URL "tcp://127.0.0.1:6669"
 
+#define UNUSED(x) (void)(x)
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
 nopoll_bool nopoll_conn_is_ok__rv = nopoll_false;
 nopoll_bool nopoll_conn_is_ok( noPollConn *conn )
 {
+	UNUSED(conn);
     return nopoll_conn_is_ok__rv;
 }
 
 nopoll_bool nopoll_conn_is_ready__rv = nopoll_false;
 nopoll_bool nopoll_conn_is_ready( noPollConn *conn )
 {
+	UNUSED(conn);
     return nopoll_conn_is_ready__rv;
 }
 
 int nopoll_conn_send_binary_rv = 0;
 int nopoll_conn_send_binary( noPollConn *conn, const char *content, long length ) 	
 {
+	UNUSED(conn);
+	UNUSED(content);
+	UNUSED(length);
     return nopoll_conn_send_binary_rv;
 }
 

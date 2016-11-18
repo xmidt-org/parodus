@@ -22,7 +22,7 @@ void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len)
 	int bytesWritten = 0;
 	
 	printf("handleUpstreamMessage length %zu\n", len);
-	printf("conn object is %s \n", conn);
+	//printf("conn object is %s \n", conn);
 	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
 	{
 		bytesWritten = nopoll_conn_send_binary(conn, msg, len);
