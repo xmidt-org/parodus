@@ -14,6 +14,8 @@
  * limitations under the License.
  *
  */
+#include <stdio.h>
+
 #include "time.h"
 
 void getCurrentTime(struct timespec *timer)
