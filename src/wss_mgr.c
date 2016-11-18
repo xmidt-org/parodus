@@ -12,7 +12,6 @@
 #include <unistd.h>
 #include <cjson/cJSON.h>
 #include <nopoll.h>
-#include <sys/time.h>
 #include <sys/sysinfo.h>
 #include "wss_mgr.h"
 #include <pthread.h>
@@ -28,6 +27,7 @@
 #include <nanomsg/pipeline.h>
 
 #include "ParodusInternal.h"
+#include "parodus_utils.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -118,9 +118,6 @@ static char createNopollConnection();
 
 static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
 static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data);
-void getCurrentTime(struct timespec *timer);
-uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer);
-long timeValDiff(struct timespec *starttime, struct timespec *finishtime);
 
 
 static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data);
@@ -380,11 +377,6 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
-
-
-
-
-
 
 
 /**
@@ -1259,47 +1251,6 @@ static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPt
 	printf("listenerOnCloseMessage(): mutex unlock in producer thread\n");
 
 }
-
-
-/*
- * @brief displays the current time.
- * @param[in] timer current time.
- */
-void getCurrentTime(struct timespec *timer)
-{
-	clock_gettime(CLOCK_REALTIME, timer);
-}
-/*
- * @brief displays the current time in microseconds.
- * @param[in] timer current time.
- */
-
-uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer)
-{
-        uint64_t systime = 0;
-	    clock_gettime(CLOCK_REALTIME, timer);       
-        printf("timer->tv_sec : %lu\n",timer->tv_sec);
-        printf("timer->tv_nsec : %lu\n",timer->tv_nsec);
-        systime = (uint64_t)timer->tv_sec * 1000000L + timer->tv_nsec/ 1000;
-        return systime;	
-}
-
-/*
- * @brief Returns the time difference between start and end time of request processed.
- * @param[in] starttime starting time of request processed.
- * @param[in] finishtime ending time of request processed.
- * @return msec.
- */
-long timeValDiff(struct timespec *starttime, struct timespec *finishtime)
-{
-	long msec;
-	msec=(finishtime->tv_sec-starttime->tv_sec)*1000;
-	msec+=(finishtime->tv_nsec-starttime->tv_nsec)/1000000;
-	return msec;
-}
-
-
-
 
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)

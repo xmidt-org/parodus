@@ -11,7 +11,8 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-set(SOURCES main.c wss_mgr.c mutex.c networking.c nopoll_helpers.c string_helpers.c)
+set(SOURCES main.c wss_mgr.c mutex.c networking.c nopoll_helpers.c 
+    string_helpers.c parodus_utils.c)
 
 add_executable(parodus ${SOURCES})
 
