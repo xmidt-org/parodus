@@ -12,7 +12,7 @@ install:
 script:
     - mkdir build
     - cd build
-    - cmake ..
+    - cmake .. -DEXCLUDE_SIMPLE:BOOL=true
     - make
     - make test
     - make coverage
