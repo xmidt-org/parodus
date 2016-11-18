@@ -703,7 +703,11 @@ int test_raw_queue_receive (void)
 
 void test_send_wrp_queue_ok (void)
 {
-	wrp_msg_t *msg;
+	wrp_msg_t reg_msg;
+	reg_msg.msg_type = WRP_MSG_TYPE__SVC_REGISTRATION;
+	reg_msg.u.reg.service_name = "iot";
+	reg_msg.u.reg.url = CLIENT_URL;
+	wrp_msg_t *msg = &reg_msg;
 	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &msg, 
 		sizeof(wrp_msg_t *));
 }
