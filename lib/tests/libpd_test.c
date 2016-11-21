@@ -94,10 +94,16 @@ extern mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused))
 extern bool is_auth_received (void);
 extern int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms);
 
+// libparodus_log functions to be tested
+extern int get_valid_file_num (const char *file_name, const char *date);
+extern int get_last_file_num_in_dir (const char *date, const char *log_dir);
+
+// test helper functions defined in libparodus
 extern bool test_create_raw_queue (void);
 extern bool test_create_wrp_queue (void);
 extern void test_close_raw_queue (void);
 extern void test_close_wrp_queue (void);
+extern int  test_close_receiver (void);
 extern void test_send_raw_queue_ok (void);
 extern void test_send_raw_queue_error (void);
 extern int test_raw_queue_receive (void);
@@ -396,6 +402,49 @@ void test_time (void)
 	CU_ASSERT (!ts2_greater);
 }
 
+void dbg_log_err (const char *fmt, ...)
+{
+		char errbuf[100];
+
+    va_list arg_ptr;
+    va_start(arg_ptr, fmt);
+    vprintf(fmt, arg_ptr);
+    va_end(arg_ptr);
+		printf ("LIBPD_TEST: %s\n", strerror_r (errno, errbuf, 100));
+}
+
+int make_test_log_file (const char *date, int file_num)
+{
+	int current_fd, rtn;
+	int flags = O_WRONLY | O_CREAT | O_TRUNC | O_SYNC;
+	const char *test_line = "Log Test Line\n";
+	char name_buf[64];
+
+	sprintf (name_buf, "log%s.%d", date, file_num);
+	current_fd = open (name_buf, flags, 0666);
+	if (current_fd == -1) {
+		dbg_log_err ("Unable to open test log file %s\n", name_buf);
+		return -1;
+	}
+	rtn = write (current_fd, test_line, strlen(test_line));
+	close (current_fd);
+	if (rtn > 0)
+		return 0;
+	dbg_log_err ("Unable to write test log file %s\n", name_buf);
+	return -1;
+}
+
+void test_log (void)
+{
+	CU_ASSERT (get_valid_file_num ("log20161102.4", "20161102") == 4);
+	CU_ASSERT (get_valid_file_num ("lg20161102.4", "20161102") == -1);
+	CU_ASSERT (get_valid_file_num ("log20161103.4", "20161102") == -1);
+	CU_ASSERT (get_valid_file_num ("log20161102.x", "20161102") == -1);
+	CU_ASSERT (get_valid_file_num ("log20161102,4", "20161102") == -1);
+	CU_ASSERT (make_test_log_file ("20161102", 4) == 0);
+	CU_ASSERT (get_last_file_num_in_dir ("20161102", ".") == 4);
+}
+
 void test_1()
 {
 	unsigned msgs_received_count = 0;
@@ -412,6 +461,7 @@ void test_1()
 	const char *client_url_orig = client_url;
 
 	test_time ();
+	test_log ();
 	CU_ASSERT_FATAL (check_current_dir() == 0);
 
 	CU_ASSERT_FATAL (log_init (".", NULL) == 0);
@@ -451,6 +501,14 @@ void test_1()
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == 0);
 	test_send_wrp_queue_error ();
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == -2);
+	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == 1);
+	CU_ASSERT (test_close_receiver() == 0);
+	rtn = libparodus_receive__ (&wrp_msg, 500);
+	if (rtn != 2) {
+		printf ("LIBPD_TEST: expected receive rtn==2 after close, got %d\n", rtn);
+	}
+	CU_ASSERT (rtn == 2);
+
 	test_close_wrp_queue ();
 
 	CU_ASSERT (libparodus_receive (&wrp_msg, 500) == -1);

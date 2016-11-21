@@ -457,16 +457,21 @@ int libparodus_receive (wrp_msg_t **msg, uint32_t ms)
 	return libparodus_receive__ (msg, ms);
 }
 
+int libparodus_close_receiver__ (void)
+{
+	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &closed_msg_ptr, 
+		sizeof(wrp_msg_t *));
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Sent closed msg\n");
+	return 0;
+}
+
 int libparodus_close_receiver (void)
 {
 	if (RUN_STATE_RUNNING != run_state) {
 		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: not running at close receiver\n");
 		return -1;
 	}
-	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &closed_msg_ptr, 
-		sizeof(wrp_msg_t *));
-	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Sent closed msg\n");
-	return 0;
+	return libparodus_close_receiver__ ();
 }
 
 static int wrp_sock_send (wrp_msg_t *msg)
@@ -717,6 +722,11 @@ void test_send_wrp_queue_error (void)
 	queue_send (wrp_queue, "/WRP_QUEUE", "***Invalid WRP message\n", -1);
 }
 
+int test_close_receiver (void)
+{
+	make_closed_msg (&wrp_closed_msg);
+	return libparodus_close_receiver__ ();
+}
 
 
 
