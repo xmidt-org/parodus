@@ -23,14 +23,18 @@
 #include <pthread.h>
 #include <mqueue.h>
 
-#define PARODUS_URL "tcp://127.0.0.1:6666"
+#define PARODUS_URL "127.0.0.1:6666"
 //#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
 
-#define CLIENT_URL "tcp://127.0.0.1:6667"
+#define CLIENT_URL "127.0.0.1:6667"
 //#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
 
-const char *parodus_url = PARODUS_URL;
-const char *client_url = CLIENT_URL;
+//const char *parodus_url = PARODUS_URL;
+//const char *client_url = CLIENT_URL;
+
+char parodus_url[32] = {'\0'};
+char client_url[32] = {'\0'};
+
 
 #define SOCK_SEND_TIMEOUT_MS 2000
 
@@ -71,6 +75,7 @@ static int wrp_sock_send (wrp_msg_t *msg);
 static int flush_wrp_queue (uint32_t delay_ms);
 static void *raw_receiver_thread (void *arg);
 static void *wrp_receiver_thread (void *arg);
+static void getParodusUrl();
 
 #define RUN_STATE_RUNNING		1234
 #define RUN_STATE_DONE			-1234
@@ -96,6 +101,38 @@ static void libpd_log ( int level, int os_errno, const char *msg, ...)
 		printf ("%s\n", strerror_r (os_errno, errbuf, 100));
 }
 #endif
+
+//Call free in failure case for parodus_url and client_url
+static void getParodusUrl()
+{
+	const char *parodusIp = NULL;
+	const char *clientIp = NULL;
+	const char * envParodus = getenv ("PARODUS_URL");
+	const char * envClient = getenv ("CLIENT_URL");
+	char * protocol = "tcp://";
+  if( envParodus != NULL)
+  {
+    parodusIp = envParodus;
+  }
+  else
+  {
+    parodusIp = PARODUS_URL;
+  }
+  snprintf(parodus_url,sizeof(parodus_url),"%s%s",protocol, parodusIp);
+  printf("formatted parodus Url %s\n",parodus_url);
+  
+  if( envClient != NULL)
+  {
+    clientIp = envClient;
+  }
+  else
+  {
+    clientIp = CLIENT_URL;
+  }
+  snprintf(client_url,sizeof(client_url),"%s%s",protocol, clientIp);
+  printf("formatted client Url %s\n",client_url);
+	
+}
 
 bool is_auth_received (void)
 {
@@ -197,7 +234,7 @@ static int send_registration_msg (const char *service_name)
 	wrp_msg_t reg_msg;
 	reg_msg.msg_type = WRP_MSG_TYPE__SVC_REGISTRATION;
 	reg_msg.u.reg.service_name = (char *) service_name;
-	reg_msg.u.reg.url = CLIENT_URL;
+	reg_msg.u.reg.url = client_url;
 	return wrp_sock_send (&reg_msg);
 }
  
@@ -218,7 +255,8 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 		libpd_log (LEVEL_NO_LOGGER, 0, "Failed to init logger\n");
 		return -1;
 	}
-
+  //Call getParodusUrl to get parodus and client url
+  getParodusUrl();
 	make_closed_msg (&wrp_closed_msg);
 	auth_received = false;
 	selected_service = service_name;
