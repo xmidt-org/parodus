@@ -39,13 +39,17 @@
 #define END_PIPE_MSG  "--END--\n"
 #define SEND_EVENT_MSGS 1
 
-#define TEST_RCV_URL1 "tcp://127.0.0.1:6006"
-#define BAD_RCV_URL1 "tcp://127.0.0.1:X006"
-#define BAD_CLIENT_URL "tcp://127.0.0.1:X006"
+#define TCP_URL(ip) "tcp://" ip
+
+#define TEST_RCV_IP "127.0.0.1:6006"
+#define BAD_RCV_IP  "127.0.0.1:X006"
+#define BAD_CLIENT_IP "127.0.0.1:X006"
+#define GOOD_CLIENT_IP "127.0.0.1:6667"
 //#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
-#define TEST_SEND_URL1 "tcp://127.0.0.1:6007"
-#define BAD_SEND_URL1 "tcp://127.0.0.1:x007"
-#define BAD_PARODUS_URL "tcp://127.0.0.1:x007"
+#define TEST_SEND_IP  "127.0.0.1:6007"
+#define BAD_SEND_IP   "127.0.0.1:x007"
+#define BAD_PARODUS_IP "127.0.0.1:x007"
+#define GOOD_PARODUS_IP "127.0.0.1:6666"
 //#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
 
 static char current_dir_buf[256];
@@ -457,8 +461,8 @@ void test_1()
 	unsigned msg_num = 0;
 	const char *raw_queue_orig_name = raw_queue_name;
 	const char *wrp_queue_orig_name = wrp_queue_name;
-	const char *parodus_url_orig = parodus_url;
-	const char *client_url_orig = client_url;
+	const char *parodus_ip_orig = GOOD_PARODUS_IP;
+	const char *client_ip_orig = GOOD_CLIENT_IP;
 
 	test_time ();
 	test_log ();
@@ -466,43 +470,59 @@ void test_1()
 
 	CU_ASSERT_FATAL (log_init (".", NULL) == 0);
 
-	test_sock = connect_receiver (TEST_RCV_URL1);
+	printf ("LIBPD_TEST: test connect receiver, good IP\n");
+	test_sock = connect_receiver (TCP_URL(TEST_RCV_IP));
 	CU_ASSERT (test_sock != -1) ;
 	if (test_sock != -1)
 		shutdown_socket(&test_sock);
-	test_sock = connect_receiver (BAD_RCV_URL1);
+	printf ("LIBPD_TEST: test connect receiver, bad IP\n");
+	test_sock = connect_receiver (TCP_URL(BAD_RCV_IP));
 	CU_ASSERT (test_sock == -1);
-	test_sock = connect_receiver (TEST_RCV_URL1);
+	printf ("LIBPD_TEST: test connect receiver, good IP\n");
+	test_sock = connect_receiver (TCP_URL(TEST_RCV_IP));
 	CU_ASSERT (test_sock != -1) ;
 	if (test_sock != -1)
 		shutdown_socket(&test_sock);
-	test_sock = connect_sender (TEST_SEND_URL1);
+	printf ("LIBPD_TEST: test connect sender, good IP\n");
+	test_sock = connect_sender (TCP_URL(TEST_SEND_IP));
 	CU_ASSERT (test_sock != -1) ;
 	if (test_sock != -1)
 		shutdown_socket(&test_sock);
-	test_sock = connect_sender (BAD_SEND_URL1);
+	printf ("LIBPD_TEST: test connect sender, bad IP\n");
+	test_sock = connect_sender (TCP_URL(BAD_SEND_IP));
 	CU_ASSERT (test_sock == -1);
+	printf ("LIBPD_TEST: test create queue good\n");
 	test_q = create_queue ("/LIBPD_TEST_QUEUE", 256);
 	CU_ASSERT (test_q != -1);
 	mq_close (test_q);
+	printf ("LIBPD_TEST: test create queue bad\n");
 	test_q = create_queue ("$$LIBPD_BAD_QUEUE&&", 256);
 	CU_ASSERT (test_q == -1);
 	test_q = -1;
 
+	printf ("LIBPD_TEST: test create raw queue\n");
 	CU_ASSERT (test_create_raw_queue ());
+	printf ("LIBPD_TEST: test send raw queue OK\n");
 	test_send_raw_queue_ok ();
 	CU_ASSERT (test_raw_queue_receive() == 0);
+	printf ("LIBPD_TEST: test send raw queue error\n");
 	test_send_raw_queue_error ();
+	printf ("LIBPD_TEST: test raw queue receive bad msg\n");
 	CU_ASSERT (test_raw_queue_receive() == -2);
 	test_close_raw_queue ();
 
+	printf ("LIBPD_TEST: test create wrp queue\n");
 	CU_ASSERT (test_create_wrp_queue ());
+	printf ("LIBPD_TEST: test libparodus receive good\n");
 	test_send_wrp_queue_ok ();
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == 0);
 	test_send_wrp_queue_error ();
+	printf ("LIBPD_TEST: test libparodus receive bad msg\n");
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == -2);
+	printf ("LIBPD_TEST: test libparodus receive timeout\n");
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == 1);
 	CU_ASSERT (test_close_receiver() == 0);
+	printf ("LIBPD_TEST: test libparodus receive close msg\n");
 	rtn = libparodus_receive__ (&wrp_msg, 500);
 	if (rtn != 2) {
 		printf ("LIBPD_TEST: expected receive rtn==2 after close, got %d\n", rtn);
@@ -514,16 +534,20 @@ void test_1()
 	CU_ASSERT (libparodus_receive (&wrp_msg, 500) == -1);
 	CU_ASSERT (libparodus_send (wrp_msg) == -1);
 
-	parodus_url = BAD_PARODUS_URL;
+	printf ("LIBPD_TEST: libparodus_init bad parodus ip\n");
+	CU_ASSERT (setenv( "PARODUS_URL", BAD_PARODUS_IP, 1) == 0);
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
-	parodus_url = parodus_url_orig;
-	client_url = BAD_CLIENT_URL;
+	CU_ASSERT (setenv( "PARODUS_URL", parodus_ip_orig, 1) == 0);
+	CU_ASSERT (setenv( "CLIENT_URL", BAD_CLIENT_IP, 1) == 0);
+	printf ("LIBPD_TEST: libparodus_init bad client ip\n");
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
-	client_url = client_url_orig;
+	CU_ASSERT (setenv( "CLIENT_URL", client_ip_orig, 1) == 0);
+	printf ("LIBPD_TEST: libparodus_init bad raw queue name\n");
 	raw_queue_name = "$$LIBPD_BAD_QUEUE&&";
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	raw_queue_name = raw_queue_orig_name;
 	wrp_queue_name = "$$LIBPD_BAD_QUEUE&&";
+	printf ("LIBPD_TEST: libparodus_init bad wrp queue name\n");
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	wrp_queue_name = wrp_queue_orig_name;
 

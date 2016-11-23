@@ -260,11 +260,11 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 	make_closed_msg (&wrp_closed_msg);
 	auth_received = false;
 	selected_service = service_name;
-	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: connecting receiver\n");
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: connecting receiver to %s\n", client_url);
 	rcv_sock = connect_receiver (client_url);
 	if (rcv_sock == -1) 
 		return -1;
-	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: connecting sender\n");
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: connecting sender to %s\n", parodus_url);
 	send_sock = connect_sender (parodus_url);
 	if (send_sock == -1) {
 		shutdown_socket(&rcv_sock);
