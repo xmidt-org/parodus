@@ -179,7 +179,7 @@ void __close_and_unref_connection__(noPollConn *conn)
 static void getParodusUrl()
 {
 	const char *parodusIp = NULL;
-	const char * envParodus = getenv ("PARODUS_URL");
+	const char * envParodus = getenv ("PARODUS_SERVICE_IP");
 	char * protocol = "tcp://";
   if( envParodus != NULL)
   {

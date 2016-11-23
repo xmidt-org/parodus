@@ -535,13 +535,13 @@ void test_1()
 	CU_ASSERT (libparodus_send (wrp_msg) == -1);
 
 	printf ("LIBPD_TEST: libparodus_init bad parodus ip\n");
-	CU_ASSERT (setenv( "PARODUS_URL", BAD_PARODUS_IP, 1) == 0);
+	CU_ASSERT (setenv( "PARODUS_SERVICE_IP", BAD_PARODUS_IP, 1) == 0);
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
-	CU_ASSERT (setenv( "PARODUS_URL", parodus_ip_orig, 1) == 0);
-	CU_ASSERT (setenv( "CLIENT_URL", BAD_CLIENT_IP, 1) == 0);
+	CU_ASSERT (setenv( "PARODUS_SERVICE_IP", parodus_ip_orig, 1) == 0);
+	CU_ASSERT (setenv( "PARODUS_CLIENT_IP", BAD_CLIENT_IP, 1) == 0);
 	printf ("LIBPD_TEST: libparodus_init bad client ip\n");
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
-	CU_ASSERT (setenv( "CLIENT_URL", client_ip_orig, 1) == 0);
+	CU_ASSERT (setenv( "PARODUS_CLIENT_IP", client_ip_orig, 1) == 0);
 	printf ("LIBPD_TEST: libparodus_init bad raw queue name\n");
 	raw_queue_name = "$$LIBPD_BAD_QUEUE&&";
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);

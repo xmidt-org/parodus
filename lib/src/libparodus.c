@@ -23,14 +23,14 @@
 #include <pthread.h>
 #include <mqueue.h>
 
-#define PARODUS_URL "127.0.0.1:6666"
+#define PARODUS_SERVICE_IP "127.0.0.1:6666"
 //#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
 
-#define CLIENT_URL "127.0.0.1:6667"
+#define PARODUS_CLIENT_IP "127.0.0.1:6667"
 //#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
 
-//const char *parodus_url = PARODUS_URL;
-//const char *client_url = CLIENT_URL;
+//const char *parodus_url = PARODUS_SERVICE_IP;
+//const char *client_url = PARODUS_CLIENT_IP;
 
 char parodus_url[32] = {'\0'};
 char client_url[32] = {'\0'};
@@ -107,8 +107,8 @@ static void getParodusUrl()
 {
 	const char *parodusIp = NULL;
 	const char *clientIp = NULL;
-	const char * envParodus = getenv ("PARODUS_URL");
-	const char * envClient = getenv ("CLIENT_URL");
+	const char * envParodus = getenv ("PARODUS_SERVICE_IP");
+	const char * envClient = getenv ("PARODUS_CLIENT_IP");
 	char * protocol = "tcp://";
   if( envParodus != NULL)
   {
@@ -116,7 +116,7 @@ static void getParodusUrl()
   }
   else
   {
-    parodusIp = PARODUS_URL;
+    parodusIp = PARODUS_SERVICE_IP;
   }
   snprintf(parodus_url,sizeof(parodus_url),"%s%s",protocol, parodusIp);
   printf("formatted parodus Url %s\n",parodus_url);
@@ -127,7 +127,7 @@ static void getParodusUrl()
   }
   else
   {
-    clientIp = CLIENT_URL;
+    clientIp = PARODUS_CLIENT_IP;
   }
   snprintf(client_url,sizeof(client_url),"%s%s",protocol, clientIp);
   printf("formatted client Url %s\n",client_url);
@@ -749,7 +749,7 @@ void test_send_wrp_queue_ok (void)
 	wrp_msg_t reg_msg;
 	reg_msg.msg_type = WRP_MSG_TYPE__SVC_REGISTRATION;
 	reg_msg.u.reg.service_name = "iot";
-	reg_msg.u.reg.url = CLIENT_URL;
+	reg_msg.u.reg.url = PARODUS_CLIENT_IP;
 	wrp_msg_t *msg = &reg_msg;
 	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &msg, 
 		sizeof(wrp_msg_t *));
