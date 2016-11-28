@@ -105,7 +105,7 @@ ExternalProject_Add(cJSON
     #PREFIX ${PREFIX_DIR}/cJSON
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cJSON
     GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
-    GIT_TAG "master"
+    GIT_TAG "aafb64a1c549b7b927e339df6d35b1d5059dc235"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libcJSON STATIC SHARED IMPORTED)
