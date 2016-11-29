@@ -118,7 +118,7 @@ static void getParodusUrl()
     parodusIp = PARODUS_SERVICE_IP;
   }
   snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
-  printf("parodus Url %s\n",parodus_url);
+  libpd_log (LEVEL_INFO, 0, "LIBPARODUS: parodus url is  %s\n",parodus_url);
   
   if( envClient != NULL)
   {
@@ -129,7 +129,7 @@ static void getParodusUrl()
     clientIp = PARODUS_CLIENT_IP;
   }
   snprintf(client_url,sizeof(client_url),"%s", clientIp);
-  printf("client Url %s\n",client_url);
+  libpd_log (LEVEL_INFO, 0, "LIBPARODUS: client url is  %s\n",client_url);
 }
 
 bool is_auth_received (void)
