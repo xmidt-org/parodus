@@ -23,10 +23,10 @@
 #include <pthread.h>
 #include <mqueue.h>
 
-#define PARODUS_SERVICE_IP "127.0.0.1:6666"
+#define PARODUS_SERVICE_IP "tcp://127.0.0.1:6666"
 //#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
 
-#define PARODUS_CLIENT_IP "127.0.0.1:6667"
+#define PARODUS_CLIENT_IP "tcp://127.0.0.1:6667"
 //#define CLIENT_URL "ipc:///tmp/parodus_client.ipc"
 
 //const char *parodus_url = PARODUS_SERVICE_IP;
@@ -109,7 +109,6 @@ static void getParodusUrl()
 	const char *clientIp = NULL;
 	const char * envParodus = getenv ("PARODUS_SERVICE_IP");
 	const char * envClient = getenv ("PARODUS_CLIENT_IP");
-	char * protocol = "tcp://";
   if( envParodus != NULL)
   {
     parodusIp = envParodus;
@@ -118,8 +117,8 @@ static void getParodusUrl()
   {
     parodusIp = PARODUS_SERVICE_IP;
   }
-  snprintf(parodus_url,sizeof(parodus_url),"%s%s",protocol, parodusIp);
-  printf("formatted parodus Url %s\n",parodus_url);
+  snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
+  printf("parodus Url %s\n",parodus_url);
   
   if( envClient != NULL)
   {
@@ -129,9 +128,8 @@ static void getParodusUrl()
   {
     clientIp = PARODUS_CLIENT_IP;
   }
-  snprintf(client_url,sizeof(client_url),"%s%s",protocol, clientIp);
-  printf("formatted client Url %s\n",client_url);
-	
+  snprintf(client_url,sizeof(client_url),"%s", clientIp);
+  printf("client Url %s\n",client_url);
 }
 
 bool is_auth_received (void)
