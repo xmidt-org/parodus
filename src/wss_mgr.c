@@ -46,7 +46,7 @@
 #define METADATA_COUNT 					11			
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
-#define PARODUS_UPSTREAM "127.0.0.1:6666"
+#define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
 
 
 #define IOT "iot"
@@ -180,7 +180,6 @@ static void getParodusUrl()
 {
 	const char *parodusIp = NULL;
 	const char * envParodus = getenv ("PARODUS_SERVICE_IP");
-	char * protocol = "tcp://";
   if( envParodus != NULL)
   {
     parodusIp = envParodus;
@@ -189,7 +188,7 @@ static void getParodusUrl()
   {
     parodusIp = PARODUS_UPSTREAM ;
   }
-  snprintf(parodus_url,sizeof(parodus_url),"%s%s",protocol, parodusIp);
+  snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
   printf("formatted parodus Url %s\n",parodus_url);
 	
 }
