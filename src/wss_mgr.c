@@ -30,6 +30,7 @@
 
 #include "ParodusInternal.h"
 #include "time.h"
+#include "parodus_log.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -148,22 +149,23 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 	UNUSED(user_data);
 	if (level == NOPOLL_LEVEL_DEBUG) 
 	{
-  	    // printf("Debug: %s\n", log_msg);
+  	    ParodusPrint("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_INFO) 
 	{
-		printf("Info: %s\n", log_msg);
+		ParodusInfo ("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_WARNING) 
 	{
-  	     printf("Warning: %s\n", log_msg);
+  	     ParodusPrint("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_CRITICAL) 
 	{
-  	     printf("Error: %s\n", log_msg);
+  	     ParodusError("%s\n", log_msg );
 	}
 	return;
 }
+
 
 void __close_and_unref_connection__(noPollConn *conn)
 {
@@ -200,14 +202,15 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
 	int intTimer=0;	
     	ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
    	loadParodusCfg(tmpCfg,&parodusCfg);
-		
-	printf("Configure nopoll thread handlers in Parodus \n");
+			
+	ParodusPrint("Configure nopoll thread handlers in Parodus\n");
+	
 	nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
 
 	ctx = nopoll_ctx_new();
 	if (!ctx) 
 	{
-		printf("\nError creating nopoll context\n");
+		ParodusError("\nError creating nopoll context\n");
 	}
 
 	#ifdef NOPOLL_LOGGER
@@ -238,7 +241,7 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
 		{
 			if(!close_retry) 
 			{
-				printf("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", parodusCfg.webpa_ping_timeout);
+				ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", parodusCfg.webpa_ping_timeout);
 							
 				reconnect_reason = "Ping_Miss";
 				LastReasonStatus = true;
@@ -247,14 +250,15 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
 				pthread_mutex_unlock (&close_mut);
 			}
 			else
-			{
-				printf("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+			{			
+				ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
 			}
 			heartBeatTimer = 0;
 		}
 		else if(intTimer >= 30)
 		{
-			printf("heartBeatTimer %d\n",heartBeatTimer);
+
+			ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
 			heartBeatTimer += HEARTBEAT_RETRY_SEC;	
 			intTimer = 0;		
 		}
@@ -262,7 +266,7 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
 		
 		if(close_retry)
 		{
-			printf("close_retry is %d, hence closing the connection and retrying\n", close_retry);
+			ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
 			__close_and_unref_connection__(conn);
 			conn = NULL;
 			createNopollConnection();
@@ -331,7 +335,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        printf("hw_model is NULL. read from tmp file\n");
+        ParodusPrint("hw_model is NULL. read from tmp file\n");
     }
     if( strlen(pConfig->hw_serial_number) !=0)
     {
@@ -339,7 +343,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        printf("hw_serial_number is NULL. read from tmp file\n");
+        ParodusPrint("hw_serial_number is NULL. read from tmp file\n");
     }
     if(strlen(pConfig->hw_manufacturer) !=0)
     {
@@ -347,7 +351,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        printf("hw_manufacturer is NULL. read from tmp file\n");
+        ParodusPrint("hw_manufacturer is NULL. read from tmp file\n");
     }
     if(strlen(pConfig->hw_mac) !=0)
     {
@@ -355,7 +359,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        printf("hw_mac is NULL. read from tmp file\n");
+        ParodusPrint("hw_mac is NULL. read from tmp file\n");
     }
     if(strlen (pConfig->hw_last_reboot_reason) !=0)
     {
@@ -363,7 +367,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        printf("hw_last_reboot_reason is NULL. read from tmp file\n");
+        ParodusPrint("hw_last_reboot_reason is NULL. read from tmp file\n");
     }
     if(strlen(pConfig->fw_name) !=0)
     {   
@@ -371,7 +375,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        printf("fw_name is NULL. read from tmp file\n");
+        ParodusPrint("fw_name is NULL. read from tmp file\n");
     }
     if( strlen(pConfig->webpa_url) !=0)
     {
@@ -379,7 +383,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        printf("webpa_url is NULL. read from tmp file\n");
+        ParodusPrint("webpa_url is NULL. read from tmp file\n");
     }
     if(strlen(pConfig->webpa_interface_used )!=0)
     {
@@ -387,7 +391,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        printf("webpa_interface_used is NULL. read from tmp file\n");
+        ParodusPrint("webpa_interface_used is NULL. read from tmp file\n");
     }
         
     cfg->boot_time = pConfig->boot_time;
@@ -395,7 +399,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
        
     strncpy(cfg->webpa_uuid, "1234567-345456546", strlen("1234567-345456546")+1);
-    printf("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
+    ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
       
 }
@@ -445,7 +449,7 @@ static char createNopollConnection()
 	if (fp!=NULL)
 	{
 		unlink("/tmp/parodus_ready");
-		printf("Closing Parodus_Ready FIle \n");
+		ParodusPrint("Closing Parodus_Ready FIle \n");
 		fclose(fp);
 	}
 	
@@ -457,14 +461,14 @@ static char createNopollConnection()
 	connErr_endPtr = &connErr_end;
 	strcpy(deviceMAC, parodusCfg.hw_mac);
 	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
-	printf("Device_id %s\n",device_id);
+	ParodusInfo("Device_id %s\n",device_id);
 
 	headerValues[0] = device_id;
 	headerValues[1] = "wrp-0.11,getset-0.1";    
 	
 	
 	bootTime_sec = parodusCfg.boot_time;
-	printf("BootTime In sec: %d\n", bootTime_sec);
+	ParodusPrint("BootTime In sec: %d\n", bootTime_sec);
 	firmwareVersion = parodusCfg.fw_name;
     modelName = parodusCfg.hw_model;
     manufacturer = parodusCfg.hw_manufacturer;
@@ -474,12 +478,12 @@ static char createNopollConnection()
              ((0 != strlen(modelName)) ? modelName : "unknown"),
              ((0 != strlen(manufacturer)) ? manufacturer : "unknown"));
 
-	printf("User-Agent: %s\n",user_agent);
+	ParodusInfo("User-Agent: %s\n",user_agent);
 	headerValues[2] = user_agent;
 	reconnect_reason = "webpa_process_starts";	
-	printf("Received reconnect_reason as:%s\n", reconnect_reason);
+	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
 	reboot_reason = parodusCfg.hw_last_reboot_reason;
-	printf("Received reboot_reason as:%s\n", reboot_reason);
+	ParodusInfo("Received reboot_reason as:%s\n", reboot_reason);
 	
 	if(firmwareVersion != NULL )
 	{
@@ -504,7 +508,7 @@ static char createNopollConnection()
 		}
 		else
 		{
-		     	printf("Failed to GET Reconnect reason value\n");
+		     	ParodusError("Failed to GET Reconnect reason value\n");
 		}
 		if(reboot_reason !=NULL)
 		{
@@ -516,16 +520,16 @@ static char createNopollConnection()
 		}
 		else
 		{
-			printf("Failed to GET Reboot reason value\n");
+			ParodusError("Failed to GET Reboot reason value\n");
 		}
 		
 
 		buffer = cJSON_PrintUnformatted(response);
-		printf("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
+		ParodusInfo("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
 
 		if(nopoll_base64_encode (buffer, strlen(buffer), encodedData, &encodedDataSize) != nopoll_true)
 		{
-			printf("Base64 Encoding failed for Connection Header\n");
+			ParodusError("Base64 Encoding failed for Connection Header\n");
 			headerValues[3] = ""; 
                         headerCount -= 1; 
 		}
@@ -536,7 +540,7 @@ static char createNopollConnection()
 			{
 				if(encodedData[i] == '\n')
 				{
-					printf("New line is present in encoded data at position %d\n",i);
+					ParodusPrint("New line is present in encoded data at position %d\n",i);
 				}
 				else
 				{
@@ -546,7 +550,7 @@ static char createNopollConnection()
 			}
 			encodedData[j]='\0';
 			headerValues[3] = encodedData;
-			printf("Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
+			ParodusPrint("Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
 		}
 	}
 	else
@@ -561,12 +565,12 @@ static char createNopollConnection()
 	
 	snprintf(port,sizeof(port),"%d",8080);
 	parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
-	printf("server_Address %s\n",server_Address);
+	ParodusInfo("server_Address %s\n",server_Address);
 	
 	parodusCfg.secureFlag = 1;	
 			
 	max_retry_sleep = (int) pow(2, parodusCfg.webpa_backoff_max) -1;
-	printf("max_retry_sleep is %d\n", max_retry_sleep );
+	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
 	
 	do
 	{
@@ -577,11 +581,11 @@ static char createNopollConnection()
 		{
 			backoffRetryTime = (int) pow(2, c) -1;
 		}
-		printf("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
+		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
 								
 		if(parodusCfg.secureFlag) 
 		{
-		    printf("secure true\n");
+		    ParodusPrint("secure true\n");
 			/* disable verification */
 			opts = nopoll_conn_opts_new ();
 			nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
@@ -592,7 +596,7 @@ static char createNopollConnection()
 		}
 		else 
 		{
-		    printf("secure false\n");
+		    ParodusPrint("secure false\n");
 			conn = nopoll_conn_new(ctx, server_Address, port, NULL,
                                "/api/v2/device", NULL, NULL, parodusCfg.webpa_interface_used,
                                 headerNames, headerValues, headerCount);// WEBPA-787
@@ -602,21 +606,21 @@ static char createNopollConnection()
 		{
 			if(!nopoll_conn_is_ok(conn)) 
 			{
-				printf("Error connecting to server\n");
-				printf("RDK-10037 - WebPA Connection Lost\n");
+				ParodusError("Error connecting to server\n");
+				ParodusError("RDK-10037 - WebPA Connection Lost\n");
 				// Copy the server address from config to avoid retrying to the same failing talaria redirected node
 				parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
 				__close_and_unref_connection__(conn);
 				conn = NULL;
 				initial_retry = true;
 				
-				printf("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+				ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 				sleep(backoffRetryTime);
 				continue;
 			}
 			else 
 			{
-				printf("Connected to Server but not yet ready\n");
+				ParodusPrint("Connected to Server but not yet ready\n");
 				initial_retry = false;
 						
 				//reset backoffRetryTime back to the starting value, as next reason can be different					
@@ -631,14 +635,14 @@ static char createNopollConnection()
 				
 				if (strncmp(redirectURL, "Redirect:", 9) == 0) // only when there is a http redirect
 				{
-					printf("Received temporary redirection response message %s\n", redirectURL);
+					ParodusError("Received temporary redirection response message %s\n", redirectURL);
 					// Extract server Address and port from the redirectURL
 					temp_ptr = strtok(redirectURL , ":"); //skip Redirect 
 					temp_ptr = strtok(NULL , ":"); // skip https
 					temp_ptr = strtok(NULL , ":");
 					parStrncpy(server_Address, temp_ptr+2, sizeof(server_Address));
 					parStrncpy(port, strtok(NULL , "/"), sizeof(port));
-					printf("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
+					ParodusInfo("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
 					
 					//reset c=2 to start backoffRetryTime as retrying using new redirect server
 					c = 2;
@@ -646,11 +650,11 @@ static char createNopollConnection()
 				}
 				else
 				{
-					printf("Client connection timeout\n");	
-					printf("RDK-10037 - WebPA Connection Lost\n");
+					ParodusError("Client connection timeout\n");	
+					ParodusError("RDK-10037 - WebPA Connection Lost\n");
 					// Copy the server address from config to avoid retrying to the same failing talaria redirected node
 					parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
-					printf("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+					ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 					sleep(backoffRetryTime);
 					c++;
 				}
@@ -662,7 +666,7 @@ static char createNopollConnection()
 			else 
 			{
 				initial_retry = false;				
-				printf("Connection is ready\n");
+				ParodusInfo("Connection is ready\n");
 			}
 		}
 		else
@@ -677,15 +681,15 @@ static char createNopollConnection()
 				{
 					getCurrentTime(connErr_startPtr);
 					connErr = 1;
-					printf("First connect error occurred, initialized the connect error timer\n");
+					ParodusInfo("First connect error occurred, initialized the connect error timer\n");
 				}
 				else
 				{
 					getCurrentTime(connErr_endPtr);
-					printf("checking timeout difference:%ld\n", timeValDiff(connErr_startPtr, connErr_endPtr));
+					ParodusPrint("checking timeout difference:%ld\n", timeValDiff(connErr_startPtr, connErr_endPtr));
 					if(timeValDiff(connErr_startPtr, connErr_endPtr) >= (15*60*1000))
 					{
-						printf("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
+						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
 						reconnect_reason = "Dns_Res_webpa_reconnect";
 						LastReasonStatus = true;
 						
@@ -694,7 +698,7 @@ static char createNopollConnection()
 				}			
 			}
 			initial_retry = true;
-			printf("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+			ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 			sleep(backoffRetryTime);
 			c++;
 			// Copy the server address from config to avoid retrying to the same failing talaria redirected node
@@ -705,27 +709,27 @@ static char createNopollConnection()
 	
 	if(parodusCfg.secureFlag) 
 	{
-		printf("Connected to server over SSL\n");
+		ParodusInfo("Connected to server over SSL\n");
 	}
 	else 
 	{
-		printf("Connected to server\n");
+		ParodusInfo("Connected to server\n");
 	}
 	
 	//creating tmp file to signal parodus_ready status once connection is successful
 	fp = fopen("/tmp/parodus_ready", "w");
 	
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
-	printf("createNopollConnection(): close_mutex lock\n");
+	ParodusPrint("createNopollConnection(): close_mutex lock\n");
 	pthread_mutex_lock (&close_mut);
 	close_retry = false;
 	pthread_mutex_unlock (&close_mut);
-	printf("createNopollConnection(): close_mutex unlock\n");
+	ParodusPrint("createNopollConnection(): close_mutex unlock\n");
 	heartBeatTimer = 0;
 	
 	
 	//Pack the metadata initially to reuse for every upstream msg sending to server
-  	printf("-------------- Packing metadata ----------------\n");
+  	ParodusPrint("-------------- Packing metadata ----------------\n");
   	sprintf(boot_time, "%d", bootTime_sec);
  
   	if(parodusCfg.secureFlag)
@@ -736,7 +740,7 @@ static char createNopollConnection()
 	{
 		strcpy(webpaProtocol,"http");
 	}
-	printf("webpaProtocol is %s\n", webpaProtocol);
+	ParodusPrint("webpaProtocol is %s\n", webpaProtocol);
   	
 	struct data meta_pack[METADATA_COUNT] = {{"hw-model", modelName}, {"hw-serial-number", parodusCfg.hw_serial_number},{"hw-manufacturer", manufacturer},{"hw-mac", parodusCfg.hw_mac},{"hw_last_reboot_reason", reboot_reason},{"fw-name", firmwareVersion},{"boot_time", boot_time},{"webpa-last-reconnect-reason",reconnect_reason}, {"webpa_protocol",webpaProtocol}, {"webpa_uuid",parodusCfg.webpa_uuid}, {"webpa_interface_used", parodusCfg.webpa_interface_used}};
 	
@@ -746,11 +750,11 @@ static char createNopollConnection()
 
 	if (metaPackSize > 0) 
 	{
-		printf("metadata encoding is successful with size %zu\n", metaPackSize);
+		ParodusPrint("metadata encoding is successful with size %zu\n", metaPackSize);
 	}
 	else
 	{
-		printf("Failed to encode metadata\n");
+		ParodusError("Failed to encode metadata\n");
 
 	}
 	
@@ -784,11 +788,11 @@ static void initUpStreamTask()
 	err = pthread_create(&UpStreamMsgThreadId, NULL, handle_upstream, NULL);
 	if (err != 0) 
 	{
-		printf("Error creating messages thread :[%s]\n", strerror(err));
+		ParodusError("Error creating messages thread :[%s]\n", strerror(err));
 	}
 	else
 	{
-		printf("handle_upstream thread created Successfully\n");
+		ParodusPrint("handle_upstream thread created Successfully\n");
 	}
 }
 
@@ -799,7 +803,7 @@ static void initUpStreamTask()
 static void *handle_upstream()
 {
 
-	printf("******** Start of handle_upstream ********\n");
+	ParodusPrint("******** Start of handle_upstream ********\n");
 	
 	UpStreamMsg *message;
 	int sock;
@@ -808,18 +812,18 @@ static void *handle_upstream()
 		
 		
 	sock = nn_socket( AF_SP, NN_PULL );
-	nn_bind(sock, parodus_url );
+	nn_bind(sock, PARODUS_UPSTREAM );
 	
 	
 	while( 1 ) 
 	{
 		
 		buf = NULL;
-		printf("nanomsg server gone into the listening mode...\n");
+		ParodusInfo("nanomsg server gone into the listening mode...\n");
 		
 		bytes = nn_recv (sock, &buf, NN_MSG, 0);
 			
-		printf ("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
+		ParodusInfo ("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
 		
 		message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
 		
@@ -836,10 +840,10 @@ static void *handle_upstream()
 	
 				UpStreamMsgQ = message;
 				
-				printf("Producer added message\n");
+				ParodusPrint("Producer added message\n");
 			 	pthread_cond_signal(&nano_con);
 				pthread_mutex_unlock (&nano_mut);
-				printf("mutex unlock in producer thread\n");
+				ParodusPrint("mutex unlock in producer thread\n");
 			}
 			else
 			{
@@ -857,11 +861,11 @@ static void *handle_upstream()
 		}
 		else
 		{
-			printf("failure in allocation for message\n");
+			ParodusError("failure in allocation for message\n");
 		}
 				
 	}
-	printf ("End of handle_upstream\n");
+	ParodusPrint ("End of handle_upstream\n");
 	return 0;
 }
 
@@ -879,11 +883,11 @@ static void processUpStreamTask()
 	err = pthread_create(&processUpStreamThreadId, NULL, processUpStreamHandler, NULL);
 	if (err != 0) 
 	{
-		printf("Error creating messages thread :[%s]\n", strerror(err));
+		ParodusError("Error creating messages thread :[%s]\n", strerror(err));
 	}
 	else
 	{
-		printf("processUpStreamHandler thread created Successfully\n");
+		ParodusPrint("processUpStreamHandler thread created Successfully\n");
 	}
 }
 
@@ -891,7 +895,7 @@ static void processUpStreamTask()
 
 static void *processUpStreamHandler()
 {
-	printf("Inside processUpStreamHandler..\n");
+	ParodusPrint("Inside processUpStreamHandler..\n");
 	handleUpStreamEvents();
 	return 0;
 }
@@ -916,14 +920,14 @@ static void handleUpStreamEvents()
 	while(1)
 	{
 		pthread_mutex_lock (&nano_mut);
-		printf("mutex lock in consumer thread\n");
+		ParodusPrint("mutex lock in consumer thread\n");
 		
 		if(UpStreamMsgQ != NULL)
 		{
 			UpStreamMsg *message = UpStreamMsgQ;
 			UpStreamMsgQ = UpStreamMsgQ->next;
 			pthread_mutex_unlock (&nano_mut);
-			printf("mutex unlock in consumer thread\n");
+			ParodusPrint("mutex unlock in consumer thread\n");
 			
 			if (!terminated) 
 			{
@@ -931,7 +935,7 @@ static void handleUpStreamEvents()
 				/*** Decoding Upstream Msg to check msgType ***/
 				/*** For MsgType 9 Perform Nanomsg client Registration else Send to server ***/	
 				
-				printf("---- Decoding Upstream Msg ----\n");
+				ParodusPrint("---- Decoding Upstream Msg ----\n");
 								
 				rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
 				
@@ -942,7 +946,7 @@ static void handleUpStreamEvents()
 				
 				   if(msgType == 9)
 				   {
-					printf("\n Nanomsg client Registration for Upstream\n");
+					ParodusInfo("\n Nanomsg client Registration for Upstream\n");
 					
 					//Extract serviceName and url & store it in a struct for reg_clients
 					
@@ -953,7 +957,7 @@ static void handleUpStreamEvents()
 																						
 						if(strcmp(clients[i]->service_name, msg->u.reg.service_name)==0)
 						{
-							printf("match found, client is already registered\n");
+							ParodusInfo("match found, client is already registered\n");
 							strcpy(clients[i]->url,msg->u.reg.url);
 							nn_shutdown(clients[i]->sock, 0);
 
@@ -966,7 +970,7 @@ static void handleUpStreamEvents()
 			
 							
 							size = wrp_struct_to( &auth_msg_var, WRP_BYTES, &auth_bytes );
-							printf("Client registered before. Sending acknowledgement \n");
+							ParodusInfo("Client registered before. Sending acknowledgement \n");
 							byte = nn_send (clients[i]->sock, auth_bytes, size, 0);
 						
 							byte = 0;
@@ -980,7 +984,7 @@ static void handleUpStreamEvents()
 
 					}
 
-					printf("matchFlag is :%d\n", matchFlag);
+					ParodusPrint("matchFlag is :%d\n", matchFlag);
 
 					if((matchFlag == 0) || (numOfClients == 0))
 					{
@@ -996,8 +1000,8 @@ static void handleUpStreamEvents()
 						strcpy(clients[numOfClients]->service_name,msg->u.reg.service_name);
 						strcpy(clients[numOfClients]->url,msg->u.reg.url);
 
-						printf("%s\n",clients[numOfClients]->service_name);
-						printf("%s\n",clients[numOfClients]->url);
+						ParodusPrint("%s\n",clients[numOfClients]->service_name);
+						ParodusPrint("%s\n",clients[numOfClients]->url);
 						
 						if((strcmp(clients[numOfClients]->service_name, msg->u.reg.service_name)==0)&& (strcmp(clients[numOfClients]->url, msg->u.reg.url)==0))
 					{
@@ -1006,21 +1010,21 @@ static void handleUpStreamEvents()
 						//Sending success status to clients after each nanomsg registration
 						size = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
 
-						printf("Client %s Registered successfully. Sending Acknowledgement... \n ", clients[numOfClients]->service_name);
+						ParodusInfo("Client %s Registered successfully. Sending Acknowledgement... \n ", clients[numOfClients]->service_name);
 
 						byte = nn_send (clients[numOfClients]->sock, auth_bytes, size, 0);
 						
 						//condition needs to be changed depending upon acknowledgement
 						if(byte >=0)
 						{
-							printf("send registration success status to client\n");
+							ParodusPrint("send registration success status to client\n");
 						}
 						else
 						{
-							printf("send registration failed\n");
+							ParodusError("send registration failed\n");
 						}
 						numOfClients =numOfClients+1;
-						printf("Number of clients registered= %d\n", numOfClients);
+						ParodusPrint("Number of clients registered= %d\n", numOfClients);
 						byte = 0;
 						size = 0;
 						free(auth_bytes);
@@ -1031,7 +1035,7 @@ static void handleUpStreamEvents()
 					}
 					else
 					{
-						printf("nanomsg client registration failed\n");
+						ParodusError("nanomsg client registration failed\n");
 					}
 					
 					}
@@ -1043,17 +1047,17 @@ static void handleUpStreamEvents()
 				    	//Sending to server for msgTypes 3, 4, 5, 6, 7, 8.
 					
 			   					
-					printf("\n Received upstream data with MsgType: %d\n", msgType);   					
+					ParodusInfo("\n Received upstream data with MsgType: %d\n", msgType);   					
 					//Appending metadata with packed msg received from client
 					
 					if(metaPackSize > 0)
 					{
-					   	printf("Appending received msg with metadata\n");
+					   	ParodusPrint("Appending received msg with metadata\n");
 					   	encodedSize = appendEncodedData( &appendData, message->msg, message->len, metadataPack, metaPackSize );
-					   	printf("encodedSize after appending :%zu\n", encodedSize);
-					   	printf("metadata appended upstream msg %s\n", (char *)appendData);
+					   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
+					   	ParodusPrint("metadata appended upstream msg %s\n", (char *)appendData);
 					   
-						printf("Sending metadata appended upstream msg to server\n");
+						ParodusInfo("Sending metadata appended upstream msg to server\n");
 					   	handleUpstreamMessage(conn,appendData, encodedSize);
 					   	
 						free( appendData);
@@ -1062,7 +1066,7 @@ static void handleUpStreamEvents()
 					
 					else
 					{		
-						printf("Failed to send upstream as metadata packing is not successful\n");
+						ParodusError("Failed to send upstream as metadata packing is not successful\n");
 			
 					}
     					
@@ -1074,10 +1078,10 @@ static void handleUpStreamEvents()
 				}
 				else
 				{
-					printf("Error in msgpack decoding for upstream\n");
+					ParodusError("Error in msgpack decoding for upstream\n");
 				
 				}
-				printf("Free for upstream decoded msg\n");
+				ParodusPrint("Free for upstream decoded msg\n");
 			        wrp_free_struct(msg);
 			        				
 			
@@ -1090,10 +1094,10 @@ static void handleUpStreamEvents()
 		}
 		else
 		{
-			printf("Before pthread cond wait in consumer thread\n");   
+			ParodusPrint("Before pthread cond wait in consumer thread\n");   
 			pthread_cond_wait(&nano_con, &nano_mut);
 			pthread_mutex_unlock (&nano_mut);
-			printf("mutex unlock in consumer thread after cond wait\n");
+			ParodusPrint("mutex unlock in consumer thread after cond wait\n");
 			if (terminated) {
 				break;
 			}
@@ -1117,11 +1121,11 @@ static void initMessageHandler()
 	err = pthread_create(&messageThreadId, NULL, messageHandlerTask, NULL);
 	if (err != 0) 
 	{
-		printf("Error creating messages thread :[%s]\n", strerror(err));
+		ParodusError("Error creating messages thread :[%s]\n", strerror(err));
 	}
 	else
 	{
-		printf("messageHandlerTask thread created Successfully\n");
+		ParodusPrint("messageHandlerTask thread created Successfully\n");
 	}
 }
 
@@ -1133,13 +1137,13 @@ static void *messageHandlerTask()
 	while(1)
 	{
 		pthread_mutex_lock (&mut);
-		printf("mutex lock in consumer thread\n");
+		ParodusPrint("mutex lock in consumer thread\n");
 		if(ParodusMsgQ != NULL)
 		{
 			ParodusMsg *message = ParodusMsgQ;
 			ParodusMsgQ = ParodusMsgQ->next;
 			pthread_mutex_unlock (&mut);
-			printf("mutex unlock in consumer thread\n");
+			ParodusPrint("mutex unlock in consumer thread\n");
 			if (!terminated) 
 			{
 				
@@ -1152,10 +1156,10 @@ static void *messageHandlerTask()
 		}
 		else
 		{
-			printf("Before pthread cond wait in consumer thread\n");   
+			ParodusPrint("Before pthread cond wait in consumer thread\n");   
 			pthread_cond_wait(&con, &mut);
 			pthread_mutex_unlock (&mut);
-			printf("mutex unlock in consumer thread after cond wait\n");
+			ParodusPrint("mutex unlock in consumer thread after cond wait\n");
 			if (terminated) 
 			{
 				break;
@@ -1163,7 +1167,7 @@ static void *messageHandlerTask()
 		}
 	}
 	
-	printf ("Ended messageHandlerTask\n");
+	ParodusPrint ("Ended messageHandlerTask\n");
 	return 0;
 }
 
@@ -1204,15 +1208,15 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
 		nopoll_msg_ref(msg);
 		
 		pthread_mutex_lock (&mut);		
-		printf("mutex lock in producer thread\n");
+		ParodusPrint("mutex lock in producer thread\n");
 		
 		if(ParodusMsgQ == NULL)
 		{
 			ParodusMsgQ = message;
-			printf("Producer added message\n");
+			ParodusPrint("Producer added message\n");
 		 	pthread_cond_signal(&con);
 			pthread_mutex_unlock (&mut);
-			printf("mutex unlock in producer thread\n");
+			ParodusPrint("mutex unlock in producer thread\n");
 		}
 		else
 		{
@@ -1228,9 +1232,9 @@ static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMs
 	else
 	{
 		//Memory allocation failed
-		printf("Memory allocation is failed\n");
+		ParodusError("Memory allocation is failed\n");
 	}
-	printf("*****Returned from listenerOnMessage_queue*****\n");
+	ParodusPrint("*****Returned from listenerOnMessage_queue*****\n");
 }
 
 
@@ -1255,12 +1259,12 @@ static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg
 
 	if ((payload!=NULL) && !terminated) 
 	{
-		printf("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
+		ParodusInfo("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
 		if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 
 		{
 			nopoll_conn_send_frame (conn, nopoll_true, nopoll_true, NOPOLL_PONG_FRAME, strlen(payload), payload, 0);
 			heartBeatTimer = 0;
-			printf("Sent Pong frame and reset HeartBeat Timer\n");
+			ParodusPrint("Sent Pong frame and reset HeartBeat Timer\n");
 		}
 	}
 }
@@ -1272,7 +1276,7 @@ static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPt
 	UNUSED(ctx);
 	UNUSED(conn);
 	
-	printf("listenerOnCloseMessage(): mutex lock in producer thread\n");
+	ParodusPrint("listenerOnCloseMessage(): mutex lock in producer thread\n");
 	
 	if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
 	{
@@ -1288,7 +1292,7 @@ static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPt
 	pthread_mutex_lock (&close_mut);
 	close_retry = true;
 	pthread_mutex_unlock (&close_mut);
-	printf("listenerOnCloseMessage(): mutex unlock in producer thread\n");
+	ParodusPrint("listenerOnCloseMessage(): mutex unlock in producer thread\n");
 
 }
 
@@ -1325,57 +1329,57 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {
         case 'm':
           strncpy(cfg->hw_model, optarg,strlen(optarg));
-          printf("hw-model is %s\n",cfg->hw_model);
+          ParodusInfo("hw-model is %s\n",cfg->hw_model);
          break;
         
         case 's':
           strncpy(cfg->hw_serial_number,optarg,strlen(optarg));
-          printf("hw_serial_number is %s\n",cfg->hw_serial_number);
+          ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
           break;
 
         case 'f':
           strncpy(cfg->hw_manufacturer, optarg,strlen(optarg));
-          printf("hw_manufacturer is %s\n",cfg->hw_manufacturer);
+          ParodusInfo("hw_manufacturer is %s\n",cfg->hw_manufacturer);
           break;
 
         case 'd':
            strncpy(cfg->hw_mac, optarg,strlen(optarg));
-           printf("hw_mac is %s\n",cfg->hw_mac);
+           ParodusInfo("hw_mac is %s\n",cfg->hw_mac);
           break;
         
         case 'r':
           strncpy(cfg->hw_last_reboot_reason, optarg,strlen(optarg));
-          printf("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
+          ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
           break;
 
         case 'n':
           strncpy(cfg->fw_name, optarg,strlen(optarg));
-          printf("fw_name is %s\n",cfg->fw_name);
+          ParodusInfo("fw_name is %s\n",cfg->fw_name);
           break;
 
         case 'b':
           cfg->boot_time = atoi(optarg);
-          printf("boot_time is %d\n",cfg->boot_time);
+          ParodusInfo("boot_time is %d\n",cfg->boot_time);
           break;
        
          case 'u':
           strncpy(cfg->webpa_url, optarg,strlen(optarg));
-          printf("webpa_url is %s\n",cfg->webpa_url);
+          ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
           break;
         
         case 'p':
           cfg->webpa_ping_timeout = atoi(optarg);
-          printf("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
+          ParodusInfo("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
           break;
 
         case 'o':
           cfg->webpa_backoff_max = atoi(optarg);
-          printf("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
+          ParodusInfo("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
           break;
 
         case 'i':
           strncpy(cfg->webpa_interface_used, optarg,strlen(optarg));
-          printf("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
+          ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
           break;
 
         case '?':
@@ -1383,20 +1387,20 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         default:
-           printf("Enter Valid commands..\n");
+           ParodusError("Enter Valid commands..\n");
           abort ();
         }
     }
   
- printf("argc is :%d\n", argc);
- printf("optind is :%d\n", optind);
+ ParodusPrint("argc is :%d\n", argc);
+ ParodusPrint("optind is :%d\n", optind);
 
   /* Print any remaining command line arguments (not options). */
   if (optind < argc)
     {
-      printf ("non-option ARGV-elements: ");
+      ParodusPrint ("non-option ARGV-elements: ");
       while (optind < argc)
-        printf ("%s ", argv[optind++]);
+        ParodusPrint ("%s ", argv[optind++]);
       putchar ('\n');
     }
 
