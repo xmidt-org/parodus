@@ -90,6 +90,7 @@ static const char *service_name = "iot";
 static bool using_mock = false;
 
 // libparodus functions to be tested
+extern int flush_wrp_queue (uint32_t delay_ms);
 extern int connect_receiver (const char *rcv_url);
 extern int connect_sender (const char *send_url);
 extern void shutdown_socket (int *sock);
@@ -516,6 +517,24 @@ void test_1()
 	printf ("LIBPD_TEST: test libparodus receive good\n");
 	test_send_wrp_queue_ok ();
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == 0);
+	wrp_free_struct (wrp_msg);
+	printf ("LIBPD_TEST: test wrp_flush_queue\n");
+	test_send_wrp_queue_ok ();
+	test_send_wrp_queue_ok ();
+	test_send_wrp_queue_ok ();
+	CU_ASSERT (flush_wrp_queue (500) == 3);
+	CU_ASSERT (flush_wrp_queue (500) == 0);
+	printf ("LIBPD_TEST: test wrp_flush_queue with bad msg\n");
+	test_send_wrp_queue_ok ();
+	test_send_wrp_queue_ok ();
+	test_send_wrp_queue_error ();
+	CU_ASSERT (flush_wrp_queue (500) == 2);
+	printf ("LIBPD_TEST: test wrp_flush_queue with close msg\n");
+	test_send_wrp_queue_ok ();
+	test_send_wrp_queue_ok ();
+	test_close_receiver ();
+	CU_ASSERT (flush_wrp_queue (500) == 3);
+
 	test_send_wrp_queue_error ();
 	printf ("LIBPD_TEST: test libparodus receive bad msg\n");
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == -2);
@@ -539,7 +558,7 @@ void test_1()
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	CU_ASSERT (setenv( "PARODUS_SERVICE_URL", parodus_url_orig, 1) == 0);
 	CU_ASSERT (setenv( "PARODUS_CLIENT_URL", BAD_CLIENT_URL, 1) == 0);
-	printf ("LIBPD_TEST: libparodus_init bad client ip\n");
+	printf ("LIBPD_TEST: libparodus_init bad client url\n");
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	CU_ASSERT (setenv( "PARODUS_CLIENT_URL", client_url_orig, 1) == 0);
 	printf ("LIBPD_TEST: libparodus_init bad raw queue name\n");

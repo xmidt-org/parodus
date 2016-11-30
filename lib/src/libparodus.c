@@ -70,9 +70,9 @@ static pthread_t wrp_receiver_tid;
 
 static const char *selected_service;
 
+int flush_wrp_queue (uint32_t delay_ms);
 static void make_closed_msg (wrp_msg_t *msg);
 static int wrp_sock_send (wrp_msg_t *msg);
-static int flush_wrp_queue (uint32_t delay_ms);
 static void *raw_receiver_thread (void *arg);
 static void *wrp_receiver_thread (void *arg);
 static void getParodusUrl();
@@ -105,30 +105,30 @@ static void libpd_log ( int level, int os_errno, const char *msg, ...)
 //Call free in failure case for parodus_url and client_url
 static void getParodusUrl()
 {
-	const char *parodusIp = NULL;
-	const char *clientIp = NULL;
+	const char *parodusUrl = NULL;
+	const char *clientUrl = NULL;
 	const char * envParodus = getenv ("PARODUS_SERVICE_URL");
 	const char * envClient = getenv ("PARODUS_CLIENT_URL");
   if( envParodus != NULL)
   {
-    parodusIp = envParodus;
+    parodusUrl = envParodus;
   }
   else
   {
-    parodusIp = PARODUS_SERVICE_URL;
+    parodusUrl = PARODUS_SERVICE_URL;
   }
-  snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
+  snprintf(parodus_url,sizeof(parodus_url),"%s", parodusUrl);
   libpd_log (LEVEL_INFO, 0, "LIBPARODUS: parodus url is  %s\n",parodus_url);
   
   if( envClient != NULL)
   {
-    clientIp = envClient;
+    clientUrl = envClient;
   }
   else
   {
-    clientIp = PARODUS_CLIENT_URL;
+    clientUrl = PARODUS_CLIENT_URL;
   }
-  snprintf(client_url,sizeof(client_url),"%s", clientIp);
+  snprintf(client_url,sizeof(client_url),"%s", clientUrl);
   libpd_log (LEVEL_INFO, 0, "LIBPARODUS: client url is  %s\n",client_url);
 }
 
@@ -434,7 +434,7 @@ static int timed_wrp_queue_receive (wrp_msg_t **msg, struct timespec *expire_tim
 		return -2;
 	}
 	*msg = *wrp_msg_buf;
-	//libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: receive msg on WRP QUEUE\n");
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: receive msg on WRP QUEUE\n");
 	return 0;
 }
 
@@ -472,6 +472,11 @@ int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms)
 	err = timed_wrp_queue_receive (msg, &ts);
 	if (err != 0)
 		return err;
+	if (*msg == NULL) {
+		libpd_log (LEVEL_DEBUG, 0, "LIBPARODOS: NULL msg from wrp queue\n");
+		return -1;
+	}
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: received msg type %d\n", (*msg)->msg_type);
 	if (is_closed_msg (*msg)) {
 		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: closed msg received\n");
 		return 2;
@@ -662,34 +667,34 @@ static void *wrp_receiver_thread (void *arg __attribute__ ((unused)) )
 	return NULL;
 }
 
-static int flush_wrp_queue (uint32_t delay_ms)
+int flush_wrp_queue (uint32_t delay_ms)
 {
 	wrp_msg_t *wrp_msg;
 	struct timespec ts;
 	int count = 0;
 	int err = get_expire_time (delay_ms, &ts);
 	if (err != 0) {
-		return err;
+		return -1;
 	}
 
 	while (1) {
 		err = timed_wrp_queue_receive (&wrp_msg, &ts);
-		if (err == 2) { // closed msg
-			count++;
-			continue;
-		}
 		if (err == 1)	// timed out
 			break;
 		if (err == -2) // bad msg
 			continue;
 		if (err != 0)
 			return -1;
+		if (is_closed_msg (wrp_msg)) {
+			count++;
+			continue;
+		}
 		wrp_free_struct (wrp_msg);
 		count++;
 	}
 	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: flushed %d messages out of WRP Queue\n", 
 		count);
-	return 0;
+	return count;
 }
 
 // Functions used by libpd_test.c
@@ -744,12 +749,16 @@ int test_raw_queue_receive (void)
 
 void test_send_wrp_queue_ok (void)
 {
-	wrp_msg_t reg_msg;
-	reg_msg.msg_type = WRP_MSG_TYPE__SVC_REGISTRATION;
-	reg_msg.u.reg.service_name = "iot";
-	reg_msg.u.reg.url = PARODUS_CLIENT_URL;
-	wrp_msg_t *msg = &reg_msg;
-	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &msg, 
+	wrp_msg_t *reg_msg = (wrp_msg_t *) malloc (sizeof(wrp_msg_t));
+	char *name;
+	reg_msg->msg_type = WRP_MSG_TYPE__SVC_REGISTRATION;
+	name = (char*) malloc (4);
+	strcpy (name, "iot");
+	reg_msg->u.reg.service_name = name;
+	name = (char *) malloc (strlen(PARODUS_CLIENT_URL) + 1);
+	strcpy (name, PARODUS_CLIENT_URL);
+	reg_msg->u.reg.url = name;
+	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &reg_msg, 
 		sizeof(wrp_msg_t *));
 }
 
