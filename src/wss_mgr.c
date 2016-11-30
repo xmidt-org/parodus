@@ -811,7 +811,7 @@ static void *handle_upstream()
 		
 		
 	sock = nn_socket( AF_SP, NN_PULL );
-	nn_bind(sock, parodus_url );
+	nn_bind(sock, PARODUS_UPSTREAM );
 	
 	
 	while( 1 ) 
