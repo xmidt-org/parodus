@@ -23,7 +23,7 @@ link_directories ( ${LIBRARY_DIR} )
 #   test_mutex
 #-------------------------------------------------------------------------------
 add_test(NAME test_mutex COMMAND test_mutex)
-add_executable(test_mutex test_mutex.c ../src/mutex.c )
+add_executable(test_mutex test_mutex.c ../src/mutex.c ../src/parodus_log.c)
 target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS})
 
 
@@ -31,14 +31,14 @@ target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS})
 #   test_networking
 #-------------------------------------------------------------------------------
 add_test(NAME test_networking COMMAND test_networking)
-add_executable(test_networking test_networking.c ../src/networking.c )
+add_executable(test_networking test_networking.c ../src/networking.c ../src/parodus_log.c)
 target_link_libraries (test_networking ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
-add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c )
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/parodus_log.c)
 target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg)
 
 if (NOT EXCLUDE_SIMPLE)
@@ -52,7 +52,8 @@ add_executable(simple simple.c
                       ../src/nopoll_helpers.c
                       ../src/string_helpers.c
                       ../src/mutex.c
-                      ../src/time.c )
+                      ../src/time.c 
+		      ../src/parodus_log.c)
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
 endif (NOT EXCLUDE_SIMPLE)
 
