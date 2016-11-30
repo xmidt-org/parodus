@@ -21,20 +21,19 @@ void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len)
 {
 	int bytesWritten = 0;
 	
-	printf("handleUpstreamMessage length %zu\n", len);
-	//printf("conn object is %s \n", conn);
+	ParodusInfo("handleUpstreamMessage length %zu\n", len);
 	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
 	{
 		bytesWritten = nopoll_conn_send_binary(conn, msg, len);
-		printf("Number of bytes written: %d\n", bytesWritten);
+		ParodusPrint("Number of bytes written: %d\n", bytesWritten);
 		if (bytesWritten != (int) len) 
 		{
-			printf("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
+			ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
 		}
 	}
 	else
 	{
-		printf("Failed to send msg upstream as connection is not OK\n");
+		ParodusError("Failed to send msg upstream as connection is not OK\n");
 	}
 	
 }
@@ -64,7 +63,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 	const char *recivedMsg = NULL;
 	recivedMsg =  (const char *) msg;
 	
-	printf("Received msg from server:%s\n", recivedMsg);	
+	ParodusInfo("Received msg from server:%s\n", recivedMsg);	
 	if(recivedMsg!=NULL) 
 	{
 	
@@ -74,29 +73,29 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 				
 		if(rv > 0)
 		{
-			printf("\nDecoded recivedMsg of size:%d\n", rv);
+			ParodusPrint("\nDecoded recivedMsg of size:%d\n", rv);
 			msgType = message->msg_type;
-			printf("msgType received:%d\n", msgType);
+			ParodusInfo("msgType received:%d\n", msgType);
 		
 			if((message->u.req.dest !=NULL))
 			{
 				destVal = message->u.req.dest;
 				strtok(destVal , "/");
 				strcpy(dest,strtok(NULL , "/"));
-				printf("Received downstream dest as :%s\n", dest);
+				ParodusInfo("Received downstream dest as :%s\n", dest);
 			
 				//Checking for individual clients & Sending to each client
 				
 				for( p = 0; p < *numOfClients; p++ ) 
 				{
-					printf("clients[%d].service_name is %s \n",p, clients[p]->service_name);
+					ParodusPrint("clients[%d].service_name is %s \n",p, clients[p]->service_name);
 				    // Sending message to registered clients
 				    if( strcmp(dest, clients[p]->service_name) == 0) 
 				    {  
-				    	printf("sending to nanomsg client %s\n", dest);     
+				    	ParodusPrint("sending to nanomsg client %s\n", dest);     
 					bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, 0);
-					printf("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
-					printf("downstream bytes sent:%d\n", bytes);
+					ParodusInfo("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
+					ParodusPrint("downstream bytes sent:%d\n", bytes);
 					destFlag =1;
 			
 				    } 
@@ -105,7 +104,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 				
 				if(destFlag ==0)
 				{
-					printf("Unknown dest:%s\n", dest);
+					ParodusError("Unknown dest:%s\n", dest);
 				}
 			
 		  	 }
@@ -113,10 +112,10 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 	  	
 	  	else
 	  	{
-	  		printf( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
+	  		ParodusError( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
 	  	}
 	  	
-	  	printf("free for downstream decoded msg\n");
+	  	ParodusPrint("free for downstream decoded msg\n");
 	  	wrp_free_struct(message);
 	  
 

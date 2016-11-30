@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include "time.h"
+#include "ParodusInternal.h"
 
 void getCurrentTime(struct timespec *timer)
 {
@@ -26,9 +27,9 @@ void getCurrentTime(struct timespec *timer)
 uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer)
 {
         uint64_t systime = 0;
-	    clock_gettime(CLOCK_REALTIME, timer);       
-        printf("timer->tv_sec : %lu\n",timer->tv_sec);
-        printf("timer->tv_nsec : %lu\n",timer->tv_nsec);
+	clock_gettime(CLOCK_REALTIME, timer);       
+        ParodusPrint("timer->tv_sec : %lu\n",timer->tv_sec);
+        ParodusPrint("timer->tv_nsec : %lu\n",timer->tv_nsec);
         systime = (uint64_t)timer->tv_sec * 1000000L + timer->tv_nsec/ 1000;
         return systime;	
 }
