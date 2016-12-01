@@ -92,7 +92,8 @@ add_dependencies(libnopoll nopoll)
 ExternalProject_Add(nanomsg
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
     GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
-    GIT_TAG "master"
+    GIT_TAG "15064e9f1e4101662522fed1d07387786fae8c6d"
+    PATCH_COMMAND patch -p1 < ${PATCHES_DIR}/nanomsg.patch
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libnanomsg STATIC SHARED IMPORTED)
