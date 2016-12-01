@@ -58,7 +58,7 @@ int main( int argc, char **argv)
     #ifdef PARODUS_LOGGER      
         rdk_logger_init("/etc/debug.ini");
     #endif
-
+    ParodusInfo("********** Starting component: Parodus **********\n "); 
     parseCommandLine(argc,argv,&parodusCfg);
      
     __createSocketConnection(&parodusCfg,NULL);
