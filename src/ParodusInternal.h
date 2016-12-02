@@ -30,7 +30,10 @@
 #include <nanomsg/pipeline.h>
 
 #include "wss_mgr.h"
-
+#include "parodus_log.h"
+#ifdef PARODUS_LOGGER
+#include <rdk_debug.h>
+#endif
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
