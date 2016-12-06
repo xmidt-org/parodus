@@ -45,7 +45,7 @@ if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
 #-------------------------------------------------------------------------------
-add_test(NAME simple COMMAND simple)
+#add_test(NAME simple COMMAND simple)
 add_executable(simple simple.c
                       ../src/wss_mgr.c
                       ../src/networking.c
