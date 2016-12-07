@@ -157,4 +157,4 @@ add_subdirectory(lib)
 
 add_custom_target(coverage DEPENDS ${COVERAGE_DEPENDS}
                   COMMAND genhtml  `find . -name "*.info"`
-                  WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+                 )
