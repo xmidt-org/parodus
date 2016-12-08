@@ -191,7 +191,7 @@ static void getParodusUrl()
     parodusIp = PARODUS_UPSTREAM ;
   }
   snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
-  printf("formatted parodus Url %s\n",parodus_url);
+  ParodusInfo("formatted parodus Url %s\n",parodus_url);
 	
 }
 
