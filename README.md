@@ -16,4 +16,4 @@ make coverage
 firefox index.html
 ```
 # Code Coverage
-[Code Coverage!] (https://travis-ci.org/Comcast/parodus/index.html)
+[Code Coverage!] (https://travis-ci.org/Comcast/parodus/build/index.html)
