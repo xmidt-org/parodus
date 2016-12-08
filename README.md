@@ -16,4 +16,4 @@ make coverage
 firefox index.html
 ```
 # Code Coverage
-[Code Coverage!] (./index.html)
+[Code Coverage!] (.build/index.html)
