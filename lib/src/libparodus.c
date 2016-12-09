@@ -67,6 +67,7 @@ static mqd_t wrp_queue = (mqd_t)-1;
 
 static pthread_t raw_receiver_tid;
 static pthread_t wrp_receiver_tid;
+static pthread_mutex_t send_mutex=PTHREAD_MUTEX_INITIALIZER;
 
 static const char *selected_service;
 
@@ -521,14 +522,17 @@ static int wrp_sock_send (wrp_msg_t *msg)
 	ssize_t msg_len;
 	void *msg_bytes;
 
+	pthread_mutex_lock (&send_mutex);
 	msg_len = wrp_struct_to (msg, WRP_BYTES, &msg_bytes);
 	if (msg_len < 1) {
 		libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error converting WRP to bytes\n");
+		pthread_mutex_unlock (&send_mutex);
 		return -1;
 	}
 
 	rtn = sock_send (send_sock, (const char *)msg_bytes, msg_len);
 	free (msg_bytes);
+	pthread_mutex_unlock (&send_mutex);
 	return rtn;
 }
 
