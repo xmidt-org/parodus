@@ -23,6 +23,8 @@
 #include <pthread.h>
 #include <mqueue.h>
 
+#define CONNECT_ON_EVERY_SEND 1
+
 #define PARODUS_SERVICE_URL "tcp://127.0.0.1:6666"
 //#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
 
@@ -264,11 +266,14 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 	if (rcv_sock == -1) 
 		return -1;
 	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: connecting sender to %s\n", parodus_url);
+#ifndef CONNECT_ON_EVERY_SEND
 	send_sock = connect_sender (parodus_url);
 	if (send_sock == -1) {
 		shutdown_socket(&rcv_sock);
 		return -1;
 	}
+#endif
+	// We use the stop_rcv_sock to send a stop msg to our own receive socket.
 	stop_rcv_sock = connect_sender (client_url);
 	if (stop_rcv_sock == -1) {
 		shutdown_socket(&rcv_sock);
@@ -530,7 +535,21 @@ static int wrp_sock_send (wrp_msg_t *msg)
 		return -1;
 	}
 
+#ifdef CONNECT_ON_EVERY_SEND
+	send_sock = connect_sender (parodus_url);
+	if (send_sock == -1) {
+		free (msg_bytes);
+		pthread_mutex_unlock (&send_mutex);
+		return -1;
+	}
+#endif
+
 	rtn = sock_send (send_sock, (const char *)msg_bytes, msg_len);
+
+#ifdef CONNECT_ON_EVERY_SEND
+	shutdown_socket (&send_sock);
+#endif
+
 	free (msg_bytes);
 	pthread_mutex_unlock (&send_mutex);
 	return rtn;
