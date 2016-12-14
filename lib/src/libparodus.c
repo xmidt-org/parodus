@@ -23,7 +23,8 @@
 #include <pthread.h>
 #include <mqueue.h>
 
-#define CONNECT_ON_EVERY_SEND 1
+// Remove this after parodus is updated
+#define PARODUS_SERVICE_REQUIRES_REGISTRATION 1
 
 #define PARODUS_SERVICE_URL "tcp://127.0.0.1:6666"
 //#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
@@ -46,6 +47,13 @@ static const char *end_msg = END_MSG;
 static char *closed_msg = "---CLOSED---\n";
 static wrp_msg_t wrp_closed_msg;
 static wrp_msg_t *closed_msg_ptr = &wrp_closed_msg;
+
+typedef struct {
+	bool receive;
+	bool connect_on_every_send;
+} libpd_options_t;
+
+static libpd_options_t libpd_options = {true, true};
 
 typedef struct {
 	int len;
@@ -238,9 +246,44 @@ static int send_registration_msg (const char *service_name)
 	reg_msg.u.reg.url = client_url;
 	return wrp_sock_send (&reg_msg);
 }
- 
-int libparodus_init (const char *service_name, parlibLogHandler log_handler)
+
+static int parse_options (const char *option_str )
 {
+	int i;
+	char c;
+
+	libpd_options.receive = true;
+	libpd_options.connect_on_every_send = true;
+	if (NULL == option_str)
+		return 0;
+	if (strcasecmp (option_str, "default") == 0)
+		return 0;
+	libpd_options.receive = false;
+	libpd_options.connect_on_every_send = false;
+	for (i=0; (c=option_str[i]) != 0; i++)
+	{
+		if ((c==',') || (c==' '))
+			continue;
+		if (c=='R') {
+			libpd_options.receive = true;
+			continue;
+		}
+		if (c=='C') {
+			libpd_options.connect_on_every_send = true;
+			continue;
+		}
+		libpd_log (LEVEL_ERROR, 0, "Invalid option \'%c\'.\n", c);
+		return -1;
+	}
+	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS Options: Rcv: %d, Connect: %d\n",
+		libpd_options.receive, libpd_options.connect_on_every_send);
+	return 0;
+}
+ 
+int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
+		const char *options)
+{
+	bool need_to_send_registration = libpd_options.receive;
 	int err;
 
 	if (RUN_STATE_RUNNING == run_state) {
@@ -256,75 +299,93 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 		libpd_log (LEVEL_NO_LOGGER, 0, "Failed to init logger\n");
 		return -1;
 	}
+	if (parse_options (options) != 0) {
+		return EINVAL;
+	}
   //Call getParodusUrl to get parodus and client url
   getParodusUrl();
 	make_closed_msg (&wrp_closed_msg);
 	auth_received = false;
 	selected_service = service_name;
-	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: connecting receiver to %s\n", client_url);
-	rcv_sock = connect_receiver (client_url);
-	if (rcv_sock == -1) 
-		return -1;
-	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: connecting sender to %s\n", parodus_url);
-#ifndef CONNECT_ON_EVERY_SEND
-	send_sock = connect_sender (parodus_url);
-	if (send_sock == -1) {
-		shutdown_socket(&rcv_sock);
-		return -1;
+	if (libpd_options.receive) {
+		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: connecting receiver to %s\n", client_url);
+		rcv_sock = connect_receiver (client_url);
+		if (rcv_sock == -1) 
+			return -1;
 	}
-#endif
-	// We use the stop_rcv_sock to send a stop msg to our own receive socket.
-	stop_rcv_sock = connect_sender (client_url);
-	if (stop_rcv_sock == -1) {
-		shutdown_socket(&rcv_sock);
-		shutdown_socket(&send_sock);
-		return -1;
+	if (!libpd_options.connect_on_every_send) {
+		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: connecting sender to %s\n", parodus_url);
+		send_sock = connect_sender (parodus_url);
+		if (send_sock == -1) {
+			shutdown_socket(&rcv_sock);
+			return -1;
+		}
 	}
-	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Opened sockets\n");
-	raw_queue = create_queue (raw_queue_name, 256);
-	if (raw_queue == (mqd_t)-1) {
-		shutdown_socket(&rcv_sock);
-		shutdown_socket(&send_sock);
-		shutdown_socket(&stop_rcv_sock);
-		return -1;
+	if (libpd_options.receive) {
+		// We use the stop_rcv_sock to send a stop msg to our own receive socket.
+		stop_rcv_sock = connect_sender (client_url);
+		if (stop_rcv_sock == -1) {
+			shutdown_socket(&rcv_sock);
+			shutdown_socket(&send_sock);
+			return -1;
+		}
+		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Opened sockets\n");
+		raw_queue = create_queue (raw_queue_name, 256);
+		if (raw_queue == (mqd_t)-1) {
+			shutdown_socket(&rcv_sock);
+			shutdown_socket(&send_sock);
+			shutdown_socket(&stop_rcv_sock);
+			return -1;
+		}
+		wrp_queue = create_queue (wrp_queue_name, 24);
+		if (wrp_queue == (mqd_t)-1) {
+			shutdown_socket(&rcv_sock);
+			mq_close (raw_queue);
+			shutdown_socket(&send_sock);
+			shutdown_socket(&stop_rcv_sock);
+			return -1;
+		}
+		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Created queues\n");
+		if (create_thread (&wrp_receiver_tid, wrp_receiver_thread) != 0) {
+			shutdown_socket(&rcv_sock);
+			mq_close (raw_queue);
+			mq_close (wrp_queue);
+			shutdown_socket(&send_sock);
+			shutdown_socket(&stop_rcv_sock);
+			return -1;
+		}
+		if (create_thread (&raw_receiver_tid, raw_receiver_thread) != 0) {
+			shutdown_socket(&rcv_sock);
+			pthread_cancel (wrp_receiver_tid);
+			mq_close (raw_queue);
+			mq_close (wrp_queue);
+			shutdown_socket(&send_sock);
+			shutdown_socket(&stop_rcv_sock);
+			return -1;
+		}
 	}
-	wrp_queue = create_queue (wrp_queue_name, 24);
-	if (wrp_queue == (mqd_t)-1) {
-		shutdown_socket(&rcv_sock);
-		mq_close (raw_queue);
-		shutdown_socket(&send_sock);
-		shutdown_socket(&stop_rcv_sock);
-		return -1;
-	}
-	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Created queues\n");
-	if (create_thread (&wrp_receiver_tid, wrp_receiver_thread) != 0) {
-		shutdown_socket(&rcv_sock);
-		mq_close (raw_queue);
-		mq_close (wrp_queue);
-		shutdown_socket(&send_sock);
-		shutdown_socket(&stop_rcv_sock);
-		return -1;
-	}
-	if (create_thread (&raw_receiver_tid, raw_receiver_thread) != 0) {
-		shutdown_socket(&rcv_sock);
-		pthread_cancel (wrp_receiver_tid);
-		mq_close (raw_queue);
-		mq_close (wrp_queue);
-		shutdown_socket(&send_sock);
-		shutdown_socket(&stop_rcv_sock);
-		return -1;
-	}
-	
+
 	run_state = RUN_STATE_RUNNING;
 
-	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: sending registration msg\n");
-	if (send_registration_msg (selected_service) != 0) {
-		libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error sending registration msg\n");
-		libparodus_shutdown ();
-		return -1;
+#ifdef PARODUS_SERVICE_REQUIRES_REGISTRATION
+	need_to_send_registration = true;
+#endif
+
+	if (need_to_send_registration) {
+		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: sending registration msg\n");
+		if (send_registration_msg (selected_service) != 0) {
+			libpd_log (LEVEL_ERROR, 0, "LIBPARODUS: error sending registration msg\n");
+			libparodus_shutdown ();
+			return -1;
+		}
+		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Sent registration message\n");
 	}
-	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: Sent registration message\n");
 	return 0;
+}
+
+int libparodus_init (const char *service_name, parlibLogHandler log_handler)
+{
+	return libparodus_init_ext (service_name, log_handler, "R,C");
 }
 
 static int queue_send (mqd_t q, const char *qname, const char *msg, int len)
@@ -379,24 +440,28 @@ int libparodus_shutdown (void)
 
 	run_state = RUN_STATE_DONE;
 	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Shutting Down\n");
-	sock_send (stop_rcv_sock, end_msg, -1);
- 	rtn = pthread_join (raw_receiver_tid, NULL);
-	if (rtn != 0)
-		libpd_log (LEVEL_ERROR, rtn, "Error terminating raw receiver thread\n");
-	shutdown_socket(&rcv_sock);
-	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Flushing wrp queue\n");
-	flush_wrp_queue (5);
-	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Send end msg to raw queue\n");
-	queue_send (raw_queue, "/RAW_QUEUE", end_msg, -1);
- 	rtn = pthread_join (wrp_receiver_tid, NULL);
-	if (rtn != 0)
-		libpd_log (LEVEL_ERROR, rtn, "Error terminating wrp receiver thread\n");
-	mq_close (raw_queue);
-	mq_close (wrp_queue);
+	if (libpd_options.receive) {
+		sock_send (stop_rcv_sock, end_msg, -1);
+	 	rtn = pthread_join (raw_receiver_tid, NULL);
+		if (rtn != 0)
+			libpd_log (LEVEL_ERROR, rtn, "Error terminating raw receiver thread\n");
+		shutdown_socket(&rcv_sock);
+		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Flushing wrp queue\n");
+		flush_wrp_queue (5);
+		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Send end msg to raw queue\n");
+		queue_send (raw_queue, "/RAW_QUEUE", end_msg, -1);
+	 	rtn = pthread_join (wrp_receiver_tid, NULL);
+		if (rtn != 0)
+			libpd_log (LEVEL_ERROR, rtn, "Error terminating wrp receiver thread\n");
+		mq_close (raw_queue);
+		mq_close (wrp_queue);
+	}
 	shutdown_socket(&send_sock);
-	shutdown_socket(&stop_rcv_sock);
-	mq_unlink (raw_queue_name);
-	mq_unlink (wrp_queue_name);
+	if (libpd_options.receive) {
+		shutdown_socket(&stop_rcv_sock);
+		mq_unlink (raw_queue_name);
+		mq_unlink (wrp_queue_name);
+	}
 	run_state = 0;
 	auth_received = false;
 	log_shutdown ();
@@ -465,10 +530,16 @@ static bool is_closed_msg (wrp_msg_t *msg)
 //  1 timed out
 // -1 mq_receive error
 // -2 msg size error, not a ptr
+// -3 no receive option
 int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms)
 {
 	struct timespec ts;
 	int err;
+
+	if (!libpd_options.receive) {
+		libpd_log (LEVEL_ERROR, 0, "No receive option on libparodus_receive\n");
+		return -3;
+	}
 
 	err = get_expire_time (ms, &ts);
 	if (err != 0) {
@@ -506,6 +577,10 @@ int libparodus_receive (wrp_msg_t **msg, uint32_t ms)
 
 int libparodus_close_receiver__ (void)
 {
+	if (!libpd_options.receive) {
+		libpd_log (LEVEL_ERROR, 0, "No receive option on libparodus_close_receiver\n");
+		return -3;
+	}
 	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &closed_msg_ptr, 
 		sizeof(wrp_msg_t *));
 	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Sent closed msg\n");
@@ -535,20 +610,20 @@ static int wrp_sock_send (wrp_msg_t *msg)
 		return -1;
 	}
 
-#ifdef CONNECT_ON_EVERY_SEND
-	send_sock = connect_sender (parodus_url);
-	if (send_sock == -1) {
-		free (msg_bytes);
-		pthread_mutex_unlock (&send_mutex);
-		return -1;
+	if (libpd_options.connect_on_every_send) {
+		send_sock = connect_sender (parodus_url);
+		if (send_sock == -1) {
+			free (msg_bytes);
+			pthread_mutex_unlock (&send_mutex);
+			return -1;
+		}
 	}
-#endif
 
 	rtn = sock_send (send_sock, (const char *)msg_bytes, msg_len);
 
-#ifdef CONNECT_ON_EVERY_SEND
-	shutdown_socket (&send_sock);
-#endif
+	if (libpd_options.connect_on_every_send) {
+		shutdown_socket (&send_sock);
+	}
 
 	free (msg_bytes);
 	pthread_mutex_unlock (&send_mutex);
@@ -557,7 +632,7 @@ static int wrp_sock_send (wrp_msg_t *msg)
 
 int libparodus_send__ (wrp_msg_t *msg)
 {
-	if (!auth_received) {
+	if (libpd_options.receive && (!auth_received)) {
 		libpd_log (LEVEL_NO_LOGGER, 0, "LIBPARODUS: AUTH not received at send\n");
 		return -1;
 	}
