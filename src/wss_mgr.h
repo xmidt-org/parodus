@@ -42,11 +42,6 @@ typedef struct
  */
 void createSocketConnection(void *config, void (* initKeypress)());
 
-
-/**
- * @brief Interface to terminate WebSocket client connections and clean up resources.
- */
-void terminateSocketConnection();
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 

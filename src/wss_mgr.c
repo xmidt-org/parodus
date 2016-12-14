@@ -88,7 +88,6 @@ typedef struct reg_client__
 /*----------------------------------------------------------------------------*/
 
 static ParodusCfg parodusCfg;
-static noPollCtx *ctx = NULL;
 static noPollConn *conn = NULL;
 static int numOfClients = 0;
 
@@ -206,6 +205,8 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 {
 	int intTimer=0;	
     	ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
+        noPollCtx *ctx;
+
    	loadParodusCfg(tmpCfg,&parodusCfg);
 			
 	ParodusPrint("Configure nopoll thread handlers in Parodus\n");
@@ -222,7 +223,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
   		nopoll_log_set_handler (ctx, __report_log, NULL);
 	#endif
 
-	createNopollConnection();
+	createNopollConnection(ctx);
 
 	getParodusUrl();
 	initUpStreamTask();
@@ -274,7 +275,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 			ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
 			__close_and_unref_connection__(conn);
 			conn = NULL;
-			createNopollConnection();
+			createNopollConnection(ctx);
 		}		
 	} while(!close_retry);
 	  	
@@ -286,35 +287,6 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 /**
  * @brief Interface to terminate WebSocket client connections and clean up resources.
  */
-void terminateSocketConnection()
-{
-	int i;
-	terminated = true;
-	LastReasonStatus = true;
-	
-	for (i=0; i<15; i++) 
-	{
-		pthread_mutex_lock (&mut);		
-		if(ParodusMsgQ == NULL)
-		{
-		 	pthread_cond_signal(&con);
-			pthread_mutex_unlock (&mut);
-			break;
-		}
-		pthread_mutex_unlock (&mut);
-	}
-	nopoll_loop_stop(ctx);
-	// Wait for nopoll_loop_wait to finish
-	for (i=0; i<15; i++) 
-	{
-		sleep(2);
-		if (nopoll_loop_ended(ctx))
-			break;
-	}
-	__close_and_unref_connection__(conn);	
-	nopoll_ctx_unref(ctx);
-	nopoll_cleanup_library();
-}
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -325,7 +297,7 @@ void terminateSocketConnection()
  * @brief createNopollConnection interface to create WebSocket client connections.
  *Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
  */
-static char createNopollConnection()
+static char createNopollConnection(noPollCtx *ctx)
 {
 	bool initial_retry = false;
 	int backoffRetryTime = 0;
