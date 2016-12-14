@@ -9,6 +9,11 @@
 #ifndef WEBSOCKET_MGR_H_
 #define WEBSOCKET_MGR_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 typedef struct
 {
     char hw_model[64];
@@ -35,13 +40,8 @@ typedef struct
  * Loads the WebPA config file, if not provided by the caller,
  *  and creates the intial connection and manages the connection wait, close mechanisms.
  */
-void __createSocketConnection(void *config, void (* initKeypress)());
+void createSocketConnection(void *config, void (* initKeypress)());
 
-/**
- * @brief Interface to create WebSocket client connections.
- * Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
- */
-void createSocketConnection();
 
 /**
  * @brief Interface to terminate WebSocket client connections and clean up resources.
@@ -49,5 +49,12 @@ void createSocketConnection();
 void terminateSocketConnection();
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
+
+
+#ifdef __cplusplus
+}
+#endif
+
+
 #endif /* WEBSOCKET_MGR_H_ */
 

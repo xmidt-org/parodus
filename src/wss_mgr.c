@@ -195,7 +195,13 @@ static void getParodusUrl()
 	
 }
 
-void __createSocketConnection(void *config_in, void (* initKeypress)())
+
+
+/*----------------------------------------------------------------------------*/
+/*                             External Functions                             */
+/*----------------------------------------------------------------------------*/
+
+void createSocketConnection(void *config_in, void (* initKeypress)())
 
 {
 	int intTimer=0;	
@@ -275,19 +281,6 @@ void __createSocketConnection(void *config_in, void (* initKeypress)())
 	__close_and_unref_connection__(conn);
 	nopoll_ctx_unref(ctx);
 	nopoll_cleanup_library();
-}
-
-/*----------------------------------------------------------------------------*/
-/*                             External Functions                             */
-/*----------------------------------------------------------------------------*/
-
-/**
- * @brief Interface to create WebSocket client connections.
- * Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
- */
-void createSocketConnection()
-{
-	__createSocketConnection (NULL, NULL);
 }
 
 /**
