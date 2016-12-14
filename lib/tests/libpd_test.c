@@ -88,6 +88,7 @@ static const char *service_name = "iot";
 //static const char *service_name = "config";
 
 static bool using_mock = false;
+static bool no_mock_send_only_test = false;
 
 // libparodus functions to be tested
 extern int flush_wrp_queue (uint32_t delay_ms);
@@ -323,7 +324,7 @@ int send_event_msg (const char *src, const char *dest,
 	return rtn;
 }
 
-int send_event_msgs (unsigned *msg_num, unsigned *event_num)
+int send_event_msgs (unsigned *msg_num, unsigned *event_num, int count)
 {
 	int i;
 	unsigned msg_num_mod;
@@ -331,11 +332,13 @@ int send_event_msgs (unsigned *msg_num, unsigned *event_num)
 #ifndef SEND_EVENT_MSGS
 	return 0;
 #endif
-	(*msg_num)++;
-	msg_num_mod = (*msg_num) % 3;
-	if (msg_num_mod != 0)
-		return 0;
-	for (i=0; i<5; i++) {
+	if (NULL != msg_num) {
+		(*msg_num)++;
+		msg_num_mod = (*msg_num) % 3;
+		if (msg_num_mod != 0)
+			return 0;
+	}
+	for (i=0; i<count; i++) {
 		(*event_num)++;
 		if (send_event_msg ("---LIBPARODUS---", "---ParodusService---",
 			"---EventMessagePayload####", *event_num) != 0)
@@ -450,7 +453,29 @@ void test_log (void)
 	CU_ASSERT (get_last_file_num_in_dir ("20161102", ".") == 4);
 }
 
-void test_1()
+void wait_auth_received (void)
+{
+	if (!is_auth_received ()) {
+		printf ("Waiting for auth received\n");
+		sleep(1);
+	}
+	if (!is_auth_received ()) {
+		printf ("Waiting for auth received\n");
+		sleep(1);
+	}
+	CU_ASSERT (is_auth_received ());
+}
+
+void test_send_only (void)
+{
+	unsigned event_num = 0;
+
+	CU_ASSERT (libparodus_init_ext (service_name, NULL, "C") == 0);
+	CU_ASSERT (send_event_msgs (NULL, &event_num, 10) == 0);
+	CU_ASSERT (libparodus_shutdown () == 0);
+}
+
+void test_1(void)
 {
 	unsigned msgs_received_count = 0;
 	unsigned timeout_cnt = 0;
@@ -569,9 +594,15 @@ void test_1()
 	printf ("LIBPD_TEST: libparodus_init bad wrp queue name\n");
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	wrp_queue_name = wrp_queue_orig_name;
-
+	printf ("LIBPD_TEST: libparodus_init bad options\n");
+	CU_ASSERT (libparodus_init_ext (service_name, NULL, "X") == EINVAL);
 
 	log_shutdown ();
+
+	if (no_mock_send_only_test) {
+		test_send_only ();
+		return;
+	}
 
 	if (using_mock) {
 		rtn = create_end_pipe ();
@@ -584,29 +615,28 @@ void test_1()
 		rtn = open_end_pipe ();
 	}
 
+	printf ("LIBPD_TEST: no receive option\n");
+	CU_ASSERT (libparodus_init_ext (service_name, NULL, "") == 0);
+	CU_ASSERT (send_event_msgs (NULL, &event_num, 5) == 0);
+	CU_ASSERT (libparodus_receive (&wrp_msg, 500) == -3);
+	CU_ASSERT (libparodus_shutdown () == 0);
+
 	CU_ASSERT (libparodus_init (service_name, NULL) == 0);
-	printf ("LIBPD libparodus_init successful\n");
+	printf ("LIBPD_TEST: libparodus_init successful\n");
 	initEndKeypressHandler ();
 
-	if (!is_auth_received ()) {
-		printf ("Waiting for auth received\n");
-		sleep(1);
-	}
-	if (!is_auth_received ()) {
-		printf ("Waiting for auth received\n");
-		sleep(1);
-	}
-	CU_ASSERT (is_auth_received ());
+	wait_auth_received ();
 	if (is_auth_received()) {
+		printf ("LIBPD_TEST: Test invalid wrp message\n");
 		wrp_msg = (wrp_msg_t *) "*** Invalid WRP message\n";
 		CU_ASSERT (libparodus_send (wrp_msg) != 0);
 	}
 
-	printf ("LIBPD starting msg receive loop\n");
+	printf ("LIBPD_TEST: starting msg receive loop\n");
 	while (true) {
 		rtn = libparodus_receive (&wrp_msg, 2000);
 		if (rtn == 1) {
-			printf ("Lipd test Timed out waiting for msg\n");
+			printf ("LIBPD_TEST: Timed out waiting for msg\n");
 #ifdef MOCK_MSG_COUNT
 			if (using_mock) {
 				timeout_cnt++;
@@ -617,7 +647,7 @@ void test_1()
 			}
 #endif
 			if (msgs_received_count > 0)
-				if (send_event_msgs (&msg_num, &event_num) != 0)
+				if (send_event_msgs (&msg_num, &event_num, 5) != 0)
 					break;
 			continue;
 		}
@@ -629,7 +659,7 @@ void test_1()
 		if (wrp_msg->msg_type == WRP_MSG_TYPE__REQ)
 			send_reply (wrp_msg);
 		wrp_free_struct (wrp_msg);
-		if (send_event_msgs (&msg_num, &event_num) != 0)
+		if (send_event_msgs (&msg_num, &event_num, 5) != 0)
 			break;
 	}
 	if (using_mock) {
@@ -703,6 +733,11 @@ int main( int argc, char **argv __attribute__((unused)) )
 
 		if (argc <= 1)
 			using_mock = true;
+		else {
+			const char *arg = argv[1];
+			if ((arg[0] == 's') || (arg[0] == 'S'))
+				no_mock_send_only_test = true;
+		}
 
     if( CUE_SUCCESS == CU_initialize_registry() ) {
         add_suites( &suite );
