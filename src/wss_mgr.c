@@ -13,10 +13,9 @@
 #include <cJSON.h>
 #include <nopoll.h>
 #include <sys/sysinfo.h>
-#include "wss_mgr.h"
 #include <pthread.h>
 #include <math.h>
-#include <nopoll.h>
+#include "wss_mgr.h"
 
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -31,6 +30,7 @@
 #include "ParodusInternal.h"
 #include "time.h"
 #include "parodus_log.h"
+#include "connection.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -54,41 +54,13 @@
 #define HARVESTER "harvester"
 #define GET_SET "get_set"
 
-#define UNUSED(x) (void)(x)
-
-/*----------------------------------------------------------------------------*/
-/*                               Data Structures                              */
-/*----------------------------------------------------------------------------*/
-
-/*typedef struct ParodusMsg__
-{
-	noPollMsg * msg;
-	void * payload;
-	size_t len;
-	struct ParodusMsg__ *next;
-} ParodusMsg;
-
-typedef struct UpStreamMsg__
-{
-	void *msg;
-	size_t len;
-	struct UpStreamMsg__ *next;
-} UpStreamMsg;
-
-typedef struct reg_client__
-{
-	int sock;
-	char service_name[32];
-	char url[100];
-} reg_client;*/
-
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
 static ParodusCfg parodusCfg;
-static noPollConn *conn = NULL;
+static noPollConn *g_conn = NULL;
 static int numOfClients = 0;
 
 //Currently set the max mumber of clients as 10
@@ -97,35 +69,30 @@ reg_client *clients[10];
 void *metadataPack;
 size_t metaPackSize=-1;
 
-static char deviceMAC[32]={'\0'}; 
-static volatile unsigned int heartBeatTimer = 0;
-static volatile bool terminated = false;
-static bool close_retry = false;
-static bool LastReasonStatus = false;
+volatile unsigned int heartBeatTimer = 0;
+volatile bool terminated = false;
+ParodusMsg *ParodusMsgQ = NULL;
+UpStreamMsg *UpStreamMsgQ = NULL;
+
+bool close_retry = false;
+bool LastReasonStatus = false;
 char *reconnect_reason = NULL;
-static ParodusMsg *ParodusMsgQ = NULL;
-static UpStreamMsg *UpStreamMsgQ = NULL;
-static void __close_and_unref_connection__(noPollConn *conn);
+
+void close_and_unref_connection(noPollConn *conn);
 char parodus_url[32] ={'\0'};
 
-pthread_mutex_t mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t g_mutex=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
 
-pthread_cond_t con=PTHREAD_COND_INITIALIZER;
+pthread_cond_t g_cond=PTHREAD_COND_INITIALIZER;
 pthread_cond_t close_con=PTHREAD_COND_INITIALIZER;
 pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-static char createNopollConnection();
 
-static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
-static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data);
-
-
-static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data);
 static void initMessageHandler();
 static void *messageHandlerTask();
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
@@ -136,6 +103,24 @@ static void processUpStreamTask();
 static void *processUpStreamHandler();
 static void handleUpStreamEvents();
 static void getParodusUrl();
+
+/*
+ Export parodusCfg
+ */
+ParodusCfg *get_parodus_cfg(void) 
+{
+    return &parodusCfg;
+}
+
+noPollConn *get_global_conn(void)
+{
+    return g_conn;
+}
+
+void set_global_conn(noPollConn *conn)
+{
+    g_conn = conn;
+}
 
 /**
  * @brief __report_log Nopoll log handler 
@@ -166,7 +151,7 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 }
 
 
-void __close_and_unref_connection__(noPollConn *conn)
+void close_and_unref_connection(noPollConn *conn)
 {
     if (conn) {
         nopoll_conn_close(conn);
@@ -207,7 +192,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     	ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
         noPollCtx *ctx;
 
-   	loadParodusCfg(tmpCfg,&parodusCfg);
+   	loadParodusCfg(tmpCfg,get_parodus_cfg());
 			
 	ParodusPrint("Configure nopoll thread handlers in Parodus\n");
 	
@@ -243,11 +228,12 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 		
 		intTimer = intTimer + 5;
 		
-		if(heartBeatTimer >= parodusCfg.webpa_ping_timeout) 
+		if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout) 
 		{
 			if(!close_retry) 
 			{
-				ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", parodusCfg.webpa_ping_timeout);
+				ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n",
+                                        get_parodus_cfg()->webpa_ping_timeout);
 							
 				reconnect_reason = "Ping_Miss";
 				LastReasonStatus = true;
@@ -273,13 +259,13 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 		if(close_retry)
 		{
 			ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
-			__close_and_unref_connection__(conn);
-			conn = NULL;
+			close_and_unref_connection(g_conn);
+			g_conn = NULL;
 			createNopollConnection(ctx);
 		}		
 	} while(!close_retry);
 	  	
-	__close_and_unref_connection__(conn);
+	close_and_unref_connection(g_conn);
 	nopoll_ctx_unref(ctx);
 	nopoll_cleanup_library();
 }
@@ -291,371 +277,6 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
-
-
-/**
- * @brief createNopollConnection interface to create WebSocket client connections.
- *Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
- */
-static char createNopollConnection(noPollCtx *ctx)
-{
-	bool initial_retry = false;
-	int backoffRetryTime = 0;
-	int max_retry_sleep;
-	
-	char device_id[32]={'\0'};
-	char user_agent[512]={'\0'};
-	const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
-	const char * headerValues[HTTP_CUSTOM_HEADER_COUNT];
-        int headerCount = HTTP_CUSTOM_HEADER_COUNT; /* Invalid X-Webpa-Convey header Bug # WEBPA-787 */
-	char port[8];
-	noPollConnOpts * opts;
-	char server_Address[256];
-	char redirectURL[128]={'\0'};
-	char *temp_ptr;
-	cJSON *resParamObj1 = NULL ,*resParamObj2 = NULL,*resParamObj3 = NULL ,*resParamObj4 = NULL , *parameters = NULL;
-	cJSON *response = cJSON_CreateObject();
-	char *buffer = NULL, *firmwareVersion = NULL, *modelName = NULL, *manufacturer = NULL;
-	
-	char *reboot_reason = NULL;
-	char encodedData[1024];
-	int  encodedDataSize = 1024;
-	int i=0, j=0, connErr=0;
-	int bootTime_sec;
-	char boot_time[256]={'\0'};
-	char webpaProtocol[16]={'\0'};
-	//Retry Backoff count shall start at c=2 & calculate 2^c - 1.
-	int c=2;
-
-	FILE *fp;
-	fp = fopen("/tmp/parodus_ready", "r");
-
-	if (fp!=NULL)
-	{
-		unlink("/tmp/parodus_ready");
-		ParodusPrint("Closing Parodus_Ready FIle \n");
-		fclose(fp);
-	}
-	
-	//struct timespec start,end,connErr_start,connErr_end,*startPtr,*endPtr,*connErr_startPtr,*connErr_endPtr;
-	struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
-	//startPtr = &start;
-	//endPtr = &end;
-	connErr_startPtr = &connErr_start;
-	connErr_endPtr = &connErr_end;
-	strcpy(deviceMAC, parodusCfg.hw_mac);
-	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
-	ParodusInfo("Device_id %s\n",device_id);
-
-	headerValues[0] = device_id;
-	headerValues[1] = "wrp-0.11,getset-0.1";    
-	
-	
-	bootTime_sec = parodusCfg.boot_time;
-	ParodusPrint("BootTime In sec: %d\n", bootTime_sec);
-	firmwareVersion = parodusCfg.fw_name;
-    modelName = parodusCfg.hw_model;
-    manufacturer = parodusCfg.hw_manufacturer;
-    	snprintf(user_agent, sizeof(user_agent),
-             "WebPA-1.6 (%s; %s/%s;)",
-             ((0 != strlen(firmwareVersion)) ? firmwareVersion : "unknown"),
-             ((0 != strlen(modelName)) ? modelName : "unknown"),
-             ((0 != strlen(manufacturer)) ? manufacturer : "unknown"));
-
-	ParodusInfo("User-Agent: %s\n",user_agent);
-	headerValues[2] = user_agent;
-	reconnect_reason = "webpa_process_starts";	
-	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
-	reboot_reason = parodusCfg.hw_last_reboot_reason;
-	ParodusInfo("Received reboot_reason as:%s\n", reboot_reason);
-	
-	if(firmwareVersion != NULL )
-	{
-		cJSON_AddItemToObject(response, "parameters", parameters = cJSON_CreateArray());
-		
-		cJSON_AddItemToArray(parameters, resParamObj1 = cJSON_CreateObject());
-		cJSON_AddStringToObject(resParamObj1, "name", "FirmwareVersion");
-		cJSON_AddStringToObject(resParamObj1, "value", firmwareVersion);
-		cJSON_AddNumberToObject(resParamObj1, "dataType", 0);
-		
-		cJSON_AddItemToArray(parameters, resParamObj2 = cJSON_CreateObject());
-		cJSON_AddStringToObject(resParamObj2, "name", "BootTime");
-		cJSON_AddNumberToObject(resParamObj2, "value", bootTime_sec);
-		cJSON_AddNumberToObject(resParamObj2, "dataType", 2);
-		
-		if(reconnect_reason !=NULL)
-		{
-			cJSON_AddItemToArray(parameters, resParamObj3 = cJSON_CreateObject());
-			cJSON_AddStringToObject(resParamObj3, "name", "Reconnect Reason");
-			cJSON_AddStringToObject(resParamObj3, "value", reconnect_reason);
-			cJSON_AddNumberToObject(resParamObj3, "dataType", 0);
-		}
-		else
-		{
-		     	ParodusError("Failed to GET Reconnect reason value\n");
-		}
-		if(reboot_reason !=NULL)
-		{
-			
-			cJSON_AddItemToArray(parameters, resParamObj4 = cJSON_CreateObject());
-			cJSON_AddStringToObject(resParamObj4, "name", "Reboot reason");
-			cJSON_AddStringToObject(resParamObj4, "value", reboot_reason);
-			cJSON_AddNumberToObject(resParamObj4, "dataType", 0);
-		}
-		else
-		{
-			ParodusError("Failed to GET Reboot reason value\n");
-		}
-		
-
-		buffer = cJSON_PrintUnformatted(response);
-		ParodusInfo("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
-
-		if(nopoll_base64_encode (buffer, strlen(buffer), encodedData, &encodedDataSize) != nopoll_true)
-		{
-			ParodusError("Base64 Encoding failed for Connection Header\n");
-			headerValues[3] = ""; 
-                        headerCount -= 1; 
-		}
-		else
-		{
-			/* Remove \n characters from the base64 encoded data */
-			for(i=0;encodedData[i] != '\0';i++)
-			{
-				if(encodedData[i] == '\n')
-				{
-					ParodusPrint("New line is present in encoded data at position %d\n",i);
-				}
-				else
-				{
-					encodedData[j] = encodedData[i];
-					j++;
-				}
-			}
-			encodedData[j]='\0';
-			headerValues[3] = encodedData;
-			ParodusPrint("Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
-		}
-	}
-	else
-	{
-                headerValues[3] = ""; 
-                headerCount -= 1; 
-                
-	}
-	
-	cJSON_Delete(response);
-	
-	
-	snprintf(port,sizeof(port),"%d",8080);
-	parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
-	ParodusInfo("server_Address %s\n",server_Address);
-	
-	parodusCfg.secureFlag = 1;	
-			
-	max_retry_sleep = (int) pow(2, parodusCfg.webpa_backoff_max) -1;
-	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
-	
-	do
-	{
-		
-		//calculate backoffRetryTime and to perform exponential increment during retry
-		
-		if(backoffRetryTime < max_retry_sleep)
-		{
-			backoffRetryTime = (int) pow(2, c) -1;
-		}
-		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
-								
-		if(parodusCfg.secureFlag) 
-		{
-		    ParodusPrint("secure true\n");
-			/* disable verification */
-			opts = nopoll_conn_opts_new ();
-			nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
-			nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2); 
-			conn = nopoll_conn_tls_new(ctx, opts, server_Address, port, NULL,
-                               "/api/v2/device", NULL, NULL, parodusCfg.webpa_interface_used,
-                                headerNames, headerValues, headerCount);// WEBPA-787
-		}
-		else 
-		{
-		    ParodusPrint("secure false\n");
-			conn = nopoll_conn_new(ctx, server_Address, port, NULL,
-                               "/api/v2/device", NULL, NULL, parodusCfg.webpa_interface_used,
-                                headerNames, headerValues, headerCount);// WEBPA-787
-		}
-
-		if(conn != NULL)
-		{
-			if(!nopoll_conn_is_ok(conn)) 
-			{
-				ParodusError("Error connecting to server\n");
-				ParodusError("RDK-10037 - WebPA Connection Lost\n");
-				// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-				parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
-				__close_and_unref_connection__(conn);
-				conn = NULL;
-				initial_retry = true;
-				
-				ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
-				sleep(backoffRetryTime);
-				continue;
-			}
-			else 
-			{
-				ParodusPrint("Connected to Server but not yet ready\n");
-				initial_retry = false;
-						
-				//reset backoffRetryTime back to the starting value, as next reason can be different					
-				c = 2;
-				backoffRetryTime = (int) pow(2, c) -1;
-						
-									
-			}
-
-			if(!nopoll_conn_wait_until_connection_ready(conn, 10, redirectURL)) 
-			{
-				
-				if (strncmp(redirectURL, "Redirect:", 9) == 0) // only when there is a http redirect
-				{
-					ParodusError("Received temporary redirection response message %s\n", redirectURL);
-					// Extract server Address and port from the redirectURL
-					temp_ptr = strtok(redirectURL , ":"); //skip Redirect 
-					temp_ptr = strtok(NULL , ":"); // skip https
-					temp_ptr = strtok(NULL , ":");
-					parStrncpy(server_Address, temp_ptr+2, sizeof(server_Address));
-					parStrncpy(port, strtok(NULL , "/"), sizeof(port));
-					ParodusInfo("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
-					
-					//reset c=2 to start backoffRetryTime as retrying using new redirect server
-					c = 2;
-					
-				}
-				else
-				{
-					ParodusError("Client connection timeout\n");	
-					ParodusError("RDK-10037 - WebPA Connection Lost\n");
-					// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-					parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
-					ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
-					sleep(backoffRetryTime);
-					c++;
-				}
-				__close_and_unref_connection__(conn);
-				conn = NULL;
-				initial_retry = true;
-				
-			}
-			else 
-			{
-				initial_retry = false;				
-				ParodusInfo("Connection is ready\n");
-			}
-		}
-		else
-		{
-			
-			/* If the connect error is due to DNS resolving to 10.0.0.1 then start timer.
-			 * Timeout after 15 minutes if the error repeats continuously and kill itself. 
-			 */
-			if((checkHostIp(server_Address) == -2)) 	
-			{
-				if(connErr == 0)
-				{
-					getCurrentTime(connErr_startPtr);
-					connErr = 1;
-					ParodusInfo("First connect error occurred, initialized the connect error timer\n");
-				}
-				else
-				{
-					getCurrentTime(connErr_endPtr);
-					ParodusPrint("checking timeout difference:%ld\n", timeValDiff(connErr_startPtr, connErr_endPtr));
-					if(timeValDiff(connErr_startPtr, connErr_endPtr) >= (15*60*1000))
-					{
-						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
-						reconnect_reason = "Dns_Res_webpa_reconnect";
-						LastReasonStatus = true;
-						
-						kill(getpid(),SIGTERM);						
-					}
-				}			
-			}
-			initial_retry = true;
-			ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
-			sleep(backoffRetryTime);
-			c++;
-			// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-			parStrncpy(server_Address, parodusCfg.webpa_url, sizeof(server_Address));
-		}
-				
-	}while(initial_retry);
-	
-	if(parodusCfg.secureFlag) 
-	{
-		ParodusInfo("Connected to server over SSL\n");
-	}
-	else 
-	{
-		ParodusInfo("Connected to server\n");
-	}
-	
-	//creating tmp file to signal parodus_ready status once connection is successful
-	fp = fopen("/tmp/parodus_ready", "w");
-	
-	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
-	ParodusPrint("createNopollConnection(): close_mutex lock\n");
-	pthread_mutex_lock (&close_mut);
-	close_retry = false;
-	pthread_mutex_unlock (&close_mut);
-	ParodusPrint("createNopollConnection(): close_mutex unlock\n");
-	heartBeatTimer = 0;
-	
-	
-	//Pack the metadata initially to reuse for every upstream msg sending to server
-  	ParodusPrint("-------------- Packing metadata ----------------\n");
-  	sprintf(boot_time, "%d", bootTime_sec);
- 
-  	if(parodusCfg.secureFlag)
-	{
-		strcpy(webpaProtocol,"https");
-	}
-	else
-	{
-		strcpy(webpaProtocol,"http");
-	}
-	ParodusPrint("webpaProtocol is %s\n", webpaProtocol);
-  	
-	struct data meta_pack[METADATA_COUNT] = {{"hw-model", modelName}, {"hw-serial-number", parodusCfg.hw_serial_number},{"hw-manufacturer", manufacturer},{"hw-mac", parodusCfg.hw_mac},{"hw_last_reboot_reason", reboot_reason},{"fw-name", firmwareVersion},{"boot_time", boot_time},{"webpa-last-reconnect-reason",reconnect_reason}, {"webpa_protocol",webpaProtocol}, {"webpa_uuid",parodusCfg.webpa_uuid}, {"webpa_interface_used", parodusCfg.webpa_interface_used}};
-	
-	const data_t metapack = {METADATA_COUNT, meta_pack};
-	
-	metaPackSize = wrp_pack_metadata( &metapack , &metadataPack );
-
-	if (metaPackSize > 0) 
-	{
-		ParodusPrint("metadata encoding is successful with size %zu\n", metaPackSize);
-	}
-	else
-	{
-		ParodusError("Failed to encode metadata\n");
-
-	}
-	
-
-	// Reset connErr flag on successful connection
-	connErr = 0;
-	
-	reconnect_reason = "webpa_process_starts";
-	LastReasonStatus = true;
-
-	nopoll_conn_set_on_msg(conn, (noPollOnMessageHandler) listenerOnMessage_queue, NULL);
-	nopoll_conn_set_on_ping_msg(conn, (noPollOnMessageHandler)listenerOnPingMessage, NULL);
-	nopoll_conn_set_on_close(conn, (noPollOnCloseHandler)listenerOnCloseMessage, NULL);
-	return nopoll_true;
-}
-
-
 
        
  
@@ -942,7 +563,7 @@ static void handleUpStreamEvents()
 					   	ParodusPrint("metadata appended upstream msg %s\n", (char *)appendData);
 					   
 						ParodusInfo("Sending metadata appended upstream msg to server\n");
-					   	handleUpstreamMessage(conn,appendData, encodedSize);
+					   	handleUpstreamMessage(g_conn,appendData, encodedSize);
 					   	
 						free( appendData);
 						appendData =NULL;
@@ -1020,13 +641,13 @@ static void *messageHandlerTask()
 {
 	while(1)
 	{
-		pthread_mutex_lock (&mut);
+		pthread_mutex_lock (&g_mutex);
 		ParodusPrint("mutex lock in consumer thread\n");
 		if(ParodusMsgQ != NULL)
 		{
 			ParodusMsg *message = ParodusMsgQ;
 			ParodusMsgQ = ParodusMsgQ->next;
-			pthread_mutex_unlock (&mut);
+			pthread_mutex_unlock (&g_mutex);
 			ParodusPrint("mutex unlock in consumer thread\n");
 			if (!terminated) 
 			{
@@ -1041,8 +662,8 @@ static void *messageHandlerTask()
 		else
 		{
 			ParodusPrint("Before pthread cond wait in consumer thread\n");   
-			pthread_cond_wait(&con, &mut);
-			pthread_mutex_unlock (&mut);
+			pthread_cond_wait(&g_cond, &g_mutex);
+			pthread_mutex_unlock (&g_mutex);
 			ParodusPrint("mutex unlock in consumer thread after cond wait\n");
 			if (terminated) 
 			{
@@ -1054,132 +675,6 @@ static void *messageHandlerTask()
 	ParodusPrint ("Ended messageHandlerTask\n");
 	return 0;
 }
-
-/**
- * @brief listenerOnMessage_queue function to add messages to the queue
- *
- * @param[in] ctx The context where the connection happens.
- * @param[in] conn The Websocket connection object
- * @param[in] msg The message received from server for various process requests
- * @param[out] user_data data which is to be sent
- */
-
-static void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data)
-{
-
-	UNUSED(ctx);
-	UNUSED(conn);
-	UNUSED(user_data);
-
-	ParodusMsg *message;
-
-	if (terminated) 
-	{
-		return;
-	}
-
-	message = (ParodusMsg *)malloc(sizeof(ParodusMsg));
-
-	if(message)
-	{
-
-		message->msg = msg;
-		message->payload = (void *)nopoll_msg_get_payload (msg);
-		message->len = nopoll_msg_get_payload_size (msg);
-		message->next = NULL;
-
-	
-		nopoll_msg_ref(msg);
-		
-		pthread_mutex_lock (&mut);		
-		ParodusPrint("mutex lock in producer thread\n");
-		
-		if(ParodusMsgQ == NULL)
-		{
-			ParodusMsgQ = message;
-			ParodusPrint("Producer added message\n");
-		 	pthread_cond_signal(&con);
-			pthread_mutex_unlock (&mut);
-			ParodusPrint("mutex unlock in producer thread\n");
-		}
-		else
-		{
-			ParodusMsg *temp = ParodusMsgQ;
-			while(temp->next)
-			{
-				temp = temp->next;
-			}
-			temp->next = message;
-			pthread_mutex_unlock (&mut);
-		}
-	}
-	else
-	{
-		//Memory allocation failed
-		ParodusError("Memory allocation is failed\n");
-	}
-	ParodusPrint("*****Returned from listenerOnMessage_queue*****\n");
-}
-
-
-
-
-/**
- * @brief listenerOnPingMessage function to create WebSocket listener to receive heartbeat ping messages
- *
- * @param[in] ctx The context where the connection happens.
- * @param[in] conn Websocket connection object
- * @param[in] msg The ping message received from the server
- * @param[out] user_data data which is to be sent
- */
-static void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data)
-{
-
-	UNUSED(ctx);
-	UNUSED(user_data);
-
-    noPollPtr payload = NULL;
-	payload = (noPollPtr ) nopoll_msg_get_payload(msg);
-
-	if ((payload!=NULL) && !terminated) 
-	{
-		ParodusInfo("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
-		if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 
-		{
-			nopoll_conn_send_frame (conn, nopoll_true, nopoll_true, NOPOLL_PONG_FRAME, strlen(payload), payload, 0);
-			heartBeatTimer = 0;
-			ParodusPrint("Sent Pong frame and reset HeartBeat Timer\n");
-		}
-	}
-}
-
-static void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data)
-{
-	
-
-	UNUSED(ctx);
-	UNUSED(conn);
-	
-	ParodusPrint("listenerOnCloseMessage(): mutex lock in producer thread\n");
-	
-	if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
-	{
-		reconnect_reason = "Server_closed_connection";
-		LastReasonStatus = true;
-		
-	}
-	else if ((user_data == NULL) && !LastReasonStatus)
-	{
-		reconnect_reason = "Unknown";
-	}
-
-	pthread_mutex_lock (&close_mut);
-	close_retry = true;
-	pthread_mutex_unlock (&close_mut);
-	ParodusPrint("listenerOnCloseMessage(): mutex unlock in producer thread\n");
-
-}
-
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {

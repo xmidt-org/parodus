@@ -8,6 +8,7 @@
  
 #ifndef WEBSOCKET_MGR_H_
 #define WEBSOCKET_MGR_H_
+#include <nopoll.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +45,12 @@ void createSocketConnection(void *config, void (* initKeypress)());
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
+
+// Accessor for the global config structure.
+ParodusCfg *get_parodus_cfg(void);
+noPollConn *get_global_conn(void);
+void set_global_conn(noPollConn *);
+#define UNUSED(x) (void)(x)
 
 
 #ifdef __cplusplus
