@@ -31,6 +31,7 @@
 #include "time.h"
 #include "parodus_log.h"
 #include "connection.h"
+#include "spin_thread.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -93,15 +94,12 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-static void initMessageHandler();
-static void *messageHandlerTask();
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
 
-static void initUpStreamTask();
 static void *handle_upstream();
-static void processUpStreamTask();
-static void *processUpStreamHandler();
-static void handleUpStreamEvents();
+static void *handleUpStreamEvents();
+static void *messageHandlerTask();
+
 static void getParodusUrl();
 
 /*
@@ -164,18 +162,20 @@ void close_and_unref_connection(noPollConn *conn)
 
 static void getParodusUrl()
 {
-	const char *parodusIp = NULL;
-	const char * envParodus = getenv ("PARODUS_SERVICE_URL");
-  if( envParodus != NULL)
-  {
-    parodusIp = envParodus;
-  }
-  else
-  {
-    parodusIp = PARODUS_UPSTREAM ;
-  }
-  snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
-  ParodusInfo("formatted parodus Url %s\n",parodus_url);
+    const char *parodusIp = NULL;
+    const char * envParodus = getenv ("PARODUS_SERVICE_URL");
+    
+    if( envParodus != NULL)
+    {
+      parodusIp = envParodus;
+    }
+    else
+    {
+      parodusIp = PARODUS_UPSTREAM ;
+    }
+    
+    snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
+    ParodusInfo("formatted parodus Url %s\n",parodus_url);
 	
 }
 
@@ -191,7 +191,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 	int intTimer=0;	
     	ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
         noPollCtx *ctx;
-
+        
    	loadParodusCfg(tmpCfg,get_parodus_cfg());
 			
 	ParodusPrint("Configure nopoll thread handlers in Parodus\n");
@@ -211,10 +211,13 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 	createNopollConnection(ctx);
 
 	getParodusUrl();
-	initUpStreamTask();
-	processUpStreamTask();
-		
-	initMessageHandler();
+        
+        UpStreamMsgQ = NULL;
+        StartThread(handle_upstream);
+        StartThread(handleUpStreamEvents);
+        
+        ParodusMsgQ = NULL;
+        StartThread(messageHandlerTask);
 	
 	if (NULL != initKeypress) 
 	{
@@ -279,28 +282,6 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 /*----------------------------------------------------------------------------*/
 
        
- 
- /*
- * @brief To initiate UpStream message handling
- */
-
-static void initUpStreamTask()
-{
-	int err = 0;
-	pthread_t UpStreamMsgThreadId;
-	UpStreamMsgQ = NULL;
-
-	err = pthread_create(&UpStreamMsgThreadId, NULL, handle_upstream, NULL);
-	if (err != 0) 
-	{
-		ParodusError("Error creating messages thread :[%s]\n", strerror(err));
-	}
-	else
-	{
-		ParodusPrint("handle_upstream thread created Successfully\n");
-	}
-}
-
 /*
  * @brief To handle UpStream messages which is received from nanomsg server socket
  */
@@ -375,37 +356,7 @@ static void *handle_upstream()
 }
 
 
-/*
- * @brief To process the received msg and to send upstream
- */
-
-static void processUpStreamTask()
-{
-	int err = 0;
-	pthread_t processUpStreamThreadId;
-	UpStreamMsgQ = NULL;
-
-	err = pthread_create(&processUpStreamThreadId, NULL, processUpStreamHandler, NULL);
-	if (err != 0) 
-	{
-		ParodusError("Error creating messages thread :[%s]\n", strerror(err));
-	}
-	else
-	{
-		ParodusPrint("processUpStreamHandler thread created Successfully\n");
-	}
-}
-
-
-
-static void *processUpStreamHandler()
-{
-	ParodusPrint("Inside processUpStreamHandler..\n");
-	handleUpStreamEvents();
-	return 0;
-}
-
-static void handleUpStreamEvents()
+static void *handleUpStreamEvents()
 {		
 	int rv=-1;	
 	int msgType;
@@ -494,64 +445,56 @@ static void handleUpStreamEvents()
 					if((matchFlag == 0) || (numOfClients == 0))
 					{
 					
-						clients[numOfClients] = (reg_client*)malloc(sizeof(reg_client));
+                                            clients[numOfClients] = (reg_client*)malloc(sizeof(reg_client));
 
-						clients[numOfClients]->sock = nn_socket( AF_SP, NN_PUSH );
-						nn_connect(clients[numOfClients]->sock, msg->u.reg.url);  
+                                            clients[numOfClients]->sock = nn_socket( AF_SP, NN_PUSH );
+                                            nn_connect(clients[numOfClients]->sock, msg->u.reg.url);  
 
-						int t = 20000;
-						nn_setsockopt(clients[numOfClients]->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
-						 
-						strcpy(clients[numOfClients]->service_name,msg->u.reg.service_name);
-						strcpy(clients[numOfClients]->url,msg->u.reg.url);
+                                            int t = 20000;
+                                            nn_setsockopt(clients[numOfClients]->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
 
-						ParodusPrint("%s\n",clients[numOfClients]->service_name);
-						ParodusPrint("%s\n",clients[numOfClients]->url);
-						
-						if((strcmp(clients[numOfClients]->service_name, msg->u.reg.service_name)==0)&& (strcmp(clients[numOfClients]->url, msg->u.reg.url)==0))
-					{
+                                            strcpy(clients[numOfClients]->service_name,msg->u.reg.service_name);
+                                            strcpy(clients[numOfClients]->url,msg->u.reg.url);
+
+                                            ParodusPrint("%s\n",clients[numOfClients]->service_name);
+                                            ParodusPrint("%s\n",clients[numOfClients]->url);
+
+                                            if((strcmp(clients[numOfClients]->service_name, msg->u.reg.service_name)==0)&& (strcmp(clients[numOfClients]->url, msg->u.reg.url)==0))
+                                            {
 
 
-						//Sending success status to clients after each nanomsg registration
-						size = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
+                                            //Sending success status to clients after each nanomsg registration
+                                            size = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
 
-						ParodusInfo("Client %s Registered successfully. Sending Acknowledgement... \n ", clients[numOfClients]->service_name);
+                                            ParodusInfo("Client %s Registered successfully. Sending Acknowledgement... \n ", clients[numOfClients]->service_name);
 
-						byte = nn_send (clients[numOfClients]->sock, auth_bytes, size, 0);
-						
-						//condition needs to be changed depending upon acknowledgement
-						if(byte >=0)
-						{
-							ParodusPrint("send registration success status to client\n");
-						}
-						else
-						{
-							ParodusError("send registration failed\n");
-						}
-						numOfClients =numOfClients+1;
-						ParodusPrint("Number of clients registered= %d\n", numOfClients);
-						byte = 0;
-						size = 0;
-						free(auth_bytes);
-						auth_bytes = NULL;
+                                            byte = nn_send (clients[numOfClients]->sock, auth_bytes, size, 0);
 
-						
-					
+                                            //condition needs to be changed depending upon acknowledgement
+                                            if(byte >=0)
+                                            {
+                                                    ParodusPrint("send registration success status to client\n");
+                                            }
+                                            else
+                                            {
+                                                    ParodusError("send registration failed\n");
+                                            }
+                                            numOfClients =numOfClients+1;
+                                            ParodusPrint("Number of clients registered= %d\n", numOfClients);
+                                            byte = 0;
+                                            size = 0;
+                                            free(auth_bytes);
+                                            auth_bytes = NULL;
+                                            }
+                                            else
+                                            {
+                                            ParodusError("nanomsg client registration failed\n");
+                                            }
 					}
-					else
-					{
-						ParodusError("nanomsg client registration failed\n");
-					}
-					
-					}
-										      
-
 				    }
 				    else
 				    {
-				    	//Sending to server for msgTypes 3, 4, 5, 6, 7, 8.
-					
-			   					
+				    	//Sending to server for msgTypes 3, 4, 5, 6, 7, 8.			
 					ParodusInfo("\n Received upstream data with MsgType: %d\n", msgType);   					
 					//Appending metadata with packed msg received from client
 					
@@ -572,24 +515,15 @@ static void handleUpStreamEvents()
 					else
 					{		
 						ParodusError("Failed to send upstream as metadata packing is not successful\n");
-			
 					}
-    					
-							        
-				    
 				    }
-				    
-					
 				}
 				else
 				{
 					ParodusError("Error in msgpack decoding for upstream\n");
-				
 				}
 				ParodusPrint("Free for upstream decoded msg\n");
 			        wrp_free_struct(msg);
-			        				
-			
 			}
 		
 			
@@ -608,30 +542,7 @@ static void handleUpStreamEvents()
 			}
 		}
 	}
-
-}
- 
- 
-        
-/*
- * @brief To initiate message handling
- */
-
-static void initMessageHandler()
-{
-	int err = 0;
-	pthread_t messageThreadId;
-	ParodusMsgQ = NULL;
-
-	err = pthread_create(&messageThreadId, NULL, messageHandlerTask, NULL);
-	if (err != 0) 
-	{
-		ParodusError("Error creating messages thread :[%s]\n", strerror(err));
-	}
-	else
-	{
-		ParodusPrint("messageHandlerTask thread created Successfully\n");
-	}
+        return NULL;
 }
 
 /*
@@ -784,5 +695,6 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
     }
 
 }
+
 
 

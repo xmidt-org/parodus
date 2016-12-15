@@ -345,18 +345,19 @@ char createNopollConnection(noPollCtx *ctx)
 	}
 	ParodusPrint("webpaProtocol is %s\n", webpaProtocol);
   	
-	struct data meta_pack[METADATA_COUNT] = {{"hw-model", modelName},
-                                                 {"hw-serial-number", get_parodus_cfg()->hw_serial_number},
-                                                 {"hw-manufacturer", manufacturer},
-                                                 {"hw-mac", get_parodus_cfg()->hw_mac},
-                                                 {"hw_last_reboot_reason", reboot_reason},
-                                                 {"fw-name", firmwareVersion},
-                                                 {"boot_time", boot_time},
-                                                 {"webpa-last-reconnect-reason",reconnect_reason},
-                                                 {"webpa_protocol",webpaProtocol},
-                                                 {"webpa_uuid",get_parodus_cfg()->webpa_uuid},
-                                                 {"webpa_interface_used", get_parodus_cfg()->webpa_interface_used}
-                                                };
+	struct data meta_pack[METADATA_COUNT] = {
+            {"hw-model", modelName},
+            {"hw-serial-number", get_parodus_cfg()->hw_serial_number},
+            {"hw-manufacturer", manufacturer},
+            {"hw-mac", get_parodus_cfg()->hw_mac},
+            {"hw_last_reboot_reason", reboot_reason},
+            {"fw-name", firmwareVersion},
+            {"boot_time", boot_time},
+            {"webpa-last-reconnect-reason", reconnect_reason},
+            {"webpa_protocol",webpaProtocol},
+            {"webpa_uuid",get_parodus_cfg()->webpa_uuid},
+            {"webpa_interface_used", get_parodus_cfg()->webpa_interface_used}
+        };
 	
 	const data_t metapack = {METADATA_COUNT, meta_pack};
 	
