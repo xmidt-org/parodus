@@ -23,8 +23,7 @@
 #include <pthread.h>
 #include <mqueue.h>
 
-// Remove this after parodus is updated
-#define PARODUS_SERVICE_REQUIRES_REGISTRATION 1
+//#define PARODUS_SERVICE_REQUIRES_REGISTRATION 1
 
 #define PARODUS_SERVICE_URL "tcp://127.0.0.1:6666"
 //#define PARODUS_URL "ipc:///tmp/parodus_server.ipc"
@@ -283,7 +282,7 @@ static int parse_options (const char *option_str )
 int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
 		const char *options)
 {
-	bool need_to_send_registration = libpd_options.receive;
+	bool need_to_send_registration;
 	int err;
 
 	if (RUN_STATE_RUNNING == run_state) {
@@ -369,6 +368,8 @@ int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
 
 #ifdef PARODUS_SERVICE_REQUIRES_REGISTRATION
 	need_to_send_registration = true;
+#else
+	need_to_send_registration = libpd_options.receive;
 #endif
 
 	if (need_to_send_registration) {
