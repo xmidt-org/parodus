@@ -94,11 +94,12 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-static void *messageHandlerTask();
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
 
 static void *handle_upstream();
 static void *handleUpStreamEvents();
+static void *messageHandlerTask();
+
 static void getParodusUrl();
 
 /*
@@ -161,18 +162,20 @@ void close_and_unref_connection(noPollConn *conn)
 
 static void getParodusUrl()
 {
-	const char *parodusIp = NULL;
-	const char * envParodus = getenv ("PARODUS_SERVICE_URL");
-  if( envParodus != NULL)
-  {
-    parodusIp = envParodus;
-  }
-  else
-  {
-    parodusIp = PARODUS_UPSTREAM ;
-  }
-  snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
-  ParodusInfo("formatted parodus Url %s\n",parodus_url);
+    const char *parodusIp = NULL;
+    const char * envParodus = getenv ("PARODUS_SERVICE_URL");
+    
+    if( envParodus != NULL)
+    {
+      parodusIp = envParodus;
+    }
+    else
+    {
+      parodusIp = PARODUS_UPSTREAM ;
+    }
+    
+    snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
+    ParodusInfo("formatted parodus Url %s\n",parodus_url);
 	
 }
 
