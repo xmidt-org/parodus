@@ -31,9 +31,20 @@
  *
  * @param service_name the service name registered for
  * @return 0 on success, valid errno otherwise.
+ * @note this is the same as libparodus_init_ext (service_name, log_handler, "R,C");
  */
 int libparodus_init (const char *service_name, parlibLogHandler log_handler);
 
+/**
+ * Initialize the parodus wrp interface
+ *
+ * @param service_name the service name registered for
+ * @param options option string, 
+ * 		currently 'R' for receiver, 'C' for connect-on-every-send
+ * @return 0 on success, valid errno otherwise.
+ */
+int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
+		const char *options);
 
 /**
  *  Receives the next message in the queue that was sent to this service, waiting
@@ -46,7 +57,7 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler);
  *  @param ms the number of milliseconds to wait for the next message
  *
  *  @return 0 on success, 2 if closed msg received, 1 if timed out, 
- *   -1 if receive error, -2 if msg not a ptr
+ *   -1 if receive error, -2 if msg not a ptr, -3 no receiver option
  *
  *  @note don't free the msg when return is 2. 
  */
