@@ -54,7 +54,8 @@ add_executable(simple simple.c
                       ../src/mutex.c
                       ../src/time.c
                       ../src/config.c
-                      ../src/connection.c) 
+                      ../src/connection.c
+                      ../src/spin_thread.c) 
 		      
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
 endif (NOT EXCLUDE_SIMPLE)
