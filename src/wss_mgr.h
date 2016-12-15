@@ -8,6 +8,12 @@
  
 #ifndef WEBSOCKET_MGR_H_
 #define WEBSOCKET_MGR_H_
+#include <nopoll.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 typedef struct
 {
@@ -35,19 +41,22 @@ typedef struct
  * Loads the WebPA config file, if not provided by the caller,
  *  and creates the intial connection and manages the connection wait, close mechanisms.
  */
-void __createSocketConnection(void *config, void (* initKeypress)());
+void createSocketConnection(void *config, void (* initKeypress)());
 
-/**
- * @brief Interface to create WebSocket client connections.
- * Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
- */
-void createSocketConnection();
-
-/**
- * @brief Interface to terminate WebSocket client connections and clean up resources.
- */
-void terminateSocketConnection();
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
+
+// Accessor for the global config structure.
+ParodusCfg *get_parodus_cfg(void);
+noPollConn *get_global_conn(void);
+void set_global_conn(noPollConn *);
+#define UNUSED(x) (void)(x)
+
+
+#ifdef __cplusplus
+}
+#endif
+
+
 #endif /* WEBSOCKET_MGR_H_ */
 

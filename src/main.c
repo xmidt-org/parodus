@@ -59,9 +59,7 @@ int main( int argc, char **argv)
     ParodusInfo("********** Starting component: Parodus **********\n "); 
     parseCommandLine(argc,argv,&parodusCfg);
      
-    __createSocketConnection(&parodusCfg,NULL);
-    
-    
+    createSocketConnection(&parodusCfg,NULL);
     
     return 0;
 }

@@ -5,7 +5,8 @@
  *
  * Copyright (c) 2015  Comcast
  */
-
+#ifndef _PARODUSINTERNAL_H_
+#define _PARODUSINTERNAL_H_
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -86,6 +87,10 @@ typedef struct reg_client__
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
 int checkHostIp(char * serverIP);
 void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len);
 
@@ -100,4 +105,12 @@ void lockMutex(noPollPtr _mutex);
 void unlockMutex(noPollPtr _mutex);
 
 void destroyMutex(noPollPtr _mutex);
+
+
+#ifdef __cplusplus
+}
+#endif
+    
+
+#endif
 
