@@ -23,7 +23,7 @@ install:
 script:
     - mkdir build
     - cd build
-    - cmake .. -DEXCLUDE_SIMPLE:BOOL=true
+    - cmake .. -DEXCLUDE_SIMPLE:BOOL=false
     - make
     - make test
 
