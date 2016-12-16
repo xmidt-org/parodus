@@ -15,38 +15,37 @@
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
-set (PARODUS_COMMON_LIBS "gcov -lcunit -lpthread -lm")
+set (PARODUS_COMMON_LIBS gcov -lcunit -lwrp-c -lpthread -lm -lmsgpackc -lcjson -ltrower-base64)
 
 link_directories ( ${LIBRARY_DIR} )
 
 #-------------------------------------------------------------------------------
 #   test_mutex
 #-------------------------------------------------------------------------------
-add_executable(test_mutex test_mutex.c ../src/mutex.c)
-target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS} -lrt )
 add_test(NAME test_mutex COMMAND test_mutex)
+add_executable(test_mutex test_mutex.c ../src/mutex.c)
+target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS})
 
 
 #-------------------------------------------------------------------------------
 #   test_networking
 #-------------------------------------------------------------------------------
-add_executable(test_networking test_networking.c ../src/networking.c)
-target_link_libraries (test_networking "gcov -lcunit -lpthread" -lm)
 add_test(NAME test_networking COMMAND test_networking)
+add_executable(test_networking test_networking.c ../src/networking.c)
+target_link_libraries (test_networking ${PARODUS_COMMON_LIBS})
 
-if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
-add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
-target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lwrp-c -lmsgpackc -lcjson -ltrower-base64 -lnopoll -lnanomsg)
 add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
+target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg)
 
-
+if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
 #-------------------------------------------------------------------------------
-#add_test(NAME simple COMMAND simple)
+add_test(NAME simple COMMAND simple)
 add_executable(simple simple.c
                       ../src/wss_mgr.c
                       ../src/networking.c
@@ -58,5 +57,5 @@ add_executable(simple simple.c
                       ../src/connection.c
                       ../src/spin_thread.c) 
 		      
-target_link_libraries (simple ${PARODUS_COMMON_LIBS} -lmsgpackc -lcjson -ltrower-base64 -lwrp-c -lnopoll -lnanomsg -lrt )
+target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
 endif (NOT EXCLUDE_SIMPLE)

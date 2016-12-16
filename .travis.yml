@@ -31,7 +31,6 @@ script:
     - make test
 
 after_success:
-    - bash $TRAVIS_BUILD_DIR/convert-coverage.sh
     - codecov
 
 env:
