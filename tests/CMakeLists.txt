@@ -59,12 +59,3 @@ add_executable(simple simple.c
 		      
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
 endif (NOT EXCLUDE_SIMPLE)
-
-
-
-add_custom_target(coverage-prog
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_mutex.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_networking.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/test_nopoll_helpers.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
-                 )
-

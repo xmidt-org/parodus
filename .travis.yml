@@ -28,6 +28,7 @@ script:
     - make test
 
 after_success:
+    - convert-coverage.sh
     - codecov
 
 env:
