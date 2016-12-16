@@ -65,16 +65,12 @@ static int send_sock = -1;
 
 #define MAX_QUEUE_MSG_SIZE 64
 
-#define RAW_QUEUE_NAME "/LIBPD_RAW_QUEUE"
 #define WRP_QUEUE_NAME "/LIBPD_WRP_QUEUE"
 
-const char *raw_queue_name = RAW_QUEUE_NAME;
 const char *wrp_queue_name = WRP_QUEUE_NAME;
 
-static mqd_t raw_queue = (mqd_t)-1;
 static mqd_t wrp_queue = (mqd_t)-1;
 
-static pthread_t raw_receiver_tid;
 static pthread_t wrp_receiver_tid;
 static pthread_mutex_t send_mutex=PTHREAD_MUTEX_INITIALIZER;
 
@@ -83,7 +79,6 @@ static const char *selected_service;
 int flush_wrp_queue (uint32_t delay_ms);
 static void make_closed_msg (wrp_msg_t *msg);
 static int wrp_sock_send (wrp_msg_t *msg);
-static void *raw_receiver_thread (void *arg);
 static void *wrp_receiver_thread (void *arg);
 static void getParodusUrl();
 
@@ -329,17 +324,9 @@ int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
 			return -1;
 		}
 		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Opened sockets\n");
-		raw_queue = create_queue (raw_queue_name, 256);
-		if (raw_queue == (mqd_t)-1) {
-			shutdown_socket(&rcv_sock);
-			shutdown_socket(&send_sock);
-			shutdown_socket(&stop_rcv_sock);
-			return -1;
-		}
 		wrp_queue = create_queue (wrp_queue_name, 24);
 		if (wrp_queue == (mqd_t)-1) {
 			shutdown_socket(&rcv_sock);
-			mq_close (raw_queue);
 			shutdown_socket(&send_sock);
 			shutdown_socket(&stop_rcv_sock);
 			return -1;
@@ -347,16 +334,6 @@ int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
 		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Created queues\n");
 		if (create_thread (&wrp_receiver_tid, wrp_receiver_thread) != 0) {
 			shutdown_socket(&rcv_sock);
-			mq_close (raw_queue);
-			mq_close (wrp_queue);
-			shutdown_socket(&send_sock);
-			shutdown_socket(&stop_rcv_sock);
-			return -1;
-		}
-		if (create_thread (&raw_receiver_tid, raw_receiver_thread) != 0) {
-			shutdown_socket(&rcv_sock);
-			pthread_cancel (wrp_receiver_tid);
-			mq_close (raw_queue);
 			mq_close (wrp_queue);
 			shutdown_socket(&send_sock);
 			shutdown_socket(&stop_rcv_sock);
@@ -443,41 +420,22 @@ int libparodus_shutdown (void)
 	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Shutting Down\n");
 	if (libpd_options.receive) {
 		sock_send (stop_rcv_sock, end_msg, -1);
-	 	rtn = pthread_join (raw_receiver_tid, NULL);
-		if (rtn != 0)
-			libpd_log (LEVEL_ERROR, rtn, "Error terminating raw receiver thread\n");
-		shutdown_socket(&rcv_sock);
-		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Flushing wrp queue\n");
-		flush_wrp_queue (5);
-		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Send end msg to raw queue\n");
-		queue_send (raw_queue, "/RAW_QUEUE", end_msg, -1);
 	 	rtn = pthread_join (wrp_receiver_tid, NULL);
 		if (rtn != 0)
 			libpd_log (LEVEL_ERROR, rtn, "Error terminating wrp receiver thread\n");
-		mq_close (raw_queue);
+		shutdown_socket(&rcv_sock);
+		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Flushing wrp queue\n");
+		flush_wrp_queue (5);
 		mq_close (wrp_queue);
 	}
 	shutdown_socket(&send_sock);
 	if (libpd_options.receive) {
 		shutdown_socket(&stop_rcv_sock);
-		mq_unlink (raw_queue_name);
 		mq_unlink (wrp_queue_name);
 	}
 	run_state = 0;
 	auth_received = false;
 	log_shutdown ();
-	return 0;
-}
-
-// msgbuf must be MAX_QUEUE_MSG_SIZE bytes long
-static int raw_queue_receive (char *msgbuf, int *len)
-{
-	ssize_t bytes = mq_receive (raw_queue, msgbuf, MAX_QUEUE_MSG_SIZE, NULL);
-	if (bytes < 0) {
-		libpd_log (LEVEL_ERROR, errno, "Unable to receive on /RAW_QUEUE\n");
-		return -1;
-	}
-	*len = (int) bytes;
 	return 0;
 }
 
@@ -650,33 +608,6 @@ int libparodus_send (wrp_msg_t *msg)
 	return libparodus_send__ (msg);
 }
 
-static void *raw_receiver_thread (void *arg __attribute__ ((unused)) )
-{
-	int rtn;
-	raw_msg_t msg;
-	int end_msg_len = strlen(end_msg);
-
-	libpd_log (LEVEL_INFO, 0, "Starting raw receiver thread\n");
-	while (1) {
-		rtn = sock_receive (&msg);
-		if (rtn != 0)
-			break;
-		if (msg.len >= end_msg_len) {
-			if (strncmp (msg.msg, end_msg, end_msg_len) == 0) {
-				nn_freemsg (msg.msg);
-				break;
-			}
-		}
-		if (RUN_STATE_RUNNING != run_state) {
-			nn_freemsg (msg.msg);
-			continue;
-		}
-		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: received raw msg from parodus service\n");
-		queue_send (raw_queue, "/RAW_QUEUE", (const char *) &msg, sizeof(raw_msg_t));
-	}
-	libpd_log (LEVEL_INFO, 0, "Ended raw receiver thread\n");
-	return NULL;
-}
 
 static char *find_wrp_msg_dest (wrp_msg_t *wrp_msg)
 {
@@ -702,17 +633,18 @@ static void *wrp_receiver_thread (void *arg __attribute__ ((unused)) )
 	wrp_msg_t *wrp_msg;
 	int end_msg_len = strlen(end_msg);
 	char *msg_dest, *msg_service;
-	char msg_buf[MAX_QUEUE_MSG_SIZE];
 
 	libpd_log (LEVEL_INFO, 0, "Starting wrp receiver thread\n");
 	while (1) {
-		rtn = raw_queue_receive (msg_buf, &msg_len);
+		rtn = sock_receive (&raw_msg);
 		if (rtn != 0)
 			break;
-		if (msg_len >= end_msg_len)
-			if (strncmp (msg_buf, end_msg, end_msg_len) == 0)
+		if (raw_msg.len >= end_msg_len) {
+			if (strncmp (raw_msg.msg, end_msg, end_msg_len) == 0) {
+				nn_freemsg (raw_msg.msg);
 				break;
-		memcpy ((void*)&raw_msg, (const void*)msg_buf, sizeof(raw_msg_t));
+			}
+		}
 		if (RUN_STATE_RUNNING != run_state) {
 			nn_freemsg (raw_msg.msg);
 			continue;
@@ -798,52 +730,15 @@ int flush_wrp_queue (uint32_t delay_ms)
 
 // Functions used by libpd_test.c
 
-bool test_create_raw_queue (void)
-{
-	raw_queue = create_queue (raw_queue_name, 256);
-	return (bool) (raw_queue != (mqd_t)-1);
-}
-
 bool test_create_wrp_queue (void)
 {
 	wrp_queue = create_queue (wrp_queue_name, 24);
 	return (bool) (wrp_queue != (mqd_t)-1);
 }
 
-void test_close_raw_queue (void)
-{
-	mq_close (raw_queue);
-}
-
 void test_close_wrp_queue (void)
 {
 	mq_close (wrp_queue);
-}
-
-void test_send_raw_queue_ok (void)
-{
-	raw_msg_t msg;
-	msg.msg = "Test message";
-	msg.len = strlen(msg.msg);
-	queue_send (raw_queue, "/RAW_QUEUE", (const char *) &msg, sizeof(raw_msg_t));
-}
-
-void test_send_raw_queue_error (void)
-{
-	queue_send (raw_queue, "/RAW_QUEUE", "***Invalid RAW message\n", -1);
-}
-
-int test_raw_queue_receive (void)
-{
-	int rtn;
-	int len;
-	char buf[MAX_QUEUE_MSG_SIZE];
-	rtn = raw_queue_receive (buf, &len);
-	if (rtn != 0)
-		return -1;
-	if (len == sizeof (raw_msg_t))
-		return 0;
-  return -2;
 }
 
 void test_send_wrp_queue_ok (void)

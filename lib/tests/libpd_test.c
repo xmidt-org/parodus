@@ -105,19 +105,13 @@ extern int get_valid_file_num (const char *file_name, const char *date);
 extern int get_last_file_num_in_dir (const char *date, const char *log_dir);
 
 // test helper functions defined in libparodus
-extern bool test_create_raw_queue (void);
 extern bool test_create_wrp_queue (void);
-extern void test_close_raw_queue (void);
 extern void test_close_wrp_queue (void);
 extern int  test_close_receiver (void);
-extern void test_send_raw_queue_ok (void);
-extern void test_send_raw_queue_error (void);
-extern int test_raw_queue_receive (void);
 extern void test_send_wrp_queue_ok (void);
 extern void test_send_wrp_queue_error (void);
 
 
-extern const char *raw_queue_name;
 extern const char *wrp_queue_name;
 extern const char *parodus_url;
 extern const char *client_url;
@@ -485,7 +479,6 @@ void test_1(void)
 	wrp_msg_t *wrp_msg;
 	unsigned event_num = 0;
 	unsigned msg_num = 0;
-	const char *raw_queue_orig_name = raw_queue_name;
 	const char *wrp_queue_orig_name = wrp_queue_name;
 	const char *parodus_url_orig = GOOD_PARODUS_URL;
 	const char *client_url_orig = GOOD_CLIENT_URL;
@@ -525,17 +518,6 @@ void test_1(void)
 	test_q = create_queue ("$$LIBPD_BAD_QUEUE&&", 256);
 	CU_ASSERT (test_q == -1);
 	test_q = -1;
-
-	printf ("LIBPD_TEST: test create raw queue\n");
-	CU_ASSERT (test_create_raw_queue ());
-	printf ("LIBPD_TEST: test send raw queue OK\n");
-	test_send_raw_queue_ok ();
-	CU_ASSERT (test_raw_queue_receive() == 0);
-	printf ("LIBPD_TEST: test send raw queue error\n");
-	test_send_raw_queue_error ();
-	printf ("LIBPD_TEST: test raw queue receive bad msg\n");
-	CU_ASSERT (test_raw_queue_receive() == -2);
-	test_close_raw_queue ();
 
 	printf ("LIBPD_TEST: test create wrp queue\n");
 	CU_ASSERT (test_create_wrp_queue ());
@@ -586,10 +568,6 @@ void test_1(void)
 	printf ("LIBPD_TEST: libparodus_init bad client url\n");
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	CU_ASSERT (setenv( "PARODUS_CLIENT_URL", client_url_orig, 1) == 0);
-	printf ("LIBPD_TEST: libparodus_init bad raw queue name\n");
-	raw_queue_name = "$$LIBPD_BAD_QUEUE&&";
-	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
-	raw_queue_name = raw_queue_orig_name;
 	wrp_queue_name = "$$LIBPD_BAD_QUEUE&&";
 	printf ("LIBPD_TEST: libparodus_init bad wrp queue name\n");
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
