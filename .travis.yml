@@ -18,7 +18,7 @@ before_install:
 
 install:
     - sudo apt-get update -qq
-    - sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
+    - sudo apt-get install -y -qq libcunit1 libcunit1-dev
 
 script:
     - mkdir build
@@ -28,7 +28,7 @@ script:
     - make test
 
 after_success:
-    - convert-coverage.sh
+    - bash ./convert-coverage.sh
     - codecov
 
 env:
