@@ -22,27 +22,27 @@ link_directories ( ${LIBRARY_DIR} )
 #-------------------------------------------------------------------------------
 #   test_mutex
 #-------------------------------------------------------------------------------
-add_test(NAME test_mutex COMMAND test_mutex)
 add_executable(test_mutex test_mutex.c ../src/mutex.c)
 target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS} -lrt )
+add_test(NAME test_mutex COMMAND test_mutex)
 
 
 #-------------------------------------------------------------------------------
 #   test_networking
 #-------------------------------------------------------------------------------
-add_test(NAME test_networking COMMAND test_networking)
 add_executable(test_networking test_networking.c ../src/networking.c)
 target_link_libraries (test_networking "gcov -lcunit -lpthread" -lm)
+add_test(NAME test_networking COMMAND test_networking)
 
+if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
-add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
 add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
 target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lwrp-c -lmsgpackc -lcjson -ltrower-base64 -lnopoll -lnanomsg)
+add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
 
 
-if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
 #-------------------------------------------------------------------------------
