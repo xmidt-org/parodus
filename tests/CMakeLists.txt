@@ -41,6 +41,7 @@ add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
 add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
 target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lwrp-c -lmsgpackc -lcjson -ltrower-base64 -lnopoll -lnanomsg)
 
+
 if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
