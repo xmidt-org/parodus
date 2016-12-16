@@ -28,7 +28,7 @@ script:
     - make test
 
 after_success:
-    - bash ./convert-coverage.sh
+    - bash $TRAVIS_BUILD_DIR/convert-coverage.sh
     - codecov
 
 env:
