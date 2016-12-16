@@ -26,10 +26,8 @@ script:
     - cmake .. -DEXCLUDE_SIMPLE:BOOL=true
     - make
     - make test
-    - tree $TRAVIS_BUILD_DIR
 
 after_success:
-    - tree $TRAVIS_BUILD_DIR
     - bash $TRAVIS_BUILD_DIR/convert-coverage.sh
     - codecov
 
