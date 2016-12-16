@@ -15,6 +15,7 @@
 #include <sys/sysinfo.h>
 #include <pthread.h>
 #include <math.h>
+#include <time.h>
 #include "wss_mgr.h"
 
 #include <netdb.h>
@@ -188,7 +189,8 @@ static void getParodusUrl()
 void createSocketConnection(void *config_in, void (* initKeypress)())
 
 {
-	int intTimer=0;	
+        struct timespec start_time;
+    
     	ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
         noPollCtx *ctx;
         
@@ -202,6 +204,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 	if (!ctx) 
 	{
 		ParodusError("\nError creating nopoll context\n");
+                exit(2);
 	}
 
 	#ifdef NOPOLL_LOGGER
@@ -224,13 +227,14 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
   		(* initKeypress) ();
 	}
 	
+        clock_gettime(CLOCK_MONOTONIC, &start_time);
+        
 	do
 	{
-		
+            struct timespec time_now;
+            
 		nopoll_loop_wait(ctx, 5000000);
-		
-		intTimer = intTimer + 5;
-		
+				
 		if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout) 
 		{
 			if(!close_retry) 
@@ -250,12 +254,14 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 			}
 			heartBeatTimer = 0;
 		}
-		else if(intTimer >= 30)
+		else 
 		{
-
+                        clock_gettime(CLOCK_MONOTONIC, &time_now);
+                        if ((time_now.tv_sec - start_time.tv_sec) >= 30) {
 			ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
 			heartBeatTimer += HEARTBEAT_RETRY_SEC;	
-			intTimer = 0;		
+                        clock_gettime(CLOCK_MONOTONIC, &start_time);
+                        }
 		}
 		
 		
