@@ -1,21 +1,34 @@
+dist: trusty
+sudo: required
+
 language: c
 compiler:
     - gcc
 
+addons:
+  coverity_scan:
+    project:
+      name: "Comcast/parodus"
+      description: "C implementation of the WebPA client coordinator"
+    notification_email: weston_schmidt@alumni.purdue.edu
+    build_command_prepend: "mkdir coverity_build && cd coverity_build && cmake .."
+    build_command:   "make"
+    branch_pattern: master
+    
 before_install:
     - sudo pip install codecov
+    - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
 
 install:
     - sudo apt-get update -qq
-    - sudo apt-get install -y -qq libcunit1 libcunit1-dev lcov
+    - sudo apt-get install -y -qq libcunit1 libcunit1-dev
 
 script:
     - mkdir build
     - cd build
-    - cmake .. -DEXCLUDE_SIMPLE:BOOL=true
+    - cmake .. -DEXCLUDE_SIMPLE:BOOL=false
     - make
     - make test
-    - make coverage
 
 after_success:
     - codecov
@@ -24,3 +37,6 @@ env:
     global:
         - secure: EwQu1WDUgIF5qM5tnKj/+NCPz9t15y289bbqFo0wDhyfTlJGS9buQeJNeVLtNJBEOngpo+AkaPGvh/d9NZ0vLdxu+K/e+HhA6kOTxUrCHD8+4oX9XpVs/XvQmD1COlJYeeqd8bJMKtlFtonGdMJogxpEFQzv4fQjmoARvL2ciV4OB0MBcD5Lsb72L3a0aJT69F6WFuDpgGj2eIQyCDSTPNIi2X7EA8R33lxnntFDn8Vj6qSBbVOI2S5R5S+JUCMp1Q1ZbEqmh6j+wKtszWj8wGqfz8Ol5+GYl511bExb+hwvV5zen0Ol0+2LQmSpYhbQZ7prfI8AclLLwhDUrP+WDOv34vwd4EWQ1OoLqG23HbBygCxPSBIB6ZxPtVkzjVlOK8qqIB5QXqCyq8sPKlrXfntOQ+Ha938cIA+A0ag+26MLbhDGj8k3Os7BdY/oqNTKADZQdxfGKhCiA9qO2clpMyRXoE0q6hv9dYoG/2c4sxH8DKsT8XY/QbGmiBsk0DWHcpxkObCsHUxVKi+gIBGSL/tSjz2IJfQVZkdl2hhcyStGuPKbiwAlW3HydMk0VgRhVmHBIc41Cv7vPdMEVf/XiFhr2utRX468M/LR8vkhhokKl1xkVIiquwCPYPzZVAFARHTlaBMhz9kQVtTAHf2JkHuM9XcLWKW996FiSeswKyI=
         - secure: LQK36EsQdIJw7eSW1yz+yh3+yJdp8cznynBjE3whOEVI2KHZimr+vtK5hxE6TH0QjYyrb/BFgRql6CtLprpaABSEC9gpqpahu50jiAkjKC8DtfSloAbH5jj+ZllaPjURocerllNLVZxiRM/WCuJAy0nzBpAyx62YmVlEYi+zYD67d3wG6gLwso6l2DWuPPze6t5NmbUmH9hNk52++TZalwMtZFdibQoYm64vCTT5gycujw6ZDa8GD0m+Yryvc20kLlWPOVS9lN1iEGo98/gj8Ops8w0iw6k7SfEkvvFsKEUDr77wAN5Tk4tGq7odVrD/y3W9AsHkkSb1B6RqVWkcW3SjCAQc03jhdaBxXwcoJZcYahY21CB12EP7p0HSjEbvIzNpk0D9MulsGaMPlOudnKdG0/kmD7oIAiXjfC7PiPBBFIc/cVF5VAKNTUInEVfcKvlLpqDatwjB+qgb7pld24dUPuJw+yOgglk7J7xckJYHFTHhk0PWI5oN66dndj3yyJp4dz1v64ViFFTG4PO4YPJydZxRxolg1eGMuG0UIYJK6RWcSQ+ZPBm4p78J8xfHtgUkvWvrHJoXC1qAzqx1XRzbHEeTJgbKgLrWY+B6nbNotw1RDX4lNDirp5EI6GqezoFJToZkqe3MRs8DrqhaFjUbbEzAxznRWmxnWNN3Ujc=
+        # The next declaration is the encrypted COVERITY_SCAN_TOKEN, created
+        #   via the "travis encrypt" command using the project repo's public key
+        - secure: "V/W4Z9/3uXpS83CvlZ1XfDAbHPIA2ID5G5s9GPcsUqoOASQdc6Y/DPejUlot+DgtiHOEdTr9n5iWDOuxqjcVnjVd6ag9i2m0PMqDhPj3fnUJM6dAeXIBda/qSuTsJTX4cIwb371R77cLcIUm35IEOSIAQOBCjh7RCf3ivGPUp+wobTonkNzDw6xqO90hx7NLnxwGSCcaNBFKOcLL0e7DXspp18lTWCSSaHELzXOyLlhZnWhC5tiFUIZk1ixm/cO1YEQH9AzgPJ5OYs+On0j8VT8XWMsxHu0zfkZkdZMAEOQbO6u4HBDePIfp+PoF1LwtX/UXfaEkUHZ0kNVXHfsN/KP7NHgTbASe9EXp+R4pcKEy4ZEbx+xpp7FlMQSJYiYiQbJ2FBrjwRPreXiHyCqn8htd0YNOTH4UykvO3NYxlTaMf9aE041lnLjUY18TuXrILz6SzMsGV+nYqfIci/NPuj/57k7nw127a93S4Mr/phXts9ZL8I7kagd8wKv3m5+7rmIfuSfS2kg2pTa0hk5uMqFWLG8AilUQ5t1ChylzPcl/Gdgi9OP0pG2WyUmkqOiSqhwwdg2ZCwptodwuonfbdKMSBuHOS8lLU1bGyCRdWsMoscSv/xn4t3ikzBsSDiKgI8xq2+aqQyHDeVneqAk1BbxiNIwoJeyVXq2EKU6MlgI="

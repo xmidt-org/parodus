@@ -146,15 +146,7 @@ link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
 
 add_subdirectory(src)
 if (BUILD_TESTING)
-    set (COVERAGE_DEPENDS ${COVERAGE_DEPENDS} coverage-prog)
     add_subdirectory(tests)
 endif (BUILD_TESTING)
 
-if (BUILD_TESTING)
-    set (COVERAGE_DEPENDS ${COVERAGE_DEPENDS} coverage-lib)
-endif (BUILD_TESTING)
 add_subdirectory(lib)
-
-add_custom_target(coverage DEPENDS ${COVERAGE_DEPENDS}
-                  COMMAND genhtml  `find . -name "*.info" `
-                 )
