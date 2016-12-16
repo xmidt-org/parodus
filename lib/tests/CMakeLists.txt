@@ -58,7 +58,3 @@ target_link_libraries (mock_parodus
  -lm
  -lpthread
 )
-
-add_custom_target(coverage-lib
-                  COMMAND lcov -q --capture --directory ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/libpd.dir/__/src --output-file ${CMAKE_CURRENT_BINARY_DIR}/coverage.info
-                  )
