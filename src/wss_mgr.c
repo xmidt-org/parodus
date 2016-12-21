@@ -77,7 +77,7 @@ UpStreamMsg *UpStreamMsgQ = NULL;
 
 bool close_retry = false;
 bool LastReasonStatus = false;
-char *reconnect_reason = NULL;
+char *reconnect_reason = "webpa_process_starts";
 
 void close_and_unref_connection(noPollConn *conn);
 char parodus_url[32] ={'\0'};
@@ -697,4 +697,28 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 }
 
 
+void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
+{
+	void *appendData;
+	size_t encodedSize;
+	//appending response with metadata 			
+	if(metaPackSize > 0)
+	{
+	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
+	   	ParodusPrint("metadata appended upstream response %s\n", (char *)appendData);
+	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
+	   		   
+		ParodusInfo("Sending response to server\n");
+	   	handleUpstreamMessage(g_conn,appendData, encodedSize);
+	   	
+		free( appendData);
+		appendData =NULL;
+	}
+
+	else
+	{		
+		ParodusError("Failed to send upstream as metadata packing is not successful\n");
+	}
+
+}
 

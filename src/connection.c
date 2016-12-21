@@ -80,8 +80,7 @@ char createNopollConnection(noPollCtx *ctx)
              ((0 != strlen(manufacturer)) ? manufacturer : "unknown"));
 
 	ParodusInfo("User-Agent: %s\n",user_agent);
-	headerValues[2] = user_agent;
-	reconnect_reason = "webpa_process_starts";	
+	headerValues[2] = user_agent;	
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
 	reboot_reason = get_parodus_cfg()->hw_last_reboot_reason;
 	ParodusInfo("Received reboot_reason as:%s\n", reboot_reason);
@@ -378,7 +377,8 @@ char createNopollConnection(noPollCtx *ctx)
 	connErr = 0;
 	
 	reconnect_reason = "webpa_process_starts";
-	LastReasonStatus = true;
+	LastReasonStatus =false;
+	ParodusPrint("LastReasonStatus reset after successful connection\n");
 
 	nopoll_conn_set_on_msg(get_global_conn(), (noPollOnMessageHandler) listenerOnMessage_queue, NULL);
 	nopoll_conn_set_on_ping_msg(get_global_conn(), (noPollOnMessageHandler)listenerOnPingMessage, NULL);

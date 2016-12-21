@@ -8,6 +8,7 @@
 
 #include "ParodusInternal.h"
 #include "wss_mgr.h"
+#include "connection.h"
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -59,8 +60,13 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 	int msgType;
 	int p =0;
 	int bytes =0;
-	int destFlag =0;	
+	int destFlag =0;			
+	int resp_size =0;
 	const char *recivedMsg = NULL;
+	char *str= NULL;
+	wrp_msg_t *resp_msg = NULL;
+	void *resp_bytes;
+	
 	recivedMsg =  (const char *) msg;
 	
 	ParodusInfo("Received msg from server:%s\n", recivedMsg);	
@@ -98,14 +104,37 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 					ParodusPrint("downstream bytes sent:%d\n", bytes);
 					destFlag =1;
 			
-				    } 
+				    } 				    				  
 				    
 				}
 				
+				//if any unknown dest received sending error response to server
 				if(destFlag ==0)
 				{
 					ParodusError("Unknown dest:%s\n", dest);
+																	
+					cJSON *response = cJSON_CreateObject();
+					cJSON_AddNumberToObject(response, "statusCode", 531);	
+					cJSON_AddStringToObject(response, "message", "Service Unavailable");
+					str = cJSON_PrintUnformatted(response);
+					ParodusInfo("Payload Response: %s\n", str);
+					resp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
+					memset(resp_msg, 0, sizeof(wrp_msg_t));
+
+					resp_msg ->msg_type = msgType;
+					resp_msg ->u.req.source = message->u.req.dest;
+					resp_msg ->u.req.dest = message->u.req.source;
+					resp_msg ->u.req.transaction_uuid=message->u.req.transaction_uuid;
+					resp_msg ->u.req.payload = (void *)str;
+					resp_msg ->u.req.payload_size = strlen(str);
+					
+					ParodusPrint("msgpack encode\n");
+					resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
+					
+				    sendUpstreamMsgToServer(&resp_bytes, resp_size);				
+	
 				}
+				
 			
 		  	 }
 	  	}

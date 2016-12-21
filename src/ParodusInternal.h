@@ -106,6 +106,8 @@ void unlockMutex(noPollPtr _mutex);
 
 void destroyMutex(noPollPtr _mutex);
 
+void sendUpstreamMsgToServer(void **resp_bytes, int resp_size);
+
 
 #ifdef __cplusplus
 }
