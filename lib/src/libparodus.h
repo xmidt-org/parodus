@@ -57,7 +57,7 @@ int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
  *  @param ms the number of milliseconds to wait for the next message
  *
  *  @return 0 on success, 2 if closed msg received, 1 if timed out, 
- *   -1 if receive error, -2 if msg not a ptr, -3 no receiver option
+ *   -1 if receive error, -3 no receiver option
  *
  *  @note don't free the msg when return is 2. 
  */

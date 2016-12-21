@@ -28,7 +28,7 @@
 
 #include "../src/libparodus.h"
 #include "../src/libparodus_time.h"
-#include <mqueue.h>
+#include "../src/libparodus_queues.h"
 #include <pthread.h>
 
 #define MOCK_MSG_COUNT 10
@@ -95,7 +95,6 @@ extern int flush_wrp_queue (uint32_t delay_ms);
 extern int connect_receiver (const char *rcv_url);
 extern int connect_sender (const char *send_url);
 extern void shutdown_socket (int *sock);
-extern mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) );
 
 extern bool is_auth_received (void);
 extern int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms);
@@ -109,7 +108,6 @@ extern bool test_create_wrp_queue (void);
 extern void test_close_wrp_queue (void);
 extern int  test_close_receiver (void);
 extern void test_send_wrp_queue_ok (void);
-extern void test_send_wrp_queue_error (void);
 
 
 extern const char *wrp_queue_name;
@@ -404,6 +402,174 @@ void test_time (void)
 	CU_ASSERT (!ts2_greater);
 }
 
+void test_queue_send_msg (libpd_mq_t q, unsigned timeout_ms, int n)
+{
+	void *msg;
+	int msgsize;
+	char msgbuf[100];
+
+	sprintf (msgbuf, "Test Message # %d\n", n);
+	msgsize = strlen(msgbuf) + 1;
+	msg = malloc (msgsize);
+	CU_ASSERT_FATAL (msg != NULL);
+	strncpy ((char*)msg, msgbuf, msgsize);
+	CU_ASSERT (libpd_qsend (q, msg, timeout_ms) == 0);
+}
+
+int get_msg_num (const char *msg)
+{
+	int num = -1;
+	bool found_pound = false;
+	int i;
+	char c;
+
+	for (i=0; (c=msg[i]) != 0; i++)
+	{
+		if (!found_pound) {
+			if (c == '#')
+				found_pound = true;
+			continue;
+		}
+		if ((c>='0') && (c<='9')) {
+			if (num == -1)
+				num = c - '0';
+			else
+				num = 10*num + (c - '0');
+		}
+	}
+	return num;
+}
+
+void test_queue_rcv_msg (libpd_mq_t q, unsigned timeout_ms, int n)
+{
+	int err, msg_num;
+	void *msg;
+	err = libpd_qreceive (q, &msg, timeout_ms);
+	CU_ASSERT (err == 0);
+	if (err != 0)
+		return;
+	fputs ((char*) msg, stdout);
+	if (n < 0) {
+		free (msg);
+		return;
+	}
+	msg_num = get_msg_num ((char*)msg);
+	free (msg);
+	CU_ASSERT (msg_num >= 0);
+	if (msg_num < 0)
+		return;
+	CU_ASSERT (msg_num == n);
+}
+
+static int flush_queue_count = 0;
+
+void qfree (void * msg)
+{
+	flush_queue_count++;
+	free (msg);
+}
+
+void delay_ms(unsigned int secs, unsigned int msecs)
+{
+  struct timespec ts;
+  ts.tv_sec = (time_t) secs;
+  ts.tv_nsec = (long) msecs * 1000000L;
+  nanosleep (&ts, NULL);
+}
+
+typedef struct {
+	libpd_mq_t queue;
+	unsigned initial_wait_ms;
+	unsigned num_msgs;
+	unsigned send_interval_ms;
+} test_queue_info_t;
+
+static void *test_queue_sender_thread (void *arg)
+{
+	test_queue_info_t *qinfo = (test_queue_info_t *) arg;
+	unsigned i;
+
+	printf ("LIBPD_TEST: started test_queue_sender_thread\n");
+	if (qinfo->initial_wait_ms != 0)
+		delay_ms (0, qinfo->initial_wait_ms);
+
+	for (i=0; i<qinfo->num_msgs; i++)
+	{
+		test_queue_send_msg (qinfo->queue, qinfo->send_interval_ms, i);
+	}
+	printf ("LIBPD_TEST: ended test_queue_sender_thread\n");
+	return NULL;
+}
+
+void test_queues (void)
+{
+	test_queue_info_t qinfo;
+	int i, rtn;
+	void *msg;
+	pthread_t sender_test_tid;
+
+	qinfo.initial_wait_ms = 2000;
+	qinfo.num_msgs = 5;
+	qinfo.send_interval_ms = 500;
+
+	CU_ASSERT (libpd_qcreate (&qinfo.queue, "//TEST_QUEUE", 5) == 0);
+	for (i=0; i< 5; i++)
+		test_queue_send_msg (qinfo.queue, qinfo.send_interval_ms, i);
+	CU_ASSERT (libpd_qsend (qinfo.queue, "extra message", qinfo.send_interval_ms)
+		 == ETIMEDOUT);
+	for (i=0; i< 5; i++)
+		test_queue_rcv_msg (qinfo.queue, qinfo.send_interval_ms, i);
+	CU_ASSERT (libpd_qreceive (qinfo.queue, &msg, qinfo.send_interval_ms)
+		 == ETIMEDOUT);
+	for (i=0; i< 5; i++)
+	{
+		test_queue_send_msg (qinfo.queue, qinfo.send_interval_ms, i);
+		test_queue_rcv_msg (qinfo.queue, qinfo.send_interval_ms, i);
+	}
+	flush_queue_count = 0;
+	CU_ASSERT (libpd_qdestroy (&qinfo.queue, &qfree) == 0);
+	CU_ASSERT (flush_queue_count == 0);
+
+	CU_ASSERT (libpd_qcreate (&qinfo.queue, "//TEST_QUEUE", 5) == 0);
+	for (i=0; i< 5; i++)
+		test_queue_send_msg (qinfo.queue, qinfo.send_interval_ms, i);
+	flush_queue_count = 0;
+	CU_ASSERT (libpd_qdestroy (&qinfo.queue, &qfree) == 0);
+	CU_ASSERT (flush_queue_count == 5);
+
+	CU_ASSERT (libpd_qcreate (&qinfo.queue, "//TEST_QUEUE", qinfo.num_msgs) == 0);
+	rtn = pthread_create 
+		(&sender_test_tid, NULL, test_queue_sender_thread, (void*) &qinfo);
+	CU_ASSERT (rtn == 0);
+	if (rtn == 0) {
+		for (i=0; i< (int)qinfo.num_msgs; i++)
+			test_queue_rcv_msg (qinfo.queue, 4000, -1);
+		pthread_join (sender_test_tid, NULL);
+	}
+	flush_queue_count = 0;
+	CU_ASSERT (libpd_qdestroy (&qinfo.queue, &qfree) == 0);
+	CU_ASSERT (flush_queue_count == 0);
+
+	CU_ASSERT (libpd_qcreate (&qinfo.queue, "//TEST_QUEUE", qinfo.num_msgs) == 0);
+	qinfo.initial_wait_ms = 0;
+	qinfo.num_msgs += 5;
+	qinfo.send_interval_ms = 5000;
+	rtn = pthread_create 
+		(&sender_test_tid, NULL, test_queue_sender_thread, (void*) &qinfo);
+	CU_ASSERT (rtn == 0);
+	if (rtn == 0) {
+		delay_ms (0, 2000);
+		for (i=0; i< (int)qinfo.num_msgs; i++) {
+			test_queue_rcv_msg (qinfo.queue, 4000, -1);
+			delay_ms (0, 500);
+		}
+		pthread_join (sender_test_tid, NULL);
+	}
+	flush_queue_count = 0;
+	CU_ASSERT (libpd_qdestroy (&qinfo.queue, &qfree) == 0);
+	CU_ASSERT (flush_queue_count == 0);
+}
+
 void dbg_log_err (const char *fmt, ...)
 {
 		char errbuf[100];
@@ -475,11 +641,9 @@ void test_1(void)
 	unsigned timeout_cnt = 0;
 	int rtn;
 	int test_sock;
-	mqd_t test_q = -1;
 	wrp_msg_t *wrp_msg;
 	unsigned event_num = 0;
 	unsigned msg_num = 0;
-	const char *wrp_queue_orig_name = wrp_queue_name;
 	const char *parodus_url_orig = GOOD_PARODUS_URL;
 	const char *client_url_orig = GOOD_CLIENT_URL;
 
@@ -488,6 +652,7 @@ void test_1(void)
 	CU_ASSERT_FATAL (check_current_dir() == 0);
 
 	CU_ASSERT_FATAL (log_init (".", NULL) == 0);
+	test_queues ();
 
 	printf ("LIBPD_TEST: test connect receiver, good IP\n");
 	test_sock = connect_receiver (TEST_RCV_URL);
@@ -510,17 +675,9 @@ void test_1(void)
 	printf ("LIBPD_TEST: test connect sender, bad IP\n");
 	test_sock = connect_sender (BAD_SEND_URL);
 	CU_ASSERT (test_sock == -1);
-	printf ("LIBPD_TEST: test create queue good\n");
-	test_q = create_queue ("/LIBPD_TEST_QUEUE", 256);
-	CU_ASSERT (test_q != -1);
-	mq_close (test_q);
-	printf ("LIBPD_TEST: test create queue bad\n");
-	test_q = create_queue ("$$LIBPD_BAD_QUEUE&&", 256);
-	CU_ASSERT (test_q == -1);
-	test_q = -1;
 
 	printf ("LIBPD_TEST: test create wrp queue\n");
-	CU_ASSERT (test_create_wrp_queue ());
+	CU_ASSERT (test_create_wrp_queue () == 0);
 	printf ("LIBPD_TEST: test libparodus receive good\n");
 	test_send_wrp_queue_ok ();
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == 0);
@@ -531,20 +688,12 @@ void test_1(void)
 	test_send_wrp_queue_ok ();
 	CU_ASSERT (flush_wrp_queue (500) == 3);
 	CU_ASSERT (flush_wrp_queue (500) == 0);
-	printf ("LIBPD_TEST: test wrp_flush_queue with bad msg\n");
-	test_send_wrp_queue_ok ();
-	test_send_wrp_queue_ok ();
-	test_send_wrp_queue_error ();
-	CU_ASSERT (flush_wrp_queue (500) == 2);
 	printf ("LIBPD_TEST: test wrp_flush_queue with close msg\n");
 	test_send_wrp_queue_ok ();
 	test_send_wrp_queue_ok ();
 	test_close_receiver ();
 	CU_ASSERT (flush_wrp_queue (500) == 3);
 
-	test_send_wrp_queue_error ();
-	printf ("LIBPD_TEST: test libparodus receive bad msg\n");
-	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == -2);
 	printf ("LIBPD_TEST: test libparodus receive timeout\n");
 	CU_ASSERT (libparodus_receive__ (&wrp_msg, 500) == 1);
 	CU_ASSERT (test_close_receiver() == 0);
@@ -558,7 +707,6 @@ void test_1(void)
 	test_close_wrp_queue ();
 
 	CU_ASSERT (libparodus_receive (&wrp_msg, 500) == -1);
-	CU_ASSERT (libparodus_send (wrp_msg) == -1);
 
 	printf ("LIBPD_TEST: libparodus_init bad parodus ip\n");
 	CU_ASSERT (setenv( "PARODUS_SERVICE_URL", BAD_PARODUS_URL, 1) == 0);
@@ -568,10 +716,6 @@ void test_1(void)
 	printf ("LIBPD_TEST: libparodus_init bad client url\n");
 	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
 	CU_ASSERT (setenv( "PARODUS_CLIENT_URL", client_url_orig, 1) == 0);
-	wrp_queue_name = "$$LIBPD_BAD_QUEUE&&";
-	printf ("LIBPD_TEST: libparodus_init bad wrp queue name\n");
-	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
-	wrp_queue_name = wrp_queue_orig_name;
 	printf ("LIBPD_TEST: libparodus_init bad options\n");
 	CU_ASSERT (libparodus_init_ext (service_name, NULL, "X") == EINVAL);
 

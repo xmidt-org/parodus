@@ -32,7 +32,8 @@ add_executable (libpd
                 libpd_test.c
                 ../src/libparodus.c
                 ../src/libparodus_log.c
-                ../src/libparodus_time.c)
+                ../src/libparodus_time.c
+                ../src/libparodus_queues.c)
 
 target_link_libraries (libpd
                        gcov

@@ -21,7 +21,7 @@
 #include "libparodus.h"
 #include "libparodus_time.h"
 #include <pthread.h>
-#include <mqueue.h>
+#include "libparodus_queues.h"
 
 //#define PARODUS_SERVICE_REQUIRES_REGISTRATION 1
 
@@ -63,13 +63,13 @@ static int rcv_sock = -1;
 static int stop_rcv_sock = -1;
 static int send_sock = -1;
 
-#define MAX_QUEUE_MSG_SIZE 64
-
+#define WRP_QUEUE_SEND_TIMEOUT_MS	2000
 #define WRP_QUEUE_NAME "/LIBPD_WRP_QUEUE"
+#define WRP_QUEUE_SIZE 50
 
 const char *wrp_queue_name = WRP_QUEUE_NAME;
 
-static mqd_t wrp_queue = (mqd_t)-1;
+static libpd_mq_t wrp_queue = NULL;
 
 static pthread_t wrp_receiver_tid;
 static pthread_mutex_t send_mutex=PTHREAD_MUTEX_INITIALIZER;
@@ -201,6 +201,7 @@ int connect_sender (const char *send_url)
 	return sock;
 }
 
+#if 0
 mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) )
 {
 	mqd_t q = -1;
@@ -223,6 +224,7 @@ mqd_t create_queue (const char *qname, int qsize __attribute__ ((unused)) )
 		qname, attr.mq_maxmsg, attr.mq_msgsize);
 	return q;
 }
+#endif
 
 static int create_thread (pthread_t *tid, void *(*thread_func) (void*))
 {
@@ -230,6 +232,23 @@ static int create_thread (pthread_t *tid, void *(*thread_func) (void*))
 	if (rtn != 0)
 		libpd_log (LEVEL_ERROR, rtn, "Unable to create thread\n");
 	return rtn; 
+}
+
+static bool is_closed_msg (wrp_msg_t *msg)
+{
+	return (msg->msg_type == WRP_MSG_TYPE__REQ) &&
+		(strcmp (msg->u.req.dest, closed_msg) == 0);
+}
+
+static void wrp_free (void *msg)
+{
+	wrp_msg_t *wrp_msg;
+	if (NULL == msg)
+		return;
+	wrp_msg = (wrp_msg_t *) msg;
+	if (is_closed_msg (wrp_msg))
+		return;
+	wrp_free_struct (wrp_msg);
 }
 
 static int send_registration_msg (const char *service_name)
@@ -324,8 +343,8 @@ int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
 			return -1;
 		}
 		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Opened sockets\n");
-		wrp_queue = create_queue (wrp_queue_name, 24);
-		if (wrp_queue == (mqd_t)-1) {
+		err = libpd_qcreate (&wrp_queue, wrp_queue_name, WRP_QUEUE_SIZE);
+		if (err != 0) {
 			shutdown_socket(&rcv_sock);
 			shutdown_socket(&send_sock);
 			shutdown_socket(&stop_rcv_sock);
@@ -334,7 +353,7 @@ int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
 		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Created queues\n");
 		if (create_thread (&wrp_receiver_tid, wrp_receiver_thread) != 0) {
 			shutdown_socket(&rcv_sock);
-			mq_close (wrp_queue);
+			libpd_qdestroy (&wrp_queue, &wrp_free);
 			shutdown_socket(&send_sock);
 			shutdown_socket(&stop_rcv_sock);
 			return -1;
@@ -364,17 +383,6 @@ int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
 int libparodus_init (const char *service_name, parlibLogHandler log_handler)
 {
 	return libparodus_init_ext (service_name, log_handler, "R,C");
-}
-
-static int queue_send (mqd_t q, const char *qname, const char *msg, int len)
-{
-	int rtn;
-	if (len < 0)
-		len = strlen (msg) + 1;
-	rtn = mq_send (q, msg, len, 0);
-	if (rtn != 0)
-		libpd_log (LEVEL_ERROR, errno, "Unable to send on queue %s\n", qname);
-	return rtn; 
 }
 
 static int sock_send (int sock, const char *msg, int msg_len)
@@ -426,12 +434,11 @@ int libparodus_shutdown (void)
 		shutdown_socket(&rcv_sock);
 		libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Flushing wrp queue\n");
 		flush_wrp_queue (5);
-		mq_close (wrp_queue);
+		libpd_qdestroy (&wrp_queue, &wrp_free);
 	}
 	shutdown_socket(&send_sock);
 	if (libpd_options.receive) {
 		shutdown_socket(&stop_rcv_sock);
-		mq_unlink (wrp_queue_name);
 	}
 	run_state = 0;
 	auth_received = false;
@@ -442,28 +449,19 @@ int libparodus_shutdown (void)
 // returns 0 OK
 //  1 timed out
 // -1 mq_receive error
-// -2 msg size error, not a ptr
-static int timed_wrp_queue_receive (wrp_msg_t **msg, struct timespec *expire_time)
+static int timed_wrp_queue_receive (wrp_msg_t **msg, unsigned timeout_ms)
 {
-	ssize_t bytes;
-	char msgbuf[MAX_QUEUE_MSG_SIZE];
-	wrp_msg_t **wrp_msg_buf = (wrp_msg_t **) msgbuf; 
+	int rtn;
+	void *raw_msg;
 
-	bytes = mq_timedreceive (wrp_queue, msgbuf, MAX_QUEUE_MSG_SIZE, NULL,
-		expire_time);
-	if (bytes < 0) {
-		if (errno == ETIMEDOUT)
-			return 1;
-		libpd_log (LEVEL_ERROR, errno, "Unable to receive on queue /WRP_QUEUE\n");
+	rtn = libpd_qreceive (wrp_queue, &raw_msg, timeout_ms);
+	if (rtn == ETIMEDOUT)
+		return 1;
+	if (rtn != 0) {
+		libpd_log (LEVEL_ERROR, rtn, "Unable to receive on queue /WRP_QUEUE\n");
 		return -1;
 	}
-	if (bytes != sizeof(wrp_msg_t *)) {
-		libpd_log (LEVEL_ERROR, 0, 
-			"Invalid msg (len %d) (not a wrp_msg_t pointer) in wrp queue receive\n",
-				bytes);
-		return -2;
-	}
-	*msg = *wrp_msg_buf;
+	*msg = (wrp_msg_t *) raw_msg;
 	libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: receive msg on WRP QUEUE\n");
 	return 0;
 }
@@ -478,21 +476,13 @@ static void make_closed_msg (wrp_msg_t *msg)
 	msg->u.req.payload_size = strlen(closed_msg);
 }
 
-static bool is_closed_msg (wrp_msg_t *msg)
-{
-	return (msg->msg_type == WRP_MSG_TYPE__REQ) &&
-		(strcmp (msg->u.req.dest, closed_msg) == 0);
-}
-
 // returns 0 OK
 //  2 closed msg received
 //  1 timed out
 // -1 mq_receive error
-// -2 msg size error, not a ptr
 // -3 no receive option
 int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms)
 {
-	struct timespec ts;
 	int err;
 
 	if (!libpd_options.receive) {
@@ -500,12 +490,7 @@ int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms)
 		return -3;
 	}
 
-	err = get_expire_time (ms, &ts);
-	if (err != 0) {
-		return err;
-	}
-
-	err = timed_wrp_queue_receive (msg, &ts);
+	err = timed_wrp_queue_receive (msg, ms);
 	if (err != 0)
 		return err;
 	if (*msg == NULL) {
@@ -524,7 +509,6 @@ int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms)
 //  2 closed msg received
 //  1 timed out
 // -1 mq_receive error
-// -2 msg size error, not a ptr
 int libparodus_receive (wrp_msg_t **msg, uint32_t ms)
 {
 	if (RUN_STATE_RUNNING != run_state) {
@@ -540,8 +524,9 @@ int libparodus_close_receiver__ (void)
 		libpd_log (LEVEL_ERROR, 0, "No receive option on libparodus_close_receiver\n");
 		return -3;
 	}
-	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &closed_msg_ptr, 
-		sizeof(wrp_msg_t *));
+	if (libpd_qsend (wrp_queue, (void *) closed_msg_ptr, 
+				WRP_QUEUE_SEND_TIMEOUT_MS) != 0)
+		return -1;
 	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: Sent closed msg\n");
 	return 0;
 }
@@ -691,37 +676,27 @@ static void *wrp_receiver_thread (void *arg __attribute__ ((unused)) )
 		}
 		libpd_log (LEVEL_DEBUG, 0, "LIBPARODUS: received msg directed to service %s\n",
 			selected_service);
-		queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &wrp_msg, 
-			sizeof(wrp_msg_t *));
+		libpd_qsend (wrp_queue, (void *) wrp_msg, WRP_QUEUE_SEND_TIMEOUT_MS);
 	}
 	libpd_log (LEVEL_INFO, 0, "Ended wrp receiver thread\n");
 	return NULL;
 }
 
+
 int flush_wrp_queue (uint32_t delay_ms)
 {
 	wrp_msg_t *wrp_msg;
-	struct timespec ts;
 	int count = 0;
-	int err = get_expire_time (delay_ms, &ts);
-	if (err != 0) {
-		return -1;
-	}
+	int err;
 
 	while (1) {
-		err = timed_wrp_queue_receive (&wrp_msg, &ts);
+		err = timed_wrp_queue_receive (&wrp_msg, delay_ms);
 		if (err == 1)	// timed out
 			break;
-		if (err == -2) // bad msg
-			continue;
 		if (err != 0)
 			return -1;
-		if (is_closed_msg (wrp_msg)) {
-			count++;
-			continue;
-		}
-		wrp_free_struct (wrp_msg);
 		count++;
+		wrp_free (wrp_msg);
 	}
 	libpd_log (LEVEL_INFO, 0, "LIBPARODUS: flushed %d messages out of WRP Queue\n", 
 		count);
@@ -730,15 +705,14 @@ int flush_wrp_queue (uint32_t delay_ms)
 
 // Functions used by libpd_test.c
 
-bool test_create_wrp_queue (void)
+int test_create_wrp_queue (void)
 {
-	wrp_queue = create_queue (wrp_queue_name, 24);
-	return (bool) (wrp_queue != (mqd_t)-1);
+	return libpd_qcreate (&wrp_queue, wrp_queue_name, 24);
 }
 
 void test_close_wrp_queue (void)
 {
-	mq_close (wrp_queue);
+	libpd_qdestroy (&wrp_queue, &wrp_free);
 }
 
 void test_send_wrp_queue_ok (void)
@@ -752,13 +726,7 @@ void test_send_wrp_queue_ok (void)
 	name = (char *) malloc (strlen(PARODUS_CLIENT_URL) + 1);
 	strcpy (name, PARODUS_CLIENT_URL);
 	reg_msg->u.reg.url = name;
-	queue_send (wrp_queue, "/WRP_QUEUE", (const char *) &reg_msg, 
-		sizeof(wrp_msg_t *));
-}
-
-void test_send_wrp_queue_error (void)
-{
-	queue_send (wrp_queue, "/WRP_QUEUE", "***Invalid WRP message\n", -1);
+	libpd_qsend (wrp_queue, (void *) reg_msg, WRP_QUEUE_SEND_TIMEOUT_MS);
 }
 
 int test_close_receiver (void)

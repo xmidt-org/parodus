@@ -15,7 +15,7 @@
 set(PROJ_PARODUS_LIB libparodus)
 
 file(GLOB HEADERS libparodus.h)
-set(SOURCES libparodus.c libparodus_log.c libparodus_time.c)
+set(SOURCES libparodus.c libparodus_log.c libparodus_time.c libparodus_queues.c)
 
 add_library(${PROJ_PARODUS_LIB} STATIC ${HEADERS} ${SOURCES})
 add_library(${PROJ_PARODUS_LIB}.shared SHARED ${HEADERS} ${SOURCES})
