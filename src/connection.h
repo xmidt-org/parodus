@@ -36,6 +36,8 @@ char createNopollConnection(noPollCtx *);
 void close_and_unref_connection(noPollConn *);
 
 
+int sendResponse(noPollConn * conn,void *str, size_t bufferSize);
+
 extern void *metadataPack;
 extern size_t metaPackSize;
 extern pthread_mutex_t g_mutex;

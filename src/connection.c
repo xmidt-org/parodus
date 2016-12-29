@@ -9,6 +9,44 @@ void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,
 void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data);
 
 
+#define MAX_SEND_SIZE (60 * 1024)
+
+#define FLUSH_WAIT_TIME (2000000LL)
+
+
+int sendResponse(noPollConn * conn, void * buffer, size_t length)
+{
+    char *cp = buffer;
+    int final_len_sent = 0;
+    noPollOpCode frame_type = NOPOLL_BINARY_FRAME;
+
+    while (length > 0) {
+            int bytes_sent, len_to_send;
+
+            len_to_send = length > MAX_SEND_SIZE ? MAX_SEND_SIZE : length;
+            length -= len_to_send;
+            bytes_sent = __nopoll_conn_send_common(conn, cp, len_to_send,
+                            length > 0 ? nopoll_false : nopoll_true,
+                            0, frame_type);
+
+            if (bytes_sent != len_to_send) {
+                if (-1 == bytes_sent ||
+                   (bytes_sent = nopoll_conn_flush_writes(conn, FLUSH_WAIT_TIME, bytes_sent)) != len_to_send)
+                {
+                        ParodusPrint("sendResponse() Failed to send all the data\n");
+                        cp = NULL;
+                        break;
+                }
+            }
+            cp += len_to_send;
+	    final_len_sent += len_to_send;
+            frame_type = NOPOLL_CONTINUATION_FRAME;
+    }
+
+    return final_len_sent;
+}
+
+
 /**
  * @brief createNopollConnection interface to create WebSocket client connections.
  *Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
