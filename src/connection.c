@@ -320,6 +320,8 @@ char createNopollConnection(noPollCtx *ctx)
 	
 	//creating tmp file to signal parodus_ready status once connection is successful
 	fp = fopen("/tmp/parodus_ready", "w");
+	fflush(fp);
+	fclose(fp);
 	
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): close_mut lock\n");
