@@ -25,7 +25,8 @@ void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len)
 	ParodusInfo("handleUpstreamMessage length %zu\n", len);
 	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
 	{
-		bytesWritten = nopoll_conn_send_binary(conn, msg, len);
+		//bytesWritten = nopoll_conn_send_binary(conn, msg, len);
+		bytesWritten = sendResponse(conn, msg, len);
 		ParodusPrint("Number of bytes written: %d\n", bytesWritten);
 		if (bytesWritten != (int) len) 
 		{
