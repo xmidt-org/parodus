@@ -67,17 +67,15 @@ char createNopollConnection(noPollCtx *ctx)
 	char server_Address[256];
 	char redirectURL[128]={'\0'};
 	char *temp_ptr;
-	cJSON *resParamObj1 = NULL ,*resParamObj2 = NULL,*resParamObj3 = NULL ,*resParamObj4 = NULL , *parameters = NULL;
+
 	cJSON *response = cJSON_CreateObject();
-	char *buffer = NULL, *firmwareVersion = NULL, *modelName = NULL, *manufacturer = NULL;
-	
+	char *buffer = NULL, *firmwareVersion = NULL, *modelName = NULL, *manufacturer = NULL;	
 	char *reboot_reason = NULL;
 	char encodedData[1024];
 	int  encodedDataSize = 1024;
 	int i=0, j=0, connErr=0;
 	int bootTime_sec;
 	char boot_time[256]={'\0'};
-	char webpaProtocol[16]={'\0'};
 	//Retry Backoff count shall start at c=2 & calculate 2^c - 1.
 	int c=2;
        
@@ -91,7 +89,8 @@ char createNopollConnection(noPollCtx *ctx)
 		ParodusPrint("Closing Parodus_Ready FIle \n");
 		fclose(fp);
 	}
-	
+		
+	get_parodus_cfg()->secureFlag = 1;
 	//struct timespec start,end,connErr_start,connErr_end,*startPtr,*endPtr,*connErr_startPtr,*connErr_endPtr;
 	struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
 	//startPtr = &start;
@@ -118,85 +117,87 @@ char createNopollConnection(noPollCtx *ctx)
              ((0 != strlen(manufacturer)) ? manufacturer : "unknown"));
 
 	ParodusInfo("User-Agent: %s\n",user_agent);
-	headerValues[2] = user_agent;	
+	headerValues[2] = user_agent;
+	
+	ParodusPrint("webpa_protocol is %s\n", get_parodus_cfg()->webpa_protocol);	
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
 	reboot_reason = get_parodus_cfg()->hw_last_reboot_reason;
 	ParodusInfo("Received reboot_reason as:%s\n", reboot_reason);
 	
-	if(firmwareVersion != NULL )
+	if(strlen(modelName)!=0)
 	{
-		cJSON_AddItemToObject(response, "parameters", parameters = cJSON_CreateArray());
-		
-		cJSON_AddItemToArray(parameters, resParamObj1 = cJSON_CreateObject());
-		cJSON_AddStringToObject(resParamObj1, "name", "FirmwareVersion");
-		cJSON_AddStringToObject(resParamObj1, "value", firmwareVersion);
-		cJSON_AddNumberToObject(resParamObj1, "dataType", 0);
-		
-		cJSON_AddItemToArray(parameters, resParamObj2 = cJSON_CreateObject());
-		cJSON_AddStringToObject(resParamObj2, "name", "BootTime");
-		cJSON_AddNumberToObject(resParamObj2, "value", bootTime_sec);
-		cJSON_AddNumberToObject(resParamObj2, "dataType", 2);
-		
-		if(reconnect_reason !=NULL)
-		{
-			cJSON_AddItemToArray(parameters, resParamObj3 = cJSON_CreateObject());
-			cJSON_AddStringToObject(resParamObj3, "name", "Reconnect Reason");
-			cJSON_AddStringToObject(resParamObj3, "value", reconnect_reason);
-			cJSON_AddNumberToObject(resParamObj3, "dataType", 0);
-		}
-		else
-		{
-		     	ParodusError("Failed to GET Reconnect reason value\n");
-		}
-		if(reboot_reason !=NULL)
-		{
-			
-			cJSON_AddItemToArray(parameters, resParamObj4 = cJSON_CreateObject());
-			cJSON_AddStringToObject(resParamObj4, "name", "Reboot reason");
-			cJSON_AddStringToObject(resParamObj4, "value", reboot_reason);
-			cJSON_AddNumberToObject(resParamObj4, "dataType", 0);
-		}
-		else
-		{
-			ParodusError("Failed to GET Reboot reason value\n");
-		}
-		
-
-		buffer = cJSON_PrintUnformatted(response);
-		ParodusInfo("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
-
-		if(nopoll_base64_encode (buffer, strlen(buffer), encodedData, &encodedDataSize) != nopoll_true)
-		{
-			ParodusError("Base64 Encoding failed for Connection Header\n");
-			headerValues[3] = ""; 
-                        headerCount -= 1; 
-		}
-		else
-		{
-			/* Remove \n characters from the base64 encoded data */
-			for(i=0;encodedData[i] != '\0';i++)
-			{
-				if(encodedData[i] == '\n')
-				{
-					ParodusPrint("New line is present in encoded data at position %d\n",i);
-				}
-				else
-				{
-					encodedData[j] = encodedData[i];
-					j++;
-				}
-			}
-			encodedData[j]='\0';
-			headerValues[3] = encodedData;
-			ParodusPrint("Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
-		}
+		cJSON_AddStringToObject(response, HW_MODELNAME, modelName);
+	}
+	
+	if(strlen(get_parodus_cfg()->hw_serial_number)!=0)
+	{
+		cJSON_AddStringToObject(response, HW_SERIALNUMBER, get_parodus_cfg()->hw_serial_number);
+	}
+	
+	if(strlen(manufacturer)!=0)
+	{
+		cJSON_AddStringToObject(response, HW_MANUFACTURER, manufacturer);
+	}
+	
+	if(strlen(firmwareVersion)!=0)
+	{
+		cJSON_AddStringToObject(response, FIRMWARE_NAME, firmwareVersion);
+	}
+	
+	cJSON_AddNumberToObject(response, BOOT_TIME, bootTime_sec);
+	cJSON_AddStringToObject(response, WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol);
+	
+	if(strlen(get_parodus_cfg()->webpa_interface_used)!=0)
+	{
+		cJSON_AddStringToObject(response, WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used);
+	}	
+	
+	if(strlen(reboot_reason)!=0)
+	{						
+		cJSON_AddStringToObject(response, HW_LAST_REBOOT_REASON, reboot_reason);			
 	}
 	else
 	{
-                headerValues[3] = ""; 
-                headerCount -= 1; 
-                
+		ParodusError("Failed to GET Reboot reason value\n");
 	}
+	
+	if(reconnect_reason !=NULL)
+	{			
+	    cJSON_AddStringToObject(response, LAST_RECONNECT_REASON, reconnect_reason);			
+	}
+	else
+	{
+	     	ParodusError("Failed to GET Reconnect reason value\n");
+	}
+		
+	buffer = cJSON_PrintUnformatted(response);
+	ParodusInfo("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
+
+	if(nopoll_base64_encode (buffer, strlen(buffer), encodedData, &encodedDataSize) != nopoll_true)
+	{
+		ParodusError("Base64 Encoding failed for Connection Header\n");
+		headerValues[3] = ""; 
+                headerCount -= 1; 
+	}
+	else
+	{
+		/* Remove \n characters from the base64 encoded data */
+		for(i=0;encodedData[i] != '\0';i++)
+		{
+			if(encodedData[i] == '\n')
+			{
+				ParodusPrint("New line is present in encoded data at position %d\n",i);
+			}
+			else
+			{
+				encodedData[j] = encodedData[i];
+				j++;
+			}
+		}
+		encodedData[j]='\0';
+		headerValues[3] = encodedData;
+		ParodusPrint("Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
+	}	
 	
 	cJSON_Delete(response);
 	
@@ -205,8 +206,7 @@ char createNopollConnection(noPollCtx *ctx)
 	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
 	ParodusInfo("server_Address %s\n",server_Address);
 	
-	get_parodus_cfg()->secureFlag = 1;	
-			
+					
 	max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
 	
@@ -374,28 +374,20 @@ char createNopollConnection(noPollCtx *ctx)
   	ParodusPrint("-------------- Packing metadata ----------------\n");
   	sprintf(boot_time, "%d", bootTime_sec);
  
-  	if(get_parodus_cfg()->secureFlag)
-	{
-		strcpy(webpaProtocol,"https");
-	}
-	else
-	{
-		strcpy(webpaProtocol,"http");
-	}
-	ParodusPrint("webpaProtocol is %s\n", webpaProtocol);
+ 	
   	
 	struct data meta_pack[METADATA_COUNT] = {
-            {"hw-model", modelName},
-            {"hw-serial-number", get_parodus_cfg()->hw_serial_number},
-            {"hw-manufacturer", manufacturer},
-            {"hw-mac", get_parodus_cfg()->hw_mac},
-            {"hw_last_reboot_reason", reboot_reason},
-            {"fw-name", firmwareVersion},
-            {"boot_time", boot_time},
-            {"webpa-last-reconnect-reason", reconnect_reason},
-            {"webpa_protocol",webpaProtocol},
-            {"webpa_uuid",get_parodus_cfg()->webpa_uuid},
-            {"webpa_interface_used", get_parodus_cfg()->webpa_interface_used}
+            {HW_MODELNAME, modelName},
+            {HW_SERIALNUMBER, get_parodus_cfg()->hw_serial_number},
+            {HW_MANUFACTURER, manufacturer},
+            {HW_DEVICEMAC, get_parodus_cfg()->hw_mac},
+            {HW_LAST_REBOOT_REASON, reboot_reason},
+            {FIRMWARE_NAME , firmwareVersion},
+            {BOOT_TIME, boot_time},
+            {LAST_RECONNECT_REASON, reconnect_reason},
+            {WEBPA_PROTOCOL,get_parodus_cfg()->webpa_protocol},
+            {WEBPA_UUID,get_parodus_cfg()->webpa_uuid},
+            {WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used}
         };
 	
 	const data_t metapack = {METADATA_COUNT, meta_pack};

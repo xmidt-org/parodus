@@ -7,6 +7,22 @@
 extern "C" {
 #endif
 
+/* WRP CRUD Model Macros */
+#define HW_MODELNAME                                	"hw-model"
+#define HW_SERIALNUMBER                                 "hw-serial-number"
+#define HW_MANUFACTURER                                 "hw-manufacturer"
+#define HW_DEVICEMAC                                  	"hw-mac"
+#define HW_LAST_REBOOT_REASON                           "hw-last-reboot-reason"
+#define FIRMWARE_NAME                                  	"fw-name"
+#define BOOT_TIME                                  	"boot-time"
+#define LAST_RECONNECT_REASON                           "webpa-last-reconnect-reason"
+#define WEBPA_PROTOCOL                                  "webpa-protocol"
+#define WEBPA_INTERFACE                                 "webpa-inteface-used"
+#define WEBPA_UUID                                      "webpa-uuid"
+#define WEBPA_URL                                       "webpa-url"
+#define WEBPA_PING_TIMEOUT                              "webpa-ping-timeout"
+#define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
+
 typedef struct
 {
     char hw_model[64];

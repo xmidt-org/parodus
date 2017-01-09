@@ -9,29 +9,11 @@
 #ifndef WEBSOCKET_MGR_H_
 #define WEBSOCKET_MGR_H_
 #include <nopoll.h>
-
+#include "config.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-typedef struct
-{
-    char hw_model[64];
-    char hw_serial_number[64];
-    char hw_manufacturer[64];
-    char hw_mac[64];
-    char hw_last_reboot_reason[64];
-    char fw_name[64];
-    unsigned int boot_time;
-    unsigned int webpa_ping_timeout;
-    char webpa_url[124];
-    unsigned int webpa_backoff_max;
-    char webpa_interface_used[16];
-    char webpa_protocol[16];
-    char webpa_uuid[64];
-    unsigned int secureFlag;
-} ParodusCfg;
 
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
@@ -44,7 +26,6 @@ typedef struct
 void createSocketConnection(void *config, void (* initKeypress)());
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
-void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);

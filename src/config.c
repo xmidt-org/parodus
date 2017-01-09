@@ -75,7 +75,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->boot_time = pConfig->boot_time;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
-       
+    strncpy(cfg->webpa_protocol, "WebPA-1.6", strlen("WebPA-1.6")+1);
     strncpy(cfg->webpa_uuid, "1234567-345456546", strlen("1234567-345456546")+1);
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
