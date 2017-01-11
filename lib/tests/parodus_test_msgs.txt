@@ -1,6 +1,18 @@
+mac:123456712357/iot keepalive
+mac:123456712357/iot keepalive
+mac:123456712357/iot keepalive
+mac:123456712357/iot keepalive
+mac:123456712357/iot keepalive
 mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx001"}
 mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx002"}
 mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx003"}
+mac:123456712357/iot wait 25
 mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx004"}
 mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx005"}
 mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx006"}
+mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx007"}
+mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx008"}
+mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx009"}
+mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx010"}
+mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx011"}
+mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx012"}
