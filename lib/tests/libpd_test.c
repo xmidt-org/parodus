@@ -33,6 +33,7 @@
 
 #define MOCK_MSG_COUNT 10
 #define MOCK_MSG_COUNT_STR "10"
+#define NUM_KEEP_ALIVE_MSGS 5
 #define TESTS_DIR_TAIL "/parodus/lib/tests"
 #define BUILD_DIR_TAIL "/parodus/build"
 #define BUILD_TESTS_DIR_TAIL "/parodus/build/lib/tests"
@@ -113,7 +114,8 @@ extern void test_send_wrp_queue_ok (void);
 extern const char *wrp_queue_name;
 extern const char *parodus_url;
 extern const char *client_url;
-
+extern volatile int keep_alive_count;
+extern volatile int reconnect_count;
 
 int check_current_dir (void)
 {
@@ -743,7 +745,11 @@ void test_1(void)
 	CU_ASSERT (libparodus_receive (&wrp_msg, 500) == -3);
 	CU_ASSERT (libparodus_shutdown () == 0);
 
-	CU_ASSERT (libparodus_init (service_name, NULL) == 0);
+	if (using_mock) {
+		CU_ASSERT (libparodus_init_ext (service_name, NULL, "R,C,K20") == 0);
+	} else {
+		CU_ASSERT (libparodus_init (service_name, NULL) == 0);
+	}
 	printf ("LIBPD_TEST: libparodus_init successful\n");
 	initEndKeypressHandler ();
 
@@ -760,7 +766,7 @@ void test_1(void)
 		if (rtn == 1) {
 			printf ("LIBPD_TEST: Timed out waiting for msg\n");
 #ifdef MOCK_MSG_COUNT
-			if (using_mock) {
+			if (using_mock && ((msgs_received_count+1) >= MOCK_MSG_COUNT)) {
 				timeout_cnt++;
 				if (timeout_cnt >= 6) {
 					libparodus_close_receiver ();
@@ -768,7 +774,7 @@ void test_1(void)
 				}
 			}
 #endif
-			if (msgs_received_count > 0)
+			if ((reconnect_count == 0) && (msgs_received_count > 0))
 				if (send_event_msgs (&msg_num, &event_num, 5) != 0)
 					break;
 			continue;
@@ -785,6 +791,9 @@ void test_1(void)
 			break;
 	}
 	if (using_mock) {
+		printf ("Keep alive msgs received %d\n", keep_alive_count);
+		CU_ASSERT (keep_alive_count == NUM_KEEP_ALIVE_MSGS);
+		CU_ASSERT (reconnect_count == 1);
 #ifdef MOCK_MSG_COUNT
 		bool close_pipe = (msgs_received_count < MOCK_MSG_COUNT);
 #else

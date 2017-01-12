@@ -35,7 +35,6 @@
 
 #define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
 
-#define IOT "iot"
 #define GET_SET "get_set"
 
 #define TEST_MSG_BUF_LEN 6000
@@ -669,7 +668,7 @@ static int enqueue_test_msg (const char *trans_uuid, unsigned trans_num,
 	wrp_msg_t *new_msg = malloc (sizeof (wrp_msg_t));
 	if (NULL == new_msg)
 		return -1;
-	printf ("Making req msg\n");
+	printf ("MOCKPD Making req msg\n");
 	new_msg->msg_type = WRP_MSG_TYPE__REQ;
 	trans_buf = new_str (trans_uuid);
 	insert_number_into_buf (trans_buf, trans_num);
@@ -680,10 +679,31 @@ static int enqueue_test_msg (const char *trans_uuid, unsigned trans_num,
 	new_msg->u.req.metadata = NULL;
 	new_msg->u.req.payload = new_str (payload);
 	new_msg->u.req.payload_size = strlen (payload) + 1;
-	printf ("Enqueueing req msg to parodus lib\n");
+	printf ("MOCKPD Enqueueing req msg to parodus lib\n");
 	msg_len = wrp_struct_to (new_msg, WRP_BYTES, &msg_bytes);
 	if (msg_len < 1) {
-		printf ("LIBPARODUS: error converting WRP to bytes\n");
+		printf ("MOCKPD: error converting WRP to bytes\n");
+		return -1;
+	}
+	listenerOnMessage_queue (msg_bytes, msg_len);
+	//printf ("Freeing event msg\n");
+	wrp_free_struct (new_msg);
+	//printf ("Freed event msg\n");
+	return 0;
+}
+
+static int enqueue_keepalive_msg (void)
+{
+	ssize_t msg_len;
+	void *msg_bytes;
+	wrp_msg_t *new_msg = malloc (sizeof (wrp_msg_t));
+	if (NULL == new_msg)
+		return -1;
+	new_msg->msg_type = WRP_MSG_TYPE__SVC_ALIVE;
+	printf ("MOCKPD Enqueueing keepalive msg to parodus lib\n");
+	msg_len = wrp_struct_to (new_msg, WRP_BYTES, &msg_bytes);
+	if (msg_len < 1) {
+		printf ("MOCKPD: error converting WRP to bytes\n");
 		return -1;
 	}
 	listenerOnMessage_queue (msg_bytes, msg_len);
@@ -717,16 +737,17 @@ static void listenerOnMessage_queue(void *msg_bytes, ssize_t msg_len)
 		message->len = msg_len;
 		message->next = NULL;
 
+		printf ("MOCKPD enqueue msg on ParodusMsgQ\n");
 		pthread_mutex_lock (&parodus_mut);		
-		printf("mutex lock in ParodusMsgQ producer thread\n");
+		printf("MOCKPD mutex lock in ParodusMsgQ producer thread\n");
 		
 		if(ParodusMsgQ == NULL)
 		{
 			ParodusMsgQ = message;
-			printf("ParodusMsgQ producer added message\n");
+			printf("MOCKPD ParodusMsgQ producer added message\n");
 		 	pthread_cond_signal(&parodus_con);
 			pthread_mutex_unlock (&parodus_mut);
-			printf("mutex unlock in ParodusMsgQ producer thread\n");
+			printf("MOCKPD mutex unlock in ParodusMsgQ producer thread\n");
 		}
 		else
 		{
@@ -744,8 +765,30 @@ static void listenerOnMessage_queue(void *msg_bytes, ssize_t msg_len)
 		//Memory allocation failed
 		printf("Allocation of ParodusMsg failed in listenerOnMessageQueue\n");
 	}
-	printf("*****Returned from listenerOnMessage_queue*****\n");
+	printf("MOCKPD *****Returned from listenerOnMessage_queue*****\n");
 } // End listenerOnMessage_queue
+
+
+static int send_to_client (reg_client *client, const char *msg, size_t msgSize)
+{
+	int i, bytes;
+
+	for (i=0; i<3; i++) {
+		printf("MOCKPD sending to nanomsg client %s\n", client->service_name);     
+		bytes = nn_send(client->sock, msg, msgSize, 0);
+		printf("MOCKPD sent downstream message '%s' to reg_client '%s'\n", msg, client->url);
+		if (bytes >= 0) {
+			printf("MOCKPD downstream bytes sent:%d\n", bytes);
+			return 0;
+		}
+		if (errno != ETIMEDOUT) {
+			dbg_err (errno, "MOCKPD error on nn_send\n");
+			return -1;
+		}		
+	}
+	printf ("MOCKPD timeout on nn_send\n");
+	return -1;
+}
 
 /**
  * @brief listenerOnMessage function to process a message
@@ -763,12 +806,11 @@ static int listenerOnMessage(void * msg, size_t msgSize)
 	
 	int msgType;
 	int p =0;
-	int bytes =0;
 	int destFlag =0;	
 	const char *recivedMsg = NULL;
 	recivedMsg =  (const char *) msg;
 	
-	printf("Received msg from server:%s\n", recivedMsg);	
+	printf("MOCKPD Dequeue msg from ParodusMsgQ and send to parodus lib:%s\n", recivedMsg);	
 	if(recivedMsg!=NULL) 
 	{
 	
@@ -778,12 +820,10 @@ static int listenerOnMessage(void * msg, size_t msgSize)
 				
 		if(rv > 0)
 		{
-			printf("\nDecoded recivedMsg of size:%d\n", rv);
+			printf("\nMOCKPD Decoded recivedMsg of size:%d\n", rv);
 			msgType = message->msg_type;
-			printf("msgType received:%d\n", msgType);
-		
-			if((message->u.req.dest !=NULL))
-			{
+			printf("MOCKPD msgType decoded:%d\n", msgType);
+			if (msgType == WRP_MSG_TYPE__REQ) {
 				destVal = message->u.req.dest;
 				if (strcmp (destVal, "END") == 0) {
 					wrp_free_struct (message);
@@ -791,26 +831,31 @@ static int listenerOnMessage(void * msg, size_t msgSize)
 				}
 				strtok(destVal , "/");
 				strcpy(dest,strtok(NULL , "/"));
-				printf("Received downstream dest as :%s\n", dest);
+				printf("MOCKPD Decoded downstream dest as :%s\n", dest);
+			} else if (msgType == WRP_MSG_TYPE__SVC_ALIVE) {
+				printf("MOCKPD Decoded downstream keep alive msg\n");
+			}
+
+			if ((msgType == WRP_MSG_TYPE__REQ) ||
+					(msgType == WRP_MSG_TYPE__SVC_ALIVE))
+			{
 			
 				//Checking for individual clients & Sending to each client
 				
 				for( p = 0; p < numOfClients; p++ ) 
 				{
 				    // Sending message to registered clients
-				    if( strcmp(dest, clients[p]->service_name) == 0) 
-				    {  
-				    	printf("sending to nanomsg client %s\n", dest);     
-							bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, 0);
-							printf("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
-							printf("downstream bytes sent:%d\n", bytes);
+						if ((msgType == WRP_MSG_TYPE__SVC_ALIVE) ||
+				    		( strcmp(dest, clients[p]->service_name) == 0)) 
+				    {
+							send_to_client (clients[p], recivedMsg, msgSize);  
 							destFlag =1;
 					 } 
 				}
 				
 				if(destFlag ==0)
 				{
-					printf("Unknown dest:%s\n", dest);
+					printf("MOCKPD Unknown dest:%s\n", dest);
 				}
 			
 			}
@@ -819,7 +864,7 @@ static int listenerOnMessage(void * msg, size_t msgSize)
 	  	
 	  else
 	  {
-	  	printf( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
+	  	printf( "MOCKPD Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
 			return -1;
 	  }
 	  
@@ -896,6 +941,7 @@ static int parseCommandLine(int argc,char **argv,Cfg_t * cfg)
   int c;
   static struct option long_options[] = {
      {"test-file",  required_argument, 0, 'f'},
+		 {"num-keep-alive-msgs", required_argument, 0, 'k'},
      {"delay",  required_argument, 0, 'd'},
      {"msg-count",  optional_argument, 0, 'c'},
 		 {"create-pipe", optional_argument, 0, 'p'},
@@ -1161,6 +1207,37 @@ static int wait_trans (unsigned trans_num)
 	}
 }
 
+static void test_line_error (const char *line)
+{
+		printf ("MOCKPD invalid test file data: %s\n", line);
+}
+
+// returns 0=payload line, 9000=keepalive, else wait
+static int parse_test_line (const char *line)
+{
+	int rtn, wait_len;
+	char keyword[20];
+
+	if (line[0] == '\0') {
+		test_line_error (line);
+		return -1;
+	}
+	if (line[0] == '{')
+		return 0;
+	if (strcasecmp (line, "KEEPALIVE") == 0)
+		return 9000;
+	rtn = sscanf (line, "%10s %d", keyword, &wait_len);
+	if (rtn != 2) {
+		test_line_error (line);
+		return -1;
+	}
+	if (strcasecmp (keyword, "WAIT") != 0) {
+		test_line_error (line);
+		return -1;
+	}
+	return wait_len;
+}
+
 static void read_and_send_test_msgs (void)
 {
 	unsigned trans_num = 0;
@@ -1181,6 +1258,18 @@ static void read_and_send_test_msgs (void)
 		}
 		if (rtn == -1)
 			break;
+		rtn = parse_test_line (payload);
+		if (rtn == -1)
+			break;
+		if (rtn == 9000) {
+			enqueue_keepalive_msg ();
+			sleep (1);
+			continue;
+		}
+		if (rtn != 0) {
+			sleep (rtn);
+			continue;
+		}
 		trans_num++;
 		enqueue_test_msg (trans_format, trans_num, source, dest, payload);
 		if (wait_trans (trans_num) != 0)
