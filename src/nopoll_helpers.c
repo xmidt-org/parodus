@@ -50,7 +50,7 @@ void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len)
  * @param[in] msg The message received from server for various process requests
  * @param[out] user_data data which is to be sent
  */
-void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client **clients)
+void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_item_t **head )
 {
 	
 	int rv =0;
@@ -59,7 +59,6 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 	char dest[32] = {'\0'};
 	
 	int msgType;
-	int p =0;
 	int bytes =0;
 	int destFlag =0;			
 	int resp_size =0;
@@ -67,6 +66,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 	char *str= NULL;
 	wrp_msg_t *resp_msg = NULL;
 	void *resp_bytes;
+	reg_list_item_t *temp;
 	
 	recivedMsg =  (const char *) msg;
 	
@@ -83,6 +83,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 			ParodusPrint("\nDecoded recivedMsg of size:%d\n", rv);
 			msgType = message->msg_type;
 			ParodusInfo("msgType received:%d\n", msgType);
+			ParodusPrint("numOfClients registered is %d\n", *numOfClients);
 		
 			if((message->u.req.dest !=NULL))
 			{
@@ -90,24 +91,28 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_client
 				strtok(destVal , "/");
 				strcpy(dest,strtok(NULL , "/"));
 				ParodusInfo("Received downstream dest as :%s\n", dest);
-			
+				temp = *head;
 				//Checking for individual clients & Sending to each client
 				
-				for( p = 0; p < *numOfClients; p++ ) 
+				do
 				{
-					ParodusPrint("clients[%d].service_name is %s \n",p, clients[p]->service_name);
-				    // Sending message to registered clients
-				    if( strcmp(dest, clients[p]->service_name) == 0) 
-				    {  
-				    	ParodusPrint("sending to nanomsg client %s\n", dest);     
-					bytes = nn_send(clients[p]->sock, recivedMsg, msgSize, 0);
-					ParodusInfo("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,clients[p]->url);
-					ParodusPrint("downstream bytes sent:%d\n", bytes);
-					destFlag =1;
-			
-				    } 				    				  
-				    
-				}
+					ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
+					// Sending message to registered clients
+					if( strcmp(dest, temp->service_name) == 0) 
+					{
+						ParodusPrint("sending to nanomsg client %s\n", dest);     
+						bytes = nn_send(temp->sock, recivedMsg, msgSize, 0);
+						ParodusInfo("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,temp->url);
+						ParodusPrint("downstream bytes sent:%d\n", bytes);
+						destFlag =1;
+						break;
+				
+					}
+					ParodusPrint("checking the next item in the list\n");
+					temp= temp->next;
+					
+				}while(temp !=NULL);
+				
 				
 				//if any unknown dest received sending error response to server
 				if(destFlag ==0)
