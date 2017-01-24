@@ -48,6 +48,7 @@
 #define METADATA_COUNT 					11			
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
+#define KEEPALIVE_INTERVAL_SEC                         	30
 #define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
 
 
@@ -64,8 +65,7 @@ static ParodusCfg parodusCfg;
 static noPollConn *g_conn = NULL;
 static int numOfClients = 0;
 
-//Currently set the max mumber of clients as 10
-reg_client *clients[10];
+reg_list_item_t * head = NULL;
 
 void *metadataPack;
 size_t metaPackSize=-1;
@@ -99,9 +99,11 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 static void *handle_upstream();
 static void *handleUpStreamEvents();
 static void *messageHandlerTask();
-
+static void *serviceAliveTask();
 static void getParodusUrl();
-
+static void sendAuthStatus(reg_list_item_t *new_node);
+static void addToList( wrp_msg_t **msg);
+static void deleteFromList(char* service_name);
 /*
  Export parodusCfg
  */
@@ -218,6 +220,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
         
         ParodusMsgQ = NULL;
         StartThread(messageHandlerTask);
+        StartThread(serviceAliveTask);
 	
 	if (NULL != initKeypress) 
 	{
@@ -360,18 +363,12 @@ static void *handleUpStreamEvents()
 {		
 	int rv=-1;	
 	int msgType;
-	wrp_msg_t *msg;		
-	int i =0;	
-	int size=0;
-	int matchFlag = 0;	
-	int byte = 0;	
-	void *auth_bytes;
-	wrp_msg_t auth_msg_var;
+	wrp_msg_t *msg;	
 	void *appendData;
 	size_t encodedSize;
+	reg_list_item_t *temp;
+	int matchFlag = 0;
 	
-	auth_msg_var.msg_type = WRP_MSG_TYPE__AUTH;
-	auth_msg_var.u.auth.status = 200;
 		
 	while(1)
 	{
@@ -404,92 +401,47 @@ static void *handleUpStreamEvents()
 				   {
 					ParodusInfo("\n Nanomsg client Registration for Upstream\n");
 					
-					//Extract serviceName and url & store it in a struct for reg_clients
+					//Extract serviceName and url & store it in a linked list for reg_clients
 					
 					if(numOfClients !=0)
 					{
-					    for( i = 0; i < numOfClients; i++ ) 
+					    temp = head;
+					    do
 					    {
-																						
-						if(strcmp(clients[i]->service_name, msg->u.reg.service_name)==0)
+						if(strcmp(temp->service_name, msg->u.reg.service_name)==0)
 						{
 							ParodusInfo("match found, client is already registered\n");
-							strcpy(clients[i]->url,msg->u.reg.url);
-							nn_shutdown(clients[i]->sock, 0);
+							strncpy(temp->url,msg->u.reg.url, strlen(msg->u.reg.url)+1);
+							nn_shutdown(temp->sock, 0);
 
-
-							clients[i]->sock = nn_socket( AF_SP, NN_PUSH );
-							int t = 20000;
-							nn_setsockopt(clients[i]->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+							temp->sock = nn_socket( AF_SP, NN_PUSH );					
+							int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
+							nn_setsockopt(temp->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+							nn_connect(temp->sock, msg->u.reg.url); 
 							
-							nn_connect(clients[i]->sock, msg->u.reg.url);  
+							ParodusInfo("Client registered before. Sending acknowledgement \n"); 
 			
-							
-							size = wrp_struct_to( &auth_msg_var, WRP_BYTES, &auth_bytes );
-							ParodusInfo("Client registered before. Sending acknowledgement \n");
-							byte = nn_send (clients[i]->sock, auth_bytes, size, 0);
-						
-							byte = 0;
-							size = 0;
+							sendAuthStatus(temp);
 							matchFlag = 1;
-							free(auth_bytes);
-							auth_bytes = NULL;
+							
 							break;
 						}
-					    }
+						
+						ParodusPrint("checking the next item in the list\n");
+						temp= temp->next;
+						
+					     }while(temp !=NULL);
 
 					}
-
+					
 					ParodusPrint("matchFlag is :%d\n", matchFlag);
 
 					if((matchFlag == 0) || (numOfClients == 0))
 					{
-					
-                                            clients[numOfClients] = (reg_client*)malloc(sizeof(reg_client));
-
-                                            clients[numOfClients]->sock = nn_socket( AF_SP, NN_PUSH );
-                                            nn_connect(clients[numOfClients]->sock, msg->u.reg.url);  
-
-                                            int t = 20000;
-                                            nn_setsockopt(clients[numOfClients]->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
-
-                                            strcpy(clients[numOfClients]->service_name,msg->u.reg.service_name);
-                                            strcpy(clients[numOfClients]->url,msg->u.reg.url);
-
-                                            ParodusPrint("%s\n",clients[numOfClients]->service_name);
-                                            ParodusPrint("%s\n",clients[numOfClients]->url);
-
-                                            if((strcmp(clients[numOfClients]->service_name, msg->u.reg.service_name)==0)&& (strcmp(clients[numOfClients]->url, msg->u.reg.url)==0))
-                                            {
-
-
-                                            //Sending success status to clients after each nanomsg registration
-                                            size = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
-
-                                            ParodusInfo("Client %s Registered successfully. Sending Acknowledgement... \n ", clients[numOfClients]->service_name);
-
-                                            byte = nn_send (clients[numOfClients]->sock, auth_bytes, size, 0);
-
-                                            //condition needs to be changed depending upon acknowledgement
-                                            if(byte >=0)
-                                            {
-                                                    ParodusPrint("send registration success status to client\n");
-                                            }
-                                            else
-                                            {
-                                                    ParodusError("send registration failed\n");
-                                            }
-                                            numOfClients =numOfClients+1;
-                                            ParodusPrint("Number of clients registered= %d\n", numOfClients);
-                                            byte = 0;
-                                            size = 0;
-                                            free(auth_bytes);
-                                            auth_bytes = NULL;
-                                            }
-                                            else
-                                            {
-                                            ParodusError("nanomsg client registration failed\n");
-                                            }
+					    numOfClients = numOfClients + 1;
+					    ParodusPrint("Adding nanomsg clients to list\n");
+			                    addToList(&msg);
+					    
 					}
 				    }
 				    else
@@ -562,8 +514,9 @@ static void *messageHandlerTask()
 			ParodusPrint("mutex unlock in consumer thread\n");
 			if (!terminated) 
 			{
+						
+				listenerOnMessage(message->payload, message->len, &numOfClients, &head);
 				
-				listenerOnMessage(message->payload, message->len, &numOfClients, clients);
 			}
 								
 			nopoll_msg_unref(message->msg);
@@ -586,6 +539,66 @@ static void *messageHandlerTask()
 	ParodusPrint ("Ended messageHandlerTask\n");
 	return 0;
 }
+
+/*
+ * @brief To handle registered services to indicate that the service is still alive.
+ */
+static void *serviceAliveTask()
+{
+	void *svc_bytes;
+	wrp_msg_t svc_alive_msg;
+	int byte =0, size =0;
+	reg_list_item_t *temp; 
+	
+	svc_alive_msg.msg_type = WRP_MSG_TYPE__SVC_ALIVE;	
+	
+	size = wrp_struct_to( &svc_alive_msg, WRP_BYTES, &svc_bytes );
+
+	while(1)
+	{
+		ParodusInfo("serviceAliveTask: numOfClients registered is %d\n", numOfClients);
+		if(numOfClients > 0)
+		{
+			//sending svc msg to all the clients every 30s
+			temp = head;
+			
+			do
+			{
+				byte = nn_send (temp->sock, svc_bytes, size, 0);
+				
+				ParodusPrint("svc byte sent :%d\n", byte);
+				if(byte == size)
+				{
+					ParodusPrint("Keep alive msg sent to client\n");
+					ParodusInfo("temp->service_name: %s is alive\n",temp->service_name);
+				}
+				else
+				{
+					ParodusPrint("Failed to send keep alive msg to client\n");
+					ParodusInfo("service %s is dead\n", temp->service_name);
+					//need to delete this client service from list
+					deleteFromList((char*)temp->service_name);
+				}
+				byte = 0;
+				temp= temp->next;	    	
+			
+			}while(temp !=NULL);
+			
+		 	ParodusPrint("Waiting for 30s to send keep alive msg \n");
+		 	sleep(KEEPALIVE_INTERVAL_SEC);
+		 
+	    	}
+	    	else
+	    	{
+	    		ParodusInfo("No clients are registered, waiting ..\n");
+	    		sleep(70);
+	    	}
+	    		
+	}
+	
+	return 0;
+}
+
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
@@ -722,3 +735,141 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 
 }
 
+
+static void addToList( wrp_msg_t **msg)
+{   
+    //new_node indicates the new clients which needs to be added to list
+    
+    reg_list_item_t *temp; 
+    reg_list_item_t *new_node; 
+    new_node=(reg_list_item_t *)malloc(sizeof(reg_list_item_t));
+ 
+    new_node->sock = nn_socket( AF_SP, NN_PUSH );
+    ParodusPrint("new_node->sock is %d\n", new_node->sock);
+    nn_connect(new_node->sock, (*msg)->u.reg.url);
+    
+    int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
+    nn_setsockopt(new_node->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+    
+    ParodusPrint("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
+    ParodusPrint("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
+    
+    strncpy(new_node->service_name, (*msg)->u.reg.service_name, strlen((*msg)->u.reg.service_name)+1);
+    strncpy(new_node->url, (*msg)->u.reg.url, strlen((*msg)->u.reg.url)+1);
+    
+    new_node->next=NULL;
+	 
+    if (head== NULL) //adding first client
+    {
+        ParodusInfo("Adding first client to list\n");
+    	head=new_node;
+    	
+    }
+    else   //client2 onwards           
+    {
+    	ParodusInfo("Adding clients to list\n");
+    	temp=head;
+    	
+    	while(temp->next !=NULL)
+    	{
+    		temp=temp->next;
+    	}
+    
+    
+    	temp->next=new_node;
+    }
+    
+    ParodusPrint("client is added to list\n");
+    ParodusInfo("client service %s is added to list with url: %s\n", new_node->service_name, new_node->url);
+    
+    
+    if((strcmp(new_node->service_name, (*msg)->u.reg.service_name)==0)&& (strcmp(new_node->url, (*msg)->u.reg.url)==0))
+    {
+    	ParodusInfo("sending auth status to reg client\n");
+    	sendAuthStatus(new_node);
+    }
+    else
+    {
+    	ParodusError("nanomsg client registration failed\n");
+    }
+    
+}
+
+
+static void sendAuthStatus(reg_list_item_t *new_node)
+{
+	int byte = 0;	
+	int size=0;
+	void *auth_bytes;
+	wrp_msg_t auth_msg_var;
+	
+	auth_msg_var.msg_type = WRP_MSG_TYPE__AUTH;
+	auth_msg_var.u.auth.status = 200;
+	
+	//Sending success status to clients after each nanomsg registration
+	size = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
+
+	ParodusInfo("Client %s Registered successfully. Sending Acknowledgement... \n ", new_node->service_name);
+
+	byte = nn_send (new_node->sock, auth_bytes, size, 0);
+
+	if(byte >=0)
+	{
+	    ParodusPrint("send registration success status to client\n");
+	}
+	else
+	{
+	    ParodusError("send registration failed\n");
+	}
+
+	byte = 0;
+	size = 0;
+	free(auth_bytes);
+	auth_bytes = NULL;
+}
+     
+     
+static void deleteFromList(char* service_name)
+{
+ 	reg_list_item_t *prev_node = NULL, *curr_node = NULL;
+
+	if( NULL == service_name ) 
+	{
+		ParodusInfo("Invalid value for service\n");
+		return;
+	}
+	ParodusInfo("service to be deleted: %s\n", service_name);
+
+	prev_node = NULL;
+	curr_node = head;	
+
+	// Traverse to get the link to be deleted
+	while( NULL != curr_node )
+	{
+		if(strcmp(curr_node->service_name, service_name) == 0)
+		{
+			ParodusPrint("Found the node to delete\n");
+			if( NULL == prev_node )
+			{
+				ParodusPrint("need to delete first client\n");
+			 	head = curr_node->next;
+			}
+			else
+			{
+				ParodusPrint("Traversing to find node\n");
+			 	prev_node->next = curr_node->next;
+			}
+			
+			ParodusPrint("Deleting the node\n");
+			free( curr_node );
+			curr_node = NULL;
+			ParodusInfo("Deleted successfully and returning..\n");
+			numOfClients =numOfClients - 1;
+			break;
+		}
+		
+		prev_node = curr_node;
+		curr_node = curr_node->next;
+	}
+	return;
+}
