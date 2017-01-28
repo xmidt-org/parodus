@@ -56,7 +56,7 @@ int main( int argc, char **argv)
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
     
-    cimplog_info("LOG.RDK.PARODUS", "********** Starting component: Parodus **********\n "); 
+    cimplog_info("PARODUS", "********** Starting component: Parodus **********\n "); 
     parseCommandLine(argc,argv,&parodusCfg);
      
     createSocketConnection(&parodusCfg,NULL);
