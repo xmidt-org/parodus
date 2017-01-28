@@ -22,20 +22,20 @@ void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len)
 {
 	int bytesWritten = 0;
 	
-	ParodusInfo("handleUpstreamMessage length %zu\n", len);
+	cimplog_info("LOG.RDK.PARODUS", "handleUpstreamMessage length %zu\n", len);
 	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
 	{
 		//bytesWritten = nopoll_conn_send_binary(conn, msg, len);
 		bytesWritten = sendResponse(conn, msg, len);
-		ParodusPrint("Number of bytes written: %d\n", bytesWritten);
+		cimplog_debug("LOG.RDK.PARODUS", "Number of bytes written: %d\n", bytesWritten);
 		if (bytesWritten != (int) len) 
 		{
-			ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
+			cimplog_error("LOG.RDK.PARODUS", "Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
 		}
 	}
 	else
 	{
-		ParodusError("Failed to send msg upstream as connection is not OK\n");
+		cimplog_error("LOG.RDK.PARODUS", "Failed to send msg upstream as connection is not OK\n");
 	}
 	
 }
@@ -70,7 +70,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 	
 	recivedMsg =  (const char *) msg;
 	
-	ParodusInfo("Received msg from server:%s\n", recivedMsg);	
+	cimplog_info("LOG.RDK.PARODUS", "Received msg from server:%s\n", recivedMsg);	
 	if(recivedMsg!=NULL) 
 	{
 	
@@ -80,35 +80,35 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 				
 		if(rv > 0)
 		{
-			ParodusPrint("\nDecoded recivedMsg of size:%d\n", rv);
+			cimplog_debug("LOG.RDK.PARODUS", "\nDecoded recivedMsg of size:%d\n", rv);
 			msgType = message->msg_type;
-			ParodusInfo("msgType received:%d\n", msgType);
-			ParodusPrint("numOfClients registered is %d\n", *numOfClients);
+			cimplog_info("LOG.RDK.PARODUS", "msgType received:%d\n", msgType);
+			cimplog_debug("LOG.RDK.PARODUS", "numOfClients registered is %d\n", *numOfClients);
 		
 			if((message->u.req.dest !=NULL))
 			{
 				destVal = message->u.req.dest;
 				strtok(destVal , "/");
 				strcpy(dest,strtok(NULL , "/"));
-				ParodusInfo("Received downstream dest as :%s\n", dest);
+				cimplog_info("LOG.RDK.PARODUS", "Received downstream dest as :%s\n", dest);
 				temp = *head;
 				//Checking for individual clients & Sending to each client
 				
 				do
 				{
-					ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
+					cimplog_debug("LOG.RDK.PARODUS", "node is pointing to temp->service_name %s \n",temp->service_name);
 					// Sending message to registered clients
 					if( strcmp(dest, temp->service_name) == 0) 
 					{
-						ParodusPrint("sending to nanomsg client %s\n", dest);     
+						cimplog_debug("LOG.RDK.PARODUS", "sending to nanomsg client %s\n", dest);     
 						bytes = nn_send(temp->sock, recivedMsg, msgSize, 0);
-						ParodusInfo("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,temp->url);
-						ParodusPrint("downstream bytes sent:%d\n", bytes);
+						cimplog_info("LOG.RDK.PARODUS", "sent downstream message '%s' to reg_client '%s'\n",recivedMsg,temp->url);
+						cimplog_debug("LOG.RDK.PARODUS", "downstream bytes sent:%d\n", bytes);
 						destFlag =1;
 						break;
 				
 					}
-					ParodusPrint("checking the next item in the list\n");
+					cimplog_debug("LOG.RDK.PARODUS", "checking the next item in the list\n");
 					temp= temp->next;
 					
 				}while(temp !=NULL);
@@ -117,13 +117,13 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 				//if any unknown dest received sending error response to server
 				if(destFlag ==0)
 				{
-					ParodusError("Unknown dest:%s\n", dest);
+					cimplog_error("LOG.RDK.PARODUS", "Unknown dest:%s\n", dest);
 																	
 					cJSON *response = cJSON_CreateObject();
 					cJSON_AddNumberToObject(response, "statusCode", 531);	
 					cJSON_AddStringToObject(response, "message", "Service Unavailable");
 					str = cJSON_PrintUnformatted(response);
-					ParodusInfo("Payload Response: %s\n", str);
+					cimplog_info("LOG.RDK.PARODUS", "Payload Response: %s\n", str);
 					resp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
 					memset(resp_msg, 0, sizeof(wrp_msg_t));
 
@@ -134,7 +134,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 					resp_msg ->u.req.payload = (void *)str;
 					resp_msg ->u.req.payload_size = strlen(str);
 					
-					ParodusPrint("msgpack encode\n");
+					cimplog_debug("LOG.RDK.PARODUS", "msgpack encode\n");
 					resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
 					
 				    sendUpstreamMsgToServer(&resp_bytes, resp_size);				
@@ -147,10 +147,10 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 	  	
 	  	else
 	  	{
-	  		ParodusError( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
+	  		cimplog_error("LOG.RDK.PARODUS", "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
 	  	}
 	  	
-	  	ParodusPrint("free for downstream decoded msg\n");
+	  	cimplog_debug("LOG.RDK.PARODUS", "free for downstream decoded msg\n");
 	  	wrp_free_struct(message);
 	  
 

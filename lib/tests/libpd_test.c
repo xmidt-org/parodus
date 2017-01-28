@@ -100,10 +100,6 @@ extern void shutdown_socket (int *sock);
 extern bool is_auth_received (void);
 extern int libparodus_receive__ (wrp_msg_t **msg, uint32_t ms);
 
-// libparodus_log functions to be tested
-extern int get_valid_file_num (const char *file_name, const char *date);
-extern int get_last_file_num_in_dir (const char *date, const char *log_dir);
-
 // test helper functions defined in libparodus
 extern bool test_create_wrp_queue (void);
 extern void test_close_wrp_queue (void);
@@ -124,7 +120,6 @@ int check_current_dir (void)
 	char *current_dir = getcwd (current_dir_buf, 256);
 
 	if (NULL == current_dir) {
-		libpd_log (LEVEL_NO_LOGGER, errno, "Unable to get current directory\n");
 		return -1;
 	}
 
@@ -154,7 +149,6 @@ int check_current_dir (void)
 		return 0;
 	}
 
-	libpd_log (LEVEL_NO_LOGGER, 0, "Not in parodus lib tests or build directory\n");
 	return -1;
 }
 
@@ -163,13 +157,11 @@ static int create_end_pipe (void)
 	const char *end_pipe_name = END_PIPE_NAME();
 	int err = remove (end_pipe_name);
 	if ((err != 0) && (errno != ENOENT)) {
-		libpd_log (LEVEL_NO_LOGGER, errno, "Error removing pipe %s\n", end_pipe_name);
 		return -1;
 	}
 	printf ("LIBPD TEST: Removed pipe %s\n", end_pipe_name);
 	err = mkfifo (end_pipe_name, 0666);
 	if (err != 0) {
-		libpd_log (LEVEL_NO_LOGGER, errno, "Error creating pipe %s\n", end_pipe_name);
 		return -1;
 	}
 	printf ("LIBPD_TEST: Created fifo %s\n", end_pipe_name);
@@ -181,7 +173,6 @@ static int open_end_pipe (void)
 	const char *end_pipe_name = END_PIPE_NAME();
 	end_pipe_fd = open (end_pipe_name, O_WRONLY, 0222);
 	if (end_pipe_fd == -1) {
-		libpd_log (LEVEL_NO_LOGGER, errno, "Error opening pipe %s\n", end_pipe_name);
 		return -1;
 	}
 	printf ("LIBPD_TEST: Opened fifo %s\n", end_pipe_name);
@@ -194,17 +185,17 @@ static int write_end_pipe (void)
 	int rtn, fd_flags;
 	fd_flags = fcntl (end_pipe_fd, F_GETFL);
 	if (fd_flags < 0) {
-		libpd_log (LEVEL_ERROR, errno, "Error retrieving pipe %s flags\n", end_pipe_name);
+		printf ("LIBPD_TEST: Error retrieving pipe %s flags\n", end_pipe_name);
 		return -1;
 	}
 	rtn = fcntl (end_pipe_fd, F_SETFL, fd_flags | O_NONBLOCK);
 	if (rtn < 0) {
-		libpd_log (LEVEL_ERROR, errno, "Error settinging pipe %s flags\n", end_pipe_name);
+		printf("LIBPD_TEST: Error settinging pipe %s flags\n", end_pipe_name);
 		return -1;
 	}
 	rtn = write (end_pipe_fd, end_pipe_msg, strlen (end_pipe_msg));
 	if (rtn <= 0) {
-		libpd_log (LEVEL_ERROR, errno, "Error writing pipe %s\n", end_pipe_name);
+		printf("LIBPD_TEST: Error writing pipe %s\n", end_pipe_name);
 		return -1;
 	}
 	return 0;
@@ -349,7 +340,6 @@ int start_mock_parodus ()
 
 	pid = fork ();
 	if (pid == -1) {
-		libpd_log (LEVEL_NO_LOGGER, errno, "Fork failed\n");
 		CU_ASSERT_FATAL (-1 != pid);
 	}
 	if (pid == 0) {
@@ -361,7 +351,7 @@ int start_mock_parodus ()
 #endif
 			(char*)NULL);
 		if (err != 0)
-			libpd_log (LEVEL_NO_LOGGER, errno, "Failed execlp of mock_parodus\n");
+			printf ("LIBPD_TEST: Failed execlp of mock_parodus\n");
 		printf ("Child finished\n");
 	}
 	return pid;	
@@ -606,13 +596,7 @@ int make_test_log_file (const char *date, int file_num)
 
 void test_log (void)
 {
-	CU_ASSERT (get_valid_file_num ("log20161102.4", "20161102") == 4);
-	CU_ASSERT (get_valid_file_num ("lg20161102.4", "20161102") == -1);
-	CU_ASSERT (get_valid_file_num ("log20161103.4", "20161102") == -1);
-	CU_ASSERT (get_valid_file_num ("log20161102.x", "20161102") == -1);
-	CU_ASSERT (get_valid_file_num ("log20161102,4", "20161102") == -1);
 	CU_ASSERT (make_test_log_file ("20161102", 4) == 0);
-	CU_ASSERT (get_last_file_num_in_dir ("20161102", ".") == 4);
 }
 
 void wait_auth_received (void)
@@ -632,7 +616,7 @@ void test_send_only (void)
 {
 	unsigned event_num = 0;
 
-	CU_ASSERT (libparodus_init_ext (service_name, NULL, "C") == 0);
+	CU_ASSERT (libparodus_init_ext (service_name, "C") == 0);
 	CU_ASSERT (send_event_msgs (NULL, &event_num, 10) == 0);
 	CU_ASSERT (libparodus_shutdown () == 0);
 }
@@ -653,7 +637,6 @@ void test_1(void)
 	test_log ();
 	CU_ASSERT_FATAL (check_current_dir() == 0);
 
-	CU_ASSERT_FATAL (log_init (".", NULL) == 0);
 	test_queues ();
 
 	printf ("LIBPD_TEST: test connect receiver, good IP\n");
@@ -712,16 +695,14 @@ void test_1(void)
 
 	printf ("LIBPD_TEST: libparodus_init bad parodus ip\n");
 	CU_ASSERT (setenv( "PARODUS_SERVICE_URL", BAD_PARODUS_URL, 1) == 0);
-	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
+	CU_ASSERT (libparodus_init (service_name) != 0);
 	CU_ASSERT (setenv( "PARODUS_SERVICE_URL", parodus_url_orig, 1) == 0);
 	CU_ASSERT (setenv( "PARODUS_CLIENT_URL", BAD_CLIENT_URL, 1) == 0);
 	printf ("LIBPD_TEST: libparodus_init bad client url\n");
-	CU_ASSERT (libparodus_init (service_name, NULL) != 0);
+	CU_ASSERT (libparodus_init (service_name) != 0);
 	CU_ASSERT (setenv( "PARODUS_CLIENT_URL", client_url_orig, 1) == 0);
 	printf ("LIBPD_TEST: libparodus_init bad options\n");
-	CU_ASSERT (libparodus_init_ext (service_name, NULL, "X") == EINVAL);
-
-	log_shutdown ();
+	CU_ASSERT (libparodus_init_ext (service_name, "X") == EINVAL);
 
 	if (no_mock_send_only_test) {
 		test_send_only ();
@@ -740,15 +721,15 @@ void test_1(void)
 	}
 
 	printf ("LIBPD_TEST: no receive option\n");
-	CU_ASSERT (libparodus_init_ext (service_name, NULL, "") == 0);
+	CU_ASSERT (libparodus_init_ext (service_name, "") == 0);
 	CU_ASSERT (send_event_msgs (NULL, &event_num, 5) == 0);
 	CU_ASSERT (libparodus_receive (&wrp_msg, 500) == -3);
 	CU_ASSERT (libparodus_shutdown () == 0);
 
 	if (using_mock) {
-		CU_ASSERT (libparodus_init_ext (service_name, NULL, "R,C,K20") == 0);
+		CU_ASSERT (libparodus_init_ext (service_name, "R,C,K20") == 0);
 	} else {
-		CU_ASSERT (libparodus_init (service_name, NULL) == 0);
+		CU_ASSERT (libparodus_init (service_name) == 0);
 	}
 	printf ("LIBPD_TEST: libparodus_init successful\n");
 	initEndKeypressHandler ();
@@ -820,7 +801,7 @@ static void initEndKeypressHandler()
 	err = pthread_create(&endKeypressThreadId, NULL, endKeypressHandlerTask, NULL);
 	if (err != 0) 
 	{
-		libpd_log (LEVEL_ERROR, err, "Error creating End Keypress Handler thread\n");
+		printf ("LIBPD_TEST: Error creating End Keypress Handler thread\n");
 	}
 	else 
 	{

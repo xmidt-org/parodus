@@ -29,9 +29,9 @@
 #include <wrp-c.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
+#include <cimplog.h>
 
 #include "wss_mgr.h"
-#include "parodus_log.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */

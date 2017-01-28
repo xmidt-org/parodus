@@ -59,7 +59,7 @@ int checkHostIp(char * serverIP)
 	struct addrinfo hints;
 
 
-	ParodusPrint("...............Inside checkHostIp..............%s \n", serverIP);
+	cimplog_debug("LOG.RDK.PARODUS", "...............Inside checkHostIp..............%s \n", serverIP);
 
 	memset(&hints,0,sizeof(hints));
 	hints.ai_family = AF_INET;
@@ -69,7 +69,7 @@ int checkHostIp(char * serverIP)
 	retVal = getaddrinfo(serverIP, "http", &hints, &result);
 	if (retVal != 0) 
 	{
-		ParodusError("getaddrinfo: %s\n", gai_strerror(retVal));
+		cimplog_error("LOG.RDK.PARODUS", "getaddrinfo: %s\n", gai_strerror(retVal));
 	}
 	else
 	{
@@ -79,15 +79,15 @@ int checkHostIp(char * serverIP)
 			ptr = &((struct sockaddr_in *) res->ai_addr)->sin_addr;
 			inet_ntop (res->ai_family, ptr, addrstr, 100);
 		
-			ParodusPrint("IPv4 address of %s is %s \n", serverIP, addrstr);
+			cimplog_debug("LOG.RDK.PARODUS", "IPv4 address of %s is %s \n", serverIP, addrstr);
 			if (strcmp(localIp,addrstr) == 0)
 			{
-				ParodusPrint("Host Ip resolved to 10.0.0.1\n");
+				cimplog_debug("LOG.RDK.PARODUS", "Host Ip resolved to 10.0.0.1\n");
 				status = -2;
 			}
 			else
 			{
-				ParodusPrint("Host Ip resolved correctly, proceeding with the connection\n");
+				cimplog_debug("LOG.RDK.PARODUS", "Host Ip resolved correctly, proceeding with the connection\n");
 				status = 0;
 				break;
 			}

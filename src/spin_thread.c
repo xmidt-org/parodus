@@ -4,8 +4,8 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <cimplog.h>
 #include "spin_thread.h"
-#include "parodus_log.h"
 
 void StartThread(void *(*start_routine) (void *))
 {
@@ -15,12 +15,12 @@ void StartThread(void *(*start_routine) (void *))
 	err = pthread_create(&threadId, NULL, start_routine, NULL);
 	if (err != 0) 
 	{
-		ParodusError("Error creating thread :[%s]\n", strerror(err));
+		cimplog_error("LOG.RDK.PARODUS", "Error creating thread :[%s]\n", strerror(err));
                 exit(1);
 	}
 	else
 	{
-		ParodusPrint("Thread created Successfully %d\n", (int ) threadId);
+		cimplog_debug("LOG.RDK.PARODUS", "Thread created Successfully %d\n", (int ) threadId);
 	}    
 }
 

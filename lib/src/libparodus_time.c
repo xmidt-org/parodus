@@ -10,11 +10,10 @@
 ******************************************************************************/
 
 #include "libparodus_time.h"
-#include "libparodus_log.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-
+#include <cimplog.h>
 
 /**
  * struct tv has two components: tv_sec and tv_usec
@@ -35,7 +34,7 @@ int get_current_time (struct timeval *tv, struct tm *split_time)
 	time_t secs;
 	int err = gettimeofday (tv, NULL);
 	if (err != 0) {
-		libpd_log (LEVEL_NO_LOGGER, errno, "Error getting time of day: ");
+		cimplog_error("LIBPARODUS", "Error getting time of day\n");
 		return err;
 	}
 	secs = (time_t) tv->tv_sec;
@@ -132,7 +131,7 @@ int get_expire_time (uint32_t ms, struct timespec *ts)
 	struct timeval tv;
 	int err = gettimeofday (&tv, NULL);
 	if (err != 0) {
-		libpd_log (LEVEL_ERROR, errno, "Error getting time of day\n");
+		cimplog_error("LIBPARODUS: ", "Error getting time of day\n");
 		return err;
 	}
 	tv.tv_sec += ms/1000;
