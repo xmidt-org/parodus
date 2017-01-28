@@ -31,13 +31,13 @@ add_test(NAME LibPDTest COMMAND libpd)
 add_executable (libpd
                 libpd_test.c
                 ../src/libparodus.c
-                ../src/libparodus_log.c
                 ../src/libparodus_time.c
                 ../src/libparodus_queues.c)
 
 target_link_libraries (libpd
                        gcov
                        cunit
+                       -lcimplog
                        -lwrp-c
                        -lmsgpackc
                        -ltrower-base64
@@ -52,6 +52,7 @@ target_link_libraries (libpd
 add_executable(mock_parodus mock_parodus.c)
 
 target_link_libraries (mock_parodus
+ -lcimplog
  -lwrp-c
  -lmsgpackc
  -ltrower-base64

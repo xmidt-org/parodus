@@ -73,7 +73,7 @@ void test_handleUpstreamMessage()
 
 void add_suites( CU_pSuite *suite )
 {
-    ParodusInfo("--------Start of Test Cases Execution ---------\n");
+    cimplog_info("PARODUS", "--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
     CU_add_test( *suite, "Test handleUpstreamMessage()", test_handleUpstreamMessage );
 }
@@ -95,9 +95,9 @@ int main( void )
         if( NULL != suite ) {
             CU_basic_set_mode( CU_BRM_VERBOSE );
             CU_basic_run_tests();
-            ParodusPrint( "\n" );
+            cimplog_debug("PARODUS",  "\n" );
             CU_basic_show_failures( CU_get_failure_list() );
-            ParodusPrint( "\n\n" );
+            cimplog_debug("PARODUS",  "\n\n" );
             rv = CU_get_number_of_tests_failed();
         }
 

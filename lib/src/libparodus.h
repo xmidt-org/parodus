@@ -18,7 +18,6 @@
 #define  _LIBPARODUS_H
 
 #include <wrp-c/wrp-c.h>
-#include "libparodus_log.h"
 
 /**
  * This module is linked with the client, and provides connectivity
@@ -31,9 +30,9 @@
  *
  * @param service_name the service name registered for
  * @return 0 on success, valid errno otherwise.
- * @note this is the same as libparodus_init_ext (service_name, log_handler, "R,C");
+ * @note this is the same as libparodus_init_ext (service_name, "R,C");
  */
-int libparodus_init (const char *service_name, parlibLogHandler log_handler);
+int libparodus_init (const char *service_name);
 
 /**
  * Initialize the parodus wrp interface
@@ -43,8 +42,7 @@ int libparodus_init (const char *service_name, parlibLogHandler log_handler);
  * 		currently 'R' for receiver, 'C' for connect-on-every-send
  * @return 0 on success, valid errno otherwise.
  */
-int libparodus_init_ext (const char *service_name, parlibLogHandler log_handler,
-		const char *options);
+int libparodus_init_ext (const char *service_name, const char *options);
 
 /**
  *  Receives the next message in the queue that was sent to this service, waiting

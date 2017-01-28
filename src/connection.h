@@ -23,10 +23,10 @@
 #include <wrp-c.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
+#include <cimplog.h>
 
 #include "ParodusInternal.h"
 #include "time.h"
-#include "parodus_log.h"
 
 #ifdef __cplusplus
 extern "C" {

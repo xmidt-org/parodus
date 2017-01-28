@@ -28,8 +28,8 @@ uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer)
 {
         uint64_t systime = 0;
 	clock_gettime(CLOCK_REALTIME, timer);       
-        ParodusPrint("timer->tv_sec : %lu\n",timer->tv_sec);
-        ParodusPrint("timer->tv_nsec : %lu\n",timer->tv_nsec);
+        cimplog_debug("PARODUS", "timer->tv_sec : %lu\n",timer->tv_sec);
+        cimplog_debug("PARODUS", "timer->tv_nsec : %lu\n",timer->tv_nsec);
         systime = (uint64_t)timer->tv_sec * 1000000L + timer->tv_nsec/ 1000;
         return systime;	
 }
