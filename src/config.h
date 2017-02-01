@@ -23,6 +23,7 @@ extern "C" {
 #define WEBPA_PING_TIMEOUT                              "webpa-ping-timeout"
 #define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
 
+#define WEBPA_PROTOCOL_VALUE 							"WebPA-1.6"
 typedef struct
 {
     char hw_model[64];

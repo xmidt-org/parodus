@@ -69,7 +69,7 @@ char createNopollConnection(noPollCtx *ctx)
 	char *temp_ptr;
 
 	cJSON *response = cJSON_CreateObject();
-	char *buffer = NULL, *firmwareVersion = NULL, *modelName = NULL, *manufacturer = NULL;	
+	char *buffer = NULL, *firmwareVersion = NULL, *modelName = NULL, *manufacturer = NULL, *protocol =NULL;	
 	char *reboot_reason = NULL;
 	char encodedData[1024];
 	int  encodedDataSize = 1024;
@@ -110,8 +110,11 @@ char createNopollConnection(noPollCtx *ctx)
 	firmwareVersion = get_parodus_cfg()->fw_name;
     modelName = get_parodus_cfg()->hw_model;
     manufacturer = get_parodus_cfg()->hw_manufacturer;
+	protocol = get_parodus_cfg()->webpa_protocol;
+    ParodusPrint("webpa_protocol is %s\n", protocol);
     	snprintf(user_agent, sizeof(user_agent),
-             "WebPA-1.6 (%s; %s/%s;)",
+             "%s (%s; %s/%s;)",
+             ((0 != strlen(protocol)) ? protocol : "unknown"),
              ((0 != strlen(firmwareVersion)) ? firmwareVersion : "unknown"),
              ((0 != strlen(modelName)) ? modelName : "unknown"),
              ((0 != strlen(manufacturer)) ? manufacturer : "unknown"));
@@ -119,7 +122,7 @@ char createNopollConnection(noPollCtx *ctx)
 	ParodusInfo("User-Agent: %s\n",user_agent);
 	headerValues[2] = user_agent;
 	
-	ParodusPrint("webpa_protocol is %s\n", get_parodus_cfg()->webpa_protocol);	
+		
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
 	reboot_reason = get_parodus_cfg()->hw_last_reboot_reason;
 	ParodusInfo("Received reboot_reason as:%s\n", reboot_reason);
@@ -145,7 +148,7 @@ char createNopollConnection(noPollCtx *ctx)
 	}
 	
 	cJSON_AddNumberToObject(response, BOOT_TIME, bootTime_sec);
-	cJSON_AddStringToObject(response, WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol);
+	cJSON_AddStringToObject(response, WEBPA_PROTOCOL, protocol);
 	
 	if(strlen(get_parodus_cfg()->webpa_interface_used)!=0)
 	{
@@ -385,7 +388,7 @@ char createNopollConnection(noPollCtx *ctx)
             {FIRMWARE_NAME , firmwareVersion},
             {BOOT_TIME, boot_time},
             {LAST_RECONNECT_REASON, reconnect_reason},
-            {WEBPA_PROTOCOL,get_parodus_cfg()->webpa_protocol},
+            {WEBPA_PROTOCOL, protocol},
             {WEBPA_UUID,get_parodus_cfg()->webpa_uuid},
             {WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used}
         };
