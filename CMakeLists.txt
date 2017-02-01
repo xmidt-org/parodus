@@ -32,7 +32,8 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/nopoll
                     ${INCLUDE_DIR}/msgpack
                     ${INCLUDE_DIR}/trower-base64
-                    ${INCLUDE_DIR}/wrp-c
+                    ${INCLUDE_DIR}/wrp-c                   
+                    ${INCLUDE_DIR}/libparodus
                    )
 
 # Compile options/flags
@@ -140,6 +141,16 @@ ExternalProject_Add(wrp-c
 add_library(libwrp-c STATIC SHARED IMPORTED)
 add_dependencies(libwrp-c wrp-c)
 
+# libparodus external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(libparodus
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
+    GIT_REPOSITORY https://github.com/Comcast/libparodus.git
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(liblibparodus STATIC SHARED IMPORTED)
+add_dependencies(liblibparodus libparodus)
+
 endif ()
 
 link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
@@ -149,4 +160,3 @@ if (BUILD_TESTING)
     add_subdirectory(tests)
 endif (BUILD_TESTING)
 
-add_subdirectory(lib)

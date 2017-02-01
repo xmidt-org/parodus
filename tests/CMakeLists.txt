@@ -41,6 +41,19 @@ add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
 add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/wss_mgr.c ../src/networking.c ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/connection.c ../src/spin_thread.c)
 target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg)
 
+add_executable (libpd_test libpd_test.c)
+
+target_link_libraries (libpd_test
+                       cunit
+                       -llibparodus
+                       -lwrp-c
+                       -lmsgpackc
+                       -ltrower-base64
+                       -lnanomsg
+                       -lm
+                       -lpthread
+                       -lrt)
+
 if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
