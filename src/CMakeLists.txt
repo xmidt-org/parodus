@@ -30,4 +30,4 @@ target_link_libraries (parodus
     -lpthread
     -lrt
     )
-
+install (TARGETS parodus DESTINATION bin)
