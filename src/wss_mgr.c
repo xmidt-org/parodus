@@ -133,7 +133,7 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 	UNUSED(user_data);
 	if (level == NOPOLL_LEVEL_DEBUG) 
 	{
-  	    ParodusPrint("%s\n", log_msg);
+  	    //ParodusPrint("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_INFO) 
 	{

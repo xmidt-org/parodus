@@ -306,6 +306,7 @@ int send_event_msg (const char *src, const char *dest,
 	new_msg->u.event.dest = new_str (dest);
 	new_msg->u.event.headers = NULL;
 	new_msg->u.event.metadata = NULL;
+	new_msg->u.event.content_type = new_str ("application/json");
 	payload_buf = new_str (payload);
 	insert_number_into_buf (payload_buf, event_num);
 	new_msg->u.event.payload = (void*) payload_buf;
