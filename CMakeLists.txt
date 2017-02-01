@@ -132,7 +132,7 @@ add_dependencies(libmsgpack msgpack)
 ExternalProject_Add(wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
     GIT_REPOSITORY https://github.com/Comcast/wrp-c.git
-    GIT_TAG "master"
+    GIT_TAG "62ad5ce4827ca41fe7e337ea73ac71611508a261"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF
