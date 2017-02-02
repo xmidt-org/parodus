@@ -20,8 +20,7 @@
 
 #include <assert.h>
 #include <nopoll.h>
-
-//#include <nanomsg/bus.h>
+#include <cimplog.h>
 
 #include "../src/wss_mgr.h"
 #include "../src/ParodusInternal.h"
@@ -50,7 +49,7 @@ void test_checkHostIp()
 
 void add_suites( CU_pSuite *suite )
 {
-    ParodusPrint("--------Start of Test Cases Execution ---------\n");
+    cimplog_debug("PARODUS", "--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
     CU_add_test( *suite, "Test checkHostIp()", test_checkHostIp );
 }
@@ -72,9 +71,9 @@ int main( void )
         if( NULL != suite ) {
             CU_basic_set_mode( CU_BRM_VERBOSE );
             CU_basic_run_tests();
-            ParodusPrint( "\n" );
+            cimplog_debug("PARODUS",  "\n" );
             CU_basic_show_failures( CU_get_failure_list() );
-            ParodusPrint( "\n\n" );
+            cimplog_debug("PARODUS",  "\n\n" );
             rv = CU_get_number_of_tests_failed();
         }
 

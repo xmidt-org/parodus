@@ -20,8 +20,7 @@
 
 #include <assert.h>
 #include <nopoll.h>
-
-//#include <nanomsg/bus.h>
+#include <cimplog.h>
 
 #include "../src/wss_mgr.h"
 #include "../src/ParodusInternal.h"
@@ -43,7 +42,7 @@ void test_nanomsg_client_registration1()
 {
 		    
 	/*****Test svc registation for nanomsg client1 ***/
-	ParodusInfo("test_nanomsg_client_registration1\n");
+	cimplog_info("PARODUS", "test_nanomsg_client_registration1\n");
 
 	const wrp_msg_t reg = { .msg_type = WRP_MSG_TYPE__SVC_REGISTRATION,
 	  .u.reg.service_name = "iot",
@@ -58,16 +57,16 @@ void test_nanomsg_client_registration1()
 	int t=25000;
 	  
 	// msgpack encode
-	ParodusPrint("msgpack encode\n");
+	cimplog_debug("PARODUS", "msgpack encode\n");
 	size = wrp_struct_to( &reg, WRP_BYTES, &bytes );
 
 	
 	/*** Enable this to decode and verify upstream registration msg **/
 	/***	
 	rv = wrp_to_struct(bytes, size, WRP_BYTES, &message);
-	ParodusPrint("decoded msgType:%d\n", message->msg_type);
-	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
-	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
+	cimplog_debug("PARODUS", "decoded msgType:%d\n", message->msg_type);
+	cimplog_debug("PARODUS", "decoded service_name:%s\n", message->u.reg.service_name);
+	cimplog_debug("PARODUS", "decoded dest:%s\n", message->u.reg.url);
 	wrp_free_struct(message);	
 	***/
 	  
@@ -77,9 +76,9 @@ void test_nanomsg_client_registration1()
 	CU_ASSERT(connect >= 0);
 	nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
 	byte = nn_send (sock, bytes, size, 0);
-	ParodusInfo("----->Expected byte to be sent:%d\n", size);
-	ParodusInfo("----->actual byte sent:%d\n", byte);
-	ParodusInfo("Nanomsg client1 - Testing Upstream Registration msg send\n");		
+	cimplog_info("PARODUS", "----->Expected byte to be sent:%d\n", size);
+	cimplog_info("PARODUS", "----->actual byte sent:%d\n", byte);
+	cimplog_info("PARODUS", "Nanomsg client1 - Testing Upstream Registration msg send\n");		
 	CU_ASSERT_EQUAL( byte, size );
 
 	//************************************************************
@@ -91,16 +90,16 @@ void test_nanomsg_client_registration1()
 	void *buf = NULL;
 	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
 	
-	ParodusPrint("Client 1 waiting for acknowledgement \n");
+	cimplog_debug("PARODUS", "Client 1 waiting for acknowledgement \n");
 	byte = nn_recv(sock1, &buf, NN_MSG, 0);
-	ParodusInfo("Data Received for client 1 : %s \n", (char * )buf);
+	cimplog_info("PARODUS", "Data Received for client 1 : %s \n", (char * )buf);
 
 	rv1 = wrp_to_struct((void *)buf, byte, WRP_BYTES, &msg1);
 
 	CU_ASSERT_EQUAL( rv1, byte );
 	
-	ParodusPrint("msg1->msg_type for client 1 = %d \n", msg1->msg_type);
-	ParodusPrint("msg1->status for client 1 = %d \n", msg1->u.auth.status);
+	cimplog_debug("PARODUS", "msg1->msg_type for client 1 = %d \n", msg1->msg_type);
+	cimplog_debug("PARODUS", "msg1->status for client 1 = %d \n", msg1->u.auth.status);
 	CU_ASSERT_EQUAL(msg1->msg_type, 2);
 	CU_ASSERT_EQUAL(msg1->u.auth.status, 200);
 
@@ -118,7 +117,7 @@ void test_nanomsg_client_registration2()
 {
 		    
 	/*****Test svc registation for upstream - nanomsg client2 ***/
-	ParodusInfo("test_nanomsg_client_registration2\n");
+	cimplog_info("PARODUS", "test_nanomsg_client_registration2\n");
 	
 	const wrp_msg_t reg = { .msg_type = WRP_MSG_TYPE__SVC_REGISTRATION,
 	  .u.reg.service_name = "iot2",
@@ -133,15 +132,15 @@ void test_nanomsg_client_registration2()
 	int t=28000;
 	  
 	// msgpack encode
-	ParodusPrint("msgpack encode\n");
+	cimplog_debug("PARODUS", "msgpack encode\n");
 	size = wrp_struct_to( &reg, WRP_BYTES, &bytes );
 
 	/*** Enable this to decode and verify packed upstream registration msg **/
 	/**
 	rv = wrp_to_struct(bytes, size, WRP_BYTES, &message);
-	ParodusPrint("decoded msgType:%d\n", message->msg_type);
-	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
-	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
+	cimplog_debug("PARODUS", "decoded msgType:%d\n", message->msg_type);
+	cimplog_debug("PARODUS", "decoded service_name:%s\n", message->u.reg.service_name);
+	cimplog_debug("PARODUS", "decoded dest:%s\n", message->u.reg.url);
 	wrp_free_struct(message);
 	***/
 	  
@@ -151,9 +150,9 @@ void test_nanomsg_client_registration2()
 	CU_ASSERT( connect >= 0);
 	nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
 	byte = nn_send (sock, bytes, size,0);
-	ParodusInfo("----->Expected byte to be sent:%d\n", size);
-	ParodusInfo("----->actual byte sent:%d\n", byte);
-	ParodusInfo("Nanomsg client2 - Testing Upstream Registration msg send\n");
+	cimplog_info("PARODUS", "----->Expected byte to be sent:%d\n", size);
+	cimplog_info("PARODUS", "----->actual byte sent:%d\n", byte);
+	cimplog_info("PARODUS", "Nanomsg client2 - Testing Upstream Registration msg send\n");
 	CU_ASSERT_EQUAL( byte, size );
 
 
@@ -167,16 +166,16 @@ void test_nanomsg_client_registration2()
 	
 	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
 
-	ParodusPrint("Client 2 waiting for acknowledgement \n");
+	cimplog_debug("PARODUS", "Client 2 waiting for acknowledgement \n");
 	
 	byte = nn_recv(sock1, &buf1, NN_MSG, 0);
-	ParodusInfo("Data Received : %s \n", (char * )buf1);
+	cimplog_info("PARODUS", "Data Received : %s \n", (char * )buf1);
 	
 
 	rv1 = wrp_to_struct((void *)buf1, byte, WRP_BYTES, &msg1);
 	CU_ASSERT_EQUAL( rv1, byte );
-	ParodusPrint("msg1->msg_type for client 2 = %d \n", msg1->msg_type);
-	ParodusPrint("msg1->status for client 2 = %d \n", msg1->u.auth.status);
+	cimplog_debug("PARODUS", "msg1->msg_type for client 2 = %d \n", msg1->msg_type);
+	cimplog_debug("PARODUS", "msg1->status for client 2 = %d \n", msg1->u.auth.status);
 	CU_ASSERT_EQUAL(msg1->msg_type, 2);
 	CU_ASSERT_EQUAL(msg1->u.auth.status, 200);
 	
@@ -194,7 +193,7 @@ void test_nanomsg_client_registration3()
 {
 		    
 	/*****Test svc registation for upstream - nanomsg client2 ***/
-	ParodusInfo("test_nanomsg_client_registration3\n");
+	cimplog_info("PARODUS", "test_nanomsg_client_registration3\n");
 	
 	const wrp_msg_t reg = { .msg_type = WRP_MSG_TYPE__SVC_REGISTRATION,
 	  .u.reg.service_name = "iot",
@@ -208,15 +207,15 @@ void test_nanomsg_client_registration3()
 	int t=35000;
 	  
 	// msgpack encode
-	ParodusPrint("msgpack encode\n");
+	cimplog_debug("PARODUS", "msgpack encode\n");
 	size = wrp_struct_to( &reg, WRP_BYTES, &bytes );
 
 	/*** Enable this to decode and verify packed upstream registration msg **/
 	/**
 	rv = wrp_to_struct(bytes, size, WRP_BYTES, &message);		
-	ParodusPrint("decoded msgType:%d\n", message->msg_type);
-	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
-	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
+	cimplog_debug("PARODUS", "decoded msgType:%d\n", message->msg_type);
+	cimplog_debug("PARODUS", "decoded service_name:%s\n", message->u.reg.service_name);
+	cimplog_debug("PARODUS", "decoded dest:%s\n", message->u.reg.url);
 	wrp_free_struct(message);
 	***/
 	  
@@ -226,9 +225,9 @@ void test_nanomsg_client_registration3()
 	CU_ASSERT(connect >= 0);
 	nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
 	byte = nn_send (sock, bytes, size,0);
-	ParodusInfo("----->Expected byte to be sent:%d\n", size);
-	ParodusInfo("----->actual byte sent:%d\n", byte);
-	ParodusInfo("Nanomsg client3 - Testing Upstream Registration msg send\n");
+	cimplog_info("PARODUS", "----->Expected byte to be sent:%d\n", size);
+	cimplog_info("PARODUS", "----->actual byte sent:%d\n", byte);
+	cimplog_info("PARODUS", "Nanomsg client3 - Testing Upstream Registration msg send\n");
 	CU_ASSERT_EQUAL( byte, size );
 
 
@@ -237,21 +236,21 @@ void test_nanomsg_client_registration3()
 	
 	int bind = nn_bind(sock1, reg.u.reg.url);
 
-	ParodusPrint("Need to close this bind %d \n", bind);
+	cimplog_debug("PARODUS", "Need to close this bind %d \n", bind);
 	
 	void *buf2 = NULL;
 	
 	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
-	ParodusPrint("Client 3 is waiting for acknowledgement \n");
+	cimplog_debug("PARODUS", "Client 3 is waiting for acknowledgement \n");
 	byte = nn_recv(sock1, &buf2, NN_MSG, 0);
 	
-	ParodusInfo("Data Received : %s \n", (char * )buf2);
+	cimplog_info("PARODUS", "Data Received : %s \n", (char * )buf2);
 
 	
 	rv1 = wrp_to_struct((void *)buf2, byte, WRP_BYTES, &msg1);
 	CU_ASSERT_EQUAL( rv1, byte );
-	ParodusPrint("msg1->msg_type for client 3 = %d \n", msg1->msg_type);
-	ParodusPrint("msg1->status for client 3 = %d \n", msg1->u.auth.status);
+	cimplog_debug("PARODUS", "msg1->msg_type for client 3 = %d \n", msg1->msg_type);
+	cimplog_debug("PARODUS", "msg1->status for client 3 = %d \n", msg1->u.auth.status);
 	CU_ASSERT_EQUAL(msg1->msg_type, 2);
 	CU_ASSERT_EQUAL(msg1->u.auth.status, 200);
 	
@@ -270,7 +269,7 @@ void test_nanomsg_client_registration3()
 void test_nanomsg_downstream_success()
 {
 
-	ParodusInfo("test_nanomsg_downstream_success\n");
+	cimplog_info("PARODUS", "test_nanomsg_downstream_success\n");
 	
 	int sock;
 	int bit=0;
@@ -294,11 +293,11 @@ void test_nanomsg_downstream_success()
                 sleep(3);
         }
 	
-	ParodusPrint("Bind returns = %d \n", bind);
-	ParodusPrint("***** Nanomsg client3 in Receiving mode in %s *****\n", msg.u.reg.url);
+	cimplog_debug("PARODUS", "Bind returns = %d \n", bind);
+	cimplog_debug("PARODUS", "***** Nanomsg client3 in Receiving mode in %s *****\n", msg.u.reg.url);
 	bit = nn_recv (sock, &buf, NN_MSG, 0);
-	ParodusInfo ("----->Received downstream request from server to client3 : \"%s\"\n", (char *)buf);
-	ParodusPrint("Received %d bytes\n", bit);
+	cimplog_info("PARODUS", "----->Received downstream request from server to client3 : \"%s\"\n", (char *)buf);
+	cimplog_debug("PARODUS", "Received %d bytes\n", bit);
 	CU_ASSERT(bit >= 0);
 	
 	//Decode and verify downstream request has received by correct registered client
@@ -307,9 +306,9 @@ void test_nanomsg_downstream_success()
 	destVal = message->u.req.dest;
 	dest = strtok(destVal , "/");
 	//temp_ptr = strtok(destVal , "/");
-//	ParodusPrint("temp_ptr = %s \n", temp_ptr);
+//	cimplog_debug("PARODUS", "temp_ptr = %s \n", temp_ptr);
 	strcpy(dest,strtok(NULL , "/"));
-	ParodusInfo("------>decoded dest:%s\n", dest);	
+	cimplog_info("PARODUS", "------>decoded dest:%s\n", dest);	
 	CU_ASSERT_STRING_EQUAL( msg.u.reg.service_name, dest );	
 	wrp_free_struct(message);
 	
@@ -328,7 +327,7 @@ void test_nanomsg_downstream_success()
 
 void test_nanomsg_downstream_failure()
 {
-	ParodusError("test_nanomsg_downstream_failure\n");
+	cimplog_error("PARODUS", "test_nanomsg_downstream_failure\n");
 	
 	int sock;
 	int bit =0;
@@ -337,10 +336,10 @@ void test_nanomsg_downstream_failure()
 	sleep(60);
 	sock = nn_socket (AF_SP, NN_PULL);
 	nn_bind (sock, CLIENT3_URL);	
-	ParodusPrint("***** Nanomsg client3 in Receiving mode *****\n");
+	cimplog_debug("PARODUS", "***** Nanomsg client3 in Receiving mode *****\n");
 	
 	bit = nn_recv (sock, &buf, NN_MSG, 0);
-	ParodusInfo ("Received downstream request from server for client3 : \"%s\"\n", buf);
+	cimplog_info("PARODUS", "Received downstream request from server for client3 : \"%s\"\n", buf);
 	CU_ASSERT(bit >= 0);
 	nn_freemsg(buf);
 	nn_shutdown(sock, 0);
@@ -351,12 +350,12 @@ void test_nanomsg_downstream_failure()
 
 void test_checkHostIp()
 {
-	ParodusPrint("**********************************Calling check_host_ip \n");
+	cimplog_debug("PARODUS", "**********************************Calling check_host_ip \n");
 
 	int ret;
 	
 	ret = checkHostIp("fabric.webpa.comcast.net");
-	ParodusPrint("------------------> Ret = %d \n", ret);
+	cimplog_debug("PARODUS", "------------------> Ret = %d \n", ret);
 	CU_ASSERT_EQUAL(ret, 0);
 	
 }
@@ -364,7 +363,7 @@ void test_checkHostIp()
 void test_handleUpstreamMessage()
 {
 
-	ParodusPrint("**********************************Calling handleUpstreamMessage \n");
+	cimplog_debug("PARODUS", "**********************************Calling handleUpstreamMessage \n");
 	
 	noPollConnOpts * opts;
 	noPollCtx *ctx = NULL;
@@ -396,7 +395,7 @@ void test_handleUpstreamMessage()
                                 headerNames, headerValues, headerCount);
 	}*/
 
-	ParodusPrint("Sending conn as %p \n", conn);
+	cimplog_debug("PARODUS", "Sending conn as %p \n", conn);
 	handleUpstreamMessage(conn, "hello", 6);
 
 }
@@ -420,11 +419,11 @@ void test_parseCommandLine()
     
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
-    ParodusPrint("call parseCommand\n");
+    cimplog_debug("PARODUS", "call parseCommand\n");
     parseCommandLine(argc,command,&parodusCfg);
    
-    ParodusPrint("parodusCfg.webpa_ping_timeout is %d\n", parodusCfg.webpa_ping_timeout);
-    ParodusPrint("parodusCfg.webpa_backoff_max is %d\n", parodusCfg.webpa_backoff_max);
+    cimplog_debug("PARODUS", "parodusCfg.webpa_ping_timeout is %d\n", parodusCfg.webpa_ping_timeout);
+    cimplog_debug("PARODUS", "parodusCfg.webpa_backoff_max is %d\n", parodusCfg.webpa_backoff_max);
     CU_ASSERT_STRING_EQUAL( parodusCfg.hw_model, "TG1682");
     CU_ASSERT_STRING_EQUAL( parodusCfg.hw_serial_number, "Fer23u948590");
     CU_ASSERT_STRING_EQUAL( parodusCfg.hw_manufacturer, "ARRISGroup,Inc.");
@@ -441,7 +440,7 @@ void test_parseCommandLine()
 void test_loadParodusCfg()
 {
 	
-	ParodusPrint("Calling test_loadParodusCfg \n");
+	cimplog_debug("PARODUS", "Calling test_loadParodusCfg \n");
 	//ParodusCfg parodusCfg, tmpcfg;
 	ParodusCfg  tmpcfg;
 
@@ -460,7 +459,7 @@ void test_loadParodusCfg()
 	
 	loadParodusCfg(Cfg,&tmpcfg);
 
-	ParodusInfo("tmpcfg.hw_model = %s, tmpcfg.hw_serial_number = %s, tmpcfg.hw_manufacturer = %s, tmpcfg.hw_mac = %s, \n", tmpcfg.hw_model,tmpcfg.hw_serial_number, tmpcfg.hw_manufacturer,   tmpcfg.hw_mac);
+	cimplog_info("PARODUS", "tmpcfg.hw_model = %s, tmpcfg.hw_serial_number = %s, tmpcfg.hw_manufacturer = %s, tmpcfg.hw_mac = %s, \n", tmpcfg.hw_model,tmpcfg.hw_serial_number, tmpcfg.hw_manufacturer,   tmpcfg.hw_mac);
 
 	CU_ASSERT_STRING_EQUAL( tmpcfg.hw_model, "TG1682");
 	CU_ASSERT_STRING_EQUAL( tmpcfg.hw_serial_number, "Fer23u948590");
@@ -471,7 +470,7 @@ void test_loadParodusCfg()
 
 void add_suites( CU_pSuite *suite )
 {
-    ParodusInfo("--------Start of Test Cases Execution ---------\n");
+    cimplog_info("PARODUS", "--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
     CU_add_test( *suite, "Test 1", test_nanomsg_client_registration1 );
     CU_add_test( *suite, "Test 2", test_nanomsg_client_registration2 );
@@ -479,10 +478,10 @@ void add_suites( CU_pSuite *suite )
     CU_add_test( *suite, "Test 4", test_nanomsg_downstream_success );
     //CU_add_test( *suite, "Test 5", test_nanomsg_downstream_failure );
 
-    ParodusInfo("-------------Integration testing is completed-----------\n");
-    ParodusInfo("******************************************************************\n");
+    cimplog_info("PARODUS", "-------------Integration testing is completed-----------\n");
+    cimplog_info("PARODUS", "******************************************************************\n");
     //sleep(10);
-    ParodusInfo("-------------Start of Unit Test Cases Execution---------\n");
+    cimplog_info("PARODUS", "-------------Start of Unit Test Cases Execution---------\n");
     CU_add_test( *suite, "UnitTest 1", test_parseCommandLine );
     CU_add_test( *suite, "UnitTest 2", test_checkHostIp );
 	
@@ -515,20 +514,20 @@ int main( void )
 
 	//int size = sizeof(command)/sizeof(command[0]);
 	//int i;
-	//ParodusInfo("commad: ");
+	//cimplog_info("PARODUS", "commad: ");
         //for(i=0;i<size-1;i++)
-        //ParodusInfo("command:%s",command);
+        //cimplog_info("PARODUS", "command:%s",command);
 
-    	ParodusInfo("Starting parodus process \n");
+    	cimplog_info("PARODUS", "Starting parodus process \n");
 
 	const char *s = getenv("WEBPA_AUTH_HEADER");
 	
 
 	sprintf(commandUrl, "curl -i -H \"Authorization:Basic %s\" -H \"Accept: application/json\" -w %%{time_total} -k \"https://api-cd.webpa.comcast.net:8090/api/v2/device/mac:123567892366/iot?names=Device.DeviceInfo.Webpa.X_COMCAST-COM_SyncProtocolVersion\"", s);	
-	ParodusPrint("---------------------->>>>Executing system(commandUrl)\n");
+	cimplog_debug("PARODUS", "---------------------->>>>Executing system(commandUrl)\n");
 	
 	curl_pid = getpid();
-	ParodusPrint("child process execution with curl_pid:%d\n", curl_pid);
+	cimplog_debug("PARODUS", "child process execution with curl_pid:%d\n", curl_pid);
 
 	
 
@@ -536,23 +535,23 @@ int main( void )
 	
 	if (pid == -1)
 	{
-		ParodusError("fork was unsuccessful for pid (errno=%d, %s)\n",errno, strerror(errno));
+		cimplog_error("PARODUS", "fork was unsuccessful for pid (errno=%d, %s)\n",errno, strerror(errno));
 		return -1;
 		
 	}
 	else if (pid == 0)
 	{
 		int err;
-		ParodusPrint("child process created for parodus\n");
+		cimplog_debug("PARODUS", "child process created for parodus\n");
 		pid = getpid();
-		ParodusPrint("child process execution with pid:%d\n", pid);
+		cimplog_debug("PARODUS", "child process execution with pid:%d\n", pid);
 		
 		err = execv("../src/parodus", command);
 		if(errno == 2)
 		{
 			err = execv("./src/parodus", command);
 		}
-		ParodusError("err is %d, errno is %d\n",err, errno);		
+		cimplog_error("PARODUS", "err is %d, errno is %d\n",err, errno);		
 	
 	}
 	else if (pid > 0)
@@ -561,32 +560,32 @@ int main( void )
 		sleep(5);
 		
 		//Starting test suites execution in new thread
-		ParodusPrint("Creating new thread for test suite execution\n");
+		cimplog_debug("PARODUS", "Creating new thread for test suite execution\n");
 	
 		pthread_t testId;
 		int err1 = 0;
 		err1 = pthread_create(&testId,NULL,handle_testsuites,(void *)&pid);
 		if(err1 != 0)
-			ParodusError("Error creating test suite thread %s\n",strerror(err1));
+			cimplog_error("PARODUS", "Error creating test suite thread %s\n",strerror(err1));
 		else
-			ParodusPrint("test suite thread created successfully\n");
+			cimplog_debug("PARODUS", "test suite thread created successfully\n");
 			
 		
 	
 	  	if (pipe(link)==-1)
 	  	{
-	    		ParodusError("Failed to create pipe\n");
+	    		cimplog_error("PARODUS", "Failed to create pipe\n");
 	    
 	  	}
 	  	else
-	  		ParodusPrint("Created pipe to read curl output\n");
+	  		cimplog_debug("PARODUS", "Created pipe to read curl output\n");
 
 	
 		pid1 = fork();
 	
 		if (pid1 == -1)
 		{
-			ParodusError("fork was unsuccessful for pid1 (errno=%d, %s)\n",errno, strerror(errno));
+			cimplog_error("PARODUS", "fork was unsuccessful for pid1 (errno=%d, %s)\n",errno, strerror(errno));
 			return -1;
 		
 		}
@@ -605,7 +604,7 @@ int main( void )
 	    		close(link[1]);
 			sleep(40);
 			system(commandUrl);			
-			ParodusInfo("\n----Executed first Curl request for downstream ------- \n");
+			cimplog_info("PARODUS", "\n----Executed first Curl request for downstream ------- \n");
 			
 		
 		}
@@ -617,18 +616,18 @@ int main( void )
 			waitpid(pid1, &status, 0);
 		
 			//reading from pipe
-			ParodusPrint("parent process...:%d\n", pid1);
+			cimplog_debug("PARODUS", "parent process...:%d\n", pid1);
 			close(link[1]);
 			int nbytes = read(link[0], value, sizeof(value));
-			ParodusPrint("Read %d \n", nbytes);
+			cimplog_debug("PARODUS", "Read %d \n", nbytes);
 			   
 		      	if ((data = strstr(value, "message:Success")) !=NULL)
 		      	{
-		      		ParodusInfo("curl success\n");
+		      		cimplog_info("PARODUS", "curl success\n");
 		      	}
 		      	else
 		      	{
-		      		ParodusError("curl failure..\n");
+		      		cimplog_error("PARODUS", "curl failure..\n");
 		      	}
 			 
 	    		while(1);
@@ -646,7 +645,7 @@ void *handle_testsuites(void* pid)
 	CU_pSuite suite = NULL;
 	pid_t pid_parodus = *((int *)pid);
 	
-	ParodusPrint("Starting handle_testsuites thread\n");
+	cimplog_debug("PARODUS", "Starting handle_testsuites thread\n");
 	sleep(25);
 
     	if( CUE_SUCCESS == CU_initialize_registry() ) {
@@ -655,9 +654,9 @@ void *handle_testsuites(void* pid)
 		if( NULL != suite ) {
 		    CU_basic_set_mode( CU_BRM_VERBOSE );
 		    CU_basic_run_tests();
-		    ParodusPrint( "\n" );
+		    cimplog_debug("PARODUS",  "\n" );
 		    CU_basic_show_failures( CU_get_failure_list() );
-		    ParodusPrint( "\n\n" );
+		    cimplog_debug("PARODUS",  "\n\n" );
 		    rv = CU_get_number_of_tests_failed();
 		   
 		}
@@ -667,7 +666,7 @@ void *handle_testsuites(void* pid)
     	}
     	
     	kill(pid_parodus, SIGKILL);
-	ParodusInfo("parodus process with pid %d is stopped\n", pid_parodus);
+	cimplog_info("PARODUS", "parodus process with pid %d is stopped\n", pid_parodus);
 
 
 	
@@ -694,30 +693,30 @@ static void send_nanomsg_upstream(void **buf, int size)
 	wrp_msg_t *message;
 	
 		
-	ParodusInfo("Decoding downstream request received from server\n");
+	cimplog_info("PARODUS", "Decoding downstream request received from server\n");
 	rv = wrp_to_struct(*buf, size, WRP_BYTES, &message);
-	ParodusPrint("after downstream req decode:%d\n", rv);	
+	cimplog_debug("PARODUS", "after downstream req decode:%d\n", rv);	
 		
 	
 	/**** Preparing Nanomsg client response ****/
 	
 	wrp_msg_t resp_m;	
 	resp_m.msg_type = WRP_MSG_TYPE__REQ;
-	ParodusPrint("resp_m.msg_type:%d\n", resp_m.msg_type);
+	cimplog_debug("PARODUS", "resp_m.msg_type:%d\n", resp_m.msg_type);
 	
        
         resp_m.u.req.source = message->u.req.dest;        
-        ParodusPrint("------resp_m.u.req.source is:%s\n", resp_m.u.req.source);
+        cimplog_debug("PARODUS", "------resp_m.u.req.source is:%s\n", resp_m.u.req.source);
         
         resp_m.u.req.dest = message->u.req.source;
-        ParodusPrint("------resp_m.u.req.dest is:%s\n", resp_m.u.req.dest);
+        cimplog_debug("PARODUS", "------resp_m.u.req.dest is:%s\n", resp_m.u.req.dest);
         
         resp_m.u.req.transaction_uuid = message->u.req.transaction_uuid;
-        ParodusPrint("------resp_m.u.req.transaction_uuid is:%s\n", resp_m.u.req.transaction_uuid);
+        cimplog_debug("PARODUS", "------resp_m.u.req.transaction_uuid is:%s\n", resp_m.u.req.transaction_uuid);
         
         resp_m.u.req.headers = NULL;
         resp_m.u.req.payload = "{statusCode:200,message:Success}";
-        ParodusPrint("------resp_m.u.req.payload is:%s\n", (char *)resp_m.u.req.payload);
+        cimplog_debug("PARODUS", "------resp_m.u.req.payload is:%s\n", (char *)resp_m.u.req.payload);
         resp_m.u.req.payload_size = strlen(resp_m.u.req.payload);
         
         resp_m.u.req.metadata = NULL;
@@ -725,19 +724,19 @@ static void send_nanomsg_upstream(void **buf, int size)
         resp_m.u.req.spans.spans = NULL;
         resp_m.u.req.spans.count = 0;
      		
-	ParodusPrint("Encoding downstream response\n");
+	cimplog_debug("PARODUS", "Encoding downstream response\n");
 	resp_size = wrp_struct_to( &resp_m, WRP_BYTES, &bytes );
 
 	/*** Enable this to verify downstream response by decoding ***/
 	/***
 	wrp_msg_t *message1;
 	rv = wrp_to_struct(bytes, resp_size, WRP_BYTES, &message1);
-	ParodusPrint("after downstream response decode:%d\n", rv);	
-	ParodusPrint("downstream response decoded msgType:%d\n", message1->msg_type);
-	ParodusPrint("downstream response decoded source:%s\n", message1->u.req.source);
-	ParodusPrint("downstream response decoded dest:%s\n", message1->u.req.dest);
-	ParodusPrint("downstream response decoded transaction_uuid:%s\n", message1->u.req.transaction_uuid);
-	ParodusPrint("downstream response decoded payload:%s\n", (char*)message1->u.req.payload);       
+	cimplog_debug("PARODUS", "after downstream response decode:%d\n", rv);	
+	cimplog_debug("PARODUS", "downstream response decoded msgType:%d\n", message1->msg_type);
+	cimplog_debug("PARODUS", "downstream response decoded source:%s\n", message1->u.req.source);
+	cimplog_debug("PARODUS", "downstream response decoded dest:%s\n", message1->u.req.dest);
+	cimplog_debug("PARODUS", "downstream response decoded transaction_uuid:%s\n", message1->u.req.transaction_uuid);
+	cimplog_debug("PARODUS", "downstream response decoded payload:%s\n", (char*)message1->u.req.payload);       
         wrp_free_struct(message1);
         ***/
         
@@ -748,16 +747,16 @@ static void send_nanomsg_upstream(void **buf, int size)
 	CU_ASSERT(connect >= 0);	
 	sleep(1);
 	
-	ParodusInfo("nanomsg client sending response upstream\n");
+	cimplog_info("PARODUS", "nanomsg client sending response upstream\n");
 	byte = nn_send (sock, bytes, resp_size,0);
-	ParodusInfo("----->Expected byte to be sent:%d\n", resp_size);
-	ParodusInfo("----->actual byte sent:%d\n", byte);
+	cimplog_info("PARODUS", "----->Expected byte to be sent:%d\n", resp_size);
+	cimplog_info("PARODUS", "----->actual byte sent:%d\n", byte);
 	CU_ASSERT(byte==resp_size );
 	wrp_free_struct(message);
 	
 	free(bytes);
 	nn_shutdown(sock, 0);
-	ParodusPrint("---- End of send_nanomsg_upstream ----\n");
+	cimplog_debug("PARODUS", "---- End of send_nanomsg_upstream ----\n");
 
 }
 
