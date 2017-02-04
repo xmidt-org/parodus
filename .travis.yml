@@ -27,7 +27,9 @@ script:
     - mkdir build
     - cd build
     - cmake .. -DEXCLUDE_SIMPLE:BOOL=false
-    - make
+    - make --debug
+    - find . -name _install
+    - find . -name _install | xargs -I d ls -li d/lib
     - make test
 
 after_success:
