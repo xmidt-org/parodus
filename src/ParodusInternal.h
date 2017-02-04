@@ -31,7 +31,6 @@
 #include <nanomsg/pipeline.h>
 
 #include "wss_mgr.h"
-#include "parodus_log.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */

@@ -15,7 +15,7 @@
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
-set (PARODUS_COMMON_LIBS gcov -lcunit -lwrp-c -lpthread -lm -lmsgpackc -lcjson -ltrower-base64 -lnopoll)
+set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c -lpthread -lm -lmsgpackc -lcjson -ltrower-base64 -lnopoll)
 
 link_directories ( ${LIBRARY_DIR} )
 
@@ -50,6 +50,7 @@ target_link_libraries (libpd_test
                        -lmsgpackc
                        -ltrower-base64
                        -lnanomsg
+                       -lcimplog
                        -lm
                        -lpthread
                        -lrt)
