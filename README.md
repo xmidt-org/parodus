@@ -14,3 +14,4 @@ cd build
 cmake ..
 make
 make test
+lkjlkj
