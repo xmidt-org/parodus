@@ -45,12 +45,12 @@ add_executable (libpd_test libpd_test.c)
 
 target_link_libraries (libpd_test
                        cunit
-                       -lcimplog
                        -llibparodus
                        -lwrp-c
                        -lmsgpackc
                        -ltrower-base64
                        -lnanomsg
+                       -lcimplog
                        -lm
                        -lpthread
                        -lrt)
