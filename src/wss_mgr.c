@@ -378,7 +378,7 @@ static void *handle_upstream()
 
 static void *handleUpStreamEvents()
 {		
-	int rv=-1;	
+	int rv=-1, rc = -1;	
 	int msgType;
 	wrp_msg_t *msg;	
 	void *appendData;
@@ -433,9 +433,16 @@ static void *handleUpStreamEvents()
 
 							temp->sock = nn_socket( AF_SP, NN_PUSH );					
 							int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
-							nn_setsockopt(temp->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
-							nn_connect(temp->sock, msg->u.reg.url); 
-							
+							rc = nn_setsockopt(temp->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+						        if(rc < 0)
+                                                        {
+                                                                ParodusError ("Unable to set socket timeout\n");
+                                                        }
+							rc = nn_connect(temp->sock, msg->u.reg.url); 
+							if(rc < 0)
+                                                        {
+                                                                ParodusError ("Unable to connect socket\n");
+                                                        }
 							ParodusInfo("Client registered before. Sending acknowledgement \n"); 
 			
 							sendAuthStatus(temp);
@@ -493,6 +500,7 @@ static void *handleUpStreamEvents()
 				}
 				ParodusPrint("Free for upstream decoded msg\n");
 			        wrp_free_struct(msg);
+			        msg = NULL;
 			}
 		
 			
@@ -564,7 +572,8 @@ static void *serviceAliveTask()
 {
 	void *svc_bytes;
 	wrp_msg_t svc_alive_msg;
-	int byte =0, size =0;
+	int byte = 0;
+	size_t size = 0;
 	reg_list_item_t *temp; 
 	
 	svc_alive_msg.msg_type = WRP_MSG_TYPE__SVC_ALIVE;	
@@ -584,7 +593,7 @@ static void *serviceAliveTask()
 				byte = nn_send (temp->sock, svc_bytes, size, 0);
 				
 				ParodusPrint("svc byte sent :%d\n", byte);
-				if(byte == size)
+				if(byte == (int) size)
 				{
 					ParodusPrint("service_name: %s is alive\n",temp->service_name);
 				}
@@ -646,32 +655,32 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
       switch (c)
         {
         case 'm':
-          strncpy(cfg->hw_model, optarg,strlen(optarg));
+          parStrncpy(cfg->hw_model, optarg,sizeof(cfg->hw_model));
           ParodusInfo("hw-model is %s\n",cfg->hw_model);
          break;
         
         case 's':
-          strncpy(cfg->hw_serial_number,optarg,strlen(optarg));
+          parStrncpy(cfg->hw_serial_number,optarg,sizeof(cfg->hw_serial_number));
           ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
           break;
 
         case 'f':
-          strncpy(cfg->hw_manufacturer, optarg,strlen(optarg));
+          parStrncpy(cfg->hw_manufacturer, optarg,sizeof(cfg->hw_manufacturer));
           ParodusInfo("hw_manufacturer is %s\n",cfg->hw_manufacturer);
           break;
 
         case 'd':
-           strncpy(cfg->hw_mac, optarg,strlen(optarg));
+           parStrncpy(cfg->hw_mac, optarg,sizeof(cfg->hw_mac));
            ParodusInfo("hw_mac is %s\n",cfg->hw_mac);
           break;
         
         case 'r':
-          strncpy(cfg->hw_last_reboot_reason, optarg,strlen(optarg));
+          parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
           ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
           break;
 
         case 'n':
-          strncpy(cfg->fw_name, optarg,strlen(optarg));
+          parStrncpy(cfg->fw_name, optarg,sizeof(cfg->fw_name));
           ParodusInfo("fw_name is %s\n",cfg->fw_name);
           break;
 
@@ -681,7 +690,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
        
          case 'u':
-          strncpy(cfg->webpa_url, optarg,strlen(optarg));
+          parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
           ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
           break;
         
@@ -696,7 +705,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'i':
-          strncpy(cfg->webpa_interface_used, optarg,strlen(optarg));
+          parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
           ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
           break;
 
@@ -754,17 +763,25 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 static void addToList( wrp_msg_t **msg)
 {   
     //new_node indicates the new clients which needs to be added to list
-    
+    int rc = -1;
     reg_list_item_t *temp; 
     reg_list_item_t *new_node; 
     new_node=(reg_list_item_t *)malloc(sizeof(reg_list_item_t));
  
     new_node->sock = nn_socket( AF_SP, NN_PUSH );
     ParodusPrint("new_node->sock is %d\n", new_node->sock);
-    nn_connect(new_node->sock, (*msg)->u.reg.url);
+    rc = nn_connect(new_node->sock, (*msg)->u.reg.url);
+    if(rc < 0)
+    {
+        ParodusError ("Unable to connect socket\n");
+    }
     
     int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
-    nn_setsockopt(new_node->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+    rc = nn_setsockopt(new_node->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+    if(rc < 0)
+    {
+        ParodusError ("Unable to set socket timeout\n");
+    }
     
     ParodusPrint("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
     ParodusPrint("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
@@ -814,7 +831,7 @@ static void addToList( wrp_msg_t **msg)
 static void sendAuthStatus(reg_list_item_t *new_node)
 {
 	int byte = 0;	
-	int size=0;
+	size_t size=0;
 	void *auth_bytes;
 	wrp_msg_t auth_msg_var;
 	
