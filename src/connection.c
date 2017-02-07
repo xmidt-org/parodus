@@ -97,7 +97,7 @@ char createNopollConnection(noPollCtx *ctx)
 	//endPtr = &end;
 	connErr_startPtr = &connErr_start;
 	connErr_endPtr = &connErr_end;
-	strcpy(deviceMAC, get_parodus_cfg()->hw_mac);
+	parStrncpy(deviceMAC, get_parodus_cfg()->hw_mac,sizeof(deviceMAC));
 	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
 	ParodusInfo("Device_id %s\n",device_id);
 
