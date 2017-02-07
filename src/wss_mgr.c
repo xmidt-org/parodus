@@ -103,7 +103,7 @@ static void *serviceAliveTask();
 static void getParodusUrl();
 static void sendAuthStatus(reg_list_item_t *new_node);
 static void addToList( wrp_msg_t **msg);
-static void deleteFromList(char* service_name);
+static int deleteFromList(char* service_name);
 /*
  Export parodusCfg
  */
@@ -383,7 +383,7 @@ static void *handleUpStreamEvents()
 	wrp_msg_t *msg;	
 	void *appendData;
 	size_t encodedSize;
-	reg_list_item_t *temp;
+	reg_list_item_t *temp = NULL;
 	int matchFlag = 0;
 	
 		
@@ -423,7 +423,7 @@ static void *handleUpStreamEvents()
 					if(numOfClients !=0)
 					{
 					    temp = head;
-					    do
+					    while(temp!=NULL)
 					    {
 						if(strcmp(temp->service_name, msg->u.reg.service_name)==0)
 						{
@@ -453,8 +453,8 @@ static void *handleUpStreamEvents()
 						
 						ParodusPrint("checking the next item in the list\n");
 						temp= temp->next;
-						
-					     }while(temp !=NULL);
+					     }	
+					
 
 					}
 					
@@ -574,7 +574,8 @@ static void *serviceAliveTask()
 	wrp_msg_t svc_alive_msg;
 	int byte = 0;
 	size_t size = 0;
-	reg_list_item_t *temp; 
+	int ret = -1;
+	reg_list_item_t *temp = NULL; 
 	
 	svc_alive_msg.msg_type = WRP_MSG_TYPE__SVC_ALIVE;	
 	
@@ -588,7 +589,7 @@ static void *serviceAliveTask()
 			//sending svc msg to all the clients every 30s
 			temp = head;
 			
-			do
+			while(NULL != temp)
 			{
 				byte = nn_send (temp->sock, svc_bytes, size, 0);
 				
@@ -601,12 +602,24 @@ static void *serviceAliveTask()
 				{
 					ParodusInfo("Failed to send keep alive msg, service %s is dead\n", temp->service_name);
 					//need to delete this client service from list
-					deleteFromList((char*)temp->service_name);
+					
+					ret = deleteFromList((char*)temp->service_name);
+		
 				}
 				byte = 0;
-				temp= temp->next;	    	
+				if(ret == 0)
+				{
+					ParodusPrint("Deletion from list is success, doing resync with head\n");
+					temp= head;
+					ret = -1;
+				}
+				else
+				{
+					temp= temp->next;
+				}
+
+			}
 			
-			}while(temp !=NULL);
 			
 		 	ParodusPrint("Waiting for 30s to send keep alive msg \n");
 		 	sleep(KEEPALIVE_INTERVAL_SEC);
@@ -764,9 +777,15 @@ static void addToList( wrp_msg_t **msg)
 {   
     //new_node indicates the new clients which needs to be added to list
     int rc = -1;
-    reg_list_item_t *temp; 
-    reg_list_item_t *new_node; 
+    reg_list_item_t *new_node = NULL;
     new_node=(reg_list_item_t *)malloc(sizeof(reg_list_item_t));
+    
+    if( NULL == new_node )
+ 	{
+
+		ParodusError("Memory allocate fails for registered list\n");
+	}
+     memset( new_node, 0, sizeof( reg_list_item_t ) );
  
     new_node->sock = nn_socket( AF_SP, NN_PUSH );
     ParodusPrint("new_node->sock is %d\n", new_node->sock);
@@ -799,6 +818,7 @@ static void addToList( wrp_msg_t **msg)
     }
     else   //client2 onwards           
     {
+	    reg_list_item_t *temp = NULL;
     	ParodusInfo("Adding clients to list\n");
     	temp=head;
     	
@@ -861,14 +881,14 @@ static void sendAuthStatus(reg_list_item_t *new_node)
 }
      
      
-static void deleteFromList(char* service_name)
+static int deleteFromList(char* service_name)
 {
  	reg_list_item_t *prev_node = NULL, *curr_node = NULL;
 
 	if( NULL == service_name ) 
 	{
-		ParodusInfo("Invalid value for service\n");
-		return;
+		ParodusError("Invalid value for service\n");
+		return -1;
 	}
 	ParodusInfo("service to be deleted: %s\n", service_name);
 
@@ -897,11 +917,13 @@ static void deleteFromList(char* service_name)
 			curr_node = NULL;
 			ParodusInfo("Deleted successfully and returning..\n");
 			numOfClients =numOfClients - 1;
-			break;
+			ParodusPrint("numOfClients after delte is %d\n", numOfClients);
+			return 0;
 		}
 		
 		prev_node = curr_node;
 		curr_node = curr_node->next;
 	}
-	return;
+	ParodusError("Could not find the entry to delete from list\n");
+	return -1;
 }
