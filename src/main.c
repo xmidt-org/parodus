@@ -24,7 +24,7 @@
 #include <assert.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
-#include <cimplog.h>
+#include <cimplog/cimplog.h>
 #include "wrp-c.h"
 
 
@@ -56,6 +56,8 @@ int main( int argc, char **argv)
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
     
+    cimplog_init();
+
     cimplog_info("PARODUS", "********** Starting component: Parodus **********\n "); 
     parseCommandLine(argc,argv,&parodusCfg);
      

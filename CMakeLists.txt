@@ -132,7 +132,7 @@ add_dependencies(libmsgpack msgpack)
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cimplog
-    GIT_REPOSITORY https://github.com/Comcast/cimplog.git
+    GIT_REPOSITORY https://github.com/cableramki/cimplog.git
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
