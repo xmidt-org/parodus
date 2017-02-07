@@ -66,7 +66,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 	char *str= NULL;
 	wrp_msg_t *resp_msg = NULL;
 	void *resp_bytes;
-	reg_list_item_t *temp;
+	reg_list_item_t *temp = NULL;
 	
 	recivedMsg =  (const char *) msg;
 	
@@ -94,7 +94,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 				temp = *head;
 				//Checking for individual clients & Sending to each client
 				
-				do
+				while (NULL != temp)
 				{
 					ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
 					// Sending message to registered clients
@@ -111,7 +111,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 					ParodusPrint("checking the next item in the list\n");
 					temp= temp->next;
 					
-				}while(temp !=NULL);
+				}
 				
 				
 				//if any unknown dest received sending error response to server
