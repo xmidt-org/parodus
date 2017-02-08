@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-#include <cimplog.h>
+#include <cimplog/cimplog.h>
 #include "ParodusInternal.h"
 
 /*----------------------------------------------------------------------------*/

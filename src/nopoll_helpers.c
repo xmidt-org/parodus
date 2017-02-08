@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2015  Comcast
  */
-#include <cimplog.h>
+#include <cimplog/cimplog.h>
 
 #include "ParodusInternal.h"
 #include "wss_mgr.h"
