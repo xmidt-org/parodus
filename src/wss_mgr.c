@@ -26,7 +26,6 @@
 #include <wrp-c.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
-#include <cimplog/cimplog.h>
 
 #include "ParodusInternal.h"
 #include "time.h"
@@ -132,19 +131,19 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 	UNUSED(user_data);
 	if (level == NOPOLL_LEVEL_DEBUG) 
 	{
-  	    //cimplog_debug("PARODUS", "%s\n", log_msg);
+  	    //PARODUS_DEBUG("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_INFO) 
 	{
-		cimplog_info("PARODUS", "%s\n", log_msg);
+		PARODUS_INFO("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_WARNING) 
 	{
-  	     cimplog_debug("PARODUS", "%s\n", log_msg);
+  	     PARODUS_DEBUG("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_CRITICAL) 
 	{
-  	     cimplog_error("PARODUS", "%s\n", log_msg );
+  	     PARODUS_ERROR("%s\n", log_msg );
 	}
 	return;
 }
@@ -176,7 +175,7 @@ static void getParodusUrl()
     }
     
     snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
-    cimplog_info("PARODUS", "formatted parodus Url %s\n",parodus_url);
+    PARODUS_INFO("formatted parodus Url %s\n",parodus_url);
 	
 }
 
@@ -195,14 +194,14 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
         
    	loadParodusCfg(tmpCfg,get_parodus_cfg());
 			
-	cimplog_debug("PARODUS", "Configure nopoll thread handlers in Parodus\n");
+	PARODUS_DEBUG("Configure nopoll thread handlers in Parodus\n");
 	
 	nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
 
 	ctx = nopoll_ctx_new();
 	if (!ctx) 
 	{
-		cimplog_error("PARODUS", "\nError creating nopoll context\n");
+		PARODUS_ERROR("\nError creating nopoll context\n");
 	}
 
 	#ifdef NOPOLL_LOGGER
@@ -236,7 +235,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 		{
 			if(!close_retry) 
 			{
-				cimplog_error("PARODUS", "ping wait time > %d. Terminating the connection with WebPA server and retrying\n",
+				PARODUS_ERROR("ping wait time > %d. Terminating the connection with WebPA server and retrying\n",
                                         get_parodus_cfg()->webpa_ping_timeout);
 							
 				reconnect_reason = "Ping_Miss";
@@ -247,14 +246,14 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 			}
 			else
 			{			
-				cimplog_debug("PARODUS", "heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+				PARODUS_DEBUG("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
 			}
 			heartBeatTimer = 0;
 		}
 		else if(intTimer >= 30)
 		{
 
-			cimplog_debug("PARODUS", "heartBeatTimer %d\n",heartBeatTimer);
+			PARODUS_DEBUG("heartBeatTimer %d\n",heartBeatTimer);
 			heartBeatTimer += HEARTBEAT_RETRY_SEC;	
 			intTimer = 0;		
 		}
@@ -262,7 +261,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 		
 		if(close_retry)
 		{
-			cimplog_info("PARODUS", "close_retry is %d, hence closing the connection and retrying\n", close_retry);
+			PARODUS_INFO("close_retry is %d, hence closing the connection and retrying\n", close_retry);
 			close_and_unref_connection(g_conn);
 			g_conn = NULL;
 			createNopollConnection(ctx);
@@ -290,7 +289,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 static void *handle_upstream()
 {
 
-	cimplog_debug("PARODUS", "******** Start of handle_upstream ********\n");
+	PARODUS_DEBUG("******** Start of handle_upstream ********\n");
 	
 	UpStreamMsg *message;
 	int sock;
@@ -306,11 +305,11 @@ static void *handle_upstream()
 	{
 		
 		buf = NULL;
-		cimplog_info("PARODUS", "nanomsg server gone into the listening mode...\n");
+		PARODUS_INFO("nanomsg server gone into the listening mode...\n");
 		
 		bytes = nn_recv (sock, &buf, NN_MSG, 0);
 			
-		cimplog_info("PARODUS", "Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
+		PARODUS_INFO("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
 		
 		message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
 		
@@ -327,10 +326,10 @@ static void *handle_upstream()
 	
 				UpStreamMsgQ = message;
 				
-				cimplog_debug("PARODUS", "Producer added message\n");
+				PARODUS_DEBUG("Producer added message\n");
 			 	pthread_cond_signal(&nano_con);
 				pthread_mutex_unlock (&nano_mut);
-				cimplog_debug("PARODUS", "mutex unlock in producer thread\n");
+				PARODUS_DEBUG("mutex unlock in producer thread\n");
 			}
 			else
 			{
@@ -348,11 +347,11 @@ static void *handle_upstream()
 		}
 		else
 		{
-			cimplog_error("PARODUS", "failure in allocation for message\n");
+			PARODUS_ERROR("failure in allocation for message\n");
 		}
 				
 	}
-	cimplog_debug("PARODUS", "End of handle_upstream\n");
+	PARODUS_DEBUG("End of handle_upstream\n");
 	return 0;
 }
 
@@ -371,14 +370,14 @@ static void *handleUpStreamEvents()
 	while(1)
 	{
 		pthread_mutex_lock (&nano_mut);
-		cimplog_debug("PARODUS", "mutex lock in consumer thread\n");
+		PARODUS_DEBUG("mutex lock in consumer thread\n");
 		
 		if(UpStreamMsgQ != NULL)
 		{
 			UpStreamMsg *message = UpStreamMsgQ;
 			UpStreamMsgQ = UpStreamMsgQ->next;
 			pthread_mutex_unlock (&nano_mut);
-			cimplog_debug("PARODUS", "mutex unlock in consumer thread\n");
+			PARODUS_DEBUG("mutex unlock in consumer thread\n");
 			
 			if (!terminated) 
 			{
@@ -386,7 +385,7 @@ static void *handleUpStreamEvents()
 				/*** Decoding Upstream Msg to check msgType ***/
 				/*** For MsgType 9 Perform Nanomsg client Registration else Send to server ***/	
 				
-				cimplog_debug("PARODUS", "---- Decoding Upstream Msg ----\n");
+				PARODUS_DEBUG("---- Decoding Upstream Msg ----\n");
 								
 				rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
 				
@@ -397,7 +396,7 @@ static void *handleUpStreamEvents()
 				
 				   if(msgType == 9)
 				   {
-					cimplog_info("PARODUS", "\n Nanomsg client Registration for Upstream\n");
+					PARODUS_INFO("\n Nanomsg client Registration for Upstream\n");
 					
 					//Extract serviceName and url & store it in a linked list for reg_clients
 					
@@ -408,7 +407,7 @@ static void *handleUpStreamEvents()
 					    {
 						if(strcmp(temp->service_name, msg->u.reg.service_name)==0)
 						{
-							cimplog_info("PARODUS", "match found, client is already registered\n");
+							PARODUS_INFO("match found, client is already registered\n");
 							strncpy(temp->url,msg->u.reg.url, strlen(msg->u.reg.url)+1);
 							nn_shutdown(temp->sock, 0);
 
@@ -417,7 +416,7 @@ static void *handleUpStreamEvents()
 							nn_setsockopt(temp->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
 							nn_connect(temp->sock, msg->u.reg.url); 
 							
-							cimplog_info("PARODUS", "Client registered before. Sending acknowledgement \n"); 
+							PARODUS_INFO("Client registered before. Sending acknowledgement \n"); 
 			
 							sendAuthStatus(temp);
 							matchFlag = 1;
@@ -425,19 +424,19 @@ static void *handleUpStreamEvents()
 							break;
 						}
 						
-						cimplog_debug("PARODUS", "checking the next item in the list\n");
+						PARODUS_DEBUG("checking the next item in the list\n");
 						temp= temp->next;
 						
 					     }while(temp !=NULL);
 
 					}
 					
-					cimplog_debug("PARODUS", "matchFlag is :%d\n", matchFlag);
+					PARODUS_DEBUG("matchFlag is :%d\n", matchFlag);
 
 					if((matchFlag == 0) || (numOfClients == 0))
 					{
 					    numOfClients = numOfClients + 1;
-					    cimplog_debug("PARODUS", "Adding nanomsg clients to list\n");
+					    PARODUS_DEBUG("Adding nanomsg clients to list\n");
 			                    addToList(&msg);
 					    
 					}
@@ -445,17 +444,17 @@ static void *handleUpStreamEvents()
 				    else
 				    {
 				    	//Sending to server for msgTypes 3, 4, 5, 6, 7, 8.			
-					cimplog_info("PARODUS", " Received upstream data with MsgType: %d\n", msgType);   					
+					PARODUS_INFO(" Received upstream data with MsgType: %d\n", msgType);   					
 					//Appending metadata with packed msg received from client
 					
 					if(metaPackSize > 0)
 					{
-					   	cimplog_debug("PARODUS", "Appending received msg with metadata\n");
+					   	PARODUS_DEBUG("Appending received msg with metadata\n");
 					   	encodedSize = appendEncodedData( &appendData, message->msg, message->len, metadataPack, metaPackSize );
-					   	cimplog_debug("PARODUS", "encodedSize after appending :%zu\n", encodedSize);
-					   	cimplog_debug("PARODUS", "metadata appended upstream msg %s\n", (char *)appendData);
+					   	PARODUS_DEBUG("encodedSize after appending :%zu\n", encodedSize);
+					   	PARODUS_DEBUG("metadata appended upstream msg %s\n", (char *)appendData);
 					   
-						cimplog_info("PARODUS", "Sending metadata appended upstream msg to server\n");
+						PARODUS_INFO("Sending metadata appended upstream msg to server\n");
 					   	handleUpstreamMessage(g_conn,appendData, encodedSize);
 					   	
 						free( appendData);
@@ -464,15 +463,15 @@ static void *handleUpStreamEvents()
 					
 					else
 					{		
-						cimplog_error("PARODUS", "Failed to send upstream as metadata packing is not successful\n");
+						PARODUS_ERROR("Failed to send upstream as metadata packing is not successful\n");
 					}
 				    }
 				}
 				else
 				{
-					cimplog_error("PARODUS", "Error in msgpack decoding for upstream\n");
+					PARODUS_ERROR("Error in msgpack decoding for upstream\n");
 				}
-				cimplog_debug("PARODUS", "Free for upstream decoded msg\n");
+				PARODUS_DEBUG("Free for upstream decoded msg\n");
 			        wrp_free_struct(msg);
 			}
 		
@@ -483,10 +482,10 @@ static void *handleUpStreamEvents()
 		}
 		else
 		{
-			cimplog_debug("PARODUS", "Before pthread cond wait in consumer thread\n");   
+			PARODUS_DEBUG("Before pthread cond wait in consumer thread\n");   
 			pthread_cond_wait(&nano_con, &nano_mut);
 			pthread_mutex_unlock (&nano_mut);
-			cimplog_debug("PARODUS", "mutex unlock in consumer thread after cond wait\n");
+			PARODUS_DEBUG("mutex unlock in consumer thread after cond wait\n");
 			if (terminated) {
 				break;
 			}
@@ -503,13 +502,13 @@ static void *messageHandlerTask()
 	while(1)
 	{
 		pthread_mutex_lock (&g_mutex);
-		cimplog_debug("PARODUS", "mutex lock in consumer thread\n");
+		PARODUS_DEBUG("mutex lock in consumer thread\n");
 		if(ParodusMsgQ != NULL)
 		{
 			ParodusMsg *message = ParodusMsgQ;
 			ParodusMsgQ = ParodusMsgQ->next;
 			pthread_mutex_unlock (&g_mutex);
-			cimplog_debug("PARODUS", "mutex unlock in consumer thread\n");
+			PARODUS_DEBUG("mutex unlock in consumer thread\n");
 			if (!terminated) 
 			{
 						
@@ -523,10 +522,10 @@ static void *messageHandlerTask()
 		}
 		else
 		{
-			cimplog_debug("PARODUS", "Before pthread cond wait in consumer thread\n");   
+			PARODUS_DEBUG("Before pthread cond wait in consumer thread\n");   
 			pthread_cond_wait(&g_cond, &g_mutex);
 			pthread_mutex_unlock (&g_mutex);
-			cimplog_debug("PARODUS", "mutex unlock in consumer thread after cond wait\n");
+			PARODUS_DEBUG("mutex unlock in consumer thread after cond wait\n");
 			if (terminated) 
 			{
 				break;
@@ -534,7 +533,7 @@ static void *messageHandlerTask()
 		}
 	}
 	
-	cimplog_debug("PARODUS", "Ended messageHandlerTask\n");
+	PARODUS_DEBUG("Ended messageHandlerTask\n");
 	return 0;
 }
 
@@ -554,7 +553,7 @@ static void *serviceAliveTask()
 
 	while(1)
 	{
-		cimplog_debug("PARODUS", "serviceAliveTask: numOfClients registered is %d\n", numOfClients);
+		PARODUS_DEBUG("serviceAliveTask: numOfClients registered is %d\n", numOfClients);
 		if(numOfClients > 0)
 		{
 			//sending svc msg to all the clients every 30s
@@ -564,14 +563,14 @@ static void *serviceAliveTask()
 			{
 				byte = nn_send (temp->sock, svc_bytes, size, 0);
 				
-				cimplog_debug("PARODUS", "svc byte sent :%d\n", byte);
+				PARODUS_DEBUG("svc byte sent :%d\n", byte);
 				if(byte == size)
 				{
-					cimplog_debug("PARODUS", "service_name: %s is alive\n",temp->service_name);
+					PARODUS_DEBUG("service_name: %s is alive\n",temp->service_name);
 				}
 				else
 				{
-					cimplog_info("PARODUS", "Failed to send keep alive msg, service %s is dead\n", temp->service_name);
+					PARODUS_INFO("Failed to send keep alive msg, service %s is dead\n", temp->service_name);
 					//need to delete this client service from list
 					deleteFromList((char*)temp->service_name);
 				}
@@ -580,13 +579,13 @@ static void *serviceAliveTask()
 			
 			}while(temp !=NULL);
 			
-		 	cimplog_debug("PARODUS", "Waiting for 30s to send keep alive msg \n");
+		 	PARODUS_DEBUG("Waiting for 30s to send keep alive msg \n");
 		 	sleep(KEEPALIVE_INTERVAL_SEC);
 		 
 	    	}
 	    	else
 	    	{
-	    		cimplog_info("PARODUS", "No clients are registered, waiting ..\n");
+	    		PARODUS_INFO("No clients are registered, waiting ..\n");
 	    		sleep(70);
 	    	}
 	    		
@@ -628,57 +627,57 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {
         case 'm':
           strncpy(cfg->hw_model, optarg,strlen(optarg));
-          cimplog_info("PARODUS", "hw-model is %s\n",cfg->hw_model);
+          PARODUS_INFO("hw-model is %s\n",cfg->hw_model);
          break;
         
         case 's':
           strncpy(cfg->hw_serial_number,optarg,strlen(optarg));
-          cimplog_info("PARODUS", "hw_serial_number is %s\n",cfg->hw_serial_number);
+          PARODUS_INFO("hw_serial_number is %s\n",cfg->hw_serial_number);
           break;
 
         case 'f':
           strncpy(cfg->hw_manufacturer, optarg,strlen(optarg));
-          cimplog_info("PARODUS", "hw_manufacturer is %s\n",cfg->hw_manufacturer);
+          PARODUS_INFO("hw_manufacturer is %s\n",cfg->hw_manufacturer);
           break;
 
         case 'd':
            strncpy(cfg->hw_mac, optarg,strlen(optarg));
-           cimplog_info("PARODUS", "hw_mac is %s\n",cfg->hw_mac);
+           PARODUS_INFO("hw_mac is %s\n",cfg->hw_mac);
           break;
         
         case 'r':
           strncpy(cfg->hw_last_reboot_reason, optarg,strlen(optarg));
-          cimplog_info("PARODUS", "hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
+          PARODUS_INFO("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
           break;
 
         case 'n':
           strncpy(cfg->fw_name, optarg,strlen(optarg));
-          cimplog_info("PARODUS", "fw_name is %s\n",cfg->fw_name);
+          PARODUS_INFO("fw_name is %s\n",cfg->fw_name);
           break;
 
         case 'b':
           cfg->boot_time = atoi(optarg);
-          cimplog_info("PARODUS", "boot_time is %d\n",cfg->boot_time);
+          PARODUS_INFO("boot_time is %d\n",cfg->boot_time);
           break;
        
          case 'u':
           strncpy(cfg->webpa_url, optarg,strlen(optarg));
-          cimplog_info("PARODUS", "webpa_url is %s\n",cfg->webpa_url);
+          PARODUS_INFO("webpa_url is %s\n",cfg->webpa_url);
           break;
         
         case 'p':
           cfg->webpa_ping_timeout = atoi(optarg);
-          cimplog_info("PARODUS", "webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
+          PARODUS_INFO("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
           break;
 
         case 'o':
           cfg->webpa_backoff_max = atoi(optarg);
-          cimplog_info("PARODUS", "webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
+          PARODUS_INFO("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
           break;
 
         case 'i':
           strncpy(cfg->webpa_interface_used, optarg,strlen(optarg));
-          cimplog_info("PARODUS", "webpa_inteface_used is %s\n",cfg->webpa_interface_used);
+          PARODUS_INFO("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
           break;
 
         case '?':
@@ -686,20 +685,20 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         default:
-           cimplog_error("PARODUS", "Enter Valid commands..\n");
+           PARODUS_ERROR("Enter Valid commands..\n");
           abort ();
         }
     }
   
- cimplog_debug("PARODUS", "argc is :%d\n", argc);
- cimplog_debug("PARODUS", "optind is :%d\n", optind);
+ PARODUS_DEBUG("argc is :%d\n", argc);
+ PARODUS_DEBUG("optind is :%d\n", optind);
 
   /* Print any remaining command line arguments (not options). */
   if (optind < argc)
     {
-      cimplog_debug("PARODUS", "non-option ARGV-elements: ");
+      PARODUS_DEBUG("non-option ARGV-elements: ");
       while (optind < argc)
-        cimplog_debug("PARODUS", "%s ", argv[optind++]);
+        PARODUS_DEBUG("%s ", argv[optind++]);
       putchar ('\n');
     }
 
@@ -714,10 +713,10 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 	if(metaPackSize > 0)
 	{
 	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
-	   	cimplog_debug("PARODUS", "metadata appended upstream response %s\n", (char *)appendData);
-	   	cimplog_debug("PARODUS", "encodedSize after appending :%zu\n", encodedSize);
+	   	PARODUS_DEBUG("metadata appended upstream response %s\n", (char *)appendData);
+	   	PARODUS_DEBUG("encodedSize after appending :%zu\n", encodedSize);
 	   		   
-		cimplog_info("PARODUS", "Sending response to server\n");
+		PARODUS_INFO("Sending response to server\n");
 	   	handleUpstreamMessage(g_conn,appendData, encodedSize);
 	   	
 		free( appendData);
@@ -726,7 +725,7 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 
 	else
 	{		
-		cimplog_error("PARODUS", "Failed to send upstream as metadata packing is not successful\n");
+		PARODUS_ERROR("Failed to send upstream as metadata packing is not successful\n");
 	}
 
 }
@@ -741,14 +740,14 @@ static void addToList( wrp_msg_t **msg)
     new_node=(reg_list_item_t *)malloc(sizeof(reg_list_item_t));
  
     new_node->sock = nn_socket( AF_SP, NN_PUSH );
-    cimplog_debug("PARODUS", "new_node->sock is %d\n", new_node->sock);
+    PARODUS_DEBUG("new_node->sock is %d\n", new_node->sock);
     nn_connect(new_node->sock, (*msg)->u.reg.url);
     
     int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
     nn_setsockopt(new_node->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
     
-    cimplog_debug("PARODUS", "(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
-    cimplog_debug("PARODUS", "(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
+    PARODUS_DEBUG("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
+    PARODUS_DEBUG("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
     
     strncpy(new_node->service_name, (*msg)->u.reg.service_name, strlen((*msg)->u.reg.service_name)+1);
     strncpy(new_node->url, (*msg)->u.reg.url, strlen((*msg)->u.reg.url)+1);
@@ -757,13 +756,13 @@ static void addToList( wrp_msg_t **msg)
 	 
     if (head== NULL) //adding first client
     {
-        cimplog_info("PARODUS", "Adding first client to list\n");
+        PARODUS_INFO("Adding first client to list\n");
     	head=new_node;
     	
     }
     else   //client2 onwards           
     {
-    	cimplog_info("PARODUS", "Adding clients to list\n");
+    	PARODUS_INFO("Adding clients to list\n");
     	temp=head;
     	
     	while(temp->next !=NULL)
@@ -775,18 +774,18 @@ static void addToList( wrp_msg_t **msg)
     	temp->next=new_node;
     }
     
-    cimplog_debug("PARODUS", "client is added to list\n");
-    cimplog_info("PARODUS", "client service %s is added to list with url: %s\n", new_node->service_name, new_node->url);
+    PARODUS_DEBUG("client is added to list\n");
+    PARODUS_INFO("client service %s is added to list with url: %s\n", new_node->service_name, new_node->url);
     
     
     if((strcmp(new_node->service_name, (*msg)->u.reg.service_name)==0)&& (strcmp(new_node->url, (*msg)->u.reg.url)==0))
     {
-    	cimplog_info("PARODUS", "sending auth status to reg client\n");
+    	PARODUS_INFO("sending auth status to reg client\n");
     	sendAuthStatus(new_node);
     }
     else
     {
-    	cimplog_error("PARODUS", "nanomsg client registration failed\n");
+    	PARODUS_ERROR("nanomsg client registration failed\n");
     }
     
 }
@@ -805,17 +804,17 @@ static void sendAuthStatus(reg_list_item_t *new_node)
 	//Sending success status to clients after each nanomsg registration
 	size = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
 
-	cimplog_info("PARODUS", "Client %s Registered successfully. Sending Acknowledgement... \n ", new_node->service_name);
+	PARODUS_INFO("Client %s Registered successfully. Sending Acknowledgement... \n ", new_node->service_name);
 
 	byte = nn_send (new_node->sock, auth_bytes, size, 0);
 
 	if(byte >=0)
 	{
-	    cimplog_debug("PARODUS", "send registration success status to client\n");
+	    PARODUS_DEBUG("send registration success status to client\n");
 	}
 	else
 	{
-	    cimplog_error("PARODUS", "send registration failed\n");
+	    PARODUS_ERROR("send registration failed\n");
 	}
 
 	byte = 0;
@@ -831,10 +830,10 @@ static void deleteFromList(char* service_name)
 
 	if( NULL == service_name ) 
 	{
-		cimplog_info("PARODUS", "Invalid value for service\n");
+		PARODUS_INFO("Invalid value for service\n");
 		return;
 	}
-	cimplog_info("PARODUS", "service to be deleted: %s\n", service_name);
+	PARODUS_INFO("service to be deleted: %s\n", service_name);
 
 	prev_node = NULL;
 	curr_node = head;	
@@ -844,22 +843,22 @@ static void deleteFromList(char* service_name)
 	{
 		if(strcmp(curr_node->service_name, service_name) == 0)
 		{
-			cimplog_debug("PARODUS", "Found the node to delete\n");
+			PARODUS_DEBUG("Found the node to delete\n");
 			if( NULL == prev_node )
 			{
-				cimplog_debug("PARODUS", "need to delete first client\n");
+				PARODUS_DEBUG("need to delete first client\n");
 			 	head = curr_node->next;
 			}
 			else
 			{
-				cimplog_debug("PARODUS", "Traversing to find node\n");
+				PARODUS_DEBUG("Traversing to find node\n");
 			 	prev_node->next = curr_node->next;
 			}
 			
-			cimplog_debug("PARODUS", "Deleting the node\n");
+			PARODUS_DEBUG("Deleting the node\n");
 			free( curr_node );
 			curr_node = NULL;
-			cimplog_info("PARODUS", "Deleted successfully and returning..\n");
+			PARODUS_INFO("Deleted successfully and returning..\n");
 			numOfClients =numOfClients - 1;
 			break;
 		}

@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-#include <cimplog.h>
 #include "ParodusInternal.h"
 
 /*----------------------------------------------------------------------------*/
@@ -53,7 +52,7 @@ noPollPtr createMutex()
     mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
 
     if (mutex == NULL) {
-        cimplog_error("PARODUS", "Failed to create mutex\n");
+        PARODUS_ERROR("Failed to create mutex\n");
         return NULL;
     }
     pthread_mutexattr_init( &attr);
@@ -64,11 +63,11 @@ noPollPtr createMutex()
     rtn = pthread_mutex_init (mutex, &attr);
     pthread_mutexattr_destroy (&attr);
     if (rtn != 0) {
-        cimplog_error("PARODUS", "Error in init Mutex\n");
+        PARODUS_ERROR("Error in init Mutex\n");
         free(mutex);
         return NULL;
     } else {
-        cimplog_debug("PARODUS", "mutex init successfully\n");
+        PARODUS_DEBUG("mutex init successfully\n");
     } 
 
     return mutex;
@@ -85,7 +84,7 @@ void lockMutex(noPollPtr _mutex)
     char errbuf[100];
 
     if (_mutex == NULL) {
-        cimplog_error("PARODUS", "Received null mutex\n");
+        PARODUS_ERROR("Received null mutex\n");
         return;
     }
     pthread_mutex_t * mutex = _mutex;
@@ -94,7 +93,7 @@ void lockMutex(noPollPtr _mutex)
     rtn = pthread_mutex_lock (mutex);
     if (rtn != 0) {
         strerror_r (rtn, errbuf, 100);
-        cimplog_error("PARODUS", "Error in Lock mutex: %s\n", errbuf);
+        PARODUS_ERROR("Error in Lock mutex: %s\n", errbuf);
         /* do some reporting */
         return;
     }
@@ -111,7 +110,7 @@ void unlockMutex(noPollPtr _mutex)
     char errbuf[100];
 
     if (_mutex == NULL) {
-        cimplog_error("PARODUS", "Received null mutex\n");
+        PARODUS_ERROR("Received null mutex\n");
         return;
     }
     pthread_mutex_t * mutex = _mutex;
@@ -121,7 +120,7 @@ void unlockMutex(noPollPtr _mutex)
     if (rtn != 0) {
         /* do some reporting */
         strerror_r (rtn, errbuf, 100);
-        cimplog_error("PARODUS", "Error in unlock mutex: %s\n", errbuf);
+        PARODUS_ERROR("Error in unlock mutex: %s\n", errbuf);
         return;
     }
     return;
@@ -135,17 +134,17 @@ void unlockMutex(noPollPtr _mutex)
 void destroyMutex(noPollPtr _mutex)
 {
     if (_mutex == NULL) {
-        cimplog_error("PARODUS", "Received null mutex\n");
+        PARODUS_ERROR("Received null mutex\n");
         return;
     }
     pthread_mutex_t * mutex = _mutex;
     
     if (pthread_mutex_destroy (mutex) != 0) {
         /* do some reporting */
-        cimplog_error("PARODUS", "problem in destroy\n");
+        PARODUS_ERROR("problem in destroy\n");
         return;
     } else {
-        cimplog_debug("PARODUS", "Mutex destroyed \n");
+        PARODUS_DEBUG("Mutex destroyed \n");
     }
     free(mutex);
 

@@ -14,7 +14,6 @@
  * limitations under the License.
  *
  */
-#include <cimplog/cimplog.h>
 #include "ParodusInternal.h"
 
 /*----------------------------------------------------------------------------*/
@@ -60,7 +59,7 @@ int checkHostIp(char * serverIP)
 	struct addrinfo hints;
 
 
-	cimplog_debug("PARODUS", "...............Inside checkHostIp..............%s \n", serverIP);
+	PARODUS_DEBUG("...............Inside checkHostIp..............%s \n", serverIP);
 
 	memset(&hints,0,sizeof(hints));
 	hints.ai_family = AF_INET;
@@ -70,7 +69,7 @@ int checkHostIp(char * serverIP)
 	retVal = getaddrinfo(serverIP, "http", &hints, &result);
 	if (retVal != 0) 
 	{
-		cimplog_error("PARODUS", "getaddrinfo: %s\n", gai_strerror(retVal));
+		PARODUS_ERROR("getaddrinfo: %s\n", gai_strerror(retVal));
 	}
 	else
 	{
@@ -80,15 +79,15 @@ int checkHostIp(char * serverIP)
 			ptr = &((struct sockaddr_in *) res->ai_addr)->sin_addr;
 			inet_ntop (res->ai_family, ptr, addrstr, 100);
 		
-			cimplog_debug("PARODUS", "IPv4 address of %s is %s \n", serverIP, addrstr);
+			PARODUS_DEBUG("IPv4 address of %s is %s \n", serverIP, addrstr);
 			if (strcmp(localIp,addrstr) == 0)
 			{
-				cimplog_debug("PARODUS", "Host Ip resolved to 10.0.0.1\n");
+				PARODUS_DEBUG("Host Ip resolved to 10.0.0.1\n");
 				status = -2;
 			}
 			else
 			{
-				cimplog_debug("PARODUS", "Host Ip resolved correctly, proceeding with the connection\n");
+				PARODUS_DEBUG("Host Ip resolved correctly, proceeding with the connection\n");
 				status = 0;
 				break;
 			}

@@ -1,5 +1,3 @@
-#include <cimplog.h>
-
 #include "connection.h"
 
 
@@ -34,7 +32,7 @@ int sendResponse(noPollConn * conn, void * buffer, size_t length)
                 if (-1 == bytes_sent ||
                    (bytes_sent = nopoll_conn_flush_writes(conn, FLUSH_WAIT_TIME, bytes_sent)) != len_to_send)
                 {
-                        cimplog_debug("PARODUS", "sendResponse() Failed to send all the data\n");
+                        PARODUS_DEBUG("sendResponse() Failed to send all the data\n");
                         cp = NULL;
                         break;
                 }
@@ -87,7 +85,7 @@ char createNopollConnection(noPollCtx *ctx)
 	if (fp!=NULL)
 	{
 		unlink("/tmp/parodus_ready");
-		cimplog_debug("PARODUS", "Closing Parodus_Ready FIle \n");
+		PARODUS_DEBUG("Closing Parodus_Ready FIle \n");
 		fclose(fp);
 	}
 		
@@ -100,19 +98,19 @@ char createNopollConnection(noPollCtx *ctx)
 	connErr_endPtr = &connErr_end;
 	strcpy(deviceMAC, get_parodus_cfg()->hw_mac);
 	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
-	cimplog_info("PARODUS", "Device_id %s\n",device_id);
+	PARODUS_INFO("Device_id %s\n",device_id);
 
 	headerValues[0] = device_id;
 	headerValues[1] = "wrp-0.11,getset-0.1";    
 	
 	
 	bootTime_sec = get_parodus_cfg()->boot_time;
-	cimplog_debug("PARODUS", "BootTime In sec: %d\n", bootTime_sec);
+	PARODUS_DEBUG("BootTime In sec: %d\n", bootTime_sec);
 	firmwareVersion = get_parodus_cfg()->fw_name;
     modelName = get_parodus_cfg()->hw_model;
     manufacturer = get_parodus_cfg()->hw_manufacturer;
 	protocol = get_parodus_cfg()->webpa_protocol;
-    cimplog_debug("PARODUS", "webpa_protocol is %s\n", protocol);
+    PARODUS_DEBUG("webpa_protocol is %s\n", protocol);
     	snprintf(user_agent, sizeof(user_agent),
              "%s (%s; %s/%s;)",
              ((0 != strlen(protocol)) ? protocol : "unknown"),
@@ -120,13 +118,13 @@ char createNopollConnection(noPollCtx *ctx)
              ((0 != strlen(modelName)) ? modelName : "unknown"),
              ((0 != strlen(manufacturer)) ? manufacturer : "unknown"));
 
-	cimplog_info("PARODUS", "User-Agent: %s\n",user_agent);
+	PARODUS_INFO("User-Agent: %s\n",user_agent);
 	headerValues[2] = user_agent;
 	
 		
-	cimplog_info("PARODUS", "Received reconnect_reason as:%s\n", reconnect_reason);
+	PARODUS_INFO("Received reconnect_reason as:%s\n", reconnect_reason);
 	reboot_reason = get_parodus_cfg()->hw_last_reboot_reason;
-	cimplog_info("PARODUS", "Received reboot_reason as:%s\n", reboot_reason);
+	PARODUS_INFO("Received reboot_reason as:%s\n", reboot_reason);
 	
 	if(strlen(modelName)!=0)
 	{
@@ -162,7 +160,7 @@ char createNopollConnection(noPollCtx *ctx)
 	}
 	else
 	{
-		cimplog_error("PARODUS", "Failed to GET Reboot reason value\n");
+		PARODUS_ERROR("Failed to GET Reboot reason value\n");
 	}
 	
 	if(reconnect_reason !=NULL)
@@ -171,15 +169,15 @@ char createNopollConnection(noPollCtx *ctx)
 	}
 	else
 	{
-	     	cimplog_error("PARODUS", "Failed to GET Reconnect reason value\n");
+	     	PARODUS_ERROR("Failed to GET Reconnect reason value\n");
 	}
 		
 	buffer = cJSON_PrintUnformatted(response);
-	cimplog_info("PARODUS", "X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
+	PARODUS_INFO("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
 
 	if(nopoll_base64_encode (buffer, strlen(buffer), encodedData, &encodedDataSize) != nopoll_true)
 	{
-		cimplog_error("PARODUS", "Base64 Encoding failed for Connection Header\n");
+		PARODUS_ERROR("Base64 Encoding failed for Connection Header\n");
 		headerValues[3] = ""; 
                 headerCount -= 1; 
 	}
@@ -190,7 +188,7 @@ char createNopollConnection(noPollCtx *ctx)
 		{
 			if(encodedData[i] == '\n')
 			{
-				cimplog_debug("PARODUS", "New line is present in encoded data at position %d\n",i);
+				PARODUS_DEBUG("New line is present in encoded data at position %d\n",i);
 			}
 			else
 			{
@@ -200,7 +198,7 @@ char createNopollConnection(noPollCtx *ctx)
 		}
 		encodedData[j]='\0';
 		headerValues[3] = encodedData;
-		cimplog_debug("PARODUS", "Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
+		PARODUS_DEBUG("Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
 	}	
 	
 	cJSON_Delete(response);
@@ -208,11 +206,11 @@ char createNopollConnection(noPollCtx *ctx)
 	
 	snprintf(port,sizeof(port),"%d",8080);
 	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
-	cimplog_info("PARODUS", "server_Address %s\n",server_Address);
+	PARODUS_INFO("server_Address %s\n",server_Address);
 	
 					
 	max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
-	cimplog_debug("PARODUS", "max_retry_sleep is %d\n", max_retry_sleep );
+	PARODUS_DEBUG("max_retry_sleep is %d\n", max_retry_sleep );
 	
 	do
 	{
@@ -223,12 +221,12 @@ char createNopollConnection(noPollCtx *ctx)
 		{
 			backoffRetryTime = (int) pow(2, c) -1;
 		}
-		cimplog_debug("PARODUS", "New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
+		PARODUS_DEBUG("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
 								
                 noPollConn *connection;
 		if(get_parodus_cfg()->secureFlag) 
 		{                    
-		    cimplog_debug("PARODUS", "secure true\n");
+		    PARODUS_DEBUG("secure true\n");
 			/* disable verification */
 			opts = nopoll_conn_opts_new ();
 			nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
@@ -239,7 +237,7 @@ char createNopollConnection(noPollCtx *ctx)
 		}
 		else 
 		{
-		    cimplog_debug("PARODUS", "secure false\n");
+		    PARODUS_DEBUG("secure false\n");
                     connection = nopoll_conn_new(ctx, server_Address, port, NULL,
                                "/api/v2/device", NULL, NULL, get_parodus_cfg()->webpa_interface_used,
                                 headerNames, headerValues, headerCount);// WEBPA-787
@@ -250,21 +248,21 @@ char createNopollConnection(noPollCtx *ctx)
 		{
 			if(!nopoll_conn_is_ok(get_global_conn())) 
 			{
-				cimplog_error("PARODUS", "Error connecting to server\n");
-				cimplog_error("PARODUS", "RDK-10037 - WebPA Connection Lost\n");
+				PARODUS_ERROR("Error connecting to server\n");
+				PARODUS_ERROR("RDK-10037 - WebPA Connection Lost\n");
 				// Copy the server address from config to avoid retrying to the same failing talaria redirected node
 				parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
 				close_and_unref_connection(get_global_conn());
 				set_global_conn(NULL);
 				initial_retry = true;
 				
-				cimplog_info("PARODUS", "Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+				PARODUS_INFO("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 				sleep(backoffRetryTime);
 				continue;
 			}
 			else 
 			{
-				cimplog_debug("PARODUS", "Connected to Server but not yet ready\n");
+				PARODUS_DEBUG("Connected to Server but not yet ready\n");
 				initial_retry = false;
 						
 				//reset backoffRetryTime back to the starting value, as next reason can be different					
@@ -279,14 +277,14 @@ char createNopollConnection(noPollCtx *ctx)
 				
 				if (strncmp(redirectURL, "Redirect:", 9) == 0) // only when there is a http redirect
 				{
-					cimplog_error("PARODUS", "Received temporary redirection response message %s\n", redirectURL);
+					PARODUS_ERROR("Received temporary redirection response message %s\n", redirectURL);
 					// Extract server Address and port from the redirectURL
 					temp_ptr = strtok(redirectURL , ":"); //skip Redirect 
 					temp_ptr = strtok(NULL , ":"); // skip https
 					temp_ptr = strtok(NULL , ":");
 					parStrncpy(server_Address, temp_ptr+2, sizeof(server_Address));
 					parStrncpy(port, strtok(NULL , "/"), sizeof(port));
-					cimplog_info("PARODUS", "Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
+					PARODUS_INFO("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
 					
 					//reset c=2 to start backoffRetryTime as retrying using new redirect server
 					c = 2;
@@ -294,11 +292,11 @@ char createNopollConnection(noPollCtx *ctx)
 				}
 				else
 				{
-					cimplog_error("PARODUS", "Client connection timeout\n");	
-					cimplog_error("PARODUS", "RDK-10037 - WebPA Connection Lost\n");
+					PARODUS_ERROR("Client connection timeout\n");	
+					PARODUS_ERROR("RDK-10037 - WebPA Connection Lost\n");
 					// Copy the server address from config to avoid retrying to the same failing talaria redirected node
 					parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
-					cimplog_info("PARODUS", "Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+					PARODUS_INFO("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 					sleep(backoffRetryTime);
 					c++;
 				}
@@ -310,7 +308,7 @@ char createNopollConnection(noPollCtx *ctx)
 			else 
 			{
 				initial_retry = false;				
-				cimplog_info("PARODUS", "Connection is ready\n");
+				PARODUS_INFO("Connection is ready\n");
 			}
 		}
 		else
@@ -325,15 +323,15 @@ char createNopollConnection(noPollCtx *ctx)
 				{
 					getCurrentTime(connErr_startPtr);
 					connErr = 1;
-					cimplog_info("PARODUS", "First connect error occurred, initialized the connect error timer\n");
+					PARODUS_INFO("First connect error occurred, initialized the connect error timer\n");
 				}
 				else
 				{
 					getCurrentTime(connErr_endPtr);
-					cimplog_debug("PARODUS", "checking timeout difference:%ld\n", timeValDiff(connErr_startPtr, connErr_endPtr));
+					PARODUS_DEBUG("checking timeout difference:%ld\n", timeValDiff(connErr_startPtr, connErr_endPtr));
 					if(timeValDiff(connErr_startPtr, connErr_endPtr) >= (15*60*1000))
 					{
-						cimplog_error("PARODUS", "WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
+						PARODUS_ERROR("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
 						reconnect_reason = "Dns_Res_webpa_reconnect";
 						LastReasonStatus = true;
 						
@@ -342,7 +340,7 @@ char createNopollConnection(noPollCtx *ctx)
 				}			
 			}
 			initial_retry = true;
-			cimplog_info("PARODUS", "Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
+			PARODUS_INFO("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 			sleep(backoffRetryTime);
 			c++;
 			// Copy the server address from config to avoid retrying to the same failing talaria redirected node
@@ -353,11 +351,11 @@ char createNopollConnection(noPollCtx *ctx)
 	
 	if(get_parodus_cfg()->secureFlag) 
 	{
-		cimplog_info("PARODUS", "Connected to server over SSL\n");
+		PARODUS_INFO("Connected to server over SSL\n");
 	}
 	else 
 	{
-		cimplog_info("PARODUS", "Connected to server\n");
+		PARODUS_INFO("Connected to server\n");
 	}
 	
 	//creating tmp file to signal parodus_ready status once connection is successful
@@ -366,16 +364,16 @@ char createNopollConnection(noPollCtx *ctx)
 	fclose(fp);
 	
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
-	cimplog_debug("PARODUS", "createNopollConnection(): close_mut lock\n");
+	PARODUS_DEBUG("createNopollConnection(): close_mut lock\n");
 	pthread_mutex_lock (&close_mut);
 	close_retry = false;
 	pthread_mutex_unlock (&close_mut);
-	cimplog_debug("PARODUS", "createNopollConnection(): close_mut unlock\n");
+	PARODUS_DEBUG("createNopollConnection(): close_mut unlock\n");
 	heartBeatTimer = 0;
 	
 	
 	//Pack the metadata initially to reuse for every upstream msg sending to server
-  	cimplog_debug("PARODUS", "-------------- Packing metadata ----------------\n");
+  	PARODUS_DEBUG("-------------- Packing metadata ----------------\n");
   	sprintf(boot_time, "%d", bootTime_sec);
  
  	
@@ -400,11 +398,11 @@ char createNopollConnection(noPollCtx *ctx)
 
 	if (metaPackSize > 0) 
 	{
-		cimplog_debug("PARODUS", "metadata encoding is successful with size %zu\n", metaPackSize);
+		PARODUS_DEBUG("metadata encoding is successful with size %zu\n", metaPackSize);
 	}
 	else
 	{
-		cimplog_error("PARODUS", "Failed to encode metadata\n");
+		PARODUS_ERROR("Failed to encode metadata\n");
 
 	}
 	
@@ -414,7 +412,7 @@ char createNopollConnection(noPollCtx *ctx)
 	
 	reconnect_reason = "webpa_process_starts";
 	LastReasonStatus =false;
-	cimplog_debug("PARODUS", "LastReasonStatus reset after successful connection\n");
+	PARODUS_DEBUG("LastReasonStatus reset after successful connection\n");
 
 	nopoll_conn_set_on_msg(get_global_conn(), (noPollOnMessageHandler) listenerOnMessage_queue, NULL);
 	nopoll_conn_set_on_ping_msg(get_global_conn(), (noPollOnMessageHandler)listenerOnPingMessage, NULL);
@@ -460,15 +458,15 @@ void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg
 		nopoll_msg_ref(msg);
 		
 		pthread_mutex_lock (&g_mutex);		
-		cimplog_debug("PARODUS", "mutex lock in producer thread\n");
+		PARODUS_DEBUG("mutex lock in producer thread\n");
 		
 		if(ParodusMsgQ == NULL)
 		{
 			ParodusMsgQ = message;
-			cimplog_debug("PARODUS", "Producer added message\n");
+			PARODUS_DEBUG("Producer added message\n");
 		 	pthread_cond_signal(&g_cond);
 			pthread_mutex_unlock (&g_mutex);
-			cimplog_debug("PARODUS", "mutex unlock in producer thread\n");
+			PARODUS_DEBUG("mutex unlock in producer thread\n");
 		}
 		else
 		{
@@ -484,9 +482,9 @@ void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg
 	else
 	{
 		//Memory allocation failed
-		cimplog_error("PARODUS", "Memory allocation is failed\n");
+		PARODUS_ERROR("Memory allocation is failed\n");
 	}
-	cimplog_debug("PARODUS", "*****Returned from listenerOnMessage_queue*****\n");
+	PARODUS_DEBUG("*****Returned from listenerOnMessage_queue*****\n");
 }
 
 /**
@@ -508,12 +506,12 @@ void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,
 
 	if ((payload!=NULL) && !terminated) 
 	{
-		cimplog_info("PARODUS", "Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
+		PARODUS_INFO("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
 		if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 
 		{
 			nopoll_conn_send_frame (conn, nopoll_true, nopoll_true, NOPOLL_PONG_FRAME, strlen(payload), payload, 0);
 			heartBeatTimer = 0;
-			cimplog_debug("PARODUS", "Sent Pong frame and reset HeartBeat Timer\n");
+			PARODUS_DEBUG("Sent Pong frame and reset HeartBeat Timer\n");
 		}
 	}
 }
@@ -525,7 +523,7 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
 	UNUSED(ctx);
 	UNUSED(conn);
 	
-	cimplog_debug("PARODUS", "listenerOnCloseMessage(): mutex lock in producer thread\n");
+	PARODUS_DEBUG("listenerOnCloseMessage(): mutex lock in producer thread\n");
 	
 	if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
 	{
@@ -541,7 +539,7 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
 	pthread_mutex_lock (&close_mut);
 	close_retry = true;
 	pthread_mutex_unlock (&close_mut);
-	cimplog_debug("PARODUS", "listenerOnCloseMessage(): mutex unlock in producer thread\n");
+	PARODUS_DEBUG("listenerOnCloseMessage(): mutex unlock in producer thread\n");
 
 }
 
