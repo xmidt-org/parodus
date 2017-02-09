@@ -29,9 +29,9 @@
 #include <wrp-c.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
+#include <cimplog/cimplog.h>
 
 #include "wss_mgr.h"
-#include "parodus_log.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -54,7 +54,11 @@
 #define IOT "iot"
 #define HARVESTER "harvester"
 #define GET_SET "get_set"
+#define LOGGING_MODULE "PARODUS"
 
+#define PARODUS_ERROR( ... )                            cimplog_error(LOGGING_MODULE, __VA_ARGS__)
+#define PARODUS_INFO( ... )                             cimplog_info(LOGGING_MODULE, __VA_ARGS__)
+#define PARODUS_DEBUG( ... )                            cimplog_debug(LOGGING_MODULE, __VA_ARGS__)
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
