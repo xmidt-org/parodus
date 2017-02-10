@@ -293,7 +293,7 @@ void test_nanomsg_downstream_success()
 	ParodusPrint("Bind returns = %d \n", bind);
 	ParodusPrint("***** Nanomsg client3 in Receiving mode in %s *****\n", msg.u.reg.url);
 	bit = nn_recv (sock, &buf, NN_MSG, 0);
-	ParodusInfo("----->Received downstream request from server to client3 : \"%s\"\n", (char *)buf);
+	ParodusInfo ("----->Received downstream request from server to client3 : \"%s\"\n", (char *)buf);
 	ParodusPrint("Received %d bytes\n", bit);
 	CU_ASSERT(bit >= 0);
 	
@@ -335,7 +335,7 @@ void test_nanomsg_downstream_failure()
 	ParodusPrint("***** Nanomsg client3 in Receiving mode *****\n");
 	
 	bit = nn_recv (sock, &buf, NN_MSG, 0);
-	ParodusInfo("Received downstream request from server for client3 : \"%s\"\n", buf);
+	ParodusInfo ("Received downstream request from server for client3 : \"%s\"\n", buf);
 	CU_ASSERT(bit >= 0);
 	rc = nn_freemsg(buf);
 	CU_ASSERT(rc == 0);
