@@ -26,6 +26,7 @@
 
 #include "ParodusInternal.h"
 #include "time.h"
+#include "parodus_log.h"
 
 #ifdef __cplusplus
 extern "C" {

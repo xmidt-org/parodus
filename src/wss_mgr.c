@@ -30,6 +30,7 @@
 
 #include "ParodusInternal.h"
 #include "time.h"
+#include "parodus_log.h"
 #include "connection.h"
 #include "spin_thread.h"
 
@@ -132,19 +133,19 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 	UNUSED(user_data);
 	if (level == NOPOLL_LEVEL_DEBUG) 
 	{
-  	    //PARODUS_DEBUG("%s\n", log_msg);
+  	    //ParodusPrint("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_INFO) 
 	{
-		PARODUS_INFO("%s\n", log_msg);
+		ParodusInfo ("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_WARNING) 
 	{
-  	     PARODUS_DEBUG("%s\n", log_msg);
+  	     ParodusPrint("%s\n", log_msg);
 	}
 	if (level == NOPOLL_LEVEL_CRITICAL) 
 	{
-  	     PARODUS_ERROR("%s\n", log_msg );
+  	     ParodusError("%s\n", log_msg );
 	}
 	return;
 }
@@ -175,7 +176,7 @@ static void getParodusUrl()
     }
     
     snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
-    PARODUS_INFO("formatted parodus Url %s\n",parodus_url);
+    ParodusInfo("formatted parodus Url %s\n",parodus_url);
 	
 }
 
@@ -192,12 +193,12 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
         noPollCtx *ctx;
         
    	loadParodusCfg(tmpCfg,get_parodus_cfg());
-	PARODUS_DEBUG("Configure nopoll thread handlers in Parodus\n");
+	ParodusPrint("Configure nopoll thread handlers in Parodus\n");
 	nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
 	ctx = nopoll_ctx_new();
 	if (!ctx) 
 	{
-		PARODUS_ERROR("\nError creating nopoll context\n");
+		ParodusError("\nError creating nopoll context\n");
 	}
 
 	#ifdef NOPOLL_LOGGER
@@ -227,7 +228,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 		{
 			if(!close_retry) 
 			{
-				PARODUS_ERROR("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
+				ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
 				reconnect_reason = "Ping_Miss";
 				LastReasonStatus = true;
 				pthread_mutex_lock (&close_mut);
@@ -236,20 +237,20 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 			}
 			else
 			{			
-				PARODUS_DEBUG("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+				ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
 			}
 			heartBeatTimer = 0;
 		}
 		else if(intTimer >= 30)
 		{
-			PARODUS_DEBUG("heartBeatTimer %d\n",heartBeatTimer);
+			ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
 			heartBeatTimer += HEARTBEAT_RETRY_SEC;	
 			intTimer = 0;		
 		}
 		
 		if(close_retry)
 		{
-			PARODUS_INFO("close_retry is %d, hence closing the connection and retrying\n", close_retry);
+			ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
 			close_and_unref_connection(g_conn);
 			g_conn = NULL;
 			createNopollConnection(ctx);
@@ -281,7 +282,7 @@ static void *handle_upstream()
 	int bytes =0;
 	void *buf;
 	
-	PARODUS_DEBUG("******** Start of handle_upstream ********\n");
+	ParodusPrint("******** Start of handle_upstream ********\n");
 		
 	sock = nn_socket( AF_SP, NN_PULL );
 	if(sock >= 0)
@@ -289,16 +290,16 @@ static void *handle_upstream()
                 bind = nn_bind(sock, parodus_url);
                 if(bind < 0)
                 {
-                        PARODUS_ERROR("Unable to bind socket (errno=%d, %s)\n",errno, strerror(errno));
+                        ParodusError("Unable to bind socket (errno=%d, %s)\n",errno, strerror(errno));
                 }
                 else
                 {
                         while( 1 ) 
                         {
                                 buf = NULL;
-                                PARODUS_INFO("nanomsg server gone into the listening mode...\n");
+                                ParodusInfo("nanomsg server gone into the listening mode...\n");
                                 bytes = nn_recv (sock, &buf, NN_MSG, 0);
-                                PARODUS_INFO("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
+                                ParodusInfo ("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
                                 message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
 
                                 if(message)
@@ -312,10 +313,10 @@ static void *handle_upstream()
                                         {
                                                 UpStreamMsgQ = message;
 
-                                                PARODUS_DEBUG("Producer added message\n");
+                                                ParodusPrint("Producer added message\n");
                                                 pthread_cond_signal(&nano_con);
                                                 pthread_mutex_unlock (&nano_mut);
-                                                PARODUS_DEBUG("mutex unlock in producer thread\n");
+                                                ParodusPrint("mutex unlock in producer thread\n");
                                         }
                                         else
                                         {
@@ -331,16 +332,16 @@ static void *handle_upstream()
                                 }
                                 else
                                 {
-                                        PARODUS_ERROR("failure in allocation for message\n");
+                                        ParodusError("failure in allocation for message\n");
                                 }
                         }
                 }
 	}
 	else
 	{
-		    PARODUS_ERROR("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
+		    ParodusError("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
 	}
-	PARODUS_DEBUG ("End of handle_upstream\n");
+	ParodusPrint ("End of handle_upstream\n");
 	return 0;
 }
 
@@ -358,19 +359,19 @@ static void *handleUpStreamEvents()
         while(1)
         {
                 pthread_mutex_lock (&nano_mut);
-                PARODUS_DEBUG("mutex lock in consumer thread\n");
+                ParodusPrint("mutex lock in consumer thread\n");
                 if(UpStreamMsgQ != NULL)
                 {
                         UpStreamMsg *message = UpStreamMsgQ;
                         UpStreamMsgQ = UpStreamMsgQ->next;
                         pthread_mutex_unlock (&nano_mut);
-                        PARODUS_DEBUG("mutex unlock in consumer thread\n");
+                        ParodusPrint("mutex unlock in consumer thread\n");
 
                         if (!terminated) 
                         {
                                 /*** Decoding Upstream Msg to check msgType ***/
                                 /*** For MsgType 9 Perform Nanomsg client Registration else Send to server ***/	
-                                PARODUS_DEBUG("---- Decoding Upstream Msg ----\n");
+                                ParodusPrint("---- Decoding Upstream Msg ----\n");
 
                                 rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
                                 if(rv > 0)
@@ -378,7 +379,7 @@ static void *handleUpStreamEvents()
                                         msgType = msg->msg_type;				   
                                         if(msgType == 9)
                                         {
-                                                PARODUS_INFO("\n Nanomsg client Registration for Upstream\n");
+                                                ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                                                 //Extract serviceName and url & store it in a linked list for reg_clients
                                                 if(numOfClients !=0)
                                                 {
@@ -387,11 +388,11 @@ static void *handleUpStreamEvents()
                                                         {
                                                                 if(strcmp(temp->service_name, msg->u.reg.service_name)==0)
                                                                 {
-                                                                        PARODUS_INFO("match found, client is already registered\n");
+                                                                        ParodusInfo("match found, client is already registered\n");
                                                                         strncpy(temp->url,msg->u.reg.url, strlen(msg->u.reg.url)+1);
                                                                         if(nn_shutdown(temp->sock, 0) < 0)
                                                                         {
-                                                                                PARODUS_ERROR ("Failed to shutdown\n");
+                                                                                ParodusError ("Failed to shutdown\n");
                                                                         }
 
                                                                         temp->sock = nn_socket(AF_SP,NN_PUSH );
@@ -401,16 +402,16 @@ static void *handleUpStreamEvents()
                                                                                 rc = nn_setsockopt(temp->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
                                                                                 if(rc < 0)
                                                                                 {
-                                                                                        PARODUS_ERROR ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
+                                                                                        ParodusError ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
                                                                                 }
                                                                                 rc = nn_connect(temp->sock, msg->u.reg.url); 
                                                                                 if(rc < 0)
                                                                                 {
-                                                                                        PARODUS_ERROR ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
+                                                                                        ParodusError ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
                                                                                 }
                                                                                 else
                                                                                 {
-                                                                                        PARODUS_INFO("Client registered before. Sending acknowledgement \n"); 
+                                                                                        ParodusInfo("Client registered before. Sending acknowledgement \n"); 
                                                                                         sendAuthStatus(temp);
                                                                                         matchFlag = 1;
                                                                                         break;
@@ -418,33 +419,33 @@ static void *handleUpStreamEvents()
                                                                         }
                                                                         else
                                                                         {
-                                                                                PARODUS_ERROR("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
+                                                                                ParodusError("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
                                                                         }
                                                                 }
-                                                                PARODUS_DEBUG("checking the next item in the list\n");
+                                                                ParodusPrint("checking the next item in the list\n");
                                                                 temp= temp->next;
                                                         }	
                                                 }
-                                                PARODUS_DEBUG("matchFlag is :%d\n", matchFlag);
+                                                ParodusPrint("matchFlag is :%d\n", matchFlag);
                                                 if((matchFlag == 0) || (numOfClients == 0))
                                                 {
                                                         numOfClients = numOfClients + 1;
-                                                        PARODUS_DEBUG("Adding nanomsg clients to list\n");
+                                                        ParodusPrint("Adding nanomsg clients to list\n");
                                                         addToList(&msg);
                                                 }
                                         }
                                         else
                                         {
                                                 //Sending to server for msgTypes 3, 4, 5, 6, 7, 8.
-                                                PARODUS_INFO(" Received upstream data with MsgType: %d\n", msgType);
+                                                ParodusInfo(" Received upstream data with MsgType: %d\n", msgType);
                                                 //Appending metadata with packed msg received from client
                                                 if(metaPackSize > 0)
                                                 {
-                                                        PARODUS_DEBUG("Appending received msg with metadata\n");
+                                                        ParodusPrint("Appending received msg with metadata\n");
                                                         encodedSize = appendEncodedData( &appendData, message->msg, message->len, metadataPack, metaPackSize );
-                                                        PARODUS_DEBUG("encodedSize after appending :%zu\n", encodedSize);
-                                                        PARODUS_DEBUG("metadata appended upstream msg %s\n", (char *)appendData);
-                                                        PARODUS_INFO("Sending metadata appended upstream msg to server\n");
+                                                        ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
+                                                        ParodusPrint("metadata appended upstream msg %s\n", (char *)appendData);
+                                                        ParodusInfo("Sending metadata appended upstream msg to server\n");
                                                         handleUpstreamMessage(g_conn,appendData, encodedSize);
 
                                                         free( appendData);
@@ -452,32 +453,32 @@ static void *handleUpStreamEvents()
                                                 }
                                                 else
                                                 {		
-                                                        PARODUS_ERROR("Failed to send upstream as metadata packing is not successful\n");
+                                                        ParodusError("Failed to send upstream as metadata packing is not successful\n");
                                                 }
                                         }
                                 }
                                 else
                                 {
-                                        PARODUS_ERROR("Error in msgpack decoding for upstream\n");
+                                        ParodusError("Error in msgpack decoding for upstream\n");
                                 }
-                                PARODUS_DEBUG("Free for upstream decoded msg\n");
+                                ParodusPrint("Free for upstream decoded msg\n");
                                 wrp_free_struct(msg);
                                 msg = NULL;
                         }
 
                         if(nn_freemsg (message->msg) < 0)
                         {
-                                PARODUS_ERROR ("Failed to free msg\n");
+                                ParodusError ("Failed to free msg\n");
                         }
                         free(message);
                         message = NULL;
                 }
                 else
                 {
-                        PARODUS_DEBUG("Before pthread cond wait in consumer thread\n");   
+                        ParodusPrint("Before pthread cond wait in consumer thread\n");   
                         pthread_cond_wait(&nano_con, &nano_mut);
                         pthread_mutex_unlock (&nano_mut);
-                        PARODUS_DEBUG("mutex unlock in consumer thread after cond wait\n");
+                        ParodusPrint("mutex unlock in consumer thread after cond wait\n");
                         if (terminated) 
                         {
                                 break;
@@ -495,13 +496,13 @@ static void *messageHandlerTask()
 	while(1)
 	{
 		pthread_mutex_lock (&g_mutex);
-		PARODUS_DEBUG("mutex lock in consumer thread\n");
+		ParodusPrint("mutex lock in consumer thread\n");
 		if(ParodusMsgQ != NULL)
 		{
 			ParodusMsg *message = ParodusMsgQ;
 			ParodusMsgQ = ParodusMsgQ->next;
 			pthread_mutex_unlock (&g_mutex);
-			PARODUS_DEBUG("mutex unlock in consumer thread\n");
+			ParodusPrint("mutex unlock in consumer thread\n");
 			if (!terminated) 
 			{
 				listenerOnMessage(message->payload, message->len, &numOfClients, &head);
@@ -513,17 +514,17 @@ static void *messageHandlerTask()
 		}
 		else
 		{
-			PARODUS_DEBUG("Before pthread cond wait in consumer thread\n");   
+			ParodusPrint("Before pthread cond wait in consumer thread\n");   
 			pthread_cond_wait(&g_cond, &g_mutex);
 			pthread_mutex_unlock (&g_mutex);
-			PARODUS_DEBUG("mutex unlock in consumer thread after cond wait\n");
+			ParodusPrint("mutex unlock in consumer thread after cond wait\n");
 			if (terminated) 
 			{
 				break;
 			}
 		}
 	}
-	PARODUS_DEBUG ("Ended messageHandlerTask\n");
+	ParodusPrint ("Ended messageHandlerTask\n");
 	return 0;
 }
 
@@ -544,13 +545,13 @@ static void *serviceAliveTask()
 	nbytes = wrp_struct_to( &svc_alive_msg, WRP_BYTES, &svc_bytes );
         if(nbytes < 0)
         {
-                PARODUS_ERROR(" Failed to encode wrp struct returns %d\n", nbytes);
+                ParodusError(" Failed to encode wrp struct returns %d\n", nbytes);
         }
         else
         {
 	        while(1)
 	        {
-		        PARODUS_DEBUG("serviceAliveTask: numOfClients registered is %d\n", numOfClients);
+		        ParodusPrint("serviceAliveTask: numOfClients registered is %d\n", numOfClients);
 		        if(numOfClients > 0)
 		        {
 			        //sending svc msg to all the clients every 30s
@@ -560,14 +561,14 @@ static void *serviceAliveTask()
 			        {
 				        byte = nn_send (temp->sock, svc_bytes, size, 0);
 				
-				        PARODUS_DEBUG("svc byte sent :%d\n", byte);
+				        ParodusPrint("svc byte sent :%d\n", byte);
 				        if(byte == nbytes)
 				        {
-					        PARODUS_DEBUG("service_name: %s is alive\n",temp->service_name);
+					        ParodusPrint("service_name: %s is alive\n",temp->service_name);
 				        }
 				        else
 				        {
-					        PARODUS_INFO("Failed to send keep alive msg, service %s is dead\n", temp->service_name);
+					        ParodusInfo("Failed to send keep alive msg, service %s is dead\n", temp->service_name);
 					        //need to delete this client service from list
 					
 					        ret = deleteFromList((char*)temp->service_name);
@@ -575,7 +576,7 @@ static void *serviceAliveTask()
 				        byte = 0;
 				        if(ret == 0)
 				        {
-					        PARODUS_DEBUG("Deletion from list is success, doing resync with head\n");
+					        ParodusPrint("Deletion from list is success, doing resync with head\n");
 					        temp= head;
 					        ret = -1;
 				        }
@@ -584,12 +585,12 @@ static void *serviceAliveTask()
 					        temp= temp->next;
 				        }
 			        }
-		         	PARODUS_DEBUG("Waiting for 30s to send keep alive msg \n");
+		         	ParodusPrint("Waiting for 30s to send keep alive msg \n");
 		         	sleep(KEEPALIVE_INTERVAL_SEC);
 	            	}
 	            	else
 	            	{
-	            		PARODUS_INFO("No clients are registered, waiting ..\n");
+	            		ParodusInfo("No clients are registered, waiting ..\n");
 	            		sleep(70);
 	            	}
 	        }
@@ -630,57 +631,57 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {
         case 'm':
           parStrncpy(cfg->hw_model, optarg,sizeof(cfg->hw_model));
-          PARODUS_INFO("hw-model is %s\n",cfg->hw_model);
+          ParodusInfo("hw-model is %s\n",cfg->hw_model);
          break;
         
         case 's':
           parStrncpy(cfg->hw_serial_number,optarg,sizeof(cfg->hw_serial_number));
-          PARODUS_INFO("hw_serial_number is %s\n",cfg->hw_serial_number);
+          ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
           break;
 
         case 'f':
           parStrncpy(cfg->hw_manufacturer, optarg,sizeof(cfg->hw_manufacturer));
-          PARODUS_INFO("hw_manufacturer is %s\n",cfg->hw_manufacturer);
+          ParodusInfo("hw_manufacturer is %s\n",cfg->hw_manufacturer);
           break;
 
         case 'd':
            parStrncpy(cfg->hw_mac, optarg,sizeof(cfg->hw_mac));
-           PARODUS_INFO("hw_mac is %s\n",cfg->hw_mac);
+           ParodusInfo("hw_mac is %s\n",cfg->hw_mac);
           break;
         
         case 'r':
           parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
-          PARODUS_INFO("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
+          ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
           break;
 
         case 'n':
           parStrncpy(cfg->fw_name, optarg,sizeof(cfg->fw_name));
-          PARODUS_INFO("fw_name is %s\n",cfg->fw_name);
+          ParodusInfo("fw_name is %s\n",cfg->fw_name);
           break;
 
         case 'b':
           cfg->boot_time = atoi(optarg);
-          PARODUS_INFO("boot_time is %d\n",cfg->boot_time);
+          ParodusInfo("boot_time is %d\n",cfg->boot_time);
           break;
        
          case 'u':
           parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
-          PARODUS_INFO("webpa_url is %s\n",cfg->webpa_url);
+          ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
           break;
         
         case 'p':
           cfg->webpa_ping_timeout = atoi(optarg);
-          PARODUS_INFO("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
+          ParodusInfo("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
           break;
 
         case 'o':
           cfg->webpa_backoff_max = atoi(optarg);
-          PARODUS_INFO("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
+          ParodusInfo("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
           break;
 
         case 'i':
           parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
-          PARODUS_INFO("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
+          ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
           break;
 
         case '?':
@@ -688,20 +689,20 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         default:
-           PARODUS_ERROR("Enter Valid commands..\n");
+           ParodusError("Enter Valid commands..\n");
           abort ();
         }
     }
   
- PARODUS_DEBUG("argc is :%d\n", argc);
- PARODUS_DEBUG("optind is :%d\n", optind);
+ ParodusPrint("argc is :%d\n", argc);
+ ParodusPrint("optind is :%d\n", optind);
 
   /* Print any remaining command line arguments (not options). */
   if (optind < argc)
     {
-      PARODUS_DEBUG ("non-option ARGV-elements: ");
+      ParodusPrint ("non-option ARGV-elements: ");
       while (optind < argc)
-        PARODUS_DEBUG ("%s ", argv[optind++]);
+        ParodusPrint ("%s ", argv[optind++]);
       putchar ('\n');
     }
 
@@ -716,10 +717,10 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 	if(metaPackSize > 0)
 	{
 	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
-	   	PARODUS_DEBUG("metadata appended upstream response %s\n", (char *)appendData);
-	   	PARODUS_DEBUG("encodedSize after appending :%zu\n", encodedSize);
+	   	ParodusPrint("metadata appended upstream response %s\n", (char *)appendData);
+	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
-		PARODUS_INFO("Sending response to server\n");
+		ParodusInfo("Sending response to server\n");
 	   	handleUpstreamMessage(g_conn,appendData, encodedSize);
 	   	
 		free( appendData);
@@ -727,7 +728,7 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 	}
 	else
 	{		
-		PARODUS_ERROR("Failed to send upstream as metadata packing is not successful\n");
+		ParodusError("Failed to send upstream as metadata packing is not successful\n");
 	}
 
 }
@@ -745,25 +746,25 @@ static void addToList( wrp_msg_t **msg)
             memset( new_node, 0, sizeof( reg_list_item_t ) );
          
             new_node->sock = nn_socket( AF_SP, NN_PUSH );
-            PARODUS_DEBUG("new_node->sock is %d\n", new_node->sock);
+            ParodusPrint("new_node->sock is %d\n", new_node->sock);
             if(new_node->sock >= 0)
             {
                     int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
                     rc = nn_setsockopt(new_node->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
                     if(rc < 0)
                     {
-                        PARODUS_ERROR ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
+                        ParodusError ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
                     }
                     
                     rc = nn_connect(new_node->sock, (*msg)->u.reg.url);
                     if(rc < 0)
                     {
-                        PARODUS_ERROR ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
+                        ParodusError ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
                     }
                     else
                     {
-                        PARODUS_DEBUG("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
-                        PARODUS_DEBUG("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
+                        ParodusPrint("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
+                        ParodusPrint("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
 
                         strncpy(new_node->service_name, (*msg)->u.reg.service_name, strlen((*msg)->u.reg.service_name)+1);
                         strncpy(new_node->url, (*msg)->u.reg.url, strlen((*msg)->u.reg.url)+1);
@@ -772,13 +773,13 @@ static void addToList( wrp_msg_t **msg)
                          
                         if (head== NULL) //adding first client
                         {
-                                PARODUS_INFO("Adding first client to list\n");
+                                ParodusInfo("Adding first client to list\n");
                                 head=new_node;
                         }
                         else   //client2 onwards           
                         {
                                 reg_list_item_t *temp = NULL;
-                                PARODUS_INFO("Adding clients to list\n");
+                                ParodusInfo("Adding clients to list\n");
                                 temp=head;
 
                                 while(temp->next !=NULL)
@@ -789,22 +790,22 @@ static void addToList( wrp_msg_t **msg)
                                 temp->next=new_node;
                         }
 
-                        PARODUS_DEBUG("client is added to list\n");
-                        PARODUS_INFO("client service %s is added to list with url: %s\n", new_node->service_name, new_node->url);
+                        ParodusPrint("client is added to list\n");
+                        ParodusInfo("client service %s is added to list with url: %s\n", new_node->service_name, new_node->url);
                         if((strcmp(new_node->service_name, (*msg)->u.reg.service_name)==0)&& (strcmp(new_node->url, (*msg)->u.reg.url)==0))
                         {
-                                PARODUS_INFO("sending auth status to reg client\n");
+                                ParodusInfo("sending auth status to reg client\n");
                                 sendAuthStatus(new_node);
                         }
                         else
                         {
-                                PARODUS_ERROR("nanomsg client registration failed\n");
+                                ParodusError("nanomsg client registration failed\n");
                         }
                     }
             }
             else
             {
-                    PARODUS_ERROR("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
+                    ParodusError("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
             }
     }
 }
@@ -824,21 +825,21 @@ static void sendAuthStatus(reg_list_item_t *new_node)
 	nbytes = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
         if(nbytes < 0)
         {
-                PARODUS_ERROR(" Failed to encode wrp struct returns %d\n", nbytes);
+                ParodusError(" Failed to encode wrp struct returns %d\n", nbytes);
         }
         else
         {
-	        PARODUS_INFO("Client %s Registered successfully. Sending Acknowledgement... \n ", new_node->service_name);
+	        ParodusInfo("Client %s Registered successfully. Sending Acknowledgement... \n ", new_node->service_name);
                 size = (size_t) nbytes;
 	        byte = nn_send (new_node->sock, auth_bytes, size, 0);
 
 	        if(byte >=0)
 	        {
-	            PARODUS_DEBUG("send registration success status to client\n");
+	            ParodusPrint("send registration success status to client\n");
 	        }
 	        else
 	        {
-	            PARODUS_ERROR("send registration failed\n");
+	            ParodusError("send registration failed\n");
 	        }
         }
 	byte = 0;
@@ -854,10 +855,10 @@ static int deleteFromList(char* service_name)
 
 	if( NULL == service_name ) 
 	{
-		PARODUS_ERROR("Invalid value for service\n");
+		ParodusError("Invalid value for service\n");
 		return -1;
 	}
-	PARODUS_INFO("service to be deleted: %s\n", service_name);
+	ParodusInfo("service to be deleted: %s\n", service_name);
 
 	prev_node = NULL;
 	curr_node = head;	
@@ -867,30 +868,30 @@ static int deleteFromList(char* service_name)
 	{
 		if(strcmp(curr_node->service_name, service_name) == 0)
 		{
-			PARODUS_DEBUG("Found the node to delete\n");
+			ParodusPrint("Found the node to delete\n");
 			if( NULL == prev_node )
 			{
-				PARODUS_DEBUG("need to delete first client\n");
+				ParodusPrint("need to delete first client\n");
 			 	head = curr_node->next;
 			}
 			else
 			{
-				PARODUS_DEBUG("Traversing to find node\n");
+				ParodusPrint("Traversing to find node\n");
 			 	prev_node->next = curr_node->next;
 			}
 			
-			PARODUS_DEBUG("Deleting the node\n");
+			ParodusPrint("Deleting the node\n");
 			free( curr_node );
 			curr_node = NULL;
-			PARODUS_INFO("Deleted successfully and returning..\n");
+			ParodusInfo("Deleted successfully and returning..\n");
 			numOfClients =numOfClients - 1;
-			PARODUS_DEBUG("numOfClients after delte is %d\n", numOfClients);
+			ParodusPrint("numOfClients after delte is %d\n", numOfClients);
 			return 0;
 		}
 		
 		prev_node = curr_node;
 		curr_node = curr_node->next;
 	}
-	PARODUS_ERROR("Could not find the entry to delete from list\n");
+	ParodusError("Could not find the entry to delete from list\n");
 	return -1;
 }

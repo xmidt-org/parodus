@@ -52,7 +52,7 @@ noPollPtr createMutex()
     mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
 
     if (mutex == NULL) {
-        PARODUS_ERROR("Failed to create mutex\n");
+        ParodusError("Failed to create mutex\n");
         return NULL;
     }
     pthread_mutexattr_init( &attr);
@@ -63,11 +63,11 @@ noPollPtr createMutex()
     rtn = pthread_mutex_init (mutex, &attr);
     pthread_mutexattr_destroy (&attr);
     if (rtn != 0) {
-        PARODUS_ERROR("Error in init Mutex\n");
+        ParodusError("Error in init Mutex\n");
         free(mutex);
         return NULL;
     } else {
-        PARODUS_DEBUG("mutex init successfully\n");
+        ParodusPrint("mutex init successfully\n");
     } 
 
     return mutex;
@@ -84,7 +84,7 @@ void lockMutex(noPollPtr _mutex)
     char errbuf[100];
 
     if (_mutex == NULL) {
-        PARODUS_ERROR("Received null mutex\n");
+        ParodusError("Received null mutex\n");
         return;
     }
     pthread_mutex_t * mutex = _mutex;
@@ -93,7 +93,7 @@ void lockMutex(noPollPtr _mutex)
     rtn = pthread_mutex_lock (mutex);
     if (rtn != 0) {
         strerror_r (rtn, errbuf, 100);
-        PARODUS_ERROR("Error in Lock mutex: %s\n", errbuf);
+        ParodusError("Error in Lock mutex: %s\n", errbuf);
         /* do some reporting */
         return;
     }
@@ -110,7 +110,7 @@ void unlockMutex(noPollPtr _mutex)
     char errbuf[100];
 
     if (_mutex == NULL) {
-        PARODUS_ERROR("Received null mutex\n");
+        ParodusError("Received null mutex\n");
         return;
     }
     pthread_mutex_t * mutex = _mutex;
@@ -120,7 +120,7 @@ void unlockMutex(noPollPtr _mutex)
     if (rtn != 0) {
         /* do some reporting */
         strerror_r (rtn, errbuf, 100);
-        PARODUS_ERROR("Error in unlock mutex: %s\n", errbuf);
+        ParodusError("Error in unlock mutex: %s\n", errbuf);
         return;
     }
     return;
@@ -134,17 +134,17 @@ void unlockMutex(noPollPtr _mutex)
 void destroyMutex(noPollPtr _mutex)
 {
     if (_mutex == NULL) {
-        PARODUS_ERROR("Received null mutex\n");
+        ParodusError("Received null mutex\n");
         return;
     }
     pthread_mutex_t * mutex = _mutex;
     
     if (pthread_mutex_destroy (mutex) != 0) {
         /* do some reporting */
-        PARODUS_ERROR("problem in destroy\n");
+        ParodusError("problem in destroy\n");
         return;
     } else {
-        PARODUS_DEBUG("Mutex destroyed \n");
+        ParodusPrint("Mutex destroyed \n");
     }
     free(mutex);
 

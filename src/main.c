@@ -25,7 +25,7 @@
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include "wrp-c.h"
-#include "ParodusInternal.h"
+#include "parodus_log.h"
 
 
 /*----------------------------------------------------------------------------*/
@@ -56,7 +56,7 @@ int main( int argc, char **argv)
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
     
-    PARODUS_INFO("********** Starting component: Parodus **********\n "); 
+    ParodusInfo("********** Starting component: Parodus **********\n "); 
     parseCommandLine(argc,argv,&parodusCfg);
      
     createSocketConnection(&parodusCfg,NULL);

@@ -18,12 +18,12 @@ add_executable(parodus ${SOURCES})
 
 target_link_libraries (parodus
     ${CMAKE_THREAD_LIBS_INIT}
-    -lcimplog
     -lwrp-c
     -lmsgpackc
     -ltrower-base64
     -lnopoll
     -lm
+    -lcimplog
     -lssl
     -lcrypto
     -lnanomsg

@@ -22,20 +22,20 @@ void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len)
 {
 	int bytesWritten = 0;
 	
-	PARODUS_INFO("handleUpstreamMessage length %zu\n", len);
+	ParodusInfo("handleUpstreamMessage length %zu\n", len);
 	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
 	{
 		//bytesWritten = nopoll_conn_send_binary(conn, msg, len);
 		bytesWritten = sendResponse(conn, msg, len);
-		PARODUS_DEBUG("Number of bytes written: %d\n", bytesWritten);
+		ParodusPrint("Number of bytes written: %d\n", bytesWritten);
 		if (bytesWritten != (int) len) 
 		{
-			PARODUS_ERROR("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
+			ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
 		}
 	}
 	else
 	{
-		PARODUS_ERROR("Failed to send msg upstream as connection is not OK\n");
+		ParodusError("Failed to send msg upstream as connection is not OK\n");
 	}
 	
 }
@@ -70,7 +70,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 	
 	recivedMsg =  (const char *) msg;
 	
-	PARODUS_INFO("Received msg from server:%s\n", recivedMsg);	
+	ParodusInfo("Received msg from server:%s\n", recivedMsg);	
 	if(recivedMsg!=NULL) 
 	{
 	
@@ -80,35 +80,35 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 				
 		if(rv > 0)
 		{
-			PARODUS_DEBUG("\nDecoded recivedMsg of size:%d\n", rv);
+			ParodusPrint("\nDecoded recivedMsg of size:%d\n", rv);
 			msgType = message->msg_type;
-			PARODUS_INFO("msgType received:%d\n", msgType);
-			PARODUS_DEBUG("numOfClients registered is %d\n", *numOfClients);
+			ParodusInfo("msgType received:%d\n", msgType);
+			ParodusPrint("numOfClients registered is %d\n", *numOfClients);
 		
 			if((message->u.req.dest !=NULL))
 			{
 				destVal = message->u.req.dest;
 				strtok(destVal , "/");
 				strcpy(dest,strtok(NULL , "/"));
-				PARODUS_INFO("Received downstream dest as :%s\n", dest);
+				ParodusInfo("Received downstream dest as :%s\n", dest);
 				temp = *head;
 				//Checking for individual clients & Sending to each client
 				
 				while (NULL != temp)
 				{
-					PARODUS_DEBUG("node is pointing to temp->service_name %s \n",temp->service_name);
+					ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
 					// Sending message to registered clients
 					if( strcmp(dest, temp->service_name) == 0) 
 					{
-						PARODUS_DEBUG("sending to nanomsg client %s\n", dest);     
+						ParodusPrint("sending to nanomsg client %s\n", dest);     
 						bytes = nn_send(temp->sock, recivedMsg, msgSize, 0);
-						PARODUS_INFO("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,temp->url);
-						PARODUS_DEBUG("downstream bytes sent:%d\n", bytes);
+						ParodusInfo("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,temp->url);
+						ParodusPrint("downstream bytes sent:%d\n", bytes);
 						destFlag =1;
 						break;
 				
 					}
-					PARODUS_DEBUG("checking the next item in the list\n");
+					ParodusPrint("checking the next item in the list\n");
 					temp= temp->next;
 					
 				}
@@ -117,13 +117,13 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 				//if any unknown dest received sending error response to server
 				if(destFlag ==0)
 				{
-					PARODUS_ERROR("Unknown dest:%s\n", dest);
+					ParodusError("Unknown dest:%s\n", dest);
 																	
 					cJSON *response = cJSON_CreateObject();
 					cJSON_AddNumberToObject(response, "statusCode", 531);	
 					cJSON_AddStringToObject(response, "message", "Service Unavailable");
 					str = cJSON_PrintUnformatted(response);
-					PARODUS_INFO("Payload Response: %s\n", str);
+					ParodusInfo("Payload Response: %s\n", str);
 					resp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
 					memset(resp_msg, 0, sizeof(wrp_msg_t));
 
@@ -134,7 +134,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 					resp_msg ->u.req.payload = (void *)str;
 					resp_msg ->u.req.payload_size = strlen(str);
 					
-					PARODUS_DEBUG("msgpack encode\n");
+					ParodusPrint("msgpack encode\n");
 					resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
 					
 				    sendUpstreamMsgToServer(&resp_bytes, resp_size);				
@@ -147,10 +147,10 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
 	  	
 	  	else
 	  	{
-	  		PARODUS_ERROR( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
+	  		ParodusError( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
 	  	}
 	  	
-	  	PARODUS_DEBUG("free for downstream decoded msg\n");
+	  	ParodusPrint("free for downstream decoded msg\n");
 	  	wrp_free_struct(message);
 	  
 
