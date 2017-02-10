@@ -64,6 +64,11 @@ int main( int argc, char **argv)
     return 0;
 }
 
+const char *rdk_logger_module_fetch(void)
+{
+    return "LOG.RDK.PARODUS";
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/

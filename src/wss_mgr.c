@@ -96,7 +96,6 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
-static void __parodus_log(int level,const char *logMsg);
 static void *handle_upstream();
 static void *handleUpStreamEvents();
 static void *messageHandlerTask();
@@ -149,24 +148,6 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
   	     ParodusError("%s\n", log_msg );
 	}
 	return;
-}
-
-static void __parodus_log(int level,const char *logMsg)
-{
-        if(level == LEVEL_ERROR)
-        {
-             ParodusError("%s\n",logMsg);
-        }
-
-        if(level == LEVEL_INFO)
-        {
-                ParodusInfo("%s\n",logMsg);
-        }
-
-        if(level == LEVEL_DEBUG)
-        {
-               ParodusPrint("%s\n",logMsg);
-        }
 }
 
 void close_and_unref_connection(noPollConn *conn)
@@ -224,7 +205,6 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
   		nopoll_log_set_handler (ctx, __report_log, NULL);
 	#endif
 	
-        wrp_log_set_handler(__parodus_log);
 	createNopollConnection(ctx);
 	getParodusUrl();
         UpStreamMsgQ = NULL;
