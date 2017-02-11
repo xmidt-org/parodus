@@ -738,76 +738,82 @@ static void addToList( wrp_msg_t **msg)
 {   
     //new_node indicates the new clients which needs to be added to list
     int rc = -1;
-    reg_list_item_t *new_node = NULL;
-    new_node=(reg_list_item_t *)malloc(sizeof(reg_list_item_t));
-    
-    if(new_node)
+    int sock;
+    sock = nn_socket( AF_SP, NN_PUSH );
+    ParodusPrint("sock created for adding entries to list: %d\n", sock);
+    if(sock >= 0)
     {
-            memset( new_node, 0, sizeof( reg_list_item_t ) );
-         
-            new_node->sock = nn_socket( AF_SP, NN_PUSH );
-            ParodusPrint("new_node->sock is %d\n", new_node->sock);
-            if(new_node->sock >= 0)
+            int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
+            rc = nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+            if(rc < 0)
             {
-                    int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
-                    rc = nn_setsockopt(new_node->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
-                    if(rc < 0)
-                    {
-                        ParodusError ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
-                    }
-                    
-                    rc = nn_connect(new_node->sock, (*msg)->u.reg.url);
-                    if(rc < 0)
-                    {
-                        ParodusError ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
-                    }
-                    else
-                    {
-                        ParodusPrint("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
-                        ParodusPrint("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
-
-                        strncpy(new_node->service_name, (*msg)->u.reg.service_name, strlen((*msg)->u.reg.service_name)+1);
-                        strncpy(new_node->url, (*msg)->u.reg.url, strlen((*msg)->u.reg.url)+1);
-
-                        new_node->next=NULL;
-                         
-                        if (head== NULL) //adding first client
-                        {
-                                ParodusInfo("Adding first client to list\n");
-                                head=new_node;
-                        }
-                        else   //client2 onwards           
-                        {
-                                reg_list_item_t *temp = NULL;
-                                ParodusInfo("Adding clients to list\n");
-                                temp=head;
-
-                                while(temp->next !=NULL)
-                                {
-	                                temp=temp->next;
-                                }
-
-                                temp->next=new_node;
-                        }
-
-                        ParodusPrint("client is added to list\n");
-                        ParodusInfo("client service %s is added to list with url: %s\n", new_node->service_name, new_node->url);
-                        if((strcmp(new_node->service_name, (*msg)->u.reg.service_name)==0)&& (strcmp(new_node->url, (*msg)->u.reg.url)==0))
-                        {
-                                ParodusInfo("sending auth status to reg client\n");
-                                sendAuthStatus(new_node);
-                        }
-                        else
-                        {
-                                ParodusError("nanomsg client registration failed\n");
-                        }
-                    }
+                ParodusError ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
+            }
+            
+            rc = nn_connect(sock, (*msg)->u.reg.url);
+            if(rc < 0)
+            {
+                ParodusError ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
+                nn_close (sock);
+                
             }
             else
             {
-                    ParodusError("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
+            	reg_list_item_t *new_node = NULL;
+		new_node=(reg_list_item_t *)malloc(sizeof(reg_list_item_t));
+		if(new_node)
+		{
+    			memset( new_node, 0, sizeof( reg_list_item_t ) );
+    			new_node->sock = sock;
+    			ParodusPrint("new_node->sock is %d\n", new_node->sock);
+    			
+    			
+	                ParodusPrint("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
+	                ParodusPrint("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
+
+	                strncpy(new_node->service_name, (*msg)->u.reg.service_name, strlen((*msg)->u.reg.service_name)+1);
+	                strncpy(new_node->url, (*msg)->u.reg.url, strlen((*msg)->u.reg.url)+1);
+
+	                new_node->next=NULL;
+	                 
+	                if (head== NULL) //adding first client
+	                {
+	                        ParodusInfo("Adding first client to list\n");
+	                        head=new_node;
+	                }
+	                else   //client2 onwards           
+	                {
+	                        reg_list_item_t *temp = NULL;
+	                        ParodusInfo("Adding clients to list\n");
+	                        temp=head;
+
+	                        while(temp->next !=NULL)
+	                        {
+		                        temp=temp->next;
+	                        }
+
+	                        temp->next=new_node;
+	                }
+
+	                ParodusPrint("client is added to list\n");
+	                ParodusInfo("client service %s is added to list with url: %s\n", new_node->service_name, new_node->url);
+	                if((strcmp(new_node->service_name, (*msg)->u.reg.service_name)==0)&& (strcmp(new_node->url, (*msg)->u.reg.url)==0))
+	                {
+	                        ParodusInfo("sending auth status to reg client\n");
+	                        sendAuthStatus(new_node);
+	                }
+	                else
+	                {
+	                        ParodusError("nanomsg client registration failed\n");
+	                }
+	            }
             }
     }
+    else
+    {
+            ParodusError("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
+    }
+   
 }
 
 
