@@ -121,7 +121,7 @@ void send_reply (wrp_msg_t *wrp_msg)
 	// Alter the payload
 	for (i=0; i<payload_size; i++)
 		payload[i] = tolower (payload[i]);
-	libparodus_send (&test_instance, wrp_msg);
+	libparodus_send (test_instance, wrp_msg);
 }
 
 char *new_str (const char *str)
