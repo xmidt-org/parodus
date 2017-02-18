@@ -15,4 +15,3 @@ cmake ..
 make
 make test
 ```
-klj
