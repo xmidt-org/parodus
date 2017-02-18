@@ -49,8 +49,6 @@ static const char *service_name = "iot";
 
 static bool no_mock_send_only_test = false;
 
-static libpd_instance_t test_instance;
-
 // libparodus functions to be tested
 extern int flush_wrp_queue (uint32_t delay_ms);
 extern int connect_receiver (const char *rcv_url);
@@ -70,7 +68,6 @@ extern const char *client_url;
 extern volatile int keep_alive_count;
 extern volatile int reconnect_count;
 
-parlibLogHandler test_log_handler = NULL;
 
 void show_src_dest_payload (char *src, char *dest, void *payload, size_t payload_size)
 {
@@ -121,7 +118,7 @@ void send_reply (wrp_msg_t *wrp_msg)
 	// Alter the payload
 	for (i=0; i<payload_size; i++)
 		payload[i] = tolower (payload[i]);
-	libparodus_send (test_instance, wrp_msg);
+	libparodus_send (wrp_msg);
 }
 
 char *new_str (const char *str)
@@ -173,7 +170,7 @@ int send_event_msg (const char *src, const char *dest,
 	new_msg->u.event.payload = (void*) payload_buf;
 	new_msg->u.event.payload_size = strlen (payload) + 1;
 	printf ("Sending event msg %u\n", event_num);
-	rtn = libparodus_send (test_instance, new_msg);
+	rtn = libparodus_send (new_msg);
 	//printf ("Freeing event msg\n");
 	wrp_free_struct (new_msg);
 	//printf ("Freed event msg\n");
@@ -271,12 +268,9 @@ void test_send_only (void)
 {
 	unsigned event_num = 0;
 
-        libpd_cfg_t cfg = {.service_name = service_name,
-                .receive = false, .keepalive_timeout_secs = 0,
-                .log_handler = test_log_handler};
-        CU_ASSERT (libparodus_init (&test_instance, &cfg) == 0);
-        CU_ASSERT (send_event_msgs (NULL, &event_num, 10) == 0);
-	CU_ASSERT (libparodus_shutdown (&test_instance) == 0);
+	CU_ASSERT (libparodus_init_ext (service_name, NULL, "C") == 0);
+	CU_ASSERT (send_event_msgs (NULL, &event_num, 10) == 0);
+	CU_ASSERT (libparodus_shutdown () == 0);
 }
 
  void test_1(void)
@@ -286,9 +280,6 @@ void test_send_only (void)
 	wrp_msg_t *wrp_msg;
 	unsigned event_num = 0;
 	unsigned msg_num = 0;
-        libpd_cfg_t cfg = {.service_name = service_name,
-                .receive = true, .keepalive_timeout_secs = 0,
-                .log_handler = test_log_handler};
 
 	CU_ASSERT_FATAL (log_init (".", NULL) == 0);
 
@@ -297,9 +288,7 @@ void test_send_only (void)
 		return;
 	}
 
-        cfg.parodus_url = GOOD_PARODUS_URL;
-        cfg.client_url = GOOD_CLIENT_URL;
-        CU_ASSERT (libparodus_init (&test_instance, &cfg) == 0);
+	CU_ASSERT (libparodus_init (service_name, NULL) == 0);
 	printf ("LIBPD_TEST: libparodus_init successful\n");
 	initEndKeypressHandler ();
 
@@ -307,7 +296,7 @@ void test_send_only (void)
 
 	printf ("LIBPD_TEST: starting msg receive loop\n");
 	while (true) {
-		rtn = libparodus_receive (test_instance, &wrp_msg, 2000);
+		rtn = libparodus_receive (&wrp_msg, 2000);
 		if (rtn == 1) {
 			printf ("LIBPD_TEST: Timed out waiting for msg\n");
 			if (msgs_received_count > 0)
@@ -326,7 +315,7 @@ void test_send_only (void)
 			break;
 	}
 	printf ("Messages received %u\n", msgs_received_count);
-	CU_ASSERT (libparodus_shutdown (&test_instance) == 0);
+	CU_ASSERT (libparodus_shutdown () == 0);
 }
 
 /*
@@ -361,7 +350,7 @@ static void *endKeypressHandlerTask()
 			break;
 		}
 	}
-	libparodus_close_receiver (test_instance);
+	libparodus_close_receiver ();
 	return NULL;
 }
 
