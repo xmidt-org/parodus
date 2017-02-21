@@ -73,3 +73,10 @@ add_executable(simple simple.c
 		      
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
 endif (NOT EXCLUDE_SIMPLE)
+
+#-------------------------------------------------------------------------------
+#   test_time
+#-------------------------------------------------------------------------------
+add_test(NAME test_time COMMAND test_time)
+add_executable(test_time test_time.c ../src/time.c)
+target_link_libraries (test_time ${PARODUS_COMMON_LIBS})
