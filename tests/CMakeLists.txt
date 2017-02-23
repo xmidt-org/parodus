@@ -80,3 +80,19 @@ endif (NOT EXCLUDE_SIMPLE)
 add_test(NAME test_time COMMAND test_time)
 add_executable(test_time test_time.c ../src/time.c)
 target_link_libraries (test_time ${PARODUS_COMMON_LIBS})
+
+#-------------------------------------------------------------------------------
+#   test_connection
+#-------------------------------------------------------------------------------
+add_test(NAME test_connection COMMAND test_connection)
+add_executable(test_connection test_connection.c
+                      ../src/wss_mgr.c
+                      ../src/networking.c
+                      ../src/nopoll_helpers.c
+                      ../src/string_helpers.c
+                      ../src/mutex.c
+                      ../src/time.c
+                      ../src/config.c
+                      ../src/connection.c
+                      ../src/spin_thread.c) 
+target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt)

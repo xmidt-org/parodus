@@ -112,6 +112,11 @@ ParodusCfg *get_parodus_cfg(void)
     return &parodusCfg;
 }
 
+void set_parodus_cfg(ParodusCfg *cfg) 
+{
+    parodusCfg = *cfg;
+}
+
 noPollConn *get_global_conn(void)
 {
     return g_conn;

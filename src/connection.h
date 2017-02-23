@@ -32,7 +32,7 @@
 extern "C" {
 #endif
     
-char createNopollConnection(noPollCtx *);
+int createNopollConnection(noPollCtx *);
 void close_and_unref_connection(noPollConn *);
 
 
