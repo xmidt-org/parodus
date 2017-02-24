@@ -51,7 +51,7 @@ int sendResponse(noPollConn * conn, void * buffer, size_t length)
  * @brief createNopollConnection interface to create WebSocket client connections.
  *Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
  */
-char createNopollConnection(noPollCtx *ctx)
+int createNopollConnection(noPollCtx *ctx)
 {
 	bool initial_retry = false;
 	int backoffRetryTime = 0;
@@ -78,8 +78,11 @@ char createNopollConnection(noPollCtx *ctx)
 	char boot_time[256]={'\0'};
 	//Retry Backoff count shall start at c=2 & calculate 2^c - 1.
 	int c=2;
-       
-
+    
+    if(!ctx)
+    {
+        return nopoll_false;
+    }
 	FILE *fp;
 	fp = fopen("/tmp/parodus_ready", "r");
 
