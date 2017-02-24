@@ -24,7 +24,7 @@ link_directories ( ${LIBRARY_DIR} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_mutex COMMAND test_mutex)
 add_executable(test_mutex test_mutex.c ../src/mutex.c)
-target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS} -lrt)
 
 
 #-------------------------------------------------------------------------------
@@ -32,14 +32,14 @@ target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS})
 #-------------------------------------------------------------------------------
 add_test(NAME test_networking COMMAND test_networking)
 add_executable(test_networking test_networking.c ../src/networking.c)
-target_link_libraries (test_networking ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_networking ${PARODUS_COMMON_LIBS} -lrt)
 
 #-------------------------------------------------------------------------------
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
-add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/wss_mgr.c ../src/networking.c ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/connection.c ../src/spin_thread.c)
-target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg)
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/wss_mgr.c ../src/networking.c ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/connection.c ../src/spin_thread.c ../src/client_list.c)
+target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg -lrt)
 
 add_executable (libpd_test libpd_test.c)
 
@@ -69,7 +69,8 @@ add_executable(simple simple.c
                       ../src/time.c
                       ../src/config.c
                       ../src/connection.c
-                      ../src/spin_thread.c) 
+                      ../src/spin_thread.c
+					  ../src/client_list.c) 
 		      
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
 endif (NOT EXCLUDE_SIMPLE)
@@ -79,7 +80,7 @@ endif (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 add_test(NAME test_time COMMAND test_time)
 add_executable(test_time test_time.c ../src/time.c)
-target_link_libraries (test_time ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_time ${PARODUS_COMMON_LIBS} -lrt)
 
 #-------------------------------------------------------------------------------
 #   test_connection
@@ -94,5 +95,14 @@ add_executable(test_connection test_connection.c
                       ../src/time.c
                       ../src/config.c
                       ../src/connection.c
-                      ../src/spin_thread.c) 
+                      ../src/spin_thread.c
+					  ../src/client_list.c) 
 target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt)
+
+#-------------------------------------------------------------------------------
+#   test_client_list
+#-------------------------------------------------------------------------------
+add_test(NAME test_client_list COMMAND test_client_list)
+add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/wss_mgr.c ../src/networking.c ../src/nopoll_helpers.c ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/connection.c ../src/spin_thread.c)
+target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt)
+

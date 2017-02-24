@@ -52,6 +52,9 @@ extern volatile bool terminated;
 extern  ParodusMsg *ParodusMsgQ;
 extern UpStreamMsg *UpStreamMsgQ;
 
+extern reg_list_item_t * head;
+extern int numOfClients;
+
 
 #ifdef __cplusplus
 }
