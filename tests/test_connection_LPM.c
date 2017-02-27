@@ -23,64 +23,39 @@
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
 
-extern void listenerOnMessage_queue(noPollCtx *ctx, noPollConn *conn, noPollMsg *msg,noPollPtr user_data);
+extern void listenerOnPingMessage(noPollCtx *ctx, noPollConn *conn, noPollMsg *msg, noPollPtr user_data);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-void *m;
 
-void *malloc(size_t size)
-{
-     m = calloc(size, sizeof(char));
-     return m;
-}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-void *a(void *in)
+void test_listenerOnPingMessage()
 {
-    noPollMsg msg;
-
-    (void) in;
-    listenerOnMessage_queue(NULL, NULL, &msg, NULL);
-    pthread_exit(0);
-
-    return NULL;
-}
-
-void *b(void *in)
-{
-    noPollMsg msg;
-
-    (void) in;
-    listenerOnMessage_queue(NULL, NULL, &msg, NULL);
-    pthread_exit(0);
-
-    return NULL;
-}
-
-void test_listenerOnMessage_queue()
-{
-    pthread_t thread_a, thread_b;
+    noPollConn c;
+    noPollMsg  m;
 
     terminated = true;
-    pthread_create(&thread_a, NULL, a, NULL);
+    listenerOnPingMessage(NULL, &c, NULL, NULL);
+
+    terminated = true;
+    listenerOnPingMessage(NULL, &c, &m, NULL);
+
     terminated = false;
-    pthread_create(&thread_b, NULL, b, NULL);
+    listenerOnPingMessage(NULL, &c, NULL, NULL);
 
-    pthread_join(thread_a, NULL);
-    pthread_join(thread_b, NULL);
-
-    free(m);
+    terminated = false;
+    listenerOnPingMessage(NULL, &c, &m, NULL);
 }
 
 void add_suites( CU_pSuite *suite )
 {
     ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
-    CU_add_test( *suite, "Test 1", test_listenerOnMessage_queue );
+    CU_add_test( *suite, "Test 1", test_listenerOnPingMessage );
 }
 
 /*----------------------------------------------------------------------------*/

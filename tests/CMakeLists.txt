@@ -111,3 +111,21 @@ add_executable(test_connection_LMQ test_connection_LMQ.c
                                ../src/connection.c)
 target_link_libraries (test_connection_LMQ ${PARODUS_COMMON_LIBS})
 
+#-------------------------------------------------------------------------------
+#   test_connection - function listenerOnPingMessage 
+#-------------------------------------------------------------------------------
+add_test(NAME test_connection_LPM COMMAND test_connection_LPM)
+add_executable(test_connection_LPM test_connection_LPM.c 
+                               mock_connection.c 
+                               ../src/connection.c)
+target_link_libraries (test_connection_LPM ${PARODUS_COMMON_LIBS})
+
+#-------------------------------------------------------------------------------
+#   test_connection - function listenerOnCloseMessage 
+#-------------------------------------------------------------------------------
+add_test(NAME test_connection_LCM COMMAND test_connection_LCM)
+add_executable(test_connection_LCM test_connection_LCM.c 
+                               mock_connection.c 
+                               ../src/connection.c)
+target_link_libraries (test_connection_LCM ${PARODUS_COMMON_LIBS})
+
