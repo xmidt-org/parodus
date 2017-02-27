@@ -96,9 +96,18 @@ add_executable(test_spin_thread_s test_spin_thread_s.c ../src/spin_thread.c)
 target_link_libraries (test_spin_thread_s ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
-#   test_string_helpers success
+#   test_string_helpers 
 #-------------------------------------------------------------------------------
 add_test(NAME test_string_helpers COMMAND test_string_helpers)
 add_executable(test_string_helpers test_string_helpers.c ../src/string_helpers.c)
 target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS})
+
+#-------------------------------------------------------------------------------
+#   test_connection - function listenerOnMessage_queue 
+#-------------------------------------------------------------------------------
+add_test(NAME test_connection_LMQ COMMAND test_connection_LMQ)
+add_executable(test_connection_LMQ test_connection_LMQ.c 
+                               mock_connection.c 
+                               ../src/connection.c)
+target_link_libraries (test_connection_LMQ ${PARODUS_COMMON_LIBS})
 
