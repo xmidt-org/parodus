@@ -83,6 +83,27 @@ add_executable(test_time test_time.c ../src/time.c)
 target_link_libraries (test_time ${PARODUS_COMMON_LIBS} -lrt)
 
 #-------------------------------------------------------------------------------
+#   test_spin_thread error
+#-------------------------------------------------------------------------------
+add_test(NAME test_spin_thread_e COMMAND test_spin_thread_e)
+add_executable(test_spin_thread_e test_spin_thread_e.c ../src/spin_thread.c)
+target_link_libraries (test_spin_thread_e ${PARODUS_COMMON_LIBS})
+
+#-------------------------------------------------------------------------------
+#   test_spin_thread success
+#-------------------------------------------------------------------------------
+add_test(NAME test_spin_thread_s COMMAND test_spin_thread_s)
+add_executable(test_spin_thread_s test_spin_thread_s.c ../src/spin_thread.c)
+target_link_libraries (test_spin_thread_s ${PARODUS_COMMON_LIBS})
+
+#-------------------------------------------------------------------------------
+#   test_string_helpers success
+#-------------------------------------------------------------------------------
+add_test(NAME test_string_helpers COMMAND test_string_helpers)
+add_executable(test_string_helpers test_string_helpers.c ../src/string_helpers.c)
+target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS})
+
+#-------------------------------------------------------------------------------
 #   test_connection
 #-------------------------------------------------------------------------------
 add_test(NAME test_connection COMMAND test_connection)

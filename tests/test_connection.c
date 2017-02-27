@@ -22,6 +22,7 @@
 #include <nopoll.h>
 
 #include "../src/wss_mgr.h"
+#include "../src/config.h"
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
 #include "wrp-c.h"
@@ -70,6 +71,7 @@ void test_set_parodus_cfg()
     strcpy(cfg->hw_mac , "123567892366");
     strcpy(cfg->hw_last_reboot_reason , "unknown");
     strcpy(cfg->fw_name , "2.364s2");
+    strcpy(cfg->webpa_origin , "/api/v2/device");
     strcpy(cfg->webpa_url , "fabric.webpa.comcast.net");
     strcpy(cfg->webpa_interface_used , "eth0");
     strcpy(cfg->webpa_protocol , "WebPA-1.6");
@@ -95,6 +97,25 @@ void test_set_parodus_cfg()
     CU_ASSERT_EQUAL(cfg->webpa_ping_timeout, get_parodus_cfg()->webpa_ping_timeout);
     CU_ASSERT_EQUAL(cfg->webpa_backoff_max, get_parodus_cfg()->webpa_backoff_max);
     CU_ASSERT_EQUAL(cfg->secureFlag, get_parodus_cfg()->secureFlag);
+}
+
+void test_getWebpaConveyHeader()
+{
+    char buffer[1024];
+    int  size = 1024;
+    
+    CU_ASSERT(nopoll_base64_decode(getWebpaConveyHeader(),strlen(getWebpaConveyHeader()), buffer, &size) == nopoll_true);
+    cJSON *payload = cJSON_Parse(buffer);
+    
+    CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->hw_model, cJSON_GetObjectItem(payload, HW_MODELNAME)->valuestring);
+    CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->hw_serial_number, cJSON_GetObjectItem(payload, HW_SERIALNUMBER)->valuestring);
+    CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->hw_manufacturer, cJSON_GetObjectItem(payload, HW_MANUFACTURER)->valuestring);
+    CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->hw_last_reboot_reason, cJSON_GetObjectItem(payload, HW_LAST_REBOOT_REASON)->valuestring);
+    CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->fw_name, cJSON_GetObjectItem(payload, FIRMWARE_NAME)->valuestring);
+    CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->webpa_interface_used, cJSON_GetObjectItem(payload, WEBPA_INTERFACE)->valuestring);
+    CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->webpa_protocol, cJSON_GetObjectItem(payload, WEBPA_PROTOCOL)->valuestring);
+    CU_ASSERT_EQUAL(get_parodus_cfg()->boot_time, cJSON_GetObjectItem(payload, BOOT_TIME)->valueint);
+
 }
 
 void test_createSecureConnection()
@@ -128,9 +149,32 @@ void err_createConnection()
 void err_sendResponse()
 {
     int bytesWritten;
-	bytesWritten = sendResponse(NULL, "Hello Parodus!", strlen("Hello Parodus!"));
-	ParodusPrint("Number of bytes written: %d\n", bytesWritten);
-	CU_ASSERT(bytesWritten <= 0);
+    bytesWritten = sendResponse(NULL, "Hello Parodus!", strlen("Hello Parodus!"));
+    ParodusPrint("Number of bytes written: %d\n", bytesWritten);
+    CU_ASSERT(bytesWritten <= 0);
+}
+
+void test_WebpaConveyHeaderWithNullValues()
+{
+    ParodusCfg *cfg = NULL;
+    char buffer[1024];
+    int  size = 1024;
+    
+    cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
+    memset(cfg, 0, sizeof(ParodusCfg));
+    set_parodus_cfg(cfg);
+    
+    CU_ASSERT(nopoll_base64_decode(getWebpaConveyHeader(),strlen(getWebpaConveyHeader()), buffer, &size) == nopoll_true);
+    printf("buffer : %s\n",buffer);
+    cJSON *payload = cJSON_Parse(buffer);
+    CU_ASSERT_PTR_NULL(cJSON_GetObjectItem(payload, HW_MODELNAME));
+    CU_ASSERT_PTR_NULL(cJSON_GetObjectItem(payload, HW_SERIALNUMBER));
+    CU_ASSERT_PTR_NULL(cJSON_GetObjectItem(payload, HW_MANUFACTURER));
+    CU_ASSERT_PTR_NULL(cJSON_GetObjectItem(payload, HW_LAST_REBOOT_REASON));
+    CU_ASSERT_PTR_NULL(cJSON_GetObjectItem(payload, FIRMWARE_NAME));
+    CU_ASSERT_PTR_NULL(cJSON_GetObjectItem(payload, WEBPA_INTERFACE));
+    free(cfg);
+    
 }
 
 void add_suites( CU_pSuite *suite )
@@ -138,12 +182,14 @@ void add_suites( CU_pSuite *suite )
     ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
     CU_add_test( *suite, "Test Set parodus config", test_set_parodus_cfg );
+    CU_add_test( *suite, "Test Get webpa convey header", test_getWebpaConveyHeader );
     CU_add_test( *suite, "Test Create secure nopoll connection", test_createSecureConnection );
     CU_add_test( *suite, "Test send response", test_sendResponse );
     CU_add_test( *suite, "Test close connection", test_closeConnection );
     CU_add_test( *suite, "Test Set global connection", test_set_global_conn );
     CU_add_test( *suite, "Error Create nopoll connection", err_createConnection );
     CU_add_test( *suite, "Error send response", err_sendResponse );
+    CU_add_test( *suite, "Webpa convey header with null values", test_WebpaConveyHeaderWithNullValues);
 }
 
 /*----------------------------------------------------------------------------*/

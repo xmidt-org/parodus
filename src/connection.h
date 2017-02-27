@@ -34,9 +34,10 @@ extern "C" {
     
 int createNopollConnection(noPollCtx *);
 void close_and_unref_connection(noPollConn *);
-
-
 int sendResponse(noPollConn * conn,void *str, size_t bufferSize);
+char* getWebpaConveyHeader();
+void packMetaData();
+void setMessageHandlers();
 
 extern void *metadataPack;
 extern size_t metaPackSize;
