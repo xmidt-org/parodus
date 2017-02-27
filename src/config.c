@@ -9,7 +9,6 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     if(strlen (pConfig->hw_model) !=0)
     {
         strncpy(cfg->hw_model, pConfig->hw_model,strlen(pConfig->hw_model)+1);
-        
     }
     else
     {
@@ -73,11 +72,12 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
         
     cfg->boot_time = pConfig->boot_time;
+    cfg->secureFlag = 1;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
+    strncpy(cfg->webpa_origin, WEBPA_ORIGIN, strlen(WEBPA_ORIGIN)+1);
     strncpy(cfg->webpa_protocol, WEBPA_PROTOCOL_VALUE, strlen(WEBPA_PROTOCOL_VALUE)+1);
     strncpy(cfg->webpa_uuid, "1234567-345456546", strlen("1234567-345456546")+1);
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
-      
 }
