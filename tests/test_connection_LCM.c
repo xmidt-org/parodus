@@ -23,45 +23,59 @@
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
 
-extern void listenerOnMessage_queue(noPollCtx *ctx, noPollConn *conn, noPollMsg *msg,noPollPtr user_data);
+extern void listenerOnCloseMessage(noPollCtx *ctx, noPollConn *conn, noPollPtr user_data);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-void *m;
 
-void *malloc(size_t size)
-{
-     m = calloc(size, sizeof(char));
-     return m;
-}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 void *a(void *in)
 {
-    noPollMsg msg;
-
+    char str[] = "SSL_Socket_Close";
     (void) in;
-    listenerOnMessage_queue(NULL, NULL, &msg, NULL);
-    pthread_exit(0);
 
+    LastReasonStatus = false;
+    listenerOnCloseMessage(NULL, NULL, NULL);
+    
+    LastReasonStatus = false;
+    listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
+
+    LastReasonStatus = true;
+    listenerOnCloseMessage(NULL, NULL, NULL);
+
+    LastReasonStatus = true;
+    listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
+
+    pthread_exit(0);
     return NULL;
 }
 
 void *b(void *in)
 {
-    noPollMsg msg;
-
+    char str[] = "SSL_Socket_Close";
     (void) in;
-    listenerOnMessage_queue(NULL, NULL, &msg, NULL);
-    pthread_exit(0);
 
+    LastReasonStatus = false;
+    listenerOnCloseMessage(NULL, NULL, NULL);
+    
+    LastReasonStatus = false;
+    listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
+
+    LastReasonStatus = true;
+    listenerOnCloseMessage(NULL, NULL, NULL);
+
+    LastReasonStatus = true;
+    listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
+
+    pthread_exit(0);
     return NULL;
 }
 
-void test_listenerOnMessage_queue()
+void test_listenerOnCloseMessage()
 {
     pthread_t thread_a, thread_b;
 
@@ -72,15 +86,13 @@ void test_listenerOnMessage_queue()
 
     pthread_join(thread_a, NULL);
     pthread_join(thread_b, NULL);
-
-    free(m);
 }
 
 void add_suites( CU_pSuite *suite )
 {
     ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
-    CU_add_test( *suite, "Test 1", test_listenerOnMessage_queue );
+    CU_add_test( *suite, "Test 1", test_listenerOnCloseMessage );
 }
 
 /*----------------------------------------------------------------------------*/

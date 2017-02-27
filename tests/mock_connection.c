@@ -12,7 +12,10 @@ void parStrncpy(char *destStr, const char *srcStr, size_t destSize)
 
 const unsigned char *nopoll_msg_get_payload(noPollMsg *msg)
 {
-    (void) msg;
+    if( NULL != msg ) {
+        return (unsigned char *) "Dummy payload";
+    }
+
     return NULL;
 }
 
