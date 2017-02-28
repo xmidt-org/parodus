@@ -71,7 +71,7 @@ void test_set_parodus_cfg()
     strcpy(cfg->hw_mac , "123567892366");
     strcpy(cfg->hw_last_reboot_reason , "unknown");
     strcpy(cfg->fw_name , "2.364s2");
-    strcpy(cfg->webpa_origin , "/api/v2/device");
+    strcpy(cfg->webpa_path_url , "/api/v2/device");
     strcpy(cfg->webpa_url , "fabric.webpa.comcast.net");
     strcpy(cfg->webpa_interface_used , "eth0");
     strcpy(cfg->webpa_protocol , "WebPA-1.6");

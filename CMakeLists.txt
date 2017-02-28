@@ -35,6 +35,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
+                    ${INCLUDE_DIR}/cmocka
                    )
 
 # Compile options/flags
@@ -174,3 +175,13 @@ if (BUILD_TESTING)
     add_subdirectory(tests)
 endif (BUILD_TESTING)
 
+# cmocka external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(cmocka
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cmocka
+    GIT_REPOSITORY https://git.cryptomilk.org/projects/cmocka.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(libcmocka STATIC SHARED IMPORTED)
+add_dependencies(libcmocka cmocka)

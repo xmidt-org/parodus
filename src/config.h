@@ -24,7 +24,7 @@ extern "C" {
 #define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
 
 #define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
-#define WEBPA_ORIGIN                                    "/api/v2/device"
+#define WEBPA_PATH_URL                                    "/api/v2/device"
 typedef struct
 {
     char hw_model[64];
@@ -36,7 +36,7 @@ typedef struct
     unsigned int boot_time;
     unsigned int webpa_ping_timeout;
     char webpa_url[124];
-    char webpa_origin[124];
+    char webpa_path_url[124];
     unsigned int webpa_backoff_max;
     char webpa_interface_used[16];
     char webpa_protocol[16];
@@ -46,6 +46,9 @@ typedef struct
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 
+// Accessor for the global config structure.
+ParodusCfg *get_parodus_cfg(void);
+void set_parodus_cfg(ParodusCfg *);
 
 #ifdef __cplusplus
 }

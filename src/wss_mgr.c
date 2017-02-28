@@ -62,8 +62,6 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-
-static ParodusCfg parodusCfg;
 static noPollConn *g_conn = NULL;
 reg_list_item_t *g_node = NULL;
 int numOfClients = 0;
@@ -103,30 +101,6 @@ static void *handleUpStreamEvents();
 static void *messageHandlerTask();
 static void *serviceAliveTask();
 static void getParodusUrl();
-
-/*
- Export parodusCfg
- */
-ParodusCfg *get_parodus_cfg(void) 
-{
-    return &parodusCfg;
-}
-
-void set_parodus_cfg(ParodusCfg *cfg) 
-{
-    parodusCfg = *cfg;
-}
-
-noPollConn *get_global_conn(void)
-{
-    return g_conn;
-}
-
-void set_global_conn(noPollConn *conn)
-{
-    g_conn = conn;
-}
-
 
 reg_list_item_t * get_global_node(void)
 {
