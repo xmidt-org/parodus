@@ -32,11 +32,12 @@
 extern "C" {
 #endif
     
-char createNopollConnection(noPollCtx *);
+int createNopollConnection(noPollCtx *);
 void close_and_unref_connection(noPollConn *);
-
-
 int sendResponse(noPollConn * conn,void *str, size_t bufferSize);
+char* getWebpaConveyHeader();
+void packMetaData();
+void setMessageHandlers();
 
 extern void *metadataPack;
 extern size_t metaPackSize;
@@ -51,6 +52,9 @@ extern  volatile unsigned int heartBeatTimer;
 extern volatile bool terminated;
 extern  ParodusMsg *ParodusMsgQ;
 extern UpStreamMsg *UpStreamMsgQ;
+
+extern reg_list_item_t * head;
+extern int numOfClients;
 
 
 #ifdef __cplusplus

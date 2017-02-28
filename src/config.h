@@ -23,7 +23,8 @@ extern "C" {
 #define WEBPA_PING_TIMEOUT                              "webpa-ping-timeout"
 #define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
 
-#define WEBPA_PROTOCOL_VALUE 							"WebPA-1.6"
+#define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
+#define WEBPA_ORIGIN                                    "/api/v2/device"
 typedef struct
 {
     char hw_model[64];
@@ -35,6 +36,7 @@ typedef struct
     unsigned int boot_time;
     unsigned int webpa_ping_timeout;
     char webpa_url[124];
+    char webpa_origin[124];
     unsigned int webpa_backoff_max;
     char webpa_interface_used[16];
     char webpa_protocol[16];

@@ -33,6 +33,7 @@
 #include "parodus_log.h"
 #include "connection.h"
 #include "spin_thread.h"
+#include "client_list.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -64,7 +65,8 @@
 
 static ParodusCfg parodusCfg;
 static noPollConn *g_conn = NULL;
-static int numOfClients = 0;
+reg_list_item_t *g_node = NULL;
+int numOfClients = 0;
 
 reg_list_item_t * head = NULL;
 
@@ -101,15 +103,18 @@ static void *handleUpStreamEvents();
 static void *messageHandlerTask();
 static void *serviceAliveTask();
 static void getParodusUrl();
-static void sendAuthStatus(reg_list_item_t *new_node);
-static void addToList( wrp_msg_t **msg);
-static int deleteFromList(char* service_name);
+
 /*
  Export parodusCfg
  */
 ParodusCfg *get_parodus_cfg(void) 
 {
     return &parodusCfg;
+}
+
+void set_parodus_cfg(ParodusCfg *cfg) 
+{
+    parodusCfg = *cfg;
 }
 
 noPollConn *get_global_conn(void)
@@ -120,6 +125,12 @@ noPollConn *get_global_conn(void)
 void set_global_conn(noPollConn *conn)
 {
     g_conn = conn;
+}
+
+
+reg_list_item_t * get_global_node(void)
+{
+    return head;
 }
 
 /**
@@ -206,6 +217,8 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 	#endif
 	
 	createNopollConnection(ctx);
+	packMetaData();
+	setMessageHandlers();
 	getParodusUrl();
         UpStreamMsgQ = NULL;
         StartThread(handle_upstream);
@@ -355,6 +368,7 @@ static void *handleUpStreamEvents()
         size_t encodedSize;
         reg_list_item_t *temp = NULL;
         int matchFlag = 0;
+        int status = -1;
 
         while(1)
         {
@@ -412,7 +426,13 @@ static void *handleUpStreamEvents()
                                                                                 else
                                                                                 {
                                                                                         ParodusInfo("Client registered before. Sending acknowledgement \n"); 
-                                                                                        sendAuthStatus(temp);
+                                                                                        status =sendAuthStatus(temp);
+                                                                        
+                                                                                        if(status == 0)
+                                                        						{
+                                                        								ParodusPrint("sent auth status to reg client\n");
+	                        		
+	                															}
                                                                                         matchFlag = 1;
                                                                                         break;
                                                                                 }
@@ -429,9 +449,15 @@ static void *handleUpStreamEvents()
                                                 ParodusPrint("matchFlag is :%d\n", matchFlag);
                                                 if((matchFlag == 0) || (numOfClients == 0))
                                                 {
-                                                        numOfClients = numOfClients + 1;
+                                                 
                                                         ParodusPrint("Adding nanomsg clients to list\n");
-                                                        addToList(&msg);
+                                                        status = addToList(&msg);
+                                                        ParodusPrint("addToList status is :%d\n", status);
+                                                        if(status == 0)
+                                                        {
+                                                        	ParodusPrint("sent auth status to reg client\n");
+	                        		
+	                        							}
                                                 }
                                         }
                                         else
@@ -733,171 +759,3 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 
 }
 
-
-static void addToList( wrp_msg_t **msg)
-{   
-    //new_node indicates the new clients which needs to be added to list
-    int rc = -1;
-    int sock;
-    sock = nn_socket( AF_SP, NN_PUSH );
-    ParodusPrint("sock created for adding entries to list: %d\n", sock);
-    if(sock >= 0)
-    {
-            int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
-            rc = nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
-            if(rc < 0)
-            {
-                ParodusError ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
-            }
-            
-            rc = nn_connect(sock, (*msg)->u.reg.url);
-            if(rc < 0)
-            {
-                ParodusError ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
-                nn_close (sock);
-                
-            }
-            else
-            {
-            	reg_list_item_t *new_node = NULL;
-		new_node=(reg_list_item_t *)malloc(sizeof(reg_list_item_t));
-		if(new_node)
-		{
-    			memset( new_node, 0, sizeof( reg_list_item_t ) );
-    			new_node->sock = sock;
-    			ParodusPrint("new_node->sock is %d\n", new_node->sock);
-    			
-    			
-	                ParodusPrint("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
-	                ParodusPrint("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
-
-	                strncpy(new_node->service_name, (*msg)->u.reg.service_name, strlen((*msg)->u.reg.service_name)+1);
-	                strncpy(new_node->url, (*msg)->u.reg.url, strlen((*msg)->u.reg.url)+1);
-
-	                new_node->next=NULL;
-	                 
-	                if (head== NULL) //adding first client
-	                {
-	                        ParodusInfo("Adding first client to list\n");
-	                        head=new_node;
-	                }
-	                else   //client2 onwards           
-	                {
-	                        reg_list_item_t *temp = NULL;
-	                        ParodusInfo("Adding clients to list\n");
-	                        temp=head;
-
-	                        while(temp->next !=NULL)
-	                        {
-		                        temp=temp->next;
-	                        }
-
-	                        temp->next=new_node;
-	                }
-
-	                ParodusPrint("client is added to list\n");
-	                ParodusInfo("client service %s is added to list with url: %s\n", new_node->service_name, new_node->url);
-	                if((strcmp(new_node->service_name, (*msg)->u.reg.service_name)==0)&& (strcmp(new_node->url, (*msg)->u.reg.url)==0))
-	                {
-	                        ParodusInfo("sending auth status to reg client\n");
-	                        sendAuthStatus(new_node);
-	                }
-	                else
-	                {
-	                        ParodusError("nanomsg client registration failed\n");
-	                }
-	            }
-            }
-    }
-    else
-    {
-            ParodusError("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
-    }
-   
-}
-
-
-static void sendAuthStatus(reg_list_item_t *new_node)
-{
-	int byte = 0, nbytes = -1;	
-	size_t size=0;
-	void *auth_bytes;
-	wrp_msg_t auth_msg_var;
-	
-	auth_msg_var.msg_type = WRP_MSG_TYPE__AUTH;
-	auth_msg_var.u.auth.status = 200;
-	
-	//Sending success status to clients after each nanomsg registration
-	nbytes = wrp_struct_to(&auth_msg_var, WRP_BYTES, &auth_bytes );
-        if(nbytes < 0)
-        {
-                ParodusError(" Failed to encode wrp struct returns %d\n", nbytes);
-        }
-        else
-        {
-	        ParodusInfo("Client %s Registered successfully. Sending Acknowledgement... \n ", new_node->service_name);
-                size = (size_t) nbytes;
-	        byte = nn_send (new_node->sock, auth_bytes, size, 0);
-
-	        if(byte >=0)
-	        {
-	            ParodusPrint("send registration success status to client\n");
-	        }
-	        else
-	        {
-	            ParodusError("send registration failed\n");
-	        }
-        }
-	byte = 0;
-	size = 0;
-	free(auth_bytes);
-	auth_bytes = NULL;
-}
-     
-     
-static int deleteFromList(char* service_name)
-{
- 	reg_list_item_t *prev_node = NULL, *curr_node = NULL;
-
-	if( NULL == service_name ) 
-	{
-		ParodusError("Invalid value for service\n");
-		return -1;
-	}
-	ParodusInfo("service to be deleted: %s\n", service_name);
-
-	prev_node = NULL;
-	curr_node = head;	
-
-	// Traverse to get the link to be deleted
-	while( NULL != curr_node )
-	{
-		if(strcmp(curr_node->service_name, service_name) == 0)
-		{
-			ParodusPrint("Found the node to delete\n");
-			if( NULL == prev_node )
-			{
-				ParodusPrint("need to delete first client\n");
-			 	head = curr_node->next;
-			}
-			else
-			{
-				ParodusPrint("Traversing to find node\n");
-			 	prev_node->next = curr_node->next;
-			}
-			
-			ParodusPrint("Deleting the node\n");
-			free( curr_node );
-			curr_node = NULL;
-			ParodusInfo("Deleted successfully and returning..\n");
-			numOfClients =numOfClients - 1;
-			ParodusPrint("numOfClients after delte is %d\n", numOfClients);
-			return 0;
-		}
-		
-		prev_node = curr_node;
-		curr_node = curr_node->next;
-	}
-	ParodusError("Could not find the entry to delete from list\n");
-	return -1;
-}
