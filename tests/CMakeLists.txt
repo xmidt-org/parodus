@@ -125,6 +125,16 @@ add_executable(test_createConnection test_createConnection.c nopoll_mock.c ${PAR
 target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lnanomsg -lcmocka)
 
 #-------------------------------------------------------------------------------
+#   test_connection - function sendResponse
+#-------------------------------------------------------------------------------
+add_test(NAME test_sendResponse COMMAND test_sendResponse)
+add_executable(test_sendResponse test_sendResponse.c nopoll_mock.c ${PARODUS_COMMON_SRC}
+                      ../src/connection.c
+                      ../src/ParodusInternal.c
+                      ) 
+target_link_libraries (test_sendResponse ${PARODUS_COMMON_LIBS} -lnanomsg -lcmocka)
+
+#-------------------------------------------------------------------------------
 #   test_connection
 #-------------------------------------------------------------------------------
 add_test(NAME test_connection COMMAND test_connection)
