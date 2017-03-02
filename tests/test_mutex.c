@@ -20,6 +20,7 @@
 
 #include <CUnit/Basic.h>
 
+#include "../src/mutex.h"
 #include "../src/ParodusInternal.h"
 
 struct shared_data {

@@ -14,19 +14,10 @@
  * limitations under the License.
  *
  */
-#include <stdbool.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "wss_mgr.h"
-#include <assert.h>
-#include <nanomsg/nn.h>
-#include <nanomsg/pipeline.h>
-#include "wrp-c.h"
-#include "parodus_log.h"
 
+#include "config.h"
+#include "connection.h"
+#include "parodus_log.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */

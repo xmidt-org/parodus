@@ -21,7 +21,6 @@
 #include <assert.h>
 #include <nopoll.h>
 
-#include "../src/wss_mgr.h"
 #include "../src/config.h"
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"

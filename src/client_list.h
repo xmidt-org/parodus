@@ -1,7 +1,7 @@
 /**
- * @file internal.h
+ * @file client_list.h
  *
- * @description This file is used to manage internal functions of parodus
+ * @description This file is used to manage registered clients
  *
  * Copyright (c) 2015  Comcast
  */
@@ -9,14 +9,10 @@
 #define _CLIENTLIST_H_
 
 #include <stdio.h>
-
-#include "ParodusInternal.h"
 #include <wrp-c.h>
 
-#include "wss_mgr.h"
+#include "ParodusInternal.h"
 #include "parodus_log.h"
-
-
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -32,9 +28,10 @@ int addToList( wrp_msg_t **msg);
 int sendAuthStatus(reg_list_item_t *new_node);
 
 int deleteFromList(char* service_name);
-extern int numOfClients;
 
 reg_list_item_t * get_global_node(void);
+
+void *serviceAliveTask();
 
 #ifdef __cplusplus
 }

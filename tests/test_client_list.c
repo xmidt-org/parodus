@@ -19,7 +19,6 @@
 #include <stdarg.h>
 
 #include <CUnit/Basic.h>
-#include "../src/wss_mgr.h"
 #include "../src/ParodusInternal.h"
 #include "../src/spin_thread.h"
 #include "../src/client_list.h"

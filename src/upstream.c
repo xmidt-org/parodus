@@ -5,249 +5,40 @@
  *
  * Copyright (c) 2015  Comcast
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <cJSON.h>
-#include <nopoll.h>
-#include <sys/sysinfo.h>
-#include <pthread.h>
-#include <math.h>
-#include <errno.h>
-#include "wss_mgr.h"
-
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <getopt.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <wrp-c.h>
-#include <nanomsg/nn.h>
-#include <nanomsg/pipeline.h>
 
 #include "ParodusInternal.h"
 #include "time.h"
-#include "parodus_log.h"
 #include "connection.h"
 #include "spin_thread.h"
 #include "client_list.h"
+#include "nopoll_helpers.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
-
-/* WebPA default Config */
-#define WEBPA_SERVER_URL                                "talaria-beta.webpa.comcast.net"
-#define WEBPA_SERVER_PORT                               8080
-#define WEBPA_RETRY_INTERVAL_SEC                        10
-#define WEBPA_MAX_PING_WAIT_TIME_SEC                    180
-
-
-#define METADATA_COUNT 					11			
-#define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
-#define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
-#define KEEPALIVE_INTERVAL_SEC                         	30
-#define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
-
-
-#define IOT "iot"
-#define HARVESTER "harvester"
-#define GET_SET "get_set"
-
-
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-static noPollConn *g_conn = NULL;
-reg_list_item_t *g_node = NULL;
-int numOfClients = 0;
-
 reg_list_item_t * head = NULL;
 
 void *metadataPack;
 size_t metaPackSize=-1;
 
-volatile unsigned int heartBeatTimer = 0;
-volatile bool terminated = false;
-ParodusMsg *ParodusMsgQ = NULL;
 UpStreamMsg *UpStreamMsgQ = NULL;
 
-bool close_retry = false;
-bool LastReasonStatus = false;
-char *reconnect_reason = "webpa_process_starts";
-
-void close_and_unref_connection(noPollConn *conn);
-char parodus_url[32] ={'\0'};
-
-pthread_mutex_t g_mutex=PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
 
-pthread_cond_t g_cond=PTHREAD_COND_INITIALIZER;
-pthread_cond_t close_con=PTHREAD_COND_INITIALIZER;
 pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
-static void *handle_upstream();
-static void *handleUpStreamEvents();
-static void *messageHandlerTask();
-static void *serviceAliveTask();
-static void getParodusUrl();
-
-reg_list_item_t * get_global_node(void)
-{
-    return head;
-}
-
-/**
- * @brief __report_log Nopoll log handler 
- * Nopoll log handler for integrating nopoll logs 
- */
-static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
-{
-	
-	UNUSED(ctx);
-	UNUSED(user_data);
-	if (level == NOPOLL_LEVEL_DEBUG) 
-	{
-  	    //ParodusPrint("%s\n", log_msg);
-	}
-	if (level == NOPOLL_LEVEL_INFO) 
-	{
-		ParodusInfo ("%s\n", log_msg);
-	}
-	if (level == NOPOLL_LEVEL_WARNING) 
-	{
-  	     ParodusPrint("%s\n", log_msg);
-	}
-	if (level == NOPOLL_LEVEL_CRITICAL) 
-	{
-  	     ParodusError("%s\n", log_msg );
-	}
-	return;
-}
-
-void close_and_unref_connection(noPollConn *conn)
-{
-    if (conn) {
-        nopoll_conn_close(conn);
-        if (0 < nopoll_conn_ref_count (conn)) {
-            nopoll_conn_unref(conn);
-        }
-    }
-}
-
-
-static void getParodusUrl()
-{
-    const char *parodusIp = NULL;
-    const char * envParodus = getenv ("PARODUS_SERVICE_URL");
-    
-    if( envParodus != NULL)
-    {
-      parodusIp = envParodus;
-    }
-    else
-    {
-      parodusIp = PARODUS_UPSTREAM ;
-    }
-    
-    snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
-    ParodusInfo("formatted parodus Url %s\n",parodus_url);
-	
-}
-
-
-
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 
-void createSocketConnection(void *config_in, void (* initKeypress)())
-{
-	int intTimer=0;	
-    	ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
-        noPollCtx *ctx;
-        
-   	loadParodusCfg(tmpCfg,get_parodus_cfg());
-	ParodusPrint("Configure nopoll thread handlers in Parodus\n");
-	nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
-	ctx = nopoll_ctx_new();
-	if (!ctx) 
-	{
-		ParodusError("\nError creating nopoll context\n");
-	}
-
-	#ifdef NOPOLL_LOGGER
-  		nopoll_log_set_handler (ctx, __report_log, NULL);
-	#endif
-	
-	createNopollConnection(ctx);
-	packMetaData();
-	setMessageHandlers();
-	getParodusUrl();
-        UpStreamMsgQ = NULL;
-        StartThread(handle_upstream);
-        StartThread(handleUpStreamEvents);
-        ParodusMsgQ = NULL;
-        StartThread(messageHandlerTask);
-        StartThread(serviceAliveTask);
-	
-	if (NULL != initKeypress) 
-	{
-  		(* initKeypress) ();
-	}
-	
-	do
-	{
-		nopoll_loop_wait(ctx, 5000000);
-		intTimer = intTimer + 5;
-		
-		if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout) 
-		{
-			if(!close_retry) 
-			{
-				ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
-				reconnect_reason = "Ping_Miss";
-				LastReasonStatus = true;
-				pthread_mutex_lock (&close_mut);
-				close_retry = true;
-				pthread_mutex_unlock (&close_mut);
-			}
-			else
-			{			
-				ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
-			}
-			heartBeatTimer = 0;
-		}
-		else if(intTimer >= 30)
-		{
-			ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
-			heartBeatTimer += HEARTBEAT_RETRY_SEC;	
-			intTimer = 0;		
-		}
-		
-		if(close_retry)
-		{
-			ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
-			close_and_unref_connection(g_conn);
-			g_conn = NULL;
-			createNopollConnection(ctx);
-		}		
-	} while(!close_retry);
-	  	
-	close_and_unref_connection(g_conn);
-	nopoll_ctx_unref(ctx);
-	nopoll_cleanup_library();
-}
 
 /**
  * @brief Interface to terminate WebSocket client connections and clean up resources.
@@ -262,7 +53,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
  * @brief To handle UpStream messages which is received from nanomsg server socket
  */
 
-static void *handle_upstream()
+void *handle_upstream()
 {
 	UpStreamMsg *message;
 	int sock, bind;
@@ -333,7 +124,7 @@ static void *handle_upstream()
 }
 
 
-static void *handleUpStreamEvents()
+void *handleUpStreamEvents()
 {		
         int rv=-1, rc = -1;	
         int msgType;
@@ -446,7 +237,7 @@ static void *handleUpStreamEvents()
                                                         ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
                                                         ParodusPrint("metadata appended upstream msg %s\n", (char *)appendData);
                                                         ParodusInfo("Sending metadata appended upstream msg to server\n");
-                                                        handleUpstreamMessage(g_conn,appendData, encodedSize);
+                                                        handleUpstreamMessage(get_global_conn(),appendData, encodedSize);
 
                                                         free( appendData);
                                                         appendData =NULL;
@@ -488,227 +279,6 @@ static void *handleUpStreamEvents()
         return NULL;
 }
 
-/*
- * @brief To handle messages
- */
-static void *messageHandlerTask()
-{
-	while(1)
-	{
-		pthread_mutex_lock (&g_mutex);
-		ParodusPrint("mutex lock in consumer thread\n");
-		if(ParodusMsgQ != NULL)
-		{
-			ParodusMsg *message = ParodusMsgQ;
-			ParodusMsgQ = ParodusMsgQ->next;
-			pthread_mutex_unlock (&g_mutex);
-			ParodusPrint("mutex unlock in consumer thread\n");
-			if (!terminated) 
-			{
-				listenerOnMessage(message->payload, message->len, &numOfClients, &head);
-			}
-								
-			nopoll_msg_unref(message->msg);
-			free(message);
-			message = NULL;
-		}
-		else
-		{
-			ParodusPrint("Before pthread cond wait in consumer thread\n");   
-			pthread_cond_wait(&g_cond, &g_mutex);
-			pthread_mutex_unlock (&g_mutex);
-			ParodusPrint("mutex unlock in consumer thread after cond wait\n");
-			if (terminated) 
-			{
-				break;
-			}
-		}
-	}
-	ParodusPrint ("Ended messageHandlerTask\n");
-	return 0;
-}
-
-/*
- * @brief To handle registered services to indicate that the service is still alive.
- */
-static void *serviceAliveTask()
-{
-	void *svc_bytes;
-	wrp_msg_t svc_alive_msg;
-	int byte = 0;
-	size_t size = 0;
-	int ret = -1, nbytes = -1;
-	reg_list_item_t *temp = NULL; 
-	
-	svc_alive_msg.msg_type = WRP_MSG_TYPE__SVC_ALIVE;	
-	
-	nbytes = wrp_struct_to( &svc_alive_msg, WRP_BYTES, &svc_bytes );
-        if(nbytes < 0)
-        {
-                ParodusError(" Failed to encode wrp struct returns %d\n", nbytes);
-        }
-        else
-        {
-	        while(1)
-	        {
-		        ParodusPrint("serviceAliveTask: numOfClients registered is %d\n", numOfClients);
-		        if(numOfClients > 0)
-		        {
-			        //sending svc msg to all the clients every 30s
-			        temp = head;
-			        size = (size_t) nbytes;
-			        while(NULL != temp)
-			        {
-				        byte = nn_send (temp->sock, svc_bytes, size, 0);
-				
-				        ParodusPrint("svc byte sent :%d\n", byte);
-				        if(byte == nbytes)
-				        {
-					        ParodusPrint("service_name: %s is alive\n",temp->service_name);
-				        }
-				        else
-				        {
-					        ParodusInfo("Failed to send keep alive msg, service %s is dead\n", temp->service_name);
-					        //need to delete this client service from list
-					
-					        ret = deleteFromList((char*)temp->service_name);
-				        }
-				        byte = 0;
-				        if(ret == 0)
-				        {
-					        ParodusPrint("Deletion from list is success, doing resync with head\n");
-					        temp= head;
-					        ret = -1;
-				        }
-				        else
-				        {
-					        temp= temp->next;
-				        }
-			        }
-		         	ParodusPrint("Waiting for 30s to send keep alive msg \n");
-		         	sleep(KEEPALIVE_INTERVAL_SEC);
-	            	}
-	            	else
-	            	{
-	            		ParodusInfo("No clients are registered, waiting ..\n");
-	            		sleep(70);
-	            	}
-	        }
-	}
-	return 0;
-}
-
-
-void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
-{
-    
-     int c;
-    while (1)
-    {
-      static struct option long_options[] = {
-          {"hw-model",     required_argument,   0, 'm'},
-          {"hw-serial-number",  required_argument,  0, 's'},
-          {"hw-manufacturer",  required_argument, 0, 'f'},
-          {"hw-mac",  required_argument, 0, 'd'},
-          {"hw-last-reboot-reason",  required_argument, 0, 'r'},
-          {"fw-name",  required_argument, 0, 'n'},
-          {"boot-time",  required_argument, 0, 'b'},
-          {"webpa-url",  required_argument, 0, 'u'},
-          {"webpa-ping-timeout",    required_argument, 0, 'p'},
-          {"webpa-backoff-max",  required_argument, 0, 'o'},
-          {"webpa-inteface-used",    required_argument, 0, 'i'},
-          {0, 0, 0, 0}
-        };
-      /* getopt_long stores the option index here. */
-      int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:",long_options, &option_index);
-
-      /* Detect the end of the options. */
-      if (c == -1)
-        break;
-
-      switch (c)
-        {
-        case 'm':
-          parStrncpy(cfg->hw_model, optarg,sizeof(cfg->hw_model));
-          ParodusInfo("hw-model is %s\n",cfg->hw_model);
-         break;
-        
-        case 's':
-          parStrncpy(cfg->hw_serial_number,optarg,sizeof(cfg->hw_serial_number));
-          ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
-          break;
-
-        case 'f':
-          parStrncpy(cfg->hw_manufacturer, optarg,sizeof(cfg->hw_manufacturer));
-          ParodusInfo("hw_manufacturer is %s\n",cfg->hw_manufacturer);
-          break;
-
-        case 'd':
-           parStrncpy(cfg->hw_mac, optarg,sizeof(cfg->hw_mac));
-           ParodusInfo("hw_mac is %s\n",cfg->hw_mac);
-          break;
-        
-        case 'r':
-          parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
-          ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
-          break;
-
-        case 'n':
-          parStrncpy(cfg->fw_name, optarg,sizeof(cfg->fw_name));
-          ParodusInfo("fw_name is %s\n",cfg->fw_name);
-          break;
-
-        case 'b':
-          cfg->boot_time = atoi(optarg);
-          ParodusInfo("boot_time is %d\n",cfg->boot_time);
-          break;
-       
-         case 'u':
-          parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
-          ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
-          break;
-        
-        case 'p':
-          cfg->webpa_ping_timeout = atoi(optarg);
-          ParodusInfo("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
-          break;
-
-        case 'o':
-          cfg->webpa_backoff_max = atoi(optarg);
-          ParodusInfo("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
-          break;
-
-        case 'i':
-          parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
-          ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
-          break;
-
-        case '?':
-          /* getopt_long already printed an error message. */
-          break;
-
-        default:
-           ParodusError("Enter Valid commands..\n");
-          abort ();
-        }
-    }
-  
- ParodusPrint("argc is :%d\n", argc);
- ParodusPrint("optind is :%d\n", optind);
-
-  /* Print any remaining command line arguments (not options). */
-  if (optind < argc)
-    {
-      ParodusPrint ("non-option ARGV-elements: ");
-      while (optind < argc)
-        ParodusPrint ("%s ", argv[optind++]);
-      putchar ('\n');
-    }
-
-}
-
-
 void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 {
 	void *appendData;
@@ -721,7 +291,7 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
 		ParodusInfo("Sending response to server\n");
-	   	handleUpstreamMessage(g_conn,appendData, encodedSize);
+	   	handleUpstreamMessage(get_global_conn(),appendData, encodedSize);
 	   	
 		free( appendData);
 		appendData =NULL;

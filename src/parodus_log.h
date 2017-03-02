@@ -1,3 +1,11 @@
+/**
+ * @file parodus_log.h
+ *
+ * @description This header defines parodus log levels
+ *
+ * Copyright (c) 2015  Comcast
+ */
+ 
 #include <stdarg.h>
 #include <cimplog/cimplog.h>
 

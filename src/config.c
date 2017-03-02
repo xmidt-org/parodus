@@ -1,6 +1,6 @@
 #include <string.h>
 #include "config.h"
-#include "parodus_log.h"
+#include "ParodusInternal.h"
 
 static ParodusCfg parodusCfg;
 
@@ -12,6 +12,113 @@ ParodusCfg *get_parodus_cfg(void)
 void set_parodus_cfg(ParodusCfg *cfg) 
 {
     parodusCfg = *cfg;
+}
+
+void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
+{
+    int c;
+    while (1)
+    {
+      static struct option long_options[] = {
+          {"hw-model",     required_argument,   0, 'm'},
+          {"hw-serial-number",  required_argument,  0, 's'},
+          {"hw-manufacturer",  required_argument, 0, 'f'},
+          {"hw-mac",  required_argument, 0, 'd'},
+          {"hw-last-reboot-reason",  required_argument, 0, 'r'},
+          {"fw-name",  required_argument, 0, 'n'},
+          {"boot-time",  required_argument, 0, 'b'},
+          {"webpa-url",  required_argument, 0, 'u'},
+          {"webpa-ping-timeout",    required_argument, 0, 'p'},
+          {"webpa-backoff-max",  required_argument, 0, 'o'},
+          {"webpa-inteface-used",    required_argument, 0, 'i'},
+          {0, 0, 0, 0}
+        };
+      /* getopt_long stores the option index here. */
+      int option_index = 0;
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:",long_options, &option_index);
+
+      /* Detect the end of the options. */
+      if (c == -1)
+        break;
+
+      switch (c)
+        {
+        case 'm':
+          parStrncpy(cfg->hw_model, optarg,sizeof(cfg->hw_model));
+          ParodusInfo("hw-model is %s\n",cfg->hw_model);
+         break;
+        
+        case 's':
+          parStrncpy(cfg->hw_serial_number,optarg,sizeof(cfg->hw_serial_number));
+          ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
+          break;
+
+        case 'f':
+          parStrncpy(cfg->hw_manufacturer, optarg,sizeof(cfg->hw_manufacturer));
+          ParodusInfo("hw_manufacturer is %s\n",cfg->hw_manufacturer);
+          break;
+
+        case 'd':
+           parStrncpy(cfg->hw_mac, optarg,sizeof(cfg->hw_mac));
+           ParodusInfo("hw_mac is %s\n",cfg->hw_mac);
+          break;
+        
+        case 'r':
+          parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
+          ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
+          break;
+
+        case 'n':
+          parStrncpy(cfg->fw_name, optarg,sizeof(cfg->fw_name));
+          ParodusInfo("fw_name is %s\n",cfg->fw_name);
+          break;
+
+        case 'b':
+          cfg->boot_time = atoi(optarg);
+          ParodusInfo("boot_time is %d\n",cfg->boot_time);
+          break;
+       
+         case 'u':
+          parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
+          ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
+          break;
+        
+        case 'p':
+          cfg->webpa_ping_timeout = atoi(optarg);
+          ParodusInfo("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
+          break;
+
+        case 'o':
+          cfg->webpa_backoff_max = atoi(optarg);
+          ParodusInfo("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
+          break;
+
+        case 'i':
+          parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
+          ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
+          break;
+
+        case '?':
+          /* getopt_long already printed an error message. */
+          break;
+
+        default:
+           ParodusError("Enter Valid commands..\n");
+          abort ();
+        }
+    }
+
+    ParodusPrint("argc is :%d\n", argc);
+    ParodusPrint("optind is :%d\n", optind);
+
+    /* Print any remaining command line arguments (not options). */
+    if (optind < argc)
+    {
+      ParodusPrint ("non-option ARGV-elements: ");
+      while (optind < argc)
+        ParodusPrint ("%s ", argv[optind++]);
+      putchar ('\n');
+    }
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)

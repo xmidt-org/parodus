@@ -1,4 +1,7 @@
 #include "ParodusInternal.h"
+#include "config.h"
+
+char parodus_url[32] ={'\0'};
 
 char* getWebpaConveyHeader()
 {
@@ -122,3 +125,21 @@ void packMetaData()
     }
 }
 
+void getParodusUrl()
+{
+    const char *parodusIp = NULL;
+    const char * envParodus = getenv ("PARODUS_SERVICE_URL");
+    
+    if( envParodus != NULL)
+    {
+      parodusIp = envParodus;
+    }
+    else
+    {
+      parodusIp = PARODUS_UPSTREAM ;
+    }
+    
+    snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
+    ParodusInfo("formatted parodus Url %s\n",parodus_url);
+	
+}

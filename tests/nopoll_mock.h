@@ -1,4 +1,3 @@
-bool terminated;
 bool LastReasonStatus;
 bool close_retry;
 char *reconnect_reason;
@@ -8,10 +7,3 @@ size_t metaPackSize;
 pthread_mutex_t close_mut;
 pthread_mutex_t g_mutex;
 pthread_cond_t g_cond;
-
-ParodusCfg gPC;
-noPollConn gNPConn;
-
-ParodusMsg gMsg;
-ParodusMsg *ParodusMsgQ = &gMsg;
-
