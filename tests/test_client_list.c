@@ -25,8 +25,10 @@
 #include "../src/client_list.h"
 
 #define TEST_CLIENT1_URL "tcp://127.0.0.1:6677"
+#define TEST_CLIENT2_URL "tcp://127.0.0.1:6655"
 
 static void *client_rcv_task();
+static void *client2_rcv_task();
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
@@ -110,6 +112,86 @@ static void *client_rcv_task()
 	return 0;	
 }
 
+static void *client2_rcv_task()
+{
+	//nanomsg socket
+	
+	int byte =0;
+	int rv1=0;
+	int t=25000;
+	wrp_msg_t  *msg1;
+
+	int sock1 = nn_socket (AF_SP, NN_PULL);
+	nn_bind(sock1, TEST_CLIENT2_URL);
+	
+	void *buf = NULL;
+	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	
+	ParodusPrint("Client 2 waiting for acknowledgement \n");
+	byte = nn_recv(sock1, &buf, NN_MSG, 0);
+	ParodusInfo("Data Received for client 2 : %s \n", (char * )buf);
+
+	rv1 = wrp_to_struct((void *)buf, byte, WRP_BYTES, &msg1);
+	ParodusPrint("rv1 %d \n", rv1);
+
+	ParodusPrint("msg1->msg_type for client 2 = %d\n", msg1->msg_type);
+	ParodusPrint("msg1->status for client 2 = %d\n", msg1->u.auth.status);
+
+	nn_freemsg(buf);	
+
+	wrp_free_struct(msg1);
+	nn_shutdown(sock1, 0);
+	return 0;	
+}
+
+
+void test_addtolist_multiple_clients()
+{
+	void *bytes;
+	int size =0;
+	int rv;
+	wrp_msg_t  *message;
+	int status = -1;
+	reg_list_item_t *temp =NULL;
+	
+	const wrp_msg_t reg = { .msg_type = WRP_MSG_TYPE__SVC_REGISTRATION,
+	  .u.reg.service_name = "test_client2",
+	  .u.reg.url = TEST_CLIENT2_URL};
+	
+	/*** msgpack encode **/
+	ParodusPrint("msgpack encode\n");
+	size = wrp_struct_to( &reg, WRP_BYTES, &bytes );
+	
+	/*** decode **/
+	rv = wrp_to_struct(bytes, size, WRP_BYTES, &message);
+	ParodusPrint("rv is %d\n", rv);
+	ParodusPrint("decoded msgType:%d\n", message->msg_type);
+	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
+	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
+	
+	StartThread(client2_rcv_task);
+	
+	status = addToList(&message);
+	ParodusPrint("addToList status is %d\n", status);
+
+	
+	CU_ASSERT_EQUAL( status, 0 );
+	temp = get_global_node();
+				
+	if (NULL != temp)
+	{
+		temp= temp->next;
+		ParodusPrint("node is pointing to service_name %s \n",temp->service_name);
+		CU_ASSERT_STRING_EQUAL( temp->service_name, message->u.reg.service_name );
+		CU_ASSERT_STRING_EQUAL( temp->url, message->u.reg.url );
+		
+	}
+
+	wrp_free_struct(message);
+	ParodusInfo("test_addtolist_multiple_clients done..\n");	
+	
+}
+
 void test_client_deleteFromlist()
 {
 	int ret =-1;
@@ -119,12 +201,43 @@ void test_client_deleteFromlist()
 
 }
 
+void test_delete_next_client_from_list()
+{
+	int ret =-1;
+	ret = deleteFromList("test_client2");
+	CU_ASSERT_EQUAL( ret, 0 );
+	ParodusInfo("test_delete_next_client_from_list done..\n");
+
+}
+
+void test_deleteFromlist_failure()
+{
+	int ret = deleteFromList("sample_client");
+	ParodusInfo("test_deleteFromlist_failure returns %d\n", ret);
+	CU_ASSERT_EQUAL( ret, -1 );
+	ParodusInfo("test_deleteFromlist_failure done..\n");
+
+}
+
+void test_delete_invalid_service()
+{
+	int ret = deleteFromList(NULL);
+	ParodusInfo("test_delete_invalid_service returns %d\n", ret);
+	CU_ASSERT_EQUAL( ret, -1 );
+	ParodusInfo("test_delete_invalid_service done..\n");
+
+}
+
 void add_suites( CU_pSuite *suite )
 {
     ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
     CU_add_test( *suite, "Test 1", test_client_addtolist );
-    CU_add_test( *suite, "Test 2", test_client_deleteFromlist );
+    CU_add_test( *suite, "Test 2", test_addtolist_multiple_clients );
+    CU_add_test( *suite, "Test 3", test_delete_next_client_from_list );
+    CU_add_test( *suite, "Test 4", test_client_deleteFromlist );
+    CU_add_test( *suite, "Test 5", test_deleteFromlist_failure );
+    CU_add_test( *suite, "Test 6", test_delete_invalid_service );
     
 }
 

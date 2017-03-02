@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 set(SOURCES main.c wss_mgr.c mutex.c networking.c nopoll_helpers.c ParodusInternal.c 
-    string_helpers.c time.c config.c connection.c spin_thread.c client_list.c)
+    string_helpers.c time.c config.c connection.c spin_thread.c client_list.c service_alive.c)
 
 add_executable(parodus ${SOURCES})
 
