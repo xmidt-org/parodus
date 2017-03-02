@@ -91,7 +91,11 @@ typedef struct reg_list_item
 #ifdef __cplusplus
 extern "C" {
 #endif
-    
+
+extern void *metadataPack;
+extern size_t metaPackSize;
+extern char *reconnect_reason;
+   
 int checkHostIp(char * serverIP);
 void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len);
 
@@ -108,6 +112,10 @@ void unlockMutex(noPollPtr _mutex);
 void destroyMutex(noPollPtr _mutex);
 
 void sendUpstreamMsgToServer(void **resp_bytes, int resp_size);
+
+char* getWebpaConveyHeader();
+
+void packMetaData();
 
 
 #ifdef __cplusplus

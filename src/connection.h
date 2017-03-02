@@ -26,6 +26,7 @@
 
 #include "ParodusInternal.h"
 #include "time.h"
+#include "config.h"
 #include "parodus_log.h"
 
 #ifdef __cplusplus
@@ -35,12 +36,11 @@ extern "C" {
 int createNopollConnection(noPollCtx *);
 void close_and_unref_connection(noPollConn *);
 int sendResponse(noPollConn * conn,void *str, size_t bufferSize);
-char* getWebpaConveyHeader();
-void packMetaData();
 void setMessageHandlers();
 
-extern void *metadataPack;
-extern size_t metaPackSize;
+noPollConn *get_global_conn(void);
+void set_global_conn(noPollConn *);
+
 extern pthread_mutex_t g_mutex;
 extern pthread_cond_t g_cond;
 extern pthread_mutex_t close_mut;

@@ -2,6 +2,18 @@
 #include "config.h"
 #include "parodus_log.h"
 
+static ParodusCfg parodusCfg;
+
+ParodusCfg *get_parodus_cfg(void) 
+{
+    return &parodusCfg;
+}
+
+void set_parodus_cfg(ParodusCfg *cfg) 
+{
+    parodusCfg = *cfg;
+}
+
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 {
     ParodusCfg *pConfig =config;
@@ -75,7 +87,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->secureFlag = 1;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
-    strncpy(cfg->webpa_origin, WEBPA_ORIGIN, strlen(WEBPA_ORIGIN)+1);
+    strncpy(cfg->webpa_path_url, WEBPA_PATH_URL, strlen(WEBPA_PATH_URL)+1);
     strncpy(cfg->webpa_protocol, WEBPA_PROTOCOL_VALUE, strlen(WEBPA_PROTOCOL_VALUE)+1);
     strncpy(cfg->webpa_uuid, "1234567-345456546", strlen("1234567-345456546")+1);
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
