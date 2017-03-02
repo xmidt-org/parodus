@@ -23,8 +23,8 @@
 
 //#include <nanomsg/bus.h>
 
-#include "../src/wss_mgr.h"
 #include "../src/ParodusInternal.h"
+#include "../src/nopoll_helpers.h"
 #include "wrp-c.h"
 
 #include<errno.h>
@@ -34,8 +34,6 @@
 #define CLIENT1_URL "tcp://127.0.0.1:6667"
 #define CLIENT2_URL "tcp://127.0.0.1:6668"
 #define CLIENT3_URL "tcp://127.0.0.1:6669"
-
-#define UNUSED(x) (void)(x)
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */

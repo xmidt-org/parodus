@@ -7,14 +7,20 @@
  */
 
 #include "ParodusInternal.h"
-#include "wss_mgr.h"
 #include "connection.h"
 #include "client_list.h"
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
+
+int numOfClients = 0;
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
+
+reg_list_item_t * get_global_node(void)
+{
+    return head;
+}
 
 /** To add clients to registered list ***/
 

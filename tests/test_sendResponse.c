@@ -26,7 +26,6 @@
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
-#include "wrp-c.h"
 
 #define MAX_SEND_SIZE (60 * 1024)
 
@@ -99,6 +98,19 @@ void err_sendResponseFlushWrites()
     ParodusPrint("Number of bytes written: %d\n", bytesWritten);
     assert_int_equal(bytesWritten, 0);   
 }
+
+void err_sendResponseConnNull()
+{
+    int len = strlen("Hello Parodus!");
+    expect_value(__nopoll_conn_send_common, conn, NULL);
+    expect_value(__nopoll_conn_send_common, length, len);
+    will_return(__nopoll_conn_send_common, -1);
+    expect_function_calls(__nopoll_conn_send_common, 1);
+    
+    int bytesWritten = sendResponse(NULL, "Hello Parodus!", len);
+    ParodusPrint("Number of bytes written: %d\n", bytesWritten);
+    assert_int_equal(bytesWritten, 0);   
+}
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -110,6 +122,7 @@ int main(void)
         cmocka_unit_test(test_sendResponseWithFragments),
         cmocka_unit_test(err_sendResponse),
         cmocka_unit_test(err_sendResponseFlushWrites),
+        cmocka_unit_test(err_sendResponseConnNull),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -7,7 +7,7 @@
 #include <cmocka.h>
 
 #include "../src/ParodusInternal.h"
-#include "nopoll_mock.h"
+//#include "nopoll_mock.h"
 
 const unsigned char *nopoll_msg_get_payload(noPollMsg *msg)
 {
@@ -29,12 +29,12 @@ nopoll_bool nopoll_msg_ref(noPollMsg *msg)
     (void) msg;
     return false;
 }
-
+/*
 void close_and_unref_connection(noPollConn *conn)
 {
     (void) conn;
 }
-
+*/
 int checkHostIp(char * serverIP)
 {
    (void) serverIP;
