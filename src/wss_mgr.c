@@ -34,6 +34,7 @@
 #include "connection.h"
 #include "spin_thread.h"
 #include "client_list.h"
+#include "service_alive.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -50,7 +51,6 @@
 #define METADATA_COUNT 					11			
 #define WEBPA_MESSAGE_HANDLE_INTERVAL_MSEC          	250
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
-#define KEEPALIVE_INTERVAL_SEC                         	30
 #define PARODUS_UPSTREAM "tcp://127.0.0.1:6666"
 
 
@@ -99,7 +99,6 @@ static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * 
 static void *handle_upstream();
 static void *handleUpStreamEvents();
 static void *messageHandlerTask();
-static void *serviceAliveTask();
 static void getParodusUrl();
 
 reg_list_item_t * get_global_node(void)
@@ -528,75 +527,6 @@ static void *messageHandlerTask()
 	return 0;
 }
 
-/*
- * @brief To handle registered services to indicate that the service is still alive.
- */
-static void *serviceAliveTask()
-{
-	void *svc_bytes;
-	wrp_msg_t svc_alive_msg;
-	int byte = 0;
-	size_t size = 0;
-	int ret = -1, nbytes = -1;
-	reg_list_item_t *temp = NULL; 
-	
-	svc_alive_msg.msg_type = WRP_MSG_TYPE__SVC_ALIVE;	
-	
-	nbytes = wrp_struct_to( &svc_alive_msg, WRP_BYTES, &svc_bytes );
-        if(nbytes < 0)
-        {
-                ParodusError(" Failed to encode wrp struct returns %d\n", nbytes);
-        }
-        else
-        {
-	        while(1)
-	        {
-		        ParodusPrint("serviceAliveTask: numOfClients registered is %d\n", numOfClients);
-		        if(numOfClients > 0)
-		        {
-			        //sending svc msg to all the clients every 30s
-			        temp = head;
-			        size = (size_t) nbytes;
-			        while(NULL != temp)
-			        {
-				        byte = nn_send (temp->sock, svc_bytes, size, 0);
-				
-				        ParodusPrint("svc byte sent :%d\n", byte);
-				        if(byte == nbytes)
-				        {
-					        ParodusPrint("service_name: %s is alive\n",temp->service_name);
-				        }
-				        else
-				        {
-					        ParodusInfo("Failed to send keep alive msg, service %s is dead\n", temp->service_name);
-					        //need to delete this client service from list
-					
-					        ret = deleteFromList((char*)temp->service_name);
-				        }
-				        byte = 0;
-				        if(ret == 0)
-				        {
-					        ParodusPrint("Deletion from list is success, doing resync with head\n");
-					        temp= head;
-					        ret = -1;
-				        }
-				        else
-				        {
-					        temp= temp->next;
-				        }
-			        }
-		         	ParodusPrint("Waiting for 30s to send keep alive msg \n");
-		         	sleep(KEEPALIVE_INTERVAL_SEC);
-	            	}
-	            	else
-	            	{
-	            		ParodusInfo("No clients are registered, waiting ..\n");
-	            		sleep(70);
-	            	}
-	        }
-	}
-	return 0;
-}
 
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
