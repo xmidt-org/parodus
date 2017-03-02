@@ -286,7 +286,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
-
+#define MAX_RECV_BUFFER_SIZE (1024 * 20)
        
 /*
  * @brief To handle UpStream messages which is received from nanomsg server socket
@@ -300,7 +300,7 @@ static void *handle_upstream()
 	UpStreamMsg *message;
 	int sock;
 	int bytes =0;
-	void *buf;
+	char *buf = (char *) malloc(MAX_RECV_BUFFER_SIZE);
 		
 		
 	sock = nn_socket( AF_SP, NN_PULL );
@@ -313,9 +313,9 @@ static void *handle_upstream()
 		buf = NULL;
 		ParodusInfo("nanomsg server gone into the listening mode...\n");
 		
-		bytes = nn_recv (sock, &buf, NN_MSG, 0);
+		bytes = nn_recv (sock, buf, NN_MSG, 0);
 			
-		ParodusInfo ("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
+		ParodusInfo ("Upstream message received from nanomsg client: \"%s\"\n", buf);
 		
 		message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
 		
@@ -358,6 +358,7 @@ static void *handle_upstream()
 				
 	}
 	ParodusPrint ("End of handle_upstream\n");
+	free(buf);
 	return 0;
 }
 
