@@ -22,8 +22,7 @@
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
-
-extern void listenerOnMessage_queue(noPollCtx *ctx, noPollConn *conn, noPollMsg *msg,noPollPtr user_data);
+#include "../src/nopoll_handlers.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -65,9 +64,9 @@ void test_listenerOnMessage_queue()
 {
     pthread_t thread_a, thread_b;
 
-    terminated = true;
+    //terminated = true;
     pthread_create(&thread_a, NULL, a, NULL);
-    terminated = false;
+    //terminated = false;
     pthread_create(&thread_b, NULL, b, NULL);
 
     pthread_join(thread_a, NULL);

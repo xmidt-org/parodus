@@ -22,8 +22,7 @@
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
-
-extern void listenerOnPingMessage(noPollCtx *ctx, noPollConn *conn, noPollMsg *msg, noPollPtr user_data);
+#include "../src/nopoll_handlers.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -38,16 +37,16 @@ void test_listenerOnPingMessage()
     noPollConn c;
     noPollMsg  m;
 
-    terminated = true;
+    //terminated = true;
     listenerOnPingMessage(NULL, &c, NULL, NULL);
 
-    terminated = true;
+    //terminated = true;
     listenerOnPingMessage(NULL, &c, &m, NULL);
 
-    terminated = false;
+    //terminated = false;
     listenerOnPingMessage(NULL, &c, NULL, NULL);
 
-    terminated = false;
+    //terminated = false;
     listenerOnPingMessage(NULL, &c, &m, NULL);
 }
 

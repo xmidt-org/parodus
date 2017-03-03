@@ -23,8 +23,8 @@
 
 //#include <nanomsg/bus.h>
 
-#include "../src/wss_mgr.h"
 #include "../src/ParodusInternal.h"
+#include "../src/nopoll_helpers.h"
 #include "wrp-c.h"
 
 #include<errno.h>
@@ -34,8 +34,6 @@
 #define CLIENT1_URL "tcp://127.0.0.1:6667"
 #define CLIENT2_URL "tcp://127.0.0.1:6668"
 #define CLIENT3_URL "tcp://127.0.0.1:6669"
-
-#define UNUSED(x) (void)(x)
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -66,16 +64,16 @@ int nopoll_conn_send_binary( noPollConn *conn, const char *content, long length 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-void test_handleUpstreamMessage()
+void test_sendMessage()
 {
-    handleUpstreamMessage(NULL, "hello", 6);
+    sendMessage(NULL, "hello", 6);
 }
 
 void add_suites( CU_pSuite *suite )
 {
     ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
-    CU_add_test( *suite, "Test handleUpstreamMessage()", test_handleUpstreamMessage );
+    CU_add_test( *suite, "Test sendMessage()", test_sendMessage );
 }
 
 

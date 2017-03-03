@@ -21,8 +21,9 @@
 #include <assert.h>
 #include <nopoll.h>
 
-#include "../src/wss_mgr.h"
 #include "../src/config.h"
+#include "../src/downstream.h"
+#include "../src/nopoll_helpers.h"
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
 #include "wrp-c.h"
@@ -41,15 +42,15 @@ void test_set_global_conn()
     noPollConn *conn;
     noPollConnOpts * opts;
     int headerCount;
-    const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
-    const char * headerValues[HTTP_CUSTOM_HEADER_COUNT];
+    const char * headerNames[4] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
+    const char * headerValues[4];
 
     headerValues[0] = "123567892366";
     headerValues[1] = "wrp-0.11,getset-0.1";  
     headerValues[2] = "WebPA-1.6 (TG1682_DEV_master_2016000000sdy;TG1682/ARRISGroup,Inc.;)";
     headerValues[3] = "zacbvfxcvglodfjdigjkdshuihgkvn";
 
-    headerCount = HTTP_CUSTOM_HEADER_COUNT;
+    headerCount = 4;
 
     opts = nopoll_conn_opts_new ();
     nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);

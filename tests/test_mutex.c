@@ -21,6 +21,7 @@
 #include <CUnit/Basic.h>
 
 #include "../src/ParodusInternal.h"
+#include "../src/mutex.h"
 
 struct shared_data {
     noPollPtr mutex;

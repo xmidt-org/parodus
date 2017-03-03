@@ -35,7 +35,6 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
-                    ${INCLUDE_DIR}/cmocka
                    )
 
 # Compile options/flags
@@ -160,21 +159,13 @@ add_dependencies(libwrp-c wrp-c)
 ExternalProject_Add(libparodus
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
     GIT_REPOSITORY https://github.com/Comcast/libparodus.git
-    GIT_TAG "master"
+    GIT_TAG "e020ebc82ff2352c351729556671986f0f791c7e"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
 
-endif ()
-
-link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
-
-add_subdirectory(src)
 if (BUILD_TESTING)
-    add_subdirectory(tests)
-endif (BUILD_TESTING)
-
 # cmocka external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cmocka
@@ -185,3 +176,13 @@ ExternalProject_Add(cmocka
 )
 add_library(libcmocka STATIC SHARED IMPORTED)
 add_dependencies(libcmocka cmocka)
+endif (BUILD_TESTING)
+
+endif ()
+
+link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
+
+add_subdirectory(src)
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif (BUILD_TESTING)

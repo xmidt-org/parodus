@@ -1,11 +1,21 @@
-
+/**
+ * @file config.h
+ *
+ * @description This file contains configuration details of parodus
+ *
+ * Copyright (c) 2015  Comcast
+ */
+ 
 #ifndef _CONFIG_H_ 
 #define _CONFIG_H_
 
-#include <stdio.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*----------------------------------------------------------------------------*/
+/*                                   Macros                                   */
+/*----------------------------------------------------------------------------*/
 
 /* WRP CRUD Model Macros */
 #define HW_MODELNAME                                	"hw-model"
@@ -25,6 +35,11 @@ extern "C" {
 
 #define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
 #define WEBPA_PATH_URL                                    "/api/v2/device"
+
+/*----------------------------------------------------------------------------*/
+/*                               Data Structures                              */
+/*----------------------------------------------------------------------------*/
+
 typedef struct
 {
     char hw_model[64];
@@ -44,7 +59,13 @@ typedef struct
     unsigned int secureFlag;
 } ParodusCfg;
 
+/*----------------------------------------------------------------------------*/
+/*                             Function Prototypes                            */
+/*----------------------------------------------------------------------------*/
+
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
+
+void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);

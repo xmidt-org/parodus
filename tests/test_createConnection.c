@@ -26,6 +26,7 @@
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
+#include "../src/config.h"
 #include "wrp-c.h"
 
 /*----------------------------------------------------------------------------*/

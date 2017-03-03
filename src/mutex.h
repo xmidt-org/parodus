@@ -15,33 +15,44 @@
  *
  */
 
-#include "time.h"
-#include "parodus_log.h"
+#include <nopoll.h>
+#include <pthread.h>
+
+#ifndef _MUTEX_H_ 
+#define _MUTEX_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*----------------------------------------------------------------------------*/
-/*                             External Functions                             */
+/*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-void getCurrentTime(struct timespec *timer)
-{
-	clock_gettime(CLOCK_REALTIME, timer);
-}
+/** 
+ * @brief createMutex Nopoll create mutex handler
+ */ 
+noPollPtr createMutex();
+   
+/** 
+ * @brief lockMutex Nopoll lock mutex handler
+ */
+void lockMutex(noPollPtr _mutex);
 
-uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer)
-{
-    uint64_t systime = 0;
-    clock_gettime(CLOCK_REALTIME, timer);       
-    ParodusPrint("timer->tv_sec : %lu\n",timer->tv_sec);
-    ParodusPrint("timer->tv_nsec : %lu\n",timer->tv_nsec);
-    systime = (uint64_t)timer->tv_sec * 1000000L + timer->tv_nsec/ 1000;
-    return systime;	
-}
+/** 
+ * @brief unlockMutex Nopoll unlock mutex handler
+ */
+void unlockMutex(noPollPtr _mutex);
 
-long timeValDiff(struct timespec *starttime, struct timespec *finishtime)
-{
-	long msec;
-	msec=(finishtime->tv_sec-starttime->tv_sec)*1000;
-	msec+=(finishtime->tv_nsec-starttime->tv_nsec)/1000000;
-	return msec;
-}
+/** 
+ * @brief destroyMutex Nopoll destroy mutex handler
+ */
+void destroyMutex(noPollPtr _mutex);
 
+    
+#ifdef __cplusplus    
+}
+#endif
+
+
+#endif

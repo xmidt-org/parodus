@@ -1,25 +1,24 @@
 /**
- * @file internal.c
+ * @file service_alive.c
  *
- * @description This file is used to manage internal functions of parodus
+ * @description This file is used to manage keep alive section
  *
  * Copyright (c) 2015  Comcast
  */
 
 #include "ParodusInternal.h"
-#include "wss_mgr.h"
 #include "connection.h"
 #include "client_list.h"
 #include "service_alive.h"
-#include <nanomsg/nn.h>
-#include <nanomsg/pipeline.h>
 
+/*----------------------------------------------------------------------------*/
+/*                                   Macros                                   */
+/*----------------------------------------------------------------------------*/
 #define KEEPALIVE_INTERVAL_SEC                         	30
 
 /*----------------------------------------------------------------------------*/
-/*                             Internal functions                             */
+/*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-
 /*
  * @brief To handle registered services to indicate that the service is still alive.
  */
@@ -47,7 +46,7 @@ void *serviceAliveTask()
 		        if(numOfClients > 0)
 		        {
 			        //sending svc msg to all the clients every 30s
-			        temp = head;
+			        temp = get_global_node();
 			        size = (size_t) nbytes;
 			        while(NULL != temp)
 			        {
@@ -69,7 +68,7 @@ void *serviceAliveTask()
 				        if(ret == 0)
 				        {
 					        ParodusPrint("Deletion from list is success, doing resync with head\n");
-					        temp= head;
+					        temp= get_global_node();
 					        ret = -1;
 				        }
 				        else

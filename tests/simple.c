@@ -355,13 +355,13 @@ void test_checkHostIp()
 	
 }
 
-void test_handleUpstreamMessage()
+void test_sendMessage()
 {
 	noPollConnOpts * opts;
 	noPollCtx *ctx = NULL;
 	noPollConn *conn = NULL;
         
-    ParodusPrint("**********************************Calling handleUpstreamMessage \n");
+    ParodusPrint("**********************************Calling sendMessage \n");
 	const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
 	const char * headerValues[HTTP_CUSTOM_HEADER_COUNT];
 
@@ -389,7 +389,7 @@ void test_handleUpstreamMessage()
 	}*/
 
 	ParodusPrint("Sending conn as %p \n", conn);
-	handleUpstreamMessage(conn, "hello", 6);
+	sendMessage(conn, "hello", 6);
 
 }
 
@@ -471,7 +471,7 @@ void add_suites( CU_pSuite *suite )
     CU_add_test( *suite, "UnitTest 1", test_parseCommandLine );
     CU_add_test( *suite, "UnitTest 2", test_checkHostIp );
 	
-    CU_add_test( *suite, "UnitTest 3", test_handleUpstreamMessage );
+    CU_add_test( *suite, "UnitTest 3", test_sendMessage );
 
     CU_add_test( *suite, "UnitTest 4", test_loadParodusCfg );
     
