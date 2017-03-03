@@ -313,11 +313,6 @@ void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg
 
 	ParodusMsg *message;
 
-	if (terminated) 
-	{
-		return;
-	}
-
 	message = (ParodusMsg *)malloc(sizeof(ParodusMsg));
 
 	if(message)
@@ -378,7 +373,7 @@ void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,
     noPollPtr payload = NULL;
 	payload = (noPollPtr ) nopoll_msg_get_payload(msg);
 
-	if ((payload!=NULL) && !terminated) 
+	if ((payload!=NULL)) 
 	{
 		ParodusInfo("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
 		if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 

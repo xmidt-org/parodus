@@ -79,9 +79,9 @@ void test_listenerOnCloseMessage()
 {
     pthread_t thread_a, thread_b;
 
-    terminated = true;
+    //terminated = true;
     pthread_create(&thread_a, NULL, a, NULL);
-    terminated = false;
+    //terminated = false;
     pthread_create(&thread_b, NULL, b, NULL);
 
     pthread_join(thread_a, NULL);

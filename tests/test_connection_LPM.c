@@ -38,16 +38,16 @@ void test_listenerOnPingMessage()
     noPollConn c;
     noPollMsg  m;
 
-    terminated = true;
+    //terminated = true;
     listenerOnPingMessage(NULL, &c, NULL, NULL);
 
-    terminated = true;
+    //terminated = true;
     listenerOnPingMessage(NULL, &c, &m, NULL);
 
-    terminated = false;
+    //terminated = false;
     listenerOnPingMessage(NULL, &c, NULL, NULL);
 
-    terminated = false;
+    //terminated = false;
     listenerOnPingMessage(NULL, &c, &m, NULL);
 }
 

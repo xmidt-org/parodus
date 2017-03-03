@@ -1,4 +1,3 @@
-bool terminated;
 bool LastReasonStatus;
 bool close_retry;
 char *reconnect_reason;

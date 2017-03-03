@@ -49,7 +49,6 @@ extern bool LastReasonStatus;
 extern char *reconnect_reason;
 
 extern  volatile unsigned int heartBeatTimer;
-extern volatile bool terminated;
 extern  ParodusMsg *ParodusMsgQ;
 extern UpStreamMsg *UpStreamMsgQ;
 
