@@ -1,17 +1,45 @@
-
+/**
+ * @file connection.c
+ *
+ * @description This decribes functions required to manage WebSocket client connections.
+ *
+ * Copyright (c) 2015  Comcast
+ */
+ 
 #include "connection.h"
+#include "ParodusInternal.h"
+#include "time.h"
+#include "config.h"
+#include "upstream.h"
+#include "downstream.h"
+#include "nopoll_helpers.h"
+#include "mutex.h"
+#include "spin_thread.h"
+#include "service_alive.h"
 
-char deviceMAC[32]={'\0'}; 
+/*----------------------------------------------------------------------------*/
+/*                                   Macros                                   */
+/*----------------------------------------------------------------------------*/
 
-void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data);
-void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data);
-void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data);
+#define HTTP_CUSTOM_HEADER_COUNT                    	4
+#define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
 
-#define MAX_SEND_SIZE (60 * 1024)
+/*----------------------------------------------------------------------------*/
+/*                            File Scoped Variables                           */
+/*----------------------------------------------------------------------------*/
 
-#define FLUSH_WAIT_TIME (2000000LL)
-
+char deviceMAC[32]={'\0'};
+bool close_retry = false;
+bool LastReasonStatus = false;
+char *reconnect_reason = "webpa_process_starts";
+volatile unsigned int heartBeatTimer = 0;
 static noPollConn *g_conn = NULL;
+pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
+
+/*----------------------------------------------------------------------------*/
+/*                             External Functions                             */
+/*----------------------------------------------------------------------------*/
+
 noPollConn *get_global_conn(void)
 {
     return g_conn;
@@ -22,42 +50,82 @@ void set_global_conn(noPollConn *conn)
     g_conn = conn;
 }
 
-int sendResponse(noPollConn * conn, void * buffer, size_t length)
+void createSocketConnection(void *config_in, void (* initKeypress)())
 {
-	char *cp = buffer;
-	int final_len_sent = 0;
-	noPollOpCode frame_type = NOPOLL_BINARY_FRAME;
+    int intTimer=0;	
+    ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
+    noPollCtx *ctx;
 
-	while (length > 0) 
-	{
-		int bytes_sent, len_to_send;
+    loadParodusCfg(tmpCfg,get_parodus_cfg());
+    ParodusPrint("Configure nopoll thread handlers in Parodus\n");
+    nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
+    ctx = nopoll_ctx_new();
+    if (!ctx) 
+    {
+        ParodusError("\nError creating nopoll context\n");
+    }
 
-		len_to_send = length > MAX_SEND_SIZE ? MAX_SEND_SIZE : length;
-		length -= len_to_send;
-		bytes_sent = __nopoll_conn_send_common(conn, cp, len_to_send, length > 0 ? nopoll_false : nopoll_true, 0, frame_type);
-		
-		if (bytes_sent != len_to_send) 
-		{
-			if (-1 == bytes_sent || (bytes_sent = nopoll_conn_flush_writes(conn, FLUSH_WAIT_TIME, bytes_sent)) != len_to_send)
-			{
-				ParodusPrint("sendResponse() Failed to send all the data\n");
-				cp = NULL;
-				break;
-			}
-		}
-		cp += len_to_send;
-		final_len_sent += len_to_send;
-		frame_type = NOPOLL_CONTINUATION_FRAME;
-	}
+    #ifdef NOPOLL_LOGGER
+    nopoll_log_set_handler (ctx, __report_log, NULL);
+    #endif
 
-	return final_len_sent;
-}
+    createNopollConnection(ctx);
+    packMetaData();
+    setMessageHandlers();
+    getParodusUrl();
+    UpStreamMsgQ = NULL;
+    StartThread(handle_upstream);
+    StartThread(processUpstreamMessage);
+    ParodusMsgQ = NULL;
+    StartThread(messageHandlerTask);
+    StartThread(serviceAliveTask);
 
-void setMessageHandlers()
-{
-    nopoll_conn_set_on_msg(get_global_conn(), (noPollOnMessageHandler) listenerOnMessage_queue, NULL);
-    nopoll_conn_set_on_ping_msg(get_global_conn(), (noPollOnMessageHandler)listenerOnPingMessage, NULL);
-    nopoll_conn_set_on_close(get_global_conn(), (noPollOnCloseHandler)listenerOnCloseMessage, NULL);
+    if (NULL != initKeypress) 
+    {
+        (* initKeypress) ();
+    }
+
+    do
+    {
+        nopoll_loop_wait(ctx, 5000000);
+        intTimer = intTimer + 5;
+
+        if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout) 
+        {
+            if(!close_retry) 
+            {
+                ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
+                reconnect_reason = "Ping_Miss";
+                LastReasonStatus = true;
+                pthread_mutex_lock (&close_mut);
+                close_retry = true;
+                pthread_mutex_unlock (&close_mut);
+            }
+            else
+            {			
+                ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+            }
+            heartBeatTimer = 0;
+        }
+        else if(intTimer >= 30)
+        {
+            ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
+            heartBeatTimer += HEARTBEAT_RETRY_SEC;	
+            intTimer = 0;		
+        }
+
+        if(close_retry)
+        {
+            ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
+            close_and_unref_connection(g_conn);
+            g_conn = NULL;
+            createNopollConnection(ctx);
+        }		
+    } while(!close_retry);
+
+    close_and_unref_connection(g_conn);
+    nopoll_ctx_unref(ctx);
+    nopoll_cleanup_library();
 }
 
 /**
@@ -294,121 +362,13 @@ int createNopollConnection(noPollCtx *ctx)
 	return nopoll_true;
 }
 
-
-/**
- * @brief listenerOnMessage_queue function to add messages to the queue
- *
- * @param[in] ctx The context where the connection happens.
- * @param[in] conn The Websocket connection object
- * @param[in] msg The message received from server for various process requests
- * @param[out] user_data data which is to be sent
- */
-
-void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data)
+void close_and_unref_connection(noPollConn *conn)
 {
-
-	UNUSED(ctx);
-	UNUSED(conn);
-	UNUSED(user_data);
-
-	ParodusMsg *message;
-
-	message = (ParodusMsg *)malloc(sizeof(ParodusMsg));
-
-	if(message)
-	{
-
-		message->msg = msg;
-		message->payload = (void *)nopoll_msg_get_payload (msg);
-		message->len = nopoll_msg_get_payload_size (msg);
-		message->next = NULL;
-
-	
-		nopoll_msg_ref(msg);
-		
-		pthread_mutex_lock (&g_mutex);		
-		ParodusPrint("mutex lock in producer thread\n");
-		
-		if(ParodusMsgQ == NULL)
-		{
-			ParodusMsgQ = message;
-			ParodusPrint("Producer added message\n");
-		 	pthread_cond_signal(&g_cond);
-			pthread_mutex_unlock (&g_mutex);
-			ParodusPrint("mutex unlock in producer thread\n");
-		}
-		else
-		{
-			ParodusMsg *temp = ParodusMsgQ;
-			while(temp->next)
-			{
-				temp = temp->next;
-			}
-			temp->next = message;
-			pthread_mutex_unlock (&g_mutex);
-		}
-	}
-	else
-	{
-		//Memory allocation failed
-		ParodusError("Memory allocation is failed\n");
-	}
-	ParodusPrint("*****Returned from listenerOnMessage_queue*****\n");
-}
-
-/**
- * @brief listenerOnPingMessage function to create WebSocket listener to receive heartbeat ping messages
- *
- * @param[in] ctx The context where the connection happens.
- * @param[in] conn Websocket connection object
- * @param[in] msg The ping message received from the server
- * @param[out] user_data data which is to be sent
- */
-void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg, noPollPtr user_data)
-{
-
-	UNUSED(ctx);
-	UNUSED(user_data);
-
-    noPollPtr payload = NULL;
-	payload = (noPollPtr ) nopoll_msg_get_payload(msg);
-
-	if ((payload!=NULL)) 
-	{
-		ParodusInfo("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
-		if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 
-		{
-			nopoll_conn_send_frame (conn, nopoll_true, nopoll_true, NOPOLL_PONG_FRAME, strlen(payload), payload, 0);
-			heartBeatTimer = 0;
-			ParodusPrint("Sent Pong frame and reset HeartBeat Timer\n");
-		}
-	}
-}
-
-void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_data)
-{
-	
-
-	UNUSED(ctx);
-	UNUSED(conn);
-	
-	ParodusPrint("listenerOnCloseMessage(): mutex lock in producer thread\n");
-	
-	if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
-	{
-		reconnect_reason = "Server_closed_connection";
-		LastReasonStatus = true;
-		
-	}
-	else if ((user_data == NULL) && !LastReasonStatus)
-	{
-		reconnect_reason = "Unknown";
-	}
-
-	pthread_mutex_lock (&close_mut);
-	close_retry = true;
-	pthread_mutex_unlock (&close_mut);
-	ParodusPrint("listenerOnCloseMessage(): mutex unlock in producer thread\n");
-
+    if (conn) {
+        nopoll_conn_close(conn);
+        if (0 < nopoll_conn_ref_count (conn)) {
+            nopoll_conn_unref(conn);
+        }
+    }
 }
 

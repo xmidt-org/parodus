@@ -1,24 +1,20 @@
 /**
- * @file internal.c
+ * @file client_list.h
  *
- * @description This file is used to manage internal functions of parodus
+ * @description This file is used to manage registered clients
  *
  * Copyright (c) 2015  Comcast
  */
 
 #include "ParodusInternal.h"
-#include "wss_mgr.h"
 #include "connection.h"
 #include "client_list.h"
-#include <nanomsg/nn.h>
-#include <nanomsg/pipeline.h>
 
-
+/*----------------------------------------------------------------------------*/
+/*                            File Scoped Variables                           */
+/*----------------------------------------------------------------------------*/
+int numOfClients = 0;
 static reg_list_item_t * g_head = NULL;
-
-/*----------------------------------------------------------------------------*/
-/*                             Internal functions                             */
-/*----------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */

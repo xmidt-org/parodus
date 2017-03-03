@@ -1,5 +1,17 @@
+/**
+ * @file ParodusInternal.c
+ *
+ * @description This file is used to manage internal functions of parodus
+ *
+ * Copyright (c) 2015  Comcast
+ */
+ 
 #include "ParodusInternal.h"
+#include "config.h"
 
+/*----------------------------------------------------------------------------*/
+/*                             External Functions                             */
+/*----------------------------------------------------------------------------*/
 char* getWebpaConveyHeader()
 {
     cJSON *response = cJSON_CreateObject();
@@ -86,39 +98,3 @@ char* getWebpaConveyHeader()
 
     return encodedData;
 }
-
-void packMetaData()
-{
-    char boot_time[256]={'\0'};
-    //Pack the metadata initially to reuse for every upstream msg sending to server
-    ParodusPrint("-------------- Packing metadata ----------------\n");
-    sprintf(boot_time, "%d", get_parodus_cfg()->boot_time);
-
-    struct data meta_pack[METADATA_COUNT] = {
-            {HW_MODELNAME, get_parodus_cfg()->hw_model},
-            {HW_SERIALNUMBER, get_parodus_cfg()->hw_serial_number},
-            {HW_MANUFACTURER, get_parodus_cfg()->hw_manufacturer},
-            {HW_DEVICEMAC, get_parodus_cfg()->hw_mac},
-            {HW_LAST_REBOOT_REASON, get_parodus_cfg()->hw_last_reboot_reason},
-            {FIRMWARE_NAME , get_parodus_cfg()->fw_name},
-            {BOOT_TIME, boot_time},
-            {LAST_RECONNECT_REASON, reconnect_reason},
-            {WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol},
-            {WEBPA_UUID,get_parodus_cfg()->webpa_uuid},
-            {WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used}
-        };
-
-    const data_t metapack = {METADATA_COUNT, meta_pack};
-
-    metaPackSize = wrp_pack_metadata( &metapack , &metadataPack );
-
-    if (metaPackSize > 0) 
-    {
-	    ParodusPrint("metadata encoding is successful with size %zu\n", metaPackSize);
-    }
-    else
-    {
-	    ParodusError("Failed to encode metadata\n");
-    }
-}
-

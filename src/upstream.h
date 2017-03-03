@@ -1,47 +1,41 @@
 /**
- * @file client_list.h
+ * @file upstream.h
  *
- * @description This file is used to manage registered clients
+ * @description This header defines functions required to manage upstream messages.
  *
  * Copyright (c) 2015  Comcast
  */
-#ifndef _CLIENTLIST_H_
-#define _CLIENTLIST_H_
+ 
+#ifndef _UPSTREAM_H_
+#define _UPSTREAM_H_
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-
-typedef struct reg_list_item
+typedef struct UpStreamMsg__
 {
-	int sock;
-	char service_name[32];
-	char url[100];
-	struct reg_list_item *next;
-} reg_list_item_t;
+	void *msg;
+	size_t len;
+	struct UpStreamMsg__ *next;
+} UpStreamMsg;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-  
-
-int addToList( wrp_msg_t **msg);
-
-int sendAuthStatus(reg_list_item_t *new_node);
-
-int deleteFromList(char* service_name);
-extern int numOfClients;
-
-reg_list_item_t * get_global_node(void);
+void packMetaData();
+void *handle_upstream();
+void *processUpstreamMessage();
+void sendUpstreamMsgToServer(void **resp_bytes, int resp_size);
 
 #ifdef __cplusplus
 }
 #endif
-    
 
-#endif
+
+#endif /* _UPSTREAM_H_ */
 

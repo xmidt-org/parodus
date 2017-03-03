@@ -15,15 +15,14 @@
  */
 #include <assert.h>
 #include <stdarg.h>
-
+#include <stdbool.h>
 #include <CUnit/Basic.h>
 #include <nopoll.h>
 #include <nopoll_private.h>
 
+#include "../src/nopoll_handlers.h"
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
-
-extern void listenerOnCloseMessage(noPollCtx *ctx, noPollConn *conn, noPollPtr user_data);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */

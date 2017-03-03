@@ -14,7 +14,8 @@
  * limitations under the License.
  *
  */
-#include "ParodusInternal.h"
+#include "mutex.h"
+#include "parodus_log.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */

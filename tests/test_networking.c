@@ -23,7 +23,6 @@
 
 //#include <nanomsg/bus.h>
 
-#include "../src/wss_mgr.h"
 #include "../src/ParodusInternal.h"
 #include "wrp-c.h"
 

@@ -26,6 +26,7 @@
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
+#include "../src/nopoll_helpers.h"
 #include "wrp-c.h"
 
 #define MAX_SEND_SIZE (60 * 1024)

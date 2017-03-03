@@ -18,13 +18,16 @@
 #include <stdint.h>
 #include <time.h>
 
-#ifndef _PARODUS_UTILS_H_ 
-#define _PARODUS_UTILS_H_
+#ifndef _TIME_H_ 
+#define _TIME_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*----------------------------------------------------------------------------*/
+/*                             Function Prototypes                            */
+/*----------------------------------------------------------------------------*/
  /*
  * @brief displays the current time.
  * @param[in] timer current time.

@@ -22,8 +22,7 @@
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
-
-extern void listenerOnMessage_queue(noPollCtx *ctx, noPollConn *conn, noPollMsg *msg,noPollPtr user_data);
+#include "../src/nopoll_handlers.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */

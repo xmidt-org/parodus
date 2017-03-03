@@ -1,160 +1,112 @@
 /**
- * @file internal.c
+ * @file nopoll_helpers.c
  *
- * @description This file is used to manage internal functions of parodus
+ * @description This file is used to manage incomming and outgoing messages.
  *
  * Copyright (c) 2015  Comcast
  */
 
 #include "ParodusInternal.h"
-#include "wss_mgr.h"
 #include "connection.h"
+#include "nopoll_helpers.h"
+#include "nopoll_handlers.h"
 
 /*----------------------------------------------------------------------------*/
-/*                             Internal functions                             */
+/*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
+#define MAX_SEND_SIZE (60 * 1024)
+#define FLUSH_WAIT_TIME (2000000LL)
 
+/*----------------------------------------------------------------------------*/
+/*                             External functions                             */
+/*----------------------------------------------------------------------------*/
+
+void setMessageHandlers()
+{
+    nopoll_conn_set_on_msg(get_global_conn(), (noPollOnMessageHandler) listenerOnMessage_queue, NULL);
+    nopoll_conn_set_on_ping_msg(get_global_conn(), (noPollOnMessageHandler)listenerOnPingMessage, NULL);
+    nopoll_conn_set_on_close(get_global_conn(), (noPollOnCloseHandler)listenerOnCloseMessage, NULL);
+}
 
 /** To send upstream msgs to server ***/
 
 void sendMessage(noPollConn *conn, void *msg, size_t len)
 {
-	int bytesWritten = 0;
-	
-	ParodusInfo("sendMessage length %zu\n", len);
-	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
-	{
-		//bytesWritten = nopoll_conn_send_binary(conn, msg, len);
-		bytesWritten = sendResponse(conn, msg, len);
-		ParodusPrint("Number of bytes written: %d\n", bytesWritten);
-		if (bytesWritten != (int) len) 
-		{
-			ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
-		}
-	}
-	else
-	{
-		ParodusError("Failed to send msg upstream as connection is not OK\n");
-	}
-	
+    int bytesWritten = 0;
+
+    ParodusInfo("sendMessage length %zu\n", len);
+    if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
+    {
+        //bytesWritten = nopoll_conn_send_binary(conn, msg, len);
+        bytesWritten = sendResponse(conn, msg, len);
+        ParodusPrint("Number of bytes written: %d\n", bytesWritten);
+        if (bytesWritten != (int) len) 
+        {
+            ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
+        }
+    }
+    else
+    {
+        ParodusError("Failed to send msg upstream as connection is not OK\n");
+    }
 }
 
+int sendResponse(noPollConn * conn, void * buffer, size_t length)
+{
+    char *cp = buffer;
+    int final_len_sent = 0;
+    noPollOpCode frame_type = NOPOLL_BINARY_FRAME;
 
+    while (length > 0) 
+    {
+        int bytes_sent, len_to_send;
+
+        len_to_send = length > MAX_SEND_SIZE ? MAX_SEND_SIZE : length;
+        length -= len_to_send;
+        bytes_sent = __nopoll_conn_send_common(conn, cp, len_to_send, length > 0 ? nopoll_false : nopoll_true, 0, frame_type);
+
+        if (bytes_sent != len_to_send) 
+        {
+            if (-1 == bytes_sent || (bytes_sent = nopoll_conn_flush_writes(conn, FLUSH_WAIT_TIME, bytes_sent)) != len_to_send)
+            {
+                ParodusPrint("sendResponse() Failed to send all the data\n");
+                cp = NULL;
+                break;
+            }
+        }
+        cp += len_to_send;
+        final_len_sent += len_to_send;
+        frame_type = NOPOLL_CONTINUATION_FRAME;
+    }
+    return final_len_sent;
+}
 
 /**
- * @brief listenerOnMessage function to create WebSocket listener to receive connections
- *
- * @param[in] ctx The context where the connection happens.
- * @param[in] conn The Websocket connection object
- * @param[in] msg The message received from server for various process requests
- * @param[out] user_data data which is to be sent
+ * @brief __report_log Nopoll log handler 
+ * Nopoll log handler for integrating nopoll logs 
  */
-void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_item_t **head )
+void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
 {
-	
-	int rv =0;
-	wrp_msg_t *message;
-	char* destVal = NULL;
-	char dest[32] = {'\0'};
-	
-	int msgType;
-	int bytes =0;
-	int destFlag =0;			
-	int resp_size =0;
-	const char *recivedMsg = NULL;
-	char *str= NULL;
-	wrp_msg_t *resp_msg = NULL;
-	void *resp_bytes;
-	reg_list_item_t *temp = NULL;
-	
-	recivedMsg =  (const char *) msg;
-	
-	ParodusInfo("Received msg from server:%s\n", recivedMsg);	
-	if(recivedMsg!=NULL) 
-	{
-	
-		/*** Decoding downstream recivedMsg to check destination ***/
-		
-		rv = wrp_to_struct(recivedMsg, msgSize, WRP_BYTES, &message);
-				
-		if(rv > 0)
-		{
-			ParodusPrint("\nDecoded recivedMsg of size:%d\n", rv);
-			msgType = message->msg_type;
-			ParodusInfo("msgType received:%d\n", msgType);
-			ParodusPrint("numOfClients registered is %d\n", *numOfClients);
-		
-			if((message->u.req.dest !=NULL))
-			{
-				destVal = message->u.req.dest;
-				strtok(destVal , "/");
-				strcpy(dest,strtok(NULL , "/"));
-				ParodusInfo("Received downstream dest as :%s\n", dest);
-				temp = *head;
-				//Checking for individual clients & Sending to each client
-				
-				while (NULL != temp)
-				{
-					ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
-					// Sending message to registered clients
-					if( strcmp(dest, temp->service_name) == 0) 
-					{
-						ParodusPrint("sending to nanomsg client %s\n", dest);     
-						bytes = nn_send(temp->sock, recivedMsg, msgSize, 0);
-						ParodusInfo("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,temp->url);
-						ParodusPrint("downstream bytes sent:%d\n", bytes);
-						destFlag =1;
-						break;
-				
-					}
-					ParodusPrint("checking the next item in the list\n");
-					temp= temp->next;
-					
-				}
-				
-				
-				//if any unknown dest received sending error response to server
-				if(destFlag ==0)
-				{
-					ParodusError("Unknown dest:%s\n", dest);
-																	
-					cJSON *response = cJSON_CreateObject();
-					cJSON_AddNumberToObject(response, "statusCode", 531);	
-					cJSON_AddStringToObject(response, "message", "Service Unavailable");
-					str = cJSON_PrintUnformatted(response);
-					ParodusInfo("Payload Response: %s\n", str);
-					resp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
-					memset(resp_msg, 0, sizeof(wrp_msg_t));
-
-					resp_msg ->msg_type = msgType;
-					resp_msg ->u.req.source = message->u.req.dest;
-					resp_msg ->u.req.dest = message->u.req.source;
-					resp_msg ->u.req.transaction_uuid=message->u.req.transaction_uuid;
-					resp_msg ->u.req.payload = (void *)str;
-					resp_msg ->u.req.payload_size = strlen(str);
-					
-					ParodusPrint("msgpack encode\n");
-					resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
-					
-				    sendUpstreamMsgToServer(&resp_bytes, resp_size);				
-	
-				}
-				
-			
-		  	 }
-	  	}
-	  	
-	  	else
-	  	{
-	  		ParodusError( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
-	  	}
-	  	
-	  	ParodusPrint("free for downstream decoded msg\n");
-	  	wrp_free_struct(message);
-	  
-
-        }
-                
-     
+    UNUSED(ctx);
+    UNUSED(user_data);
+    
+    if (level == NOPOLL_LEVEL_DEBUG) 
+    {
+        //ParodusPrint("%s\n", log_msg);
+    }
+    if (level == NOPOLL_LEVEL_INFO) 
+    {
+        ParodusInfo ("%s\n", log_msg);
+    }
+    if (level == NOPOLL_LEVEL_WARNING) 
+    {
+        ParodusPrint("%s\n", log_msg);
+    }
+    if (level == NOPOLL_LEVEL_CRITICAL) 
+    {
+        ParodusError("%s\n", log_msg );
+    }
+    return;
 }
+
