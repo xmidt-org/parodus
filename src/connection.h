@@ -52,7 +52,6 @@ extern  volatile unsigned int heartBeatTimer;
 extern  ParodusMsg *ParodusMsgQ;
 extern UpStreamMsg *UpStreamMsgQ;
 
-extern reg_list_item_t * head;
 extern int numOfClients;
 
 

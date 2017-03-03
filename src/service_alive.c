@@ -47,7 +47,7 @@ void *serviceAliveTask()
 		        if(numOfClients > 0)
 		        {
 			        //sending svc msg to all the clients every 30s
-			        temp = head;
+			        temp = get_global_node();
 			        size = (size_t) nbytes;
 			        while(NULL != temp)
 			        {
@@ -69,7 +69,7 @@ void *serviceAliveTask()
 				        if(ret == 0)
 				        {
 					        ParodusPrint("Deletion from list is success, doing resync with head\n");
-					        temp= head;
+					        temp= get_global_node();
 					        ret = -1;
 				        }
 				        else

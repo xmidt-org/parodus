@@ -12,9 +12,22 @@
 #include "client_list.h"
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
+
+
+static reg_list_item_t * g_head = NULL;
+
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/*                             External functions                             */
+/*----------------------------------------------------------------------------*/
+
+reg_list_item_t * get_global_node(void)
+{
+    return g_head;
+}
 
 /** To add clients to registered list ***/
 
@@ -61,16 +74,16 @@ int addToList( wrp_msg_t **msg)
 
 	                new_node->next=NULL;
 	                 
-	                if (head== NULL) //adding first client
+	                if (g_head == NULL) //adding first client
 	                {
 	                        ParodusInfo("Adding first client to list\n");
-	                        head=new_node;
+	                        g_head = new_node;
 	                }
 	                else   //client2 onwards           
 	                {
 	                        reg_list_item_t *temp = NULL;
 	                        ParodusInfo("Adding clients to list\n");
-	                        temp=head;
+	                        temp = g_head;
 
 	                        while(temp->next !=NULL)
 	                        {
@@ -163,7 +176,7 @@ int deleteFromList(char* service_name)
 	ParodusInfo("service to be deleted: %s\n", service_name);
 
 	prev_node = NULL;
-	curr_node = head;	
+	curr_node = g_head ;	
 
 	// Traverse to get the link to be deleted
 	while( NULL != curr_node )
@@ -174,7 +187,7 @@ int deleteFromList(char* service_name)
 			if( NULL == prev_node )
 			{
 				ParodusPrint("need to delete first client\n");
-			 	head = curr_node->next;
+			 	g_head = curr_node->next;
 			}
 			else
 			{

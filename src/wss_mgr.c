@@ -63,10 +63,7 @@
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 static noPollConn *g_conn = NULL;
-reg_list_item_t *g_node = NULL;
 int numOfClients = 0;
-
-reg_list_item_t * head = NULL;
 
 void *metadataPack;
 size_t metaPackSize=-1;
@@ -99,11 +96,6 @@ static void *handle_upstream();
 static void *handleUpStreamEvents();
 static void *messageHandlerTask();
 static void getParodusUrl();
-
-reg_list_item_t * get_global_node(void)
-{
-    return head;
-}
 
 /**
  * @brief __report_log Nopoll log handler 
@@ -367,7 +359,7 @@ static void *handleUpStreamEvents()
                                         //Extract serviceName and url & store it in a linked list for reg_clients
                                         if(numOfClients !=0)
                                         {
-                                                temp = head;
+                                                temp = get_global_node();
                                                 while(temp!=NULL)
                                                 {
                                                         if(strcmp(temp->service_name, msg->u.reg.service_name)==0)
@@ -484,6 +476,7 @@ static void *handleUpStreamEvents()
  */
 static void *messageHandlerTask()
 {
+	reg_list_item_t * head;
 	while(1)
 	{
 		pthread_mutex_lock (&g_mutex);
@@ -494,7 +487,7 @@ static void *messageHandlerTask()
 			ParodusMsgQ = ParodusMsgQ->next;
 			pthread_mutex_unlock (&g_mutex);
 			ParodusPrint("mutex unlock in consumer thread\n");
-				
+			head = get_global_node();
 			listenerOnMessage(message->payload, message->len, &numOfClients, &head);
 								
 			nopoll_msg_unref(message->msg);
