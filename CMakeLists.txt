@@ -35,7 +35,6 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
-                    ${INCLUDE_DIR}/cmocka
                    )
 
 # Compile options/flags
@@ -166,15 +165,7 @@ ExternalProject_Add(libparodus
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
 
-endif ()
-
-link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
-
-add_subdirectory(src)
 if (BUILD_TESTING)
-    add_subdirectory(tests)
-endif (BUILD_TESTING)
-
 # cmocka external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cmocka
@@ -185,3 +176,13 @@ ExternalProject_Add(cmocka
 )
 add_library(libcmocka STATIC SHARED IMPORTED)
 add_dependencies(libcmocka cmocka)
+endif (BUILD_TESTING)
+
+endif ()
+
+link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
+
+add_subdirectory(src)
+if (BUILD_TESTING)
+    add_subdirectory(tests)
+endif (BUILD_TESTING)
