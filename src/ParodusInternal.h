@@ -97,7 +97,7 @@ extern size_t metaPackSize;
 extern char *reconnect_reason;
    
 int checkHostIp(char * serverIP);
-void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len);
+void sendMessage(noPollConn *conn, void *msg, size_t len);
 
 void listenerOnMessage( void * msg, size_t msgSize, int *numOfClients, reg_list_item_t **head);
 

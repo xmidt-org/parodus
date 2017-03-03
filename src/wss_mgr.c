@@ -93,7 +93,7 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 
 static void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data);
 static void *handle_upstream();
-static void *handleUpStreamEvents();
+static void *processUpstreamMessage();
 static void *messageHandlerTask();
 static void getParodusUrl();
 
@@ -186,7 +186,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 	getParodusUrl();
         UpStreamMsgQ = NULL;
         StartThread(handle_upstream);
-        StartThread(handleUpStreamEvents);
+        StartThread(processUpstreamMessage);
         ParodusMsgQ = NULL;
         StartThread(messageHandlerTask);
         StartThread(serviceAliveTask);
@@ -323,7 +323,7 @@ static void *handle_upstream()
 }
 
 
-static void *handleUpStreamEvents()
+static void *processUpstreamMessage()
 {		
         int rv=-1, rc = -1;	
         int msgType;
@@ -434,7 +434,7 @@ static void *handleUpStreamEvents()
                                                 ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
                                                 ParodusPrint("metadata appended upstream msg %s\n", (char *)appendData);
                                                 ParodusInfo("Sending metadata appended upstream msg to server\n");
-                                                handleUpstreamMessage(g_conn,appendData, encodedSize);
+                                                sendMessage(g_conn,appendData, encodedSize);
 
                                                 free( appendData);
                                                 appendData =NULL;
@@ -630,7 +630,7 @@ void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
 		ParodusInfo("Sending response to server\n");
-	   	handleUpstreamMessage(g_conn,appendData, encodedSize);
+	   	sendMessage(g_conn,appendData, encodedSize);
 	   	
 		free( appendData);
 		appendData =NULL;

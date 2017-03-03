@@ -66,16 +66,16 @@ int nopoll_conn_send_binary( noPollConn *conn, const char *content, long length 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-void test_handleUpstreamMessage()
+void test_sendMessage()
 {
-    handleUpstreamMessage(NULL, "hello", 6);
+    sendMessage(NULL, "hello", 6);
 }
 
 void add_suites( CU_pSuite *suite )
 {
     ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
-    CU_add_test( *suite, "Test handleUpstreamMessage()", test_handleUpstreamMessage );
+    CU_add_test( *suite, "Test sendMessage()", test_sendMessage );
 }
 
 

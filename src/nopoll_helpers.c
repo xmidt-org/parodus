@@ -18,11 +18,11 @@
 
 /** To send upstream msgs to server ***/
 
-void handleUpstreamMessage(noPollConn *conn, void *msg, size_t len)
+void sendMessage(noPollConn *conn, void *msg, size_t len)
 {
 	int bytesWritten = 0;
 	
-	ParodusInfo("handleUpstreamMessage length %zu\n", len);
+	ParodusInfo("sendMessage length %zu\n", len);
 	if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
 	{
 		//bytesWritten = nopoll_conn_send_binary(conn, msg, len);
