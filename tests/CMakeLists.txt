@@ -27,7 +27,6 @@ add_test(NAME test_mutex COMMAND test_mutex)
 add_executable(test_mutex test_mutex.c ../src/mutex.c)
 target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS} -lrt)
 
-
 #-------------------------------------------------------------------------------
 #   test_networking
 #-------------------------------------------------------------------------------
@@ -39,9 +38,12 @@ target_link_libraries (test_networking ${PARODUS_COMMON_LIBS} -lrt)
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
-add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/upstream.c ../src/downstream.c ../src/networking.c  ../src/connection.c ../src/ParodusInternal.c ../src/client_list.c ../src/service_alive.c ../src/nopoll_handlers.c ${PARODUS_COMMON_SRC})
-target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg -lrt)
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
+target_link_libraries (test_nopoll_helpers -lrt -lcmocka -lcimplog -lnopoll)
 
+#-------------------------------------------------------------------------------
+#   libpd_test
+#-------------------------------------------------------------------------------
 add_executable (libpd_test libpd_test.c)
 
 target_link_libraries (libpd_test
@@ -147,22 +149,6 @@ add_executable(test_createConnection test_createConnection.c nopoll_mock.c ${PAR
                       ../src/ParodusInternal.c
                       ) 
 target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lnanomsg -lcmocka -lrt)
-
-#-------------------------------------------------------------------------------
-#   test_connection - function sendResponse
-#-------------------------------------------------------------------------------
-add_test(NAME test_sendResponse COMMAND test_sendResponse)
-add_executable(test_sendResponse test_sendResponse.c nopoll_mock.c ${PARODUS_COMMON_SRC}
-                      ../src/connection.c
-                      ../src/nopoll_helpers.c
-                      ../src/ParodusInternal.c
-                      ../src/upstream.c
-                      ../src/downstream.c
-                      ../src/service_alive.c
-                      ../src/nopoll_handlers.c
-                      ../src/client_list.c
-                      ) 
-target_link_libraries (test_sendResponse ${PARODUS_COMMON_LIBS} -lnanomsg -lcmocka -lrt)
 
 #-------------------------------------------------------------------------------
 #   test_connection
