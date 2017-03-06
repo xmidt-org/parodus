@@ -1,0 +1,219 @@
+/**
+ *  Copyright 2010-2016 Comcast Cable Communications Management, LLC
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+#include <assert.h>
+#include <errno.h>
+#include <pthread.h>
+#include <malloc.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
+
+#include <CUnit/Basic.h>
+
+#include "../src/config.h"
+
+/*----------------------------------------------------------------------------*/
+/*                                   Mocks                                    */
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/*                                   Tests                                    */
+/*----------------------------------------------------------------------------*/
+void test_setParodusConfig()
+{
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(cfg));
+
+    strcpy(cfg.hw_model, "TG1682");
+    strcpy(cfg.hw_serial_number, "Fer23u948590");
+    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
+    strcpy(cfg.hw_mac , "123567892366");
+    strcpy(cfg.hw_last_reboot_reason , "unknown");
+    strcpy(cfg.fw_name , "2.364s2");
+    strcpy(cfg.webpa_path_url , "/v1");
+    strcpy(cfg.webpa_url , "localhost");
+    strcpy(cfg.webpa_interface_used , "eth0");
+    strcpy(cfg.webpa_protocol , "WebPA-1.6");
+    strcpy(cfg.webpa_uuid , "1234567-345456546");
+    cfg.secureFlag = 1;
+    cfg.boot_time = 423457;
+    cfg.webpa_ping_timeout = 30;
+    cfg.webpa_backoff_max = 255;
+
+    set_parodus_cfg(&cfg);
+
+    ParodusCfg *temp = get_parodus_cfg();
+
+    assert_string_equal(cfg.hw_model, temp->hw_model);
+    assert_string_equal(cfg.hw_serial_number, temp->hw_serial_number);
+    assert_string_equal(cfg.hw_manufacturer, temp->hw_manufacturer);
+    assert_string_equal(cfg.hw_mac, temp->hw_mac);
+    assert_string_equal(cfg.hw_last_reboot_reason, temp->hw_last_reboot_reason);
+    assert_string_equal(cfg.webpa_path_url, temp->webpa_path_url);
+    assert_string_equal(cfg.webpa_url, temp->webpa_url);
+    assert_string_equal(cfg.webpa_interface_used, temp->webpa_interface_used);
+    assert_string_equal(cfg.webpa_protocol, temp->webpa_protocol);
+    assert_string_equal(cfg.webpa_uuid, temp->webpa_uuid);
+
+    assert_int_equal((int) cfg.secureFlag, (int) temp->secureFlag);
+    assert_int_equal((int) cfg.boot_time, (int) temp->boot_time);
+    assert_int_equal((int) cfg.webpa_ping_timeout, (int) temp->webpa_ping_timeout);
+    assert_int_equal((int) cfg.webpa_backoff_max, (int) temp->webpa_backoff_max);
+}
+
+void test_getParodusConfig()
+{
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(cfg));
+
+    strcpy(cfg.hw_model, "TG1682133");
+    set_parodus_cfg(&cfg);
+
+    ParodusCfg *temp = get_parodus_cfg();
+
+    assert_string_equal(cfg.hw_model, temp->hw_model);
+}
+
+void test_parseCommandLine()
+{
+    int argc =11;
+    char * command[15]={'\0'};
+
+    command[0] = "parodus";
+    command[1] = "--hw-model=TG1682";
+    command[2] = "--hw-serial-number=Fer23u948590";
+    command[3] = "--hw-manufacturer=ARRISGroup,Inc.";
+    command[4] = "--hw-mac=123567892366";
+    command[5] = "--hw-last-reboot-reason=unknown";
+    command[6] = "--fw-name=TG1682_DEV_master_2016000000sdy";
+    command[7] = "--webpa-ping-time=180";
+    command[8] = "--webpa-inteface-used=br0";
+    command[9] = "--webpa-url=localhost";
+    command[10] = "--webpa-backoff-max=0";
+
+    ParodusCfg parodusCfg;
+    memset(&parodusCfg,0,sizeof(parodusCfg));
+
+    parseCommandLine(argc,command,&parodusCfg);
+
+    assert_string_equal( parodusCfg.hw_model, "TG1682");
+    assert_string_equal( parodusCfg.hw_serial_number, "Fer23u948590");
+    assert_string_equal( parodusCfg.hw_manufacturer, "ARRISGroup,Inc.");
+    assert_string_equal( parodusCfg.hw_mac, "123567892366");	
+    assert_string_equal( parodusCfg.hw_last_reboot_reason, "unknown");	
+    assert_string_equal( parodusCfg.fw_name, "TG1682_DEV_master_2016000000sdy");	
+    assert_int_equal( (int) parodusCfg.webpa_ping_timeout,180);	
+    assert_string_equal( parodusCfg.webpa_interface_used, "br0");	
+    assert_string_equal( parodusCfg.webpa_url, "localhost");
+    assert_int_equal( (int) parodusCfg.webpa_backoff_max,0);
+}
+
+void test_parseCommandLineNull()
+{
+    parseCommandLine(0,NULL,NULL);
+}
+
+void err_parseCommandLine()
+{
+    int argc =12;
+    char * command[20]={'\0'};
+
+    command[0] = "parodus";
+    command[1] = "--hw-model=TG1682";
+    command[11] = "webpa";
+
+    ParodusCfg parodusCfg;
+    memset(&parodusCfg,0,sizeof(parodusCfg));
+
+    parseCommandLine(argc,command,&parodusCfg);
+    assert_string_equal( parodusCfg.hw_model, "");
+    assert_string_equal( parodusCfg.hw_serial_number, "");
+}
+
+void test_loadParodusCfg()
+{
+    ParodusCfg  tmpcfg;
+    ParodusCfg *Cfg;
+    Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
+
+    strcpy(Cfg->hw_model, "TG1682");
+    strcpy(Cfg->hw_serial_number, "Fer23u948590");
+    strcpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.");
+    strcpy(Cfg->hw_mac , "123567892366");
+    strcpy(Cfg->hw_last_reboot_reason , "unknown");
+    strcpy(Cfg->fw_name , "2.364s2");
+    strcpy(Cfg->webpa_path_url , "/v1");
+    strcpy(Cfg->webpa_url , "localhost");
+    strcpy(Cfg->webpa_interface_used , "eth0");
+    strcpy(Cfg->webpa_protocol , "WebPA-1.6");
+
+    memset(&tmpcfg,0,sizeof(ParodusCfg));
+    loadParodusCfg(Cfg,&tmpcfg);
+
+    assert_string_equal( tmpcfg.hw_model, "TG1682");
+    assert_string_equal( tmpcfg.hw_serial_number, "Fer23u948590");
+    assert_string_equal( tmpcfg.hw_manufacturer, "ARRISGroup,Inc.");
+    assert_string_equal( tmpcfg.hw_mac, "123567892366");	
+    free(Cfg);
+}
+
+void test_loadParodusCfgNull()
+{
+    ParodusCfg *cfg = (ParodusCfg *) malloc(sizeof(ParodusCfg));
+    memset(cfg,0,sizeof(ParodusCfg));
+
+    ParodusCfg temp;
+    memset(&temp, 0, sizeof(ParodusCfg));
+
+    loadParodusCfg(cfg,&temp);
+
+    assert_string_equal(temp.hw_model, "");
+    assert_string_equal(temp.hw_serial_number, "");
+    assert_string_equal(temp.hw_manufacturer, "");
+    assert_int_equal( (int) temp.secureFlag,1);	
+    assert_string_equal( temp.webpa_path_url, WEBPA_PATH_URL);	
+    assert_string_equal( temp.webpa_protocol, WEBPA_PROTOCOL_VALUE);
+    assert_string_equal( temp.webpa_uuid,"1234567-345456546");
+
+    free(cfg);
+}
+
+void err_loadParodusCfg()
+{
+    ParodusCfg cfg;
+    loadParodusCfg(NULL,&cfg);
+}
+
+/*----------------------------------------------------------------------------*/
+/*                             External Functions                             */
+/*----------------------------------------------------------------------------*/
+
+int main(void)
+{
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_getParodusConfig),
+        cmocka_unit_test(test_setParodusConfig),
+        cmocka_unit_test(test_loadParodusCfg),
+        cmocka_unit_test(test_loadParodusCfgNull),
+        cmocka_unit_test(err_loadParodusCfg),
+        cmocka_unit_test(test_parseCommandLine),
+        cmocka_unit_test(test_parseCommandLineNull),
+        cmocka_unit_test(err_parseCommandLine),
+    };
+
+    return cmocka_run_group_tests(tests, NULL, NULL);
+}

@@ -194,6 +194,13 @@ add_test(NAME test_service_alive COMMAND test_service_alive)
 add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ${PARODUS_COMMON_SRC})
 target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt)
 
+#-------------------------------------------------------------------------------
+#   test_config
+#-------------------------------------------------------------------------------
+add_test(NAME test_config COMMAND test_config)
+add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
+target_link_libraries (test_config -lcmocka -lm -lrt -lcimplog)
+
 if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
