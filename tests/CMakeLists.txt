@@ -187,6 +187,13 @@ add_test(NAME test_config COMMAND test_config)
 add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
 target_link_libraries (test_config -lcmocka -lm -lrt -lcimplog)
 
+#-------------------------------------------------------------------------------
+#   test_upstream
+#-------------------------------------------------------------------------------
+add_test(NAME test_upstream COMMAND test_upstream)
+add_executable(test_upstream test_upstream.c ../src/upstream.c)
+target_link_libraries (test_upstream -lcmocka ${PARODUS_COMMON_LIBS} -lnanomsg)
+
 if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
