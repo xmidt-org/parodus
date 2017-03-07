@@ -159,7 +159,7 @@ add_dependencies(libwrp-c wrp-c)
 ExternalProject_Add(libparodus
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
     GIT_REPOSITORY https://github.com/Comcast/libparodus.git
-    GIT_TAG "e020ebc82ff2352c351729556671986f0f791c7e"
+    GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(liblibparodus STATIC SHARED IMPORTED)
