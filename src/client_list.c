@@ -13,7 +13,7 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-int numOfClients = 0;
+static int numOfClients = 0;
 static reg_list_item_t * g_head = NULL;
 
 /*----------------------------------------------------------------------------*/
@@ -25,6 +25,10 @@ reg_list_item_t * get_global_node(void)
     return g_head;
 }
 
+int get_numOfClients()
+{
+    return numOfClients;
+}
 /** To add clients to registered list ***/
 
 int addToList( wrp_msg_t **msg)

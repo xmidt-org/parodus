@@ -34,7 +34,7 @@ int addToList( wrp_msg_t **msg);
 int sendAuthStatus(reg_list_item_t *new_node);
 
 int deleteFromList(char* service_name);
-extern int numOfClients;
+int get_numOfClients();
 
 reg_list_item_t * get_global_node(void);
 

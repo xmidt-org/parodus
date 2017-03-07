@@ -42,8 +42,8 @@ void *serviceAliveTask()
         {
 	        while(1)
 	        {
-		        ParodusPrint("serviceAliveTask: numOfClients registered is %d\n", numOfClients);
-		        if(numOfClients > 0)
+		        ParodusPrint("serviceAliveTask: numOfClients registered is %d\n", get_numOfClients());
+		        if(get_numOfClients() > 0)
 		        {
 			        //sending svc msg to all the clients every 30s
 			        temp = get_global_node();

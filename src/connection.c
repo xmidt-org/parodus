@@ -31,7 +31,7 @@
 char deviceMAC[32]={'\0'};
 bool close_retry = false;
 bool LastReasonStatus = false;
-char *reconnect_reason = "webpa_process_starts";
+static char *reconnect_reason = "webpa_process_starts";
 volatile unsigned int heartBeatTimer = 0;
 static noPollConn *g_conn = NULL;
 pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
@@ -50,6 +50,15 @@ void set_global_conn(noPollConn *conn)
     g_conn = conn;
 }
 
+char *get_global_reconnect_reason()
+{
+    return reconnect_reason;
+}
+
+void set_global_reconnect_reason(char *reason)
+{
+    reconnect_reason = reason;
+}
 void createSocketConnection(void *config_in, void (* initKeypress)())
 {
     int intTimer=0;	

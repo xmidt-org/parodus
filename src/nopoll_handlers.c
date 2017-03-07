@@ -119,12 +119,12 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
 
     if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
     {
-        reconnect_reason = "Server_closed_connection";
+        set_global_reconnect_reason("Server_closed_connection");
         LastReasonStatus = true;
     }
     else if ((user_data == NULL) && !LastReasonStatus)
     {
-        reconnect_reason = "Unknown";
+        set_global_reconnect_reason("Unknown");
     }
 
     pthread_mutex_lock (&close_mut);
