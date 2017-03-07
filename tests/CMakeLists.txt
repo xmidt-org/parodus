@@ -201,8 +201,10 @@ if (NOT EXCLUDE_SIMPLE)
 add_test(NAME simple COMMAND simple)
 add_executable(simple simple.c
                       ../src/upstream.c
+                      ../src/downstream.c
                       ../src/networking.c
                       ../src/nopoll_helpers.c
+                      ../src/nopoll_handlers.c
                       ../src/string_helpers.c
                       ../src/mutex.c
                       ../src/time.c
