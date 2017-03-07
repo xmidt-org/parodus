@@ -70,8 +70,6 @@ extern const char *client_url;
 extern volatile int keep_alive_count;
 extern volatile int reconnect_count;
 
-parlibLogHandler test_log_handler = NULL;
-
 void show_src_dest_payload (char *src, char *dest, void *payload, size_t payload_size)
 {
 	size_t i;
@@ -272,8 +270,7 @@ void test_send_only (void)
 	unsigned event_num = 0;
 
         libpd_cfg_t cfg = {.service_name = service_name,
-                .receive = false, .keepalive_timeout_secs = 0,
-                .log_handler = test_log_handler};
+                .receive = false, .keepalive_timeout_secs = 0};
         CU_ASSERT (libparodus_init (&test_instance, &cfg) == 0);
         CU_ASSERT (send_event_msgs (NULL, &event_num, 10) == 0);
 	CU_ASSERT (libparodus_shutdown (&test_instance) == 0);
@@ -287,10 +284,7 @@ void test_send_only (void)
 	unsigned event_num = 0;
 	unsigned msg_num = 0;
         libpd_cfg_t cfg = {.service_name = service_name,
-                .receive = true, .keepalive_timeout_secs = 0,
-                .log_handler = test_log_handler};
-
-	CU_ASSERT_FATAL (log_init (".", NULL) == 0);
+                .receive = true, .keepalive_timeout_secs = 0};
 
 	if (no_mock_send_only_test) {
 		test_send_only ();
@@ -338,7 +332,7 @@ static void initEndKeypressHandler()
 	err = pthread_create(&endKeypressThreadId, NULL, endKeypressHandlerTask, NULL);
 	if (err != 0) 
 	{
-		libpd_log (LEVEL_ERROR, err, "Error creating End Keypress Handler thread\n");
+		libpd_log (LEVEL_ERROR, "Error creating End Keypress Handler thread\n");
 	}
 	else 
 	{
