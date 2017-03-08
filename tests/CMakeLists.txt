@@ -87,52 +87,11 @@ add_executable(test_string_helpers test_string_helpers.c ../src/string_helpers.c
 target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS} -lrt)
 
 #-------------------------------------------------------------------------------
-#   test_connection - function listenerOnMessage_queue 
+#   test_nopoll_handlers
 #-------------------------------------------------------------------------------
-add_test(NAME test_connection_LMQ COMMAND test_connection_LMQ)
-add_executable(test_connection_LMQ test_connection_LMQ.c ${PARODUS_COMMON_SRC}
-                               nopoll_mock.c
-                               ../src/ParodusInternal.c
-                               ../src/service_alive.c
-                               ../src/client_list.c
-                               ../src/upstream.c
-                               ../src/downstream.c
-                               ../src/nopoll_helpers.c
-                               ../src/nopoll_handlers.c
-                               ../src/connection.c)
-target_link_libraries (test_connection_LMQ ${PARODUS_COMMON_LIBS} -lcmocka -lrt)
-
-#-------------------------------------------------------------------------------
-#   test_connection - function listenerOnPingMessage 
-#-------------------------------------------------------------------------------
-add_test(NAME test_connection_LPM COMMAND test_connection_LPM)
-add_executable(test_connection_LPM test_connection_LPM.c ${PARODUS_COMMON_SRC}
-                               nopoll_mock.c
-                               ../src/ParodusInternal.c
-                               ../src/upstream.c
-                               ../src/service_alive.c
-                               ../src/client_list.c
-                               ../src/downstream.c
-                               ../src/nopoll_handlers.c
-                               ../src/nopoll_helpers.c
-                               ../src/connection.c)
-target_link_libraries (test_connection_LPM ${PARODUS_COMMON_LIBS} -lcmocka -lrt)
-
-#-------------------------------------------------------------------------------
-#   test_connection - function listenerOnCloseMessage 
-#-------------------------------------------------------------------------------
-add_test(NAME test_connection_LCM COMMAND test_connection_LCM)
-add_executable(test_connection_LCM test_connection_LCM.c ${PARODUS_COMMON_SRC}
-                               nopoll_mock.c
-                               ../src/ParodusInternal.c
-                               ../src/upstream.c
-                               ../src/service_alive.c
-                               ../src/client_list.c
-                               ../src/nopoll_helpers.c
-                               ../src/downstream.c
-                               ../src/nopoll_handlers.c
-                               ../src/connection.c)
-target_link_libraries (test_connection_LCM ${PARODUS_COMMON_LIBS} -lcmocka -lrt)
+add_test(NAME test_nopoll_handlers COMMAND test_nopoll_handlers)
+add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c)
+target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -lrt -lpthread -lm)
 
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
