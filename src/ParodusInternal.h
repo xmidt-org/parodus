@@ -57,17 +57,13 @@ extern "C" {
 #endif
 
 extern bool LastReasonStatus;
-extern char *reconnect_reason;
 extern ParodusMsg *ParodusMsgQ;
-extern int numOfClients;
 
 int checkHostIp(char * serverIP);
 
 void parStrncpy(char *destStr, const char *srcStr, size_t destSize);
 
 char* getWebpaConveyHeader();
-
-void getParodusUrl();
 
 #ifdef __cplusplus
 }

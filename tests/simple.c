@@ -23,9 +23,11 @@
 
 //#include <nanomsg/bus.h>
 
-#include "../src/wss_mgr.h"
 #include "../src/ParodusInternal.h"
-#include "wrp-c.h"
+#include "../src/config.h"
+#include "../src/nopoll_helpers.h"
+#include "../src/downstream.h"
+#include "../src/upstream.h"
 
 #include<errno.h>
 
@@ -34,6 +36,7 @@
 #define CLIENT1_URL "tcp://127.0.0.1:6667"
 #define CLIENT2_URL "tcp://127.0.0.1:6668"
 #define CLIENT3_URL "tcp://127.0.0.1:6669"
+#define HTTP_CUSTOM_HEADER_COUNT                    	4
 
 static void send_nanomsg_upstream(void **buf, int size);
 void *handle_testsuites();

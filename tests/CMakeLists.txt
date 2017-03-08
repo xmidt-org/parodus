@@ -27,7 +27,6 @@ add_test(NAME test_mutex COMMAND test_mutex)
 add_executable(test_mutex test_mutex.c ../src/mutex.c)
 target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS} -lrt)
 
-
 #-------------------------------------------------------------------------------
 #   test_networking
 #-------------------------------------------------------------------------------
@@ -39,9 +38,12 @@ target_link_libraries (test_networking ${PARODUS_COMMON_LIBS} -lrt)
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
-add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/upstream.c ../src/downstream.c ../src/networking.c  ../src/connection.c ../src/ParodusInternal.c ../src/client_list.c ../src/service_alive.c ../src/nopoll_handlers.c ${PARODUS_COMMON_SRC})
-target_link_libraries (test_nopoll_helpers ${PARODUS_COMMON_LIBS} -lnanomsg -lrt)
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
+target_link_libraries (test_nopoll_helpers -lrt -lcmocka -lcimplog -lnopoll)
 
+#-------------------------------------------------------------------------------
+#   libpd_test
+#-------------------------------------------------------------------------------
 add_executable (libpd_test libpd_test.c)
 
 target_link_libraries (libpd_test
@@ -149,22 +151,6 @@ add_executable(test_createConnection test_createConnection.c nopoll_mock.c ${PAR
 target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lnanomsg -lcmocka -lrt)
 
 #-------------------------------------------------------------------------------
-#   test_connection - function sendResponse
-#-------------------------------------------------------------------------------
-add_test(NAME test_sendResponse COMMAND test_sendResponse)
-add_executable(test_sendResponse test_sendResponse.c nopoll_mock.c ${PARODUS_COMMON_SRC}
-                      ../src/connection.c
-                      ../src/nopoll_helpers.c
-                      ../src/ParodusInternal.c
-                      ../src/upstream.c
-                      ../src/downstream.c
-                      ../src/service_alive.c
-                      ../src/nopoll_handlers.c
-                      ../src/client_list.c
-                      ) 
-target_link_libraries (test_sendResponse ${PARODUS_COMMON_LIBS} -lnanomsg -lcmocka -lrt)
-
-#-------------------------------------------------------------------------------
 #   test_connection
 #-------------------------------------------------------------------------------
 add_test(NAME test_connection COMMAND test_connection)
@@ -194,6 +180,20 @@ add_test(NAME test_service_alive COMMAND test_service_alive)
 add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ${PARODUS_COMMON_SRC})
 target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt)
 
+#-------------------------------------------------------------------------------
+#   test_config
+#-------------------------------------------------------------------------------
+add_test(NAME test_config COMMAND test_config)
+add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
+target_link_libraries (test_config -lcmocka -lm -lrt -lcimplog)
+
+#-------------------------------------------------------------------------------
+#   test_upstream
+#-------------------------------------------------------------------------------
+add_test(NAME test_upstream COMMAND test_upstream)
+add_executable(test_upstream test_upstream.c ../src/upstream.c)
+target_link_libraries (test_upstream -lcmocka ${PARODUS_COMMON_LIBS} -lnanomsg)
+
 if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
@@ -201,8 +201,10 @@ if (NOT EXCLUDE_SIMPLE)
 add_test(NAME simple COMMAND simple)
 add_executable(simple simple.c
                       ../src/upstream.c
+                      ../src/downstream.c
                       ../src/networking.c
                       ../src/nopoll_helpers.c
+                      ../src/nopoll_handlers.c
                       ../src/string_helpers.c
                       ../src/mutex.c
                       ../src/time.c

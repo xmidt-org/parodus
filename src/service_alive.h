@@ -17,7 +17,6 @@
 extern "C" {
 #endif
   
-extern int numOfClients;
 void *serviceAliveTask();
 
 

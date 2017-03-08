@@ -74,7 +74,7 @@ void packMetaData()
             {HW_LAST_REBOOT_REASON, get_parodus_cfg()->hw_last_reboot_reason},
             {FIRMWARE_NAME , get_parodus_cfg()->fw_name},
             {BOOT_TIME, boot_time},
-            {LAST_RECONNECT_REASON, reconnect_reason},
+            {LAST_RECONNECT_REASON, get_global_reconnect_reason()},
             {WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol},
             {WEBPA_UUID,get_parodus_cfg()->webpa_uuid},
             {WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used}
@@ -202,7 +202,7 @@ void *processUpstreamMessage()
                 {
                     ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                     //Extract serviceName and url & store it in a linked list for reg_clients
-                    if(numOfClients !=0)
+                    if(get_numOfClients() !=0)
                     {
                         temp = get_global_node();
                         while(temp!=NULL)
@@ -253,7 +253,7 @@ void *processUpstreamMessage()
                         }	
                     }
                     ParodusPrint("matchFlag is :%d\n", matchFlag);
-                    if((matchFlag == 0) || (numOfClients == 0))
+                    if((matchFlag == 0) || (get_numOfClients() == 0))
                     {
                         ParodusPrint("Adding nanomsg clients to list\n");
                         status = addToList(&msg);

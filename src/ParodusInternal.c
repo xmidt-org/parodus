@@ -8,6 +8,7 @@
  
 #include "ParodusInternal.h"
 #include "config.h"
+#include "connection.h"
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -18,6 +19,7 @@ char* getWebpaConveyHeader()
     char *buffer = NULL;
     static char encodedData[1024];
     int  encodedDataSize = 1024;
+    char * reconnect_reason = get_global_reconnect_reason();
     int i =0, j=0;
 
     if(strlen(get_parodus_cfg()->hw_model)!=0)

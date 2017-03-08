@@ -43,6 +43,9 @@ void close_and_unref_connection(noPollConn *);
 noPollConn *get_global_conn(void);
 void set_global_conn(noPollConn *);
 
+char *get_global_reconnect_reason();
+void set_global_reconnect_reason(char *reason);
+
 #ifdef __cplusplus
 }
 #endif

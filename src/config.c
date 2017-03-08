@@ -138,6 +138,12 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 {
+    if(config == NULL)
+    {
+        ParodusError("config is NULL\n");
+        return;
+    }
+    
     ParodusCfg *pConfig =config;
     
     if(strlen (pConfig->hw_model) !=0)
