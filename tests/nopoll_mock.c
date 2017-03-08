@@ -29,17 +29,10 @@ nopoll_bool nopoll_msg_ref(noPollMsg *msg)
     return false;
 }
 
-int checkHostIp(char * serverIP)
-{
-   (void) serverIP;
-   return 0;
-}
-
 noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx, noPollConnOpts * options, const char * host_ip, const char * host_port, const char * host_name, const char * get_url, const char * protocols, const char * origin, const char * outbound_interface, const char * headerNames[], const char * headerValues[], const int headerCount)
 {
     UNUSED(options); UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); 
     UNUSED(origin); UNUSED(outbound_interface); UNUSED(headerNames); UNUSED(headerValues); UNUSED(headerCount);
-    //ParodusInfo("function_called : %s\n",__FUNCTION__);
     
     function_called();
     check_expected(ctx);
@@ -51,7 +44,7 @@ noPollConn * nopoll_conn_new (noPollCtx  * ctx, const char * host_ip, const char
 {
     UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); UNUSED(origin);
     UNUSED(outbound_interface); UNUSED(headerNames); UNUSED(headerValues); UNUSED(headerCount);
-    //ParodusInfo("function_called : %s\n",__FUNCTION__);
+
     function_called();
     check_expected(ctx);
     check_expected(host_ip);

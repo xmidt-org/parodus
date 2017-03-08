@@ -27,12 +27,51 @@
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
 #include "../src/config.h"
-#include "wrp-c.h"
 
+/*----------------------------------------------------------------------------*/
+/*                            File Scoped Variables                           */
+/*----------------------------------------------------------------------------*/
+UpStreamMsg *UpStreamMsgQ;
+ParodusMsg *ParodusMsgQ;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
+void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
+{
+    UNUSED(ctx); UNUSED(level); UNUSED(log_msg); UNUSED(user_data);
+}
 
+void packMetaData(){
+}
+
+void setMessageHandlers(){
+}
+
+void getParodusUrl(){
+}
+
+void *handle_upstream(){
+    return NULL;
+}
+
+void *processUpstreamMessage(){
+    return NULL;
+}
+void *messageHandlerTask(){
+    return NULL;
+}
+void *serviceAliveTask(){
+    return NULL;
+}
+char* getWebpaConveyHeader()
+{
+    return "";
+}
+int checkHostIp(char * serverIP)
+{
+   (void) serverIP;
+   return 0;
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
