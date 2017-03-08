@@ -163,8 +163,9 @@ int createNopollConnection(noPollCtx *ctx)
     //Retry Backoff count shall start at c=2 & calculate 2^c - 1.
     int c=2;
     
-    if(ctx == NULL)
+    if(ctx == NULL) {
         return nopoll_false;
+    }
 
 	FILE *fp;
 	fp = fopen("/tmp/parodus_ready", "r");
