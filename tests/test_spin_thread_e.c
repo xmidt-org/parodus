@@ -13,49 +13,56 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+#include <assert.h>
+#include <errno.h>
+#include <pthread.h>
 #include <stdarg.h>
 
 #include <CUnit/Basic.h>
-#include <stdbool.h>
-
-#include <assert.h>
-#include <nopoll.h>
-
-//#include <nanomsg/bus.h>
 
 #include "../src/ParodusInternal.h"
-#include "wrp-c.h"
-
-#include<errno.h>
-
-/* Nanomsg related Macros */
-#define ENDPOINT "tcp://127.0.0.1:6666"
-#define CLIENT1_URL "tcp://127.0.0.1:6667"
-#define CLIENT2_URL "tcp://127.0.0.1:6668"
-#define CLIENT3_URL "tcp://127.0.0.1:6669"
+#include "../src/spin_thread.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-/* none */
+int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+                          void *(*start_routine) (void *), void *arg)
+{
+    (void) thread; (void) attr; (void) start_routine; (void) arg;
+    return 1;
+}
+
+void exit(int status)
+{
+    if( 1 == status ) {
+        printf("Correct exit status\n");
+    } else {
+        printf("Wrong exit status\n");
+    }
+    _exit(0);
+}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-void test_checkHostIp()
+void *_routine(void *v)
 {
-    CU_ASSERT_EQUAL(0, checkHostIp("fabric.webpa.comcast.net"))
+    (void) v;
+    return NULL;
+}
+
+void test_StartThread_error()
+{
+    StartThread(&_routine);
 }
 
 void add_suites( CU_pSuite *suite )
 {
-    ParodusPrint("--------Start of Test Cases Execution ---------\n");
+    ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
-    CU_add_test( *suite, "Test checkHostIp()", test_checkHostIp );
+    CU_add_test( *suite, "Test 1", test_StartThread_error );
 }
-
-
-
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */

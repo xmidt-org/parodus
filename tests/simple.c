@@ -23,9 +23,11 @@
 
 //#include <nanomsg/bus.h>
 
-#include "../src/wss_mgr.h"
 #include "../src/ParodusInternal.h"
-#include "wrp-c.h"
+#include "../src/config.h"
+#include "../src/nopoll_helpers.h"
+#include "../src/downstream.h"
+#include "../src/upstream.h"
 
 #include<errno.h>
 
@@ -34,6 +36,7 @@
 #define CLIENT1_URL "tcp://127.0.0.1:6667"
 #define CLIENT2_URL "tcp://127.0.0.1:6668"
 #define CLIENT3_URL "tcp://127.0.0.1:6669"
+#define HTTP_CUSTOM_HEADER_COUNT                    	4
 
 static void send_nanomsg_upstream(void **buf, int size);
 void *handle_testsuites();
@@ -51,9 +54,9 @@ void test_nanomsg_client_registration1()
 	  
 	void *bytes;
 	int size =0;
-	int rv1;
+	int rv1, rc;
 	wrp_msg_t  *msg1;
-	int sock;
+	int sock, bind;
 	int byte =0;
 	int t=25000;
 	  
@@ -61,7 +64,6 @@ void test_nanomsg_client_registration1()
 	ParodusPrint("msgpack encode\n");
 	size = wrp_struct_to( &reg, WRP_BYTES, &bytes );
 
-	
 	/*** Enable this to decode and verify upstream registration msg **/
 	/***	
 	rv = wrp_to_struct(bytes, size, WRP_BYTES, &message);
@@ -75,7 +77,8 @@ void test_nanomsg_client_registration1()
 	sock = nn_socket (AF_SP, NN_PUSH);
 	int connect = nn_connect (sock, ENDPOINT);
 	CU_ASSERT(connect >= 0);
-	nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+	rc = nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+	CU_ASSERT(rc >= 0);
 	byte = nn_send (sock, bytes, size, 0);
 	ParodusInfo("----->Expected byte to be sent:%d\n", size);
 	ParodusInfo("----->actual byte sent:%d\n", byte);
@@ -86,10 +89,12 @@ void test_nanomsg_client_registration1()
 
 	int sock1 = nn_socket (AF_SP, NN_PULL);
 	byte = 0;
-	nn_bind(sock1, reg.u.reg.url);
+	bind = nn_bind(sock1, reg.u.reg.url);
+	CU_ASSERT(bind >= 0);
 	
 	void *buf = NULL;
-	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	rc = nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	CU_ASSERT(rc >= 0);
 	
 	ParodusPrint("Client 1 waiting for acknowledgement \n");
 	byte = nn_recv(sock1, &buf, NN_MSG, 0);
@@ -104,14 +109,12 @@ void test_nanomsg_client_registration1()
 	CU_ASSERT_EQUAL(msg1->msg_type, 2);
 	CU_ASSERT_EQUAL(msg1->u.auth.status, 200);
 
-	nn_freemsg(buf);	
-
+	rc = nn_freemsg(buf);	
+        CU_ASSERT(rc == 0);
 	free(bytes);	
 	wrp_free_struct(msg1);
-	nn_shutdown(sock, 0);
-	nn_shutdown(sock1, 0);
-	
-
+	rc = nn_shutdown(sock1, bind);
+        CU_ASSERT(rc == 0);
 }
 
 void test_nanomsg_client_registration2()
@@ -126,9 +129,9 @@ void test_nanomsg_client_registration2()
 	  
 	void *bytes;
 	int size;
-	int rv1;
+	int rv1, rc;
 	wrp_msg_t  *msg1;
-	int sock;
+	int sock, bind;
 	int byte =0;
 	int t=28000;
 	  
@@ -149,29 +152,28 @@ void test_nanomsg_client_registration2()
 	sock = nn_socket (AF_SP, NN_PUSH);
 	int connect = nn_connect (sock, ENDPOINT);
 	CU_ASSERT( connect >= 0);
-	nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+	rc = nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+	CU_ASSERT(rc >= 0);
 	byte = nn_send (sock, bytes, size,0);
 	ParodusInfo("----->Expected byte to be sent:%d\n", size);
 	ParodusInfo("----->actual byte sent:%d\n", byte);
 	ParodusInfo("Nanomsg client2 - Testing Upstream Registration msg send\n");
 	CU_ASSERT_EQUAL( byte, size );
 
-
-
 	int sock1 = nn_socket (AF_SP, NN_PULL);
 	byte = 0;
-	
-	nn_bind(sock1, reg.u.reg.url);
+	bind = nn_bind(sock1, reg.u.reg.url);
+	CU_ASSERT(bind >= 0);
 	
 	void *buf1 = NULL;
 	
-	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
-
+	rc = nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+        CU_ASSERT(rc >= 0);
+        
 	ParodusPrint("Client 2 waiting for acknowledgement \n");
 	
 	byte = nn_recv(sock1, &buf1, NN_MSG, 0);
 	ParodusInfo("Data Received : %s \n", (char * )buf1);
-	
 
 	rv1 = wrp_to_struct((void *)buf1, byte, WRP_BYTES, &msg1);
 	CU_ASSERT_EQUAL( rv1, byte );
@@ -180,12 +182,12 @@ void test_nanomsg_client_registration2()
 	CU_ASSERT_EQUAL(msg1->msg_type, 2);
 	CU_ASSERT_EQUAL(msg1->u.auth.status, 200);
 	
-	nn_freemsg(buf1);	
-	
+	rc = nn_freemsg(buf1);	
+	CU_ASSERT(rc == 0);
 	free(bytes);
 	wrp_free_struct(msg1);
-	nn_shutdown(sock, 0);
-	nn_shutdown(sock1, 0);
+        rc = nn_shutdown(sock1, bind);
+        CU_ASSERT(rc == 0);
 
 }
 
@@ -201,7 +203,7 @@ void test_nanomsg_client_registration3()
 	  .u.reg.url = CLIENT3_URL};
 	void *bytes;
 	int size;
-	int rv1;
+	int rv1, rc;
 	wrp_msg_t *msg1;
 	int sock;
 	int byte =0;
@@ -224,29 +226,29 @@ void test_nanomsg_client_registration3()
 	sock = nn_socket (AF_SP, NN_PUSH);
 	int connect = nn_connect (sock, ENDPOINT);
 	CU_ASSERT(connect >= 0);
-	nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+	rc = nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+	CU_ASSERT(rc >= 0);
 	byte = nn_send (sock, bytes, size,0);
 	ParodusInfo("----->Expected byte to be sent:%d\n", size);
 	ParodusInfo("----->actual byte sent:%d\n", byte);
 	ParodusInfo("Nanomsg client3 - Testing Upstream Registration msg send\n");
 	CU_ASSERT_EQUAL( byte, size );
 
-
 	int sock1 = nn_socket (AF_SP, NN_PULL);
 	byte = 0;
 	
 	int bind = nn_bind(sock1, reg.u.reg.url);
-
+        CU_ASSERT(bind >= 0);
 	ParodusPrint("Need to close this bind %d \n", bind);
 	
 	void *buf2 = NULL;
 	
-	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	rc = nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	CU_ASSERT(rc >= 0);
 	ParodusPrint("Client 3 is waiting for acknowledgement \n");
 	byte = nn_recv(sock1, &buf2, NN_MSG, 0);
 	
 	ParodusInfo("Data Received : %s \n", (char * )buf2);
-
 	
 	rv1 = wrp_to_struct((void *)buf2, byte, WRP_BYTES, &msg1);
 	CU_ASSERT_EQUAL( rv1, byte );
@@ -255,16 +257,13 @@ void test_nanomsg_client_registration3()
 	CU_ASSERT_EQUAL(msg1->msg_type, 2);
 	CU_ASSERT_EQUAL(msg1->u.auth.status, 200);
 	
-	
-	nn_freemsg(buf2);
-	
+	rc = nn_freemsg(buf2);
+	CU_ASSERT(rc == 0);
 	free(bytes);
 	wrp_free_struct(msg1);
-	nn_shutdown(sock, 0);
-	nn_shutdown(sock1, bind);
+        rc = nn_shutdown(sock1, bind);
+        CU_ASSERT(rc == 0);
 	
-	
-
 }
 
 void test_nanomsg_downstream_success()
@@ -273,7 +272,7 @@ void test_nanomsg_downstream_success()
 	ParodusInfo("test_nanomsg_downstream_success\n");
 	
 	int sock;
-	int bit=0;
+	int bit=0, rc;
 	wrp_msg_t *message;
 	void *buf =NULL;
 	char* destVal = NULL;
@@ -316,60 +315,56 @@ void test_nanomsg_downstream_success()
 	//To send nanomsg client response upstream
 	send_nanomsg_upstream(&buf, bit);
 	
-	nn_freemsg(buf);
-	nn_shutdown(sock, bind);
-	
+	rc = nn_freemsg(buf);
+	CU_ASSERT(rc == 0);
+        rc = nn_shutdown(sock, bind);
+        CU_ASSERT(rc == 0);
 	//Need to wait for parodus to finish it's task.
 	sleep(10);
-
-
 }
 
 
 void test_nanomsg_downstream_failure()
 {
-	ParodusError("test_nanomsg_downstream_failure\n");
-	
-	int sock;
+	int sock, bind, rc;
 	int bit =0;
 	char *buf =NULL;
+	ParodusError("test_nanomsg_downstream_failure\n");
 	
 	sleep(60);
 	sock = nn_socket (AF_SP, NN_PULL);
-	nn_bind (sock, CLIENT3_URL);	
+	bind = nn_bind (sock, CLIENT3_URL);
+	CU_ASSERT(bind >= 0);	
 	ParodusPrint("***** Nanomsg client3 in Receiving mode *****\n");
 	
 	bit = nn_recv (sock, &buf, NN_MSG, 0);
 	ParodusInfo ("Received downstream request from server for client3 : \"%s\"\n", buf);
 	CU_ASSERT(bit >= 0);
-	nn_freemsg(buf);
-	nn_shutdown(sock, 0);
-
-
+	rc = nn_freemsg(buf);
+	CU_ASSERT(rc == 0);
+        rc = nn_shutdown(sock, bind);
+        CU_ASSERT(rc == 0);
 }
 
 
 void test_checkHostIp()
 {
-	ParodusPrint("**********************************Calling check_host_ip \n");
-
 	int ret;
 	
+	ParodusPrint("**********************************Calling check_host_ip \n");
 	ret = checkHostIp("fabric.webpa.comcast.net");
 	ParodusPrint("------------------> Ret = %d \n", ret);
 	CU_ASSERT_EQUAL(ret, 0);
 	
 }
 
-void test_handleUpstreamMessage()
+void test_sendMessage()
 {
-
-	ParodusPrint("**********************************Calling handleUpstreamMessage \n");
-	
 	noPollConnOpts * opts;
 	noPollCtx *ctx = NULL;
 	noPollConn *conn = NULL;
-
+        
+    ParodusPrint("**********************************Calling sendMessage \n");
 	const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
 	const char * headerValues[HTTP_CUSTOM_HEADER_COUNT];
 
@@ -397,7 +392,7 @@ void test_handleUpstreamMessage()
 	}*/
 
 	ParodusPrint("Sending conn as %p \n", conn);
-	handleUpstreamMessage(conn, "hello", 6);
+	sendMessage(conn, "hello", 6);
 
 }
 
@@ -444,22 +439,15 @@ void test_loadParodusCfg()
 	ParodusPrint("Calling test_loadParodusCfg \n");
 	//ParodusCfg parodusCfg, tmpcfg;
 	ParodusCfg  tmpcfg;
-
 	ParodusCfg *Cfg;
-
 	Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
 	
 	strcpy(Cfg->hw_model, "TG1682");
 	strcpy(Cfg->hw_serial_number, "Fer23u948590");
 	strcpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.");
 	strcpy(Cfg->hw_mac , "123567892366");
-	
-	
 	memset(&tmpcfg,0,sizeof(tmpcfg));
-	
-	
 	loadParodusCfg(Cfg,&tmpcfg);
-
 	ParodusInfo("tmpcfg.hw_model = %s, tmpcfg.hw_serial_number = %s, tmpcfg.hw_manufacturer = %s, tmpcfg.hw_mac = %s, \n", tmpcfg.hw_model,tmpcfg.hw_serial_number, tmpcfg.hw_manufacturer,   tmpcfg.hw_mac);
 
 	CU_ASSERT_STRING_EQUAL( tmpcfg.hw_model, "TG1682");
@@ -486,7 +474,7 @@ void add_suites( CU_pSuite *suite )
     CU_add_test( *suite, "UnitTest 1", test_parseCommandLine );
     CU_add_test( *suite, "UnitTest 2", test_checkHostIp );
 	
-    CU_add_test( *suite, "UnitTest 3", test_handleUpstreamMessage );
+    CU_add_test( *suite, "UnitTest 3", test_sendMessage );
 
     CU_add_test( *suite, "UnitTest 4", test_loadParodusCfg );
     
@@ -509,9 +497,7 @@ int main( void )
 	char commandUrl[255];
 	pid_t curl_pid;
   
-
 	char * command[] = {"parodus","--hw-model=TG1682", "--hw-serial-number=Fer23u948590","--hw-manufacturer=ARRISGroup,Inc.","--hw-mac=123567892366","--hw-last-reboot-reason=unknown","--fw-name=TG1682_DEV_master_2016000000sdy","--boot-time=10","--webpa-ping-time=180","--webpa-inteface-used=eth0","--webpa-url=fabric-cd.webpa.comcast.net","--webpa-backoff-max=9", NULL};
-
 
 	//int size = sizeof(command)/sizeof(command[0]);
 	//int i;
@@ -520,25 +506,18 @@ int main( void )
         //ParodusInfo("command:%s",command);
 
     	ParodusInfo("Starting parodus process \n");
-
 	const char *s = getenv("WEBPA_AUTH_HEADER");
-	
 
 	sprintf(commandUrl, "curl -i -H \"Authorization:Basic %s\" -H \"Accept: application/json\" -w %%{time_total} -k \"https://api-cd.webpa.comcast.net:8090/api/v2/device/mac:123567892366/iot?names=Device.DeviceInfo.Webpa.X_COMCAST-COM_SyncProtocolVersion\"", s);	
 	ParodusPrint("---------------------->>>>Executing system(commandUrl)\n");
 	
 	curl_pid = getpid();
 	ParodusPrint("child process execution with curl_pid:%d\n", curl_pid);
-
-	
-
 	pid = fork();
-	
 	if (pid == -1)
 	{
 		ParodusError("fork was unsuccessful for pid (errno=%d, %s)\n",errno, strerror(errno));
 		return -1;
-		
 	}
 	else if (pid == 0)
 	{
@@ -571,33 +550,23 @@ int main( void )
 		else
 			ParodusPrint("test suite thread created successfully\n");
 			
-		
-	
 	  	if (pipe(link)==-1)
 	  	{
 	    		ParodusError("Failed to create pipe\n");
-	    
 	  	}
 	  	else
 	  		ParodusPrint("Created pipe to read curl output\n");
 
-	
 		pid1 = fork();
-	
 		if (pid1 == -1)
 		{
 			ParodusError("fork was unsuccessful for pid1 (errno=%d, %s)\n",errno, strerror(errno));
 			return -1;
-		
 		}
-	
 		else if(pid1 == 0) 
 		{
-									
-									
 			while(NULL == fopen("/tmp/parodus_ready", "r"))
 			{
-				
 				sleep(5);
 			}
 	    		dup2 (link[1], STDOUT_FILENO);
@@ -606,16 +575,12 @@ int main( void )
 			sleep(40);
 			system(commandUrl);			
 			ParodusInfo("\n----Executed first Curl request for downstream ------- \n");
-			
-		
 		}
 	
 		else if(pid1 > 0)
 		{
-				
 			//wait fro child process to finish and read from pipe
 			waitpid(pid1, &status, 0);
-		
 			//reading from pipe
 			ParodusPrint("parent process...:%d\n", pid1);
 			close(link[1]);
@@ -630,12 +595,9 @@ int main( void )
 		      	{
 		      		ParodusError("curl failure..\n");
 		      	}
-			 
 	    		while(1);
-
 		}
 	}	
-
 return 0;
 }
 
@@ -649,34 +611,27 @@ void *handle_testsuites(void* pid)
 	ParodusPrint("Starting handle_testsuites thread\n");
 	sleep(25);
 
-    	if( CUE_SUCCESS == CU_initialize_registry() ) {
+    	if( CUE_SUCCESS == CU_initialize_registry() ) 
+    	{
 		add_suites( &suite );
-		
-		if( NULL != suite ) {
+		if( NULL != suite ) 
+		{
 		    CU_basic_set_mode( CU_BRM_VERBOSE );
 		    CU_basic_run_tests();
 		    ParodusPrint( "\n" );
 		    CU_basic_show_failures( CU_get_failure_list() );
 		    ParodusPrint( "\n\n" );
 		    rv = CU_get_number_of_tests_failed();
-		   
 		}
-
 		CU_cleanup_registry();
-		
     	}
-    	
     	kill(pid_parodus, SIGKILL);
 	ParodusInfo("parodus process with pid %d is stopped\n", pid_parodus);
-
-
-	
 		
     	if( 0 != rv ) 
 	{
 		_exit(-1);
 	}
-	
 	
 	_exit(0);
 }
@@ -685,7 +640,6 @@ void *handle_testsuites(void* pid)
 static void send_nanomsg_upstream(void **buf, int size)
 {
 	/**** To send nanomsg response to server ****/
-	
 	int rv;		  
 	void *bytes;
 	int resp_size;
@@ -693,19 +647,14 @@ static void send_nanomsg_upstream(void **buf, int size)
 	int byte;
 	wrp_msg_t *message;
 	
-		
 	ParodusInfo("Decoding downstream request received from server\n");
 	rv = wrp_to_struct(*buf, size, WRP_BYTES, &message);
 	ParodusPrint("after downstream req decode:%d\n", rv);	
-		
-	
 	/**** Preparing Nanomsg client response ****/
-	
 	wrp_msg_t resp_m;	
 	resp_m.msg_type = WRP_MSG_TYPE__REQ;
 	ParodusPrint("resp_m.msg_type:%d\n", resp_m.msg_type);
 	
-       
         resp_m.u.req.source = message->u.req.dest;        
         ParodusPrint("------resp_m.u.req.source is:%s\n", resp_m.u.req.source);
         
@@ -756,7 +705,6 @@ static void send_nanomsg_upstream(void **buf, int size)
 	wrp_free_struct(message);
 	
 	free(bytes);
-	nn_shutdown(sock, 0);
 	ParodusPrint("---- End of send_nanomsg_upstream ----\n");
 
 }

@@ -1,6 +1,0 @@
-mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx001"}
-mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx002"}
-mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx003"}
-mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx004"}
-mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx005"}
-mac:123456712357/iot {"name" : "DeviceID", "value" : "xxx006"}

@@ -32,7 +32,9 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/nopoll
                     ${INCLUDE_DIR}/msgpack
                     ${INCLUDE_DIR}/trower-base64
-                    ${INCLUDE_DIR}/wrp-c
+                    ${INCLUDE_DIR}/wrp-c                   
+                    ${INCLUDE_DIR}/libparodus
+                    ${INCLUDE_DIR}/cimplog
                    )
 
 # Compile options/flags
@@ -92,7 +94,7 @@ add_dependencies(libnopoll nopoll)
 ExternalProject_Add(nanomsg
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
     GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
-    GIT_TAG "096998834451219ee7813d8977f6a4027b0ccb43"
+    #GIT_TAG "096998834451219ee7813d8977f6a4027b0ccb43"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libnanomsg STATIC SHARED IMPORTED)
@@ -117,13 +119,25 @@ add_dependencies(libcJSON cJSON)
 ExternalProject_Add(msgpack
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/msgpack
     GIT_REPOSITORY https://github.com/msgpack/msgpack-c.git
-    GIT_TAG "master"
+    GIT_TAG "c6e6dbc608366090c12b142b3832604e6aa12f54"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF
 )
 add_library(libmsgpack STATIC SHARED IMPORTED)
 add_dependencies(libmsgpack msgpack)
+
+
+# cimplog external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(cimplog
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cimplog
+    GIT_REPOSITORY https://github.com/Comcast/cimplog.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(libcimplog STATIC SHARED IMPORTED)
+add_dependencies(libcimplog cimplog)
 
 
 # wrp-c external dependency
@@ -140,21 +154,35 @@ ExternalProject_Add(wrp-c
 add_library(libwrp-c STATIC SHARED IMPORTED)
 add_dependencies(libwrp-c wrp-c)
 
+# libparodus external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(libparodus
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
+    GIT_REPOSITORY https://github.com/Comcast/libparodus.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(liblibparodus STATIC SHARED IMPORTED)
+add_dependencies(liblibparodus libparodus)
+
+if (BUILD_TESTING)
+# cmocka external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(cmocka
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cmocka
+    GIT_REPOSITORY https://git.cryptomilk.org/projects/cmocka.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(libcmocka STATIC SHARED IMPORTED)
+add_dependencies(libcmocka cmocka)
+endif (BUILD_TESTING)
+
 endif ()
 
 link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
 
 add_subdirectory(src)
 if (BUILD_TESTING)
-    set (COVERAGE_DEPENDS ${COVERAGE_DEPENDS} coverage-prog)
     add_subdirectory(tests)
 endif (BUILD_TESTING)
-
-if (BUILD_TESTING)
-    set (COVERAGE_DEPENDS ${COVERAGE_DEPENDS} coverage-lib)
-endif (BUILD_TESTING)
-add_subdirectory(lib)
-
-add_custom_target(coverage DEPENDS ${COVERAGE_DEPENDS}
-                  COMMAND genhtml  `find . -name "*.info" `
-                 )

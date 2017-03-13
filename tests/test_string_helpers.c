@@ -13,49 +13,45 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+#include <assert.h>
+#include <errno.h>
+#include <pthread.h>
 #include <stdarg.h>
 
 #include <CUnit/Basic.h>
-#include <stdbool.h>
-
-#include <assert.h>
-#include <nopoll.h>
-
-//#include <nanomsg/bus.h>
 
 #include "../src/ParodusInternal.h"
-#include "wrp-c.h"
 
-#include<errno.h>
-
-/* Nanomsg related Macros */
-#define ENDPOINT "tcp://127.0.0.1:6666"
-#define CLIENT1_URL "tcp://127.0.0.1:6667"
-#define CLIENT2_URL "tcp://127.0.0.1:6668"
-#define CLIENT3_URL "tcp://127.0.0.1:6669"
+#define STRING_LENGTH 21
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-/* none */
+char *strncpy(char *destStr, const char *srcStr, size_t destSize)
+{
+    (void) destStr; (void) srcStr; (void) destSize;
+    return NULL;
+}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-void test_checkHostIp()
+void test_parStrncpy()
 {
-    CU_ASSERT_EQUAL(0, checkHostIp("fabric.webpa.comcast.net"))
+    char srcStr[] = "Sample source string";
+    char destStr[STRING_LENGTH];
+    int  destSize = sizeof(destStr);
+    parStrncpy(destStr, srcStr, destSize);
+
+    CU_ASSERT( '\0' == destStr[destSize - 1] );
 }
 
 void add_suites( CU_pSuite *suite )
 {
-    ParodusPrint("--------Start of Test Cases Execution ---------\n");
+    ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
-    CU_add_test( *suite, "Test checkHostIp()", test_checkHostIp );
+    CU_add_test( *suite, "Test 1", test_parStrncpy );
 }
-
-
-
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */

@@ -14,6 +14,4 @@ cd build
 cmake ..
 make
 make test
-make coverage
-firefox index.html
 ```

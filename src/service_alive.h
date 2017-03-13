@@ -1,29 +1,29 @@
 /**
- * @file spin_thread.h
+ * @file service_alive.h
  *
- * @description This file is used to define thread function
+ * @description This file is used to manage keep alive section
  *
  * Copyright (c) 2015  Comcast
  */
  
-#ifndef _SPIN_THREAD_H_
-#define _SPIN_THREAD_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef _SERVICE_ALIVE_H_
+#define _SERVICE_ALIVE_H_
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-void StartThread(void *(*start_routine) (void *));
+#ifdef __cplusplus
+extern "C" {
+#endif
+  
+void *serviceAliveTask();
 
 
 #ifdef __cplusplus
 }
 #endif
+    
 
 #endif
-
 

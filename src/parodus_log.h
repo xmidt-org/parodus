@@ -1,17 +1,20 @@
+/**
+ * @file parodus_log.h
+ *
+ * @description This header defines parodus log levels
+ *
+ * Copyright (c) 2015  Comcast
+ */
+ 
 #include <stdarg.h>
+#include <cimplog/cimplog.h>
 
-
-
-#define LEVEL_ERROR 0
-#define LEVEL_INFO  1
-#define LEVEL_DEBUG 2
-
+#define LOGGING_MODULE "PARODUS"
 
 /**
- * @brief Enables or disables debug logs.
- */
+* @brief Enables or disables debug logs.
+*/
 
-#define ParodusError(...)                   printf("Error: "__VA_ARGS__)
-#define ParodusInfo(...)                    printf("Info: "__VA_ARGS__)
-#define ParodusPrint(...)                   printf("Debug: "__VA_ARGS__)
-
+#define ParodusError(...)                   cimplog_error(LOGGING_MODULE, __VA_ARGS__)
+#define ParodusInfo(...)                    cimplog_info(LOGGING_MODULE, __VA_ARGS__)
+#define ParodusPrint(...)                   cimplog_debug(LOGGING_MODULE, __VA_ARGS__)

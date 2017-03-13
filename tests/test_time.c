@@ -13,49 +13,63 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
+#include <assert.h>
+#include <errno.h>
+#include <pthread.h>
 #include <stdarg.h>
 
 #include <CUnit/Basic.h>
-#include <stdbool.h>
-
-#include <assert.h>
-#include <nopoll.h>
-
-//#include <nanomsg/bus.h>
 
 #include "../src/ParodusInternal.h"
-#include "wrp-c.h"
-
-#include<errno.h>
-
-/* Nanomsg related Macros */
-#define ENDPOINT "tcp://127.0.0.1:6666"
-#define CLIENT1_URL "tcp://127.0.0.1:6667"
-#define CLIENT2_URL "tcp://127.0.0.1:6668"
-#define CLIENT3_URL "tcp://127.0.0.1:6669"
+#include "../src/time.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-/* none */
+#define MOCK_RETURN_SEC 1
+
+int clock_gettime(int ID, struct timespec *timer)
+{
+    (void) ID;
+    timer->tv_sec = MOCK_RETURN_SEC;
+    timer->tv_nsec = 2;
+
+    return 0;
+}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-void test_checkHostIp()
+void test_getCurrentTime()
 {
-    CU_ASSERT_EQUAL(0, checkHostIp("fabric.webpa.comcast.net"))
+    struct timespec timer;
+    getCurrentTime(&timer);
+}
+
+void test_getCurrentTimeInMicroSeconds(void)
+{
+    struct timespec timer;
+    CU_ASSERT( MOCK_RETURN_SEC * 1000000 == getCurrentTimeInMicroSeconds(&timer) );
+}
+
+void test_timeValDiff(void)
+{
+    struct timespec start, finish;
+    long msec_diff;
+    start.tv_sec = 1; start.tv_nsec = 1000000;
+    finish.tv_sec = 2; finish.tv_nsec = 2000000;
+    msec_diff = ((finish.tv_sec - start.tv_sec) * 1000) + ((finish.tv_nsec - start.tv_nsec)/1000000);
+    CU_ASSERT( msec_diff == timeValDiff(&start, &finish) );
 }
 
 void add_suites( CU_pSuite *suite )
 {
-    ParodusPrint("--------Start of Test Cases Execution ---------\n");
+    ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
-    CU_add_test( *suite, "Test checkHostIp()", test_checkHostIp );
+    CU_add_test( *suite, "Test 1", test_getCurrentTime );
+    CU_add_test( *suite, "Test 2", test_getCurrentTimeInMicroSeconds );
+    CU_add_test( *suite, "Test 3", test_timeValDiff );
 }
-
-
-
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
