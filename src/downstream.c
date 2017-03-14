@@ -14,37 +14,6 @@
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 
-void *messageHandlerTask()
-{
-    while(1)
-    {
-        pthread_mutex_lock (&g_mutex);
-        ParodusPrint("mutex lock in consumer thread\n");
-        if(ParodusMsgQ != NULL)
-        {
-            ParodusMsg *message = ParodusMsgQ;
-            ParodusMsgQ = ParodusMsgQ->next;
-            pthread_mutex_unlock (&g_mutex);
-            ParodusPrint("mutex unlock in consumer thread\n");
-            int numOfClients = get_numOfClients();
-            listenerOnMessage(message->payload, message->len, &numOfClients, get_global_node());
-
-            nopoll_msg_unref(message->msg);
-            free(message);
-            message = NULL;
-        }
-        else
-        {
-            ParodusPrint("Before pthread cond wait in consumer thread\n");
-            pthread_cond_wait(&g_cond, &g_mutex);
-            pthread_mutex_unlock (&g_mutex);
-            ParodusPrint("mutex unlock in consumer thread after cond wait\n");
-        }
-    }
-    ParodusPrint ("Ended messageHandlerTask\n");
-    return 0;
-}
-       
 /**
  * @brief listenerOnMessage function to create WebSocket listener to receive connections
  *
