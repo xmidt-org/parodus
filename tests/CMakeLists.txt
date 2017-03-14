@@ -106,6 +106,7 @@ target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka -lr
 add_test(NAME test_connection COMMAND test_connection)
 add_executable(test_connection test_connection.c ${PARODUS_COMMON_SRC}
                       ../src/upstream.c
+                      ../src/thread_tasks.c
                       ../src/downstream.c
                       ../src/networking.c
                       ../src/nopoll_helpers.c
@@ -120,14 +121,14 @@ target_link_libraries (test_connection ${PARODUS_COMMON_LIBS})
 #   test_client_list
 #-------------------------------------------------------------------------------
 add_test(NAME test_client_list COMMAND test_client_list)
-add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/ParodusInternal.c ${PARODUS_COMMON_SRC})
+add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/ParodusInternal.c ../src/thread_tasks.c ${PARODUS_COMMON_SRC})
 target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_service_alive
 #-------------------------------------------------------------------------------
 add_test(NAME test_service_alive COMMAND test_service_alive)
-add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ${PARODUS_COMMON_SRC})
+add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ${PARODUS_COMMON_SRC})
 target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
@@ -148,8 +149,15 @@ target_link_libraries (test_upstream -lcmocka ${PARODUS_COMMON_LIBS} )
 #   test_downstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_downstream COMMAND test_downstream)
-add_executable(test_downstream test_downstream.c ../src/downstream.c)
+add_executable(test_downstream test_downstream.c ../src/downstream.c ../src/string_helpers.c)
 target_link_libraries (test_downstream -lcmocka ${PARODUS_COMMON_LIBS} )
+
+#-------------------------------------------------------------------------------
+#   test_thread_tasks
+#-------------------------------------------------------------------------------
+add_test(NAME test_thread_tasks COMMAND test_thread_tasks)
+add_executable(test_thread_tasks test_thread_tasks.c ../src/thread_tasks.c)
+target_link_libraries (test_thread_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 
 if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
@@ -159,6 +167,7 @@ add_test(NAME simple COMMAND simple)
 add_executable(simple simple.c
                       ../src/upstream.c
                       ../src/downstream.c
+                      ../src/thread_tasks.c
                       ../src/networking.c
                       ../src/nopoll_helpers.c
                       ../src/nopoll_handlers.c

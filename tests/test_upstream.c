@@ -38,16 +38,16 @@ static noPollConn *conn;
 static char *reconnect_reason = "webpa_process_starts";
 static ParodusCfg parodusCfg;
 extern size_t metaPackSize;
-static reg_list_item_t * g_head;
-static int numOfClients;
 extern UpStreamMsg *UpStreamMsgQ;
+int numLoops = 1;
+wrp_msg_t *temp = NULL;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
 
 noPollConn *get_global_conn()
 {
-     return conn;   
+    return conn;   
 }
 
 char *get_global_reconnect_reason()
@@ -57,12 +57,14 @@ char *get_global_reconnect_reason()
 
 reg_list_item_t * get_global_node(void)
 {
-    return g_head;
+    function_called();
+    return (reg_list_item_t *)mock();
 }
 
 int get_numOfClients()
 {
-    return numOfClients;
+    function_called();
+    return (int)mock();
 }
 void sendMessage(noPollConn *conn, void *msg, size_t len)
 {
@@ -107,6 +109,12 @@ int addToList( wrp_msg_t **msg)
     return (int)mock();
 }
 
+int nn_socket (int domain, int protocol)
+{
+    (void) domain; (void) protocol;
+    function_called();
+    return (int)mock();
+}
 int nn_bind (int s, const char *addr)
 {
     (void) s; (void) addr;
@@ -114,6 +122,61 @@ int nn_bind (int s, const char *addr)
     return (int)mock();
 }
 
+int nn_recv (int s, void *buf, size_t len, int flags)
+{
+    (void) s; (void) len; (void) flags; (void) buf;
+    function_called();
+    return (int)mock();
+}
+
+int pthread_cond_wait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex)
+{
+    UNUSED(cond); UNUSED(mutex);
+    function_called();
+    return (int)mock();
+}
+
+ssize_t wrp_to_struct( const void *bytes, const size_t length, const enum wrp_format fmt, wrp_msg_t **msg )
+{
+    UNUSED(bytes); UNUSED(length); UNUSED(fmt);
+    function_called();
+    *msg = temp;
+    return (ssize_t)mock();
+}
+
+void wrp_free_struct( wrp_msg_t *msg )
+{
+    UNUSED(msg);
+    function_called();
+}
+
+int nn_freemsg (void *msg)
+{
+    UNUSED(msg);
+    function_called();
+    return (int)mock();
+}
+
+int nn_shutdown (int s, int how)
+{
+    UNUSED(s); UNUSED(how);
+    function_called();
+    return (int)mock();
+}
+
+int nn_setsockopt (int s, int level, int option, const void *optval, size_t optvallen)
+{
+    UNUSED(s); UNUSED(level); UNUSED(option); UNUSED(optval); UNUSED(optvallen);
+    function_called();
+    return (int)mock();
+}
+
+int nn_connect (int s, const char *addr)
+{
+    UNUSED(s); UNUSED(addr);
+    function_called();
+    return (int)mock();
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -139,11 +202,299 @@ void err_packMetaData()
     packMetaData();
 }
 
-void err_handle_upstream()
+void test_handleUpstreamNull()
 {
+    numLoops = 1;
+    UpStreamMsgQ = NULL;
+    will_return(nn_socket, 1);
+    expect_function_call(nn_socket);
+    will_return(nn_bind, 1);
+    expect_function_call(nn_bind);
+    will_return(nn_recv, 12);
+    expect_function_call(nn_recv);
+    handle_upstream();
+}
+
+void test_handle_upstream()
+{
+    numLoops = 1;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = "Second Message";
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+    will_return(nn_socket, 1);
+    expect_function_call(nn_socket);
+    will_return(nn_bind, 1);
+    expect_function_call(nn_bind);
+    will_return(nn_recv, 12);
+    expect_function_call(nn_recv);
+    handle_upstream();
+}
+
+void err_handleUpstreamBindFailure()
+{
+    will_return(nn_socket, 1);
+    expect_function_call(nn_socket);
     will_return(nn_bind, -1);
     expect_function_call(nn_bind);
     handle_upstream();
+}
+
+void err_handleUpstreamSockFailure()
+{
+    will_return(nn_socket, -1);
+    expect_function_call(nn_socket);
+    handle_upstream();
+}
+
+void test_processUpstreamMessage()
+{
+    numLoops = 1;
+    metaPackSize = 20;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = "Second Message";
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 4;
+
+    will_return(wrp_to_struct, 12);
+    expect_function_call(wrp_to_struct);
+
+    will_return(appendEncodedData, 12);
+    expect_function_call(appendEncodedData);
+
+    expect_function_call(sendMessage);
+
+    expect_function_call(wrp_free_struct);
+    will_return(nn_freemsg,1);
+    expect_function_call(nn_freemsg);
+
+    processUpstreamMessage();
+    free(temp);
+}
+
+void test_processUpstreamMessageRegMsg()
+{
+    numLoops = 1;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = "Second Message";
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+
+    reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
+    memset(head, 0, sizeof(reg_list_item_t));
+    strcpy(head->service_name, "iot");
+    strcpy(head->url, "tcp://10.0.0.1:6600");
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 9;
+    temp->u.reg.service_name = head->service_name;
+    temp->u.reg.url = head->url;
+
+    will_return(wrp_to_struct, 12);
+    expect_function_call(wrp_to_struct);
+
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
+
+    will_return(get_global_node, head);
+    expect_function_call(get_global_node);
+
+    will_return(nn_shutdown, 1);
+    expect_function_call(nn_shutdown);
+
+    will_return(nn_socket, 1);
+    expect_function_call(nn_socket);
+
+    will_return(nn_setsockopt, 1);
+    expect_function_call(nn_setsockopt);
+
+    will_return(nn_connect, 1);
+    expect_function_call(nn_connect);
+
+    will_return(sendAuthStatus, 0);
+    expect_function_call(sendAuthStatus);
+
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
+
+    expect_function_call(wrp_free_struct);
+    will_return(nn_freemsg,1);
+    expect_function_call(nn_freemsg);
+
+    processUpstreamMessage();
+    free(temp);
+    free(head);
+}
+
+void test_processUpstreamMessageRegMsgNoClients()
+{
+    numLoops = 1;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = "Second Message";
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+
+    reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
+    memset(head, 0, sizeof(reg_list_item_t));
+    strcpy(head->service_name, "iot");
+    strcpy(head->url, "tcp://10.0.0.1:6600");
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 9;
+    temp->u.reg.service_name = head->service_name;
+    temp->u.reg.url = head->url;
+
+    will_return(wrp_to_struct, 12);
+    expect_function_call(wrp_to_struct);
+
+    will_return(get_numOfClients, 0);
+    expect_function_call(get_numOfClients);
+
+    will_return(addToList, 0);
+    expect_function_call(addToList);
+
+    expect_function_call(wrp_free_struct);
+    will_return(nn_freemsg,1);
+    expect_function_call(nn_freemsg);
+
+    processUpstreamMessage();
+    free(temp);
+    free(head);
+}
+
+void err_processUpstreamMessage()
+{
+    numLoops = 1;
+    UpStreamMsgQ = NULL;
+    will_return(pthread_cond_wait, 0);
+    expect_function_call(pthread_cond_wait);
+    processUpstreamMessage();
+}
+
+void err_processUpstreamMessageDecodeErr()
+{
+    numLoops = 1;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = NULL;
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 3;
+
+    will_return(wrp_to_struct, -1);
+    expect_function_call(wrp_to_struct);
+    expect_function_call(wrp_free_struct);
+    will_return(nn_freemsg,1);
+    expect_function_call(nn_freemsg);
+    processUpstreamMessage();
+    free(temp);
+}
+
+void err_processUpstreamMessageMetapackFailure()
+{
+    numLoops = 1;
+    metaPackSize = 0;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = NULL;
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 5;
+
+    will_return(wrp_to_struct, 15);
+    expect_function_call(wrp_to_struct);
+
+    expect_function_call(wrp_free_struct);
+    will_return(nn_freemsg,1);
+    expect_function_call(nn_freemsg);
+    processUpstreamMessage();
+    free(temp);
+}
+
+void err_processUpstreamMessageRegMsg()
+{
+    numLoops = 1;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = "Second Message";
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+
+    reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
+    strcpy(head->service_name, "iot");
+    strcpy(head->url, "tcp://10.0.0.1:6600");
+    head->next = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
+    strcpy(head->next->service_name, "iot");
+    strcpy(head->next->url, "tcp://10.0.0.1:6600");
+    head->next->next = NULL;
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 9;
+    temp->u.reg.service_name = head->service_name;
+    temp->u.reg.url = head->url;
+
+    will_return(wrp_to_struct, 12);
+    expect_function_call(wrp_to_struct);
+
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
+
+    will_return(get_global_node, head);
+    expect_function_call(get_global_node);
+
+    will_return(nn_shutdown, -1);
+    expect_function_call(nn_shutdown);
+
+    will_return(nn_socket, -1);
+    expect_function_call(nn_socket);
+
+    will_return(nn_shutdown, 1);
+    expect_function_call(nn_shutdown);
+
+    will_return(nn_socket, 1);
+    expect_function_call(nn_socket);
+
+    will_return(nn_setsockopt, -1);
+    expect_function_call(nn_setsockopt);
+
+    will_return(nn_connect, -1);
+    expect_function_call(nn_connect);
+
+    will_return(addToList, -1);
+    expect_function_call(addToList);
+
+    expect_function_call(wrp_free_struct);
+    will_return(nn_freemsg,1);
+    expect_function_call(nn_freemsg);
+
+    processUpstreamMessage();
+    free(temp);
+    free(head);
 }
 
 void test_sendUpstreamMsgToServer()
@@ -178,7 +529,17 @@ int main(void)
         cmocka_unit_test(test_getParodusUrl),
         cmocka_unit_test(test_packMetaData),
         cmocka_unit_test(err_packMetaData),
-        cmocka_unit_test(err_handle_upstream),
+        cmocka_unit_test(test_handleUpstreamNull),
+        cmocka_unit_test(test_handle_upstream),
+        cmocka_unit_test(err_handleUpstreamBindFailure),
+        cmocka_unit_test(err_handleUpstreamSockFailure),
+        cmocka_unit_test(test_processUpstreamMessage),
+        cmocka_unit_test(test_processUpstreamMessageRegMsg),
+        cmocka_unit_test(test_processUpstreamMessageRegMsgNoClients),
+        cmocka_unit_test(err_processUpstreamMessage),
+        cmocka_unit_test(err_processUpstreamMessageDecodeErr),
+        cmocka_unit_test(err_processUpstreamMessageMetapackFailure),
+        cmocka_unit_test(err_processUpstreamMessageRegMsg),
         cmocka_unit_test(test_sendUpstreamMsgToServer),
         cmocka_unit_test(err_sendUpstreamMsgToServer),
     };

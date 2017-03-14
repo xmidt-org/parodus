@@ -12,6 +12,7 @@
 #include "config.h"
 #include "upstream.h"
 #include "downstream.h"
+#include "thread_tasks.h"
 #include "nopoll_helpers.h"
 #include "mutex.h"
 #include "spin_thread.h"

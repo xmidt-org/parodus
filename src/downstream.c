@@ -14,37 +14,6 @@
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 
-void *messageHandlerTask()
-{
-	while(1)
-	{
-		pthread_mutex_lock (&g_mutex);
-		ParodusPrint("mutex lock in consumer thread\n");
-		if(ParodusMsgQ != NULL)
-		{
-			ParodusMsg *message = ParodusMsgQ;
-			ParodusMsgQ = ParodusMsgQ->next;
-			pthread_mutex_unlock (&g_mutex);
-			ParodusPrint("mutex unlock in consumer thread\n");
-			int numOfClients = get_numOfClients();
-			listenerOnMessage(message->payload, message->len, &numOfClients, get_global_node());
-			
-			nopoll_msg_unref(message->msg);
-			free(message);
-			message = NULL;
-		}
-		else
-		{
-			ParodusPrint("Before pthread cond wait in consumer thread\n");   
-			pthread_cond_wait(&g_cond, &g_mutex);
-			pthread_mutex_unlock (&g_mutex);
-			ParodusPrint("mutex unlock in consumer thread after cond wait\n");
-		}
-	}
-	ParodusPrint ("Ended messageHandlerTask\n");
-	return 0;
-}
-       
 /**
  * @brief listenerOnMessage function to create WebSocket listener to receive connections
  *
@@ -55,23 +24,23 @@ void *messageHandlerTask()
  */
 void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_item_t *head )
 {
-	int rv =0;
-	wrp_msg_t *message;
-	char* destVal = NULL;
-	char dest[32] = {'\0'};
-	int msgType;
-	int bytes =0;
-	int destFlag =0;			
-	int resp_size =0;
-	const char *recivedMsg = NULL;
-	char *str= NULL;
-	wrp_msg_t *resp_msg = NULL;
-	void *resp_bytes;
-	reg_list_item_t *temp = NULL;
-	
-	recivedMsg =  (const char *) msg;
-	
-	ParodusInfo("Received msg from server:%s\n", recivedMsg);	
+    int rv =0;
+    wrp_msg_t *message;
+    char* destVal = NULL;
+    char dest[32] = {'\0'};
+    int msgType;
+    int bytes =0;
+    int destFlag =0;
+    ssize_t resp_size =0;
+    const char *recivedMsg = NULL;
+    char *str= NULL;
+    wrp_msg_t *resp_msg = NULL;
+    void *resp_bytes;
+    reg_list_item_t *temp = NULL;
+
+    recivedMsg =  (const char *) msg;
+
+    ParodusInfo("Received msg from server:%s\n", recivedMsg);
     if(recivedMsg!=NULL) 
     {
         /*** Decoding downstream recivedMsg to check destination ***/
@@ -88,7 +57,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
             {
                 destVal = message->u.req.dest;
                 strtok(destVal , "/");
-                strcpy(dest,strtok(NULL , "/"));
+                parStrncpy(dest,strtok(NULL , "/"), sizeof(dest));
                 ParodusInfo("Received downstream dest as :%s\n", dest);
                 temp = head;
                 //Checking for individual clients & Sending to each client
@@ -133,7 +102,9 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
                     ParodusPrint("msgpack encode\n");
                     resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
 
-                    sendUpstreamMsgToServer(&resp_bytes, resp_size);				
+                    sendUpstreamMsgToServer(&resp_bytes, (int) resp_size);
+                    free(str);
+                    free(resp_msg);
                 }
             }
         }

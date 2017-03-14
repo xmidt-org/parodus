@@ -117,7 +117,7 @@ void *handle_upstream()
         }
         else
         {
-            while( 1 ) 
+            while( FOREVER() ) 
             {
                 buf = NULL;
                 ParodusInfo("nanomsg server gone into the listening mode...\n");
@@ -179,7 +179,7 @@ void *processUpstreamMessage()
     int matchFlag = 0;
     int status = -1;
 
-    while(1)
+    while(FOREVER())
     {
         pthread_mutex_lock (&nano_mut);
         ParodusPrint("mutex lock in consumer thread\n");
@@ -213,7 +213,7 @@ void *processUpstreamMessage()
                                 strncpy(temp->url,msg->u.reg.url, strlen(msg->u.reg.url)+1);
                                 if(nn_shutdown(temp->sock, 0) < 0)
                                 {
-                                ParodusError ("Failed to shutdown\n");
+                                    ParodusError ("Failed to shutdown\n");
                                 }
 
                                 temp->sock = nn_socket(AF_SP,NN_PUSH );
@@ -289,7 +289,7 @@ void *processUpstreamMessage()
             }
             else
             {
-            ParodusError("Error in msgpack decoding for upstream\n");
+                ParodusError("Error in msgpack decoding for upstream\n");
             }
             ParodusPrint("Free for upstream decoded msg\n");
             wrp_free_struct(msg);
@@ -297,7 +297,7 @@ void *processUpstreamMessage()
 
             if(nn_freemsg (message->msg) < 0)
             {
-            ParodusError ("Failed to free msg\n");
+                ParodusError ("Failed to free msg\n");
             }
             free(message);
             message = NULL;

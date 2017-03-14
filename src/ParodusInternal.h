@@ -36,6 +36,14 @@
 /*----------------------------------------------------------------------------*/
 #define UNUSED(x) (void )(x)
 #define NANOMSG_SOCKET_TIMEOUT_MSEC                      2000
+
+#ifndef TEST
+#define FOREVER()   1
+#else
+extern int numLoops;
+#define FOREVER()   numLoops--
+#endif
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -49,15 +57,18 @@ typedef struct ParodusMsg__
 } ParodusMsg;
 
 /*----------------------------------------------------------------------------*/
+/*                            File Scoped Variables                           */
+/*----------------------------------------------------------------------------*/
+extern bool LastReasonStatus;
+extern ParodusMsg *ParodusMsgQ;
+int numLoops;
+/*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-extern bool LastReasonStatus;
-extern ParodusMsg *ParodusMsgQ;
 
 int checkHostIp(char * serverIP);
 

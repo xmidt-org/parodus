@@ -18,15 +18,9 @@ extern "C" {
 #endif
 
 /*----------------------------------------------------------------------------*/
-/*                            File Scoped Variables                           */
-/*----------------------------------------------------------------------------*/
-extern pthread_mutex_t g_mutex;
-extern pthread_cond_t g_cond; 
-/*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-void *messageHandlerTask();
 /**
  * @brief listenerOnMessage function to create WebSocket listener to receive connections
  *
