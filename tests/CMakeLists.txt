@@ -97,7 +97,7 @@ target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -lrt -lpt
 #   test_connection - function createNopollConnection
 #-------------------------------------------------------------------------------
 add_test(NAME test_createConnection COMMAND test_createConnection)
-add_executable(test_createConnection test_createConnection.c ../src/connection.c nopoll_mock.c ${PARODUS_COMMON_SRC}) 
+add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
 target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka -lrt)
 
 #-------------------------------------------------------------------------------
