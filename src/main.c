@@ -14,9 +14,11 @@
  * limitations under the License.
  *
  */
+ 
+#include <string.h>
 
 #include "config.h"
-#include "connection.h"
+#include "conn_interface.h"
 #include "parodus_log.h"
 
 /*----------------------------------------------------------------------------*/

@@ -6,7 +6,8 @@
  * Copyright (c) 2015  Comcast
  */
 
-#include "downstream.h" 
+#include "downstream.h"
+#include "upstream.h" 
 #include "connection.h"
 #include "ParodusInternal.h"
 
