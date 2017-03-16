@@ -160,6 +160,13 @@ add_test(NAME test_thread_tasks COMMAND test_thread_tasks)
 add_executable(test_thread_tasks test_thread_tasks.c ../src/thread_tasks.c)
 target_link_libraries (test_thread_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 
+#-------------------------------------------------------------------------------
+#   test_conn_interface
+#-------------------------------------------------------------------------------
+add_test(NAME test_conn_interface COMMAND test_conn_interface)
+add_executable(test_conn_interface test_conn_interface ../src/conn_interface.c ../src/config.c ../src/string_helpers.c ../src/mutex.c)
+target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
+
 if (NOT EXCLUDE_SIMPLE)
 #-------------------------------------------------------------------------------
 #   simple test
