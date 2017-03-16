@@ -18,12 +18,10 @@
 /**
  * @brief listenerOnMessage function to create WebSocket listener to receive connections
  *
- * @param[in] ctx The context where the connection happens.
- * @param[in] conn The Websocket connection object
  * @param[in] msg The message received from server for various process requests
- * @param[out] user_data data which is to be sent
+ * @param[in] msgSize message size
  */
-void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_item_t *head )
+void listenerOnMessage(void * msg, size_t msgSize)
 {
     int rv =0;
     wrp_msg_t *message;
@@ -32,7 +30,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
     int msgType;
     int bytes =0;
     int destFlag =0;
-    ssize_t resp_size =0;
+    int resp_size = -1 ;
     const char *recivedMsg = NULL;
     char *str= NULL;
     wrp_msg_t *resp_msg = NULL;
@@ -52,7 +50,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
             ParodusPrint("\nDecoded recivedMsg of size:%d\n", rv);
             msgType = message->msg_type;
             ParodusInfo("msgType received:%d\n", msgType);
-            ParodusPrint("numOfClients registered is %d\n", *numOfClients);
+            ParodusPrint("numOfClients registered is %d\n", get_numOfClients());
 
             if((message->u.req.dest !=NULL))
             {
@@ -60,7 +58,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
                 strtok(destVal , "/");
                 parStrncpy(dest,strtok(NULL , "/"), sizeof(dest));
                 ParodusInfo("Received downstream dest as :%s\n", dest);
-                temp = head;
+                temp = get_global_node();
                 //Checking for individual clients & Sending to each client
 
                 while (NULL != temp)
@@ -103,7 +101,7 @@ void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_i
                     ParodusPrint("msgpack encode\n");
                     resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
 
-                    sendUpstreamMsgToServer(&resp_bytes, (int) resp_size);
+                    sendUpstreamMsgToServer(&resp_bytes, resp_size);
                     free(str);
                     free(resp_msg);
                 }

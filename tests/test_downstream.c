@@ -28,8 +28,6 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-static reg_list_item_t * g_head;
-static int numOfClients;
 ParodusMsg *ParodusMsgQ;
 pthread_mutex_t g_mutex;
 pthread_cond_t g_cond;
@@ -39,16 +37,19 @@ pthread_cond_t g_cond;
 void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
 {
     UNUSED(resp_bytes); UNUSED(resp_size);
+    function_called();
 }
 
 int get_numOfClients()
 {
-    return numOfClients;
+    function_called();
+    return (int) mock();
 }
 
 reg_list_item_t * get_global_node(void)
 {
-    return g_head;
+    function_called();
+    return (reg_list_item_t *) mock();
 }
 
 ssize_t wrp_to_struct( const void *bytes, const size_t length,
@@ -76,7 +77,6 @@ int nn_send (int s, const void *buf, size_t len, int flags)
 
 void test_listenerOnMessage()
 {
-    int noClients = 1;
     will_return(wrp_to_struct, 1);
     expect_function_calls(wrp_to_struct, 1);
     reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
@@ -84,15 +84,19 @@ void test_listenerOnMessage()
     strcpy(head->service_name, "iot");
     strcpy(head->url, "tcp://10.0.0.1:6600");
     
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
+    will_return(get_global_node, head);
+    expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
-    listenerOnMessage("Hello", 6, &noClients, head);
+
+    listenerOnMessage("Hello", 6);
     free(head);
 }
 
 void test_listenerOnMessageMultipleClients()
 {
-    int noClients = 3;
     will_return(wrp_to_struct, 1);
     expect_function_calls(wrp_to_struct, 1);
     
@@ -113,9 +117,14 @@ void test_listenerOnMessageMultipleClients()
     strcpy(head->url, "tcp://10.0.0.1:6600");
     head->next = head1;
     
+    will_return(get_numOfClients, 3);
+    expect_function_call(get_numOfClients);
+    will_return(get_global_node, head);
+    expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
-    listenerOnMessage("Hello", 6, &noClients, head);
+
+    listenerOnMessage("Hello", 6);
     free(head1);
     free(head2);
     free(head);
@@ -123,25 +132,29 @@ void test_listenerOnMessageMultipleClients()
 
 void err_listenerOnMessage()
 {
-    int noClients = 0;
     will_return(wrp_to_struct, 0);
     expect_function_calls(wrp_to_struct, 1);
-    listenerOnMessage("Hello", 6, &noClients, NULL);
     
-    listenerOnMessage(NULL, 0, NULL, NULL);
+    listenerOnMessage("Hello", 6);
 }
 
 void err_listenerOnMessageServiceUnavailable()
 {
-    int noClients = 0;
     will_return(wrp_to_struct, 2);
     expect_function_calls(wrp_to_struct, 1);
-    listenerOnMessage("Hello", 6, &noClients, NULL);
+    
+    will_return(get_numOfClients, 0);
+    expect_function_call(get_numOfClients);
+    will_return(get_global_node, NULL);
+    expect_function_call(get_global_node);
+    expect_function_call(sendUpstreamMsgToServer);
+    
+    listenerOnMessage("Hello", 6);
 }
 
 void err_listenerOnMessageAllNull()
 {
-    listenerOnMessage(NULL, 0, NULL, NULL);
+    listenerOnMessage(NULL, 0);
 }
 
 /*----------------------------------------------------------------------------*/
