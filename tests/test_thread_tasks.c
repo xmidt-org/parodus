@@ -50,14 +50,11 @@ reg_list_item_t * get_global_node(void)
     return (reg_list_item_t *)mock();
 }
 
-void listenerOnMessage(void * msg, size_t msgSize, int *numOfClients, reg_list_item_t *head )
+void listenerOnMessage(void * msg, size_t msgSize )
 {
     check_expected(msg);
-    check_expected(numOfClients);
     check_expected(msgSize);
-    check_expected(head);
     function_called();
-    return;
 }
 
 int pthread_cond_wait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex)
@@ -72,27 +69,15 @@ int pthread_cond_wait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict m
 
 void test_messageHandlerTask()
 {
-    int clients = 1;
     ParodusMsgQ = (ParodusMsg *) malloc (sizeof(ParodusMsg));
     ParodusMsgQ->payload = "First message";
     ParodusMsgQ->len = 9;
     ParodusMsgQ->next = NULL;
     
     numLoops = 1;
-    reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
-    memset(head, 0, sizeof(reg_list_item_t));
-    strcpy(head->service_name, "iot");
-    strcpy(head->url, "tcp://10.0.0.1:6600");
 
-    will_return(get_numOfClients, clients);
-    expect_function_call(get_numOfClients);
-    will_return(get_global_node, head);
-    expect_function_call(get_global_node);
-    
     expect_value(listenerOnMessage, msg, ParodusMsgQ->payload);
     expect_value(listenerOnMessage, msgSize, ParodusMsgQ->len);
-    expect_any(listenerOnMessage, numOfClients);
-    expect_value(listenerOnMessage, head, head);
     expect_function_call(listenerOnMessage);
     
     messageHandlerTask();

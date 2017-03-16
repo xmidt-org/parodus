@@ -34,8 +34,8 @@ void *messageHandlerTask()
             ParodusMsgQ = ParodusMsgQ->next;
             pthread_mutex_unlock (&g_mutex);
             ParodusPrint("mutex unlock in consumer thread\n");
-            int numOfClients = get_numOfClients();
-            listenerOnMessage(message->payload, message->len, &numOfClients, get_global_node());
+
+            listenerOnMessage(message->payload, message->len);
 
             nopoll_msg_unref(message->msg);
             free(message);
