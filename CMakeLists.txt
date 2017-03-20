@@ -177,8 +177,6 @@ ExternalProject_Add(cmocka
 add_library(libcmocka STATIC SHARED IMPORTED)
 add_dependencies(libcmocka cmocka)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTEST ")
-
 endif (BUILD_TESTING)
 
 endif ()
