@@ -95,6 +95,13 @@ add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handler
 target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -lrt -lpthread -lm)
 
 #-------------------------------------------------------------------------------
+#   test_connection
+#-------------------------------------------------------------------------------
+add_test(NAME test_connection COMMAND test_connection)
+add_executable(test_connection test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC}) 
+target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka -lrt)
+
+#-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
 #-------------------------------------------------------------------------------
 add_test(NAME test_createConnection COMMAND test_createConnection)
@@ -147,15 +154,22 @@ target_link_libraries (test_thread_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #   test_conn_interface
 #-------------------------------------------------------------------------------
 add_test(NAME test_conn_interface COMMAND test_conn_interface)
-add_executable(test_conn_interface test_conn_interface ../src/conn_interface.c ../src/config.c ../src/string_helpers.c ../src/mutex.c)
+add_executable(test_conn_interface test_conn_interface.c ../src/conn_interface.c ../src/config.c ../src/string_helpers.c ../src/mutex.c)
 target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
+
+#-------------------------------------------------------------------------------
+#   test_ParodusInternal
+#-------------------------------------------------------------------------------
+add_test(NAME test_ParodusInternal COMMAND test_ParodusInternal)
+add_executable(test_ParodusInternal test_ParodusInternal.c ../src/ParodusInternal.c ../src/config.c ../src/string_helpers.c)
+target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} )
 
 if (INTEGRATION_TESTING)
 #-------------------------------------------------------------------------------
-#   test_connection
+#   simple_connection test
 #-------------------------------------------------------------------------------
-add_test(NAME test_connection COMMAND test_connection)
-add_executable(test_connection test_connection.c ${PARODUS_COMMON_SRC}
+add_test(NAME simple_connection COMMAND simple_connection)
+add_executable(simple_connection simple_connection.c ${PARODUS_COMMON_SRC}
                     ../src/upstream.c
                     ../src/conn_interface.c
                     ../src/thread_tasks.c
@@ -167,7 +181,7 @@ add_executable(test_connection test_connection.c ${PARODUS_COMMON_SRC}
                     ../src/ParodusInternal.c
                     ../src/client_list.c
                     ../src/service_alive.c) 
-target_link_libraries (test_connection ${PARODUS_COMMON_LIBS})
+target_link_libraries (simple_connection ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   simple test

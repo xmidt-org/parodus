@@ -90,7 +90,7 @@ void test_getParodusConfig()
 
 void test_parseCommandLine()
 {
-    int argc =11;
+    int argc =12;
     char * command[15]={'\0'};
 
     command[0] = "parodus";
@@ -104,6 +104,7 @@ void test_parseCommandLine()
     command[8] = "--webpa-inteface-used=br0";
     command[9] = "--webpa-url=localhost";
     command[10] = "--webpa-backoff-max=0";
+    command[11] = "--boot-time=1234";
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
@@ -120,6 +121,7 @@ void test_parseCommandLine()
     assert_string_equal( parodusCfg.webpa_interface_used, "br0");	
     assert_string_equal( parodusCfg.webpa_url, "localhost");
     assert_int_equal( (int) parodusCfg.webpa_backoff_max,0);
+    assert_int_equal( (int) parodusCfg.boot_time,1234);
 }
 
 void test_parseCommandLineNull()
