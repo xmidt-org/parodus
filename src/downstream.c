@@ -29,8 +29,9 @@ void listenerOnMessage(void * msg, size_t msgSize)
     char dest[32] = {'\0'};
     int msgType;
     int bytes =0;
-    int destFlag =0, size = 0;
-    ssize_t resp_size = 0;
+    int destFlag =0;
+    size_t size = 0;
+    int resp_size = -1 ;
     const char *recivedMsg = NULL;
     char *str= NULL;
     wrp_msg_t *resp_msg = NULL;
@@ -100,8 +101,11 @@ void listenerOnMessage(void * msg, size_t msgSize)
 
                     ParodusPrint("msgpack encode\n");
                     resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
-                    size = (int) resp_size;
-                    sendUpstreamMsgToServer(&resp_bytes, size);
+                    if(resp_size > 0)
+                    {
+                        size = (size_t) resp_size;
+                        sendUpstreamMsgToServer(&resp_bytes, size);
+                    }
                     free(str);
                     free(resp_msg);
                 }

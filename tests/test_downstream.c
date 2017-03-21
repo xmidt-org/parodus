@@ -34,7 +34,7 @@ pthread_cond_t g_cond;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
+void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
     UNUSED(resp_bytes); UNUSED(resp_size);
     function_called();
