@@ -313,16 +313,15 @@ void *processUpstreamMessage()
     return NULL;
 }
 
-void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
+void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
 	size_t encodedSize;
-	size_t size;
+
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{
-		size = (size_t) resp_size;
-	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, size, metadataPack, metaPackSize );
+	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
 	   	ParodusPrint("metadata appended upstream response %s\n", (char *)appendData);
 	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
