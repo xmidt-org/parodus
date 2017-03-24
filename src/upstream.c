@@ -204,6 +204,8 @@ void *processUpstreamMessage()
                     //Extract serviceName and url & store it in a linked list for reg_clients
                     if(get_numOfClients() !=0)
                     {
+			matchFlag = 0;
+			ParodusPrint("matchFlag reset to %d\n", matchFlag);
                         temp = get_global_node();
                         while(temp!=NULL)
                         {
