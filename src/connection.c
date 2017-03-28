@@ -277,7 +277,8 @@ int createNopollConnection(noPollCtx *ctx)
 	reconnect_reason = "webpa_process_starts";
 	LastReasonStatus =false;
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
-	
+	setMessageHandlers();
+
 	return nopoll_true;
 }
 

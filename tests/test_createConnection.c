@@ -142,6 +142,11 @@ char *strtok(char *str, const char *delim)
     function_called();
     return (char*) mock();
 }
+
+void setMessageHandlers()
+{
+    function_called();
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -168,6 +173,7 @@ void test_createSecureConnection()
     expect_function_call(nopoll_conn_is_ok);
     will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
     expect_function_call(nopoll_conn_wait_until_connection_ready);
+    expect_function_call(setMessageHandlers);
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
     free(cfg);
@@ -195,6 +201,7 @@ void test_createConnection()
     expect_function_call(nopoll_conn_is_ok);
     will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
     expect_function_call(nopoll_conn_wait_until_connection_ready);
+    expect_function_call(setMessageHandlers);
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
     free(cfg);
@@ -245,7 +252,7 @@ void test_createConnectionConnNull()
     expect_function_call(nopoll_conn_is_ok);
     will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
     expect_function_call(nopoll_conn_wait_until_connection_ready);
-    
+    expect_function_call(setMessageHandlers);
     createNopollConnection(ctx);
     free(cfg);
 }
@@ -317,7 +324,7 @@ void test_createConnectionConnNotOk()
     expect_function_call(nopoll_conn_is_ok);
     will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
     expect_function_call(nopoll_conn_wait_until_connection_ready);
-    
+    expect_function_call(setMessageHandlers);
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
     free(cfg);
