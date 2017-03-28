@@ -71,11 +71,6 @@ void packMetaData()
     function_called();
 }
 
-void setMessageHandlers()
-{
-    function_called();
-}
-
 void getParodusUrl()
 {
     function_called();
@@ -177,7 +172,6 @@ void test_createSocketConnection()
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
-    expect_function_call(setMessageHandlers);
     expect_function_call(getParodusUrl);
     expect_function_calls(StartThread, 4);
     expect_function_call(initKeypress);
@@ -213,7 +207,6 @@ void test_createSocketConnection1()
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
-    expect_function_call(setMessageHandlers);
     expect_function_call(getParodusUrl);
     expect_function_calls(StartThread, 4);
     will_return(nopoll_loop_wait, 1);
@@ -261,7 +254,6 @@ void test_createSocketConnection2()
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
-    expect_function_call(setMessageHandlers);
     expect_function_call(getParodusUrl);
     expect_function_calls(StartThread, 4);
     will_return(nopoll_loop_wait, 1);
@@ -300,7 +292,6 @@ void err_createSocketConnection()
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
-    expect_function_call(setMessageHandlers);
     expect_function_call(getParodusUrl);
     expect_function_calls(StartThread, 4);
     will_return(nopoll_loop_wait, 1);
