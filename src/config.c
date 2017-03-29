@@ -46,11 +46,13 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           {"webpa-ping-timeout",    required_argument, 0, 'p'},
           {"webpa-backoff-max",  required_argument, 0, 'o'},
           {"webpa-inteface-used",    required_argument, 0, 'i'},
+          {JWT_ALGORITHM,    required_argument, 0, 'a'},//RG
+		  {JWT_KEY,    required_argument, 0, 'k'},//RG
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:",long_options, &option_index);
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:a:k",long_options, &option_index);
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -111,6 +113,16 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case 'i':
           parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
           ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
+          break;
+		 
+		case 'a':
+          parStrncpy(cfg->jwt_algo, optarg,sizeof(cfg->jwt_algo));
+          ParodusInfo("jwt_algo is %s\n",cfg->jwt_algo);
+          break;
+		//RG 
+		case 'k':
+          parStrncpy(cfg->jwt_key, optarg,sizeof(cfg->jwt_key));
+          ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
 
         case '?':
@@ -210,7 +222,26 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     {
         ParodusPrint("webpa_interface_used is NULL. read from tmp file\n");
     }
-        
+    //RG
+	if(strlen(pConfig->jwt_algo )!=0)
+    {
+        strncpy(cfg->jwt_algo, pConfig->jwt_algo,strlen(pConfig->jwt_algo)+1);
+    }
+    else
+    {
+        ParodusPrint("jwt_algo is NULL. read from tmp file\n");
+    }
+	if(strlen(pConfig->jwt_key )!=0)
+    {
+        strncpy(cfg->jwt_key, pConfig->jwt_key,strlen(pConfig->jwt_key)+1);
+    }
+    else
+    {
+        ParodusPrint("jwt_key is NULL. read from tmp file\n");
+    }
+	//RG
+	
+		
     cfg->boot_time = pConfig->boot_time;
     cfg->secureFlag = 1;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;

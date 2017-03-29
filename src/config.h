@@ -35,7 +35,8 @@ extern "C" {
 
 #define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
 #define WEBPA_PATH_URL                                    "/api/v2/device"
-
+#define JWT_ALGORITHM									"jwt-algo"
+#define	JWT_KEY											"jwt-key"
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -57,6 +58,8 @@ typedef struct
     char webpa_protocol[16];
     char webpa_uuid[64];
     unsigned int secureFlag;
+	char jwt_algo[124];
+    char jwt_key[124];
 } ParodusCfg;
 
 /*----------------------------------------------------------------------------*/

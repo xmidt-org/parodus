@@ -165,6 +165,17 @@ ExternalProject_Add(libparodus
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
 
+# libcjwt external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(libcjwt
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libcjwt
+    GIT_REPOSITORY https://github.com/Comcast/cjwt.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(liblibcjwt STATIC SHARED IMPORTED)
+add_dependencies(liblibcjwt libcjwt)
+
 if (BUILD_TESTING)
 # cmocka external dependency
 #-------------------------------------------------------------------------------

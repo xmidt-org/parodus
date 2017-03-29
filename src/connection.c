@@ -30,6 +30,7 @@ static noPollConn *g_conn = NULL;
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+extern bool allow_insecure_conn(); //RG
 
 noPollConn *get_global_conn(void)
 {
@@ -134,7 +135,10 @@ int createNopollConnection(noPollCtx *ctx)
 			backoffRetryTime = (int) pow(2, c) -1;
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
-								
+			
+		//RG
+		if( !allow_insecure_conn() )
+			ParodusPrint("Secure connection");
         noPollConn *connection;
 		if(get_parodus_cfg()->secureFlag) 
 		{                    
