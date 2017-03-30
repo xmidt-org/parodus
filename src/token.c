@@ -14,8 +14,7 @@
 #include <strings.h>
 #include <string.h>
 
-//#include "cjwt.h"
-#include "../src/cjwt.h"
+#include <cjwt.h>
 
 #define N 4096
  

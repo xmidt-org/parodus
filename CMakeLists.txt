@@ -173,8 +173,8 @@ ExternalProject_Add(libcjwt
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
-add_library(liblibcjwt STATIC SHARED IMPORTED)
-add_dependencies(liblibcjwt libcjwt)
+add_library(libcjwt STATIC SHARED IMPORTED)
+add_dependencies(libcjwt cjwt)
 
 if (BUILD_TESTING)
 # cmocka external dependency
