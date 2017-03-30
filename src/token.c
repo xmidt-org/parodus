@@ -131,7 +131,8 @@ static int query_dns(const char* dnsserv_url,char *jwt_ans)
 int allow_insecure_conn(const char* serv_url)
 {	
 	int insecure=0, ret = -1;
-	char jwt_token[N];
+	char jwt_token[N], *key;
+	cjwt_t *jwt = NULL;
 	
 	if( !serv_url ){
 		goto end;
@@ -146,8 +147,8 @@ int allow_insecure_conn(const char* serv_url)
 	ParodusInfo("query_token : %s\n",jwt_token);
 	
 	//Decoding the jwt token
-	cjwt_t *jwt = NULL;
-	ret = cjwt_decode( jwt_token, 0, &jwt, ( const uint8_t * )"",0 );
+	key = get_parodus_cfg()->jwt_key;
+	ret = cjwt_decode( jwt_token, 0, &jwt, ( const uint8_t * )key,strlen(key) );
 
 	if(ret){
 		goto end;
