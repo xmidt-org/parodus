@@ -30,7 +30,7 @@ typedef struct UpStreamMsg__
 void packMetaData();
 void *handle_upstream();
 void *processUpstreamMessage();
-void getParodusUrl();
+
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size);
 
 #ifdef __cplusplus

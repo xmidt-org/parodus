@@ -17,7 +17,7 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTEST ")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
 set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c)
-set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c -lpthread -lm -lmsgpackc -lcjson -ltrower-base64 -lnopoll -lnanomsg -lrt)
+set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c -lpthread -lm -lmsgpackc -lcjson -ltrower-base64 -lnopoll -lnanomsg -Wl,--no-as-needed -lrt)
 
 link_directories ( ${LIBRARY_DIR} )
 
@@ -40,7 +40,7 @@ target_link_libraries (test_networking ${PARODUS_COMMON_LIBS})
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_helpers COMMAND test_nopoll_helpers)
 add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
-target_link_libraries (test_nopoll_helpers -lrt -lcmocka -lcimplog -lnopoll)
+target_link_libraries (test_nopoll_helpers -Wl,--no-as-needed -lrt -lcmocka -lcimplog -lnopoll)
 
 #-------------------------------------------------------------------------------
 #   libpd_test
@@ -92,21 +92,21 @@ target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers COMMAND test_nopoll_handlers)
 add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c)
-target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -lrt -lpthread -lm)
+target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm)
 
 #-------------------------------------------------------------------------------
 #   test_connection
 #-------------------------------------------------------------------------------
 add_test(NAME test_connection COMMAND test_connection)
 add_executable(test_connection test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC}) 
-target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka -lrt)
+target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
 #-------------------------------------------------------------------------------
 add_test(NAME test_createConnection COMMAND test_createConnection)
 add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
-target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka -lrt)
+target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_client_list
@@ -127,7 +127,7 @@ target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 #-------------------------------------------------------------------------------
 add_test(NAME test_config COMMAND test_config)
 add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
-target_link_libraries (test_config -lcmocka -lm -lrt -lcimplog)
+target_link_libraries (test_config -lcmocka -lm -Wl,--no-as-needed -lrt -lcimplog)
 
 #-------------------------------------------------------------------------------
 #   test_upstream
@@ -205,5 +205,5 @@ add_executable(simple simple.c
                     ../src/client_list.c
                     ../src/service_alive.c) 
 
-target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg -lrt )
+target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg )
 endif (INTEGRATION_TESTING)
