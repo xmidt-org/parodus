@@ -35,6 +35,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
+                    ${INCLUDE_DIR}/cjwt
                    )
 
 # Compile options/flags

@@ -30,7 +30,7 @@ target_link_libraries (parodus
     -lcjson
     -lpthread
     -lrt
-	-lresolv
-	-lcjwt
+    -lresolv
+    -lcjwt
     )
 install (TARGETS parodus DESTINATION bin)
