@@ -46,11 +46,12 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           {"webpa-ping-timeout",    required_argument, 0, 'p'},
           {"webpa-backoff-max",  required_argument, 0, 'o'},
           {"webpa-inteface-used",    required_argument, 0, 'i'},
+          {"parodus-local-url",  required_argument, 0, 'l'},
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:",long_options, &option_index);
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:l:",long_options, &option_index);
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -111,6 +112,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case 'i':
           parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
           ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
+          break;
+          
+        case 'l':
+          parStrncpy(cfg->local_url, optarg,sizeof(cfg->local_url));
+          ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
 
         case '?':
@@ -209,6 +215,16 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     else
     {
         ParodusPrint("webpa_interface_used is NULL. read from tmp file\n");
+    }
+    if( strlen(pConfig->local_url) !=0)
+    {
+        strncpy(cfg->local_url, pConfig->local_url,strlen(pConfig->local_url)+1);
+    }
+    else
+    {
+		ParodusInfo("parodus local_url is NULL. adding default url\n");
+		strncpy(cfg->local_url, PARODUS_UPSTREAM, strlen(PARODUS_UPSTREAM)+1);
+        
     }
         
     cfg->boot_time = pConfig->boot_time;

@@ -58,7 +58,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 
     createNopollConnection(ctx);
     packMetaData();
-    getParodusUrl();
+    
     UpStreamMsgQ = NULL;
     StartThread(handle_upstream);
     StartThread(processUpstreamMessage);
