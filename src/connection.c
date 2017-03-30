@@ -18,6 +18,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
+#define SERVER_URL "14cfe21463f2.fabric.webpa.comcast.net"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -137,8 +138,12 @@ int createNopollConnection(noPollCtx *ctx)
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
 			
 		//RG
-		if( !allow_insecure_conn() )
-			ParodusPrint("Secure connection");
+		char dns_url[64];
+        	//strcpy(dns_url,get_parodus_cfg()->hw_mac );
+        	strcat(dns_url,SERVER_URL);
+  		int insecure = allow_insecure_conn(dns_url);
+  		ParodusPrint("allow %s: %d\n",dns_url,insecure);
+
         noPollConn *connection;
 		if(get_parodus_cfg()->secureFlag) 
 		{                    
