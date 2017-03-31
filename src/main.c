@@ -49,7 +49,7 @@ int main( int argc, char **argv)
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
     
-    ParodusInfo("********** Starting component: Parodus-roopali **********\n "); 
+    ParodusInfo("********** Starting component: Parodus **********\n "); 
     parseCommandLine(argc,argv,&parodusCfg);
      
     createSocketConnection(&parodusCfg,NULL);
