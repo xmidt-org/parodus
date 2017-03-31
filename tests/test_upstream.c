@@ -180,13 +180,7 @@ int nn_connect (int s, const char *addr)
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-void test_getParodusUrl()
-{
-    getParodusUrl();
-    
-    putenv("PARODUS_SERVICE_URL=tcp://10.0.0.1:6000");
-    getParodusUrl();
-}
+
 
 void test_packMetaData()
 {
@@ -526,7 +520,6 @@ void err_sendUpstreamMsgToServer()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_getParodusUrl),
         cmocka_unit_test(test_packMetaData),
         cmocka_unit_test(err_packMetaData),
         cmocka_unit_test(test_handleUpstreamNull),

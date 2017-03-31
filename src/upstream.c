@@ -17,14 +17,14 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 #define METADATA_COUNT 					11
-#define PARODUS_UPSTREAM                "tcp://127.0.0.1:6666"
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
 void *metadataPack;
 size_t metaPackSize=-1;
-char parodus_url[32] ={'\0'};
+
 
 UpStreamMsg *UpStreamMsgQ = NULL;
 
@@ -40,24 +40,7 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
 
-void getParodusUrl()
-{
-    const char *parodusIp = NULL;
-    const char * envParodus = getenv ("PARODUS_SERVICE_URL");
 
-    if( envParodus != NULL)
-    {
-      parodusIp = envParodus;
-    }
-    else
-    {
-      parodusIp = PARODUS_UPSTREAM ;
-    }
-
-    snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
-    ParodusInfo("formatted parodus Url %s\n",parodus_url);
-
-}
 
 void packMetaData()
 {
@@ -110,7 +93,8 @@ void *handle_upstream()
     sock = nn_socket( AF_SP, NN_PULL );
     if(sock >= 0)
     {
-        bind = nn_bind(sock, parodus_url);
+        ParodusPrint("Nanomsg bind with get_parodus_cfg()->local_url  %s\n", get_parodus_cfg()->local_url);
+        bind = nn_bind(sock, get_parodus_cfg()->local_url);
         if(bind < 0)
         {
             ParodusError("Unable to bind socket (errno=%d, %s)\n",errno, strerror(errno));
