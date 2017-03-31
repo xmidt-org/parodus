@@ -14,7 +14,8 @@
 #include <strings.h>
 #include <string.h>
 
-#include <cjwt.h>
+#include <cjwt/cjwt.h>
+#include "parodus_log.h"
 
 #define N 4096
  
@@ -23,25 +24,6 @@
 /*----------------------------------------------------------------------------*/
 #define ENDPOINT_NAME "endpoint"
 
-/*----------------------------------------------------------------------------*/
-/*                            File Scoped Variables                           */
-/*----------------------------------------------------------------------------*/
-/* none */
-
-/*----------------------------------------------------------------------------*/
-/*                             Function Prototypes                            */
-/*----------------------------------------------------------------------------*/
-/* none */
-
-/*----------------------------------------------------------------------------*/
-/*                             External Functions                             */
-/*----------------------------------------------------------------------------*/
-
-
-/*----------------------------------------------------------------------------*/
-/*                             Internal functions                             */
-/*----------------------------------------------------------------------------*/
-/* none */
 
 static int is_http(const cjwt_t *jwt)
 {
@@ -153,7 +135,7 @@ int allow_insecure_conn(const char* serv_url)
 	if(ret){
 		goto end;
 	}else{
-		ParodusInfo("Decoded CJWT\n");
+		ParodusInfo("Recived trusted jwt\n");
 		
 		//validate algo from --jwt_algo
 		if( !validate_algo(jwt) ){
@@ -165,16 +147,3 @@ int allow_insecure_conn(const char* serv_url)
 end:
 	return insecure;
 }
-#if 0
-int main()
-{
-	//char dns_url[64];
-	//strcpy(dns_url,get_parodus_cfg()->hw_mac );
-	//strcat(dns_url,SERVER_URL);
-  printf("Parodus integration\n");
-  int insecure = allow_insecure_conn(SERVER_URL);
-  printf("allow : %d\n",insecure);
-
-  return(0);
-}
-#endif
