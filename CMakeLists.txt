@@ -168,7 +168,7 @@ add_dependencies(liblibparodus libparodus)
 
 # libcjwt external dependency
 #-------------------------------------------------------------------------------
-ExternalProject_Add(libcjwt
+ExternalProject_Add(cjwt
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cjwt
     GIT_REPOSITORY https://github.com/Comcast/cjwt.git
     GIT_TAG "master"
