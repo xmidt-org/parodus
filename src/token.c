@@ -8,14 +8,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <netinet/in.h>
-#include <resolv.h>
-#include <netdb.h>
 #include <strings.h>
 #include <string.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <resolv.h>
 
 #include <cjwt/cjwt.h>
 #include "parodus_log.h"
+#include "config.h"
 
 #define N 4096
  
@@ -68,14 +69,9 @@ static int validate_algo(const cjwt_t *jwt)
 static int query_dns(const char* dnsserv_url,char *jwt_ans)
 {
 	u_char nsbuf[N];
-    char rrbuf[N];
 	ns_msg msg;
     ns_rr rr;
     int l = -1;
-	
-	const char quote[2] = "\"\0";
-	char *txt_tok;
-	char *prev_txt_token;
     
 	if( !dnsserv_url || !jwt_ans )
 		return l;
@@ -84,30 +80,25 @@ static int query_dns(const char* dnsserv_url,char *jwt_ans)
     //TXT record
     l = res_query(dnsserv_url, ns_c_any, ns_t_txt, nsbuf, sizeof(nsbuf));
     
-    if (l < 0)
+    if (l <= 0)
     {
-      perror(SERVER_URL);
-	  return l;
+      //perror(SERVER_URL);
+	  return -1;
     }
 	
     ns_initparse(nsbuf, l, &msg);
     l = ns_msg_count(msg, ns_s_an);
 	if(l!=1)
 		return -1;
-	
+
+	// get the first RR from the answer section	
 	ns_parserr(&msg, ns_s_an, 0, &rr);
-    ns_sprintrr(&msg, &rr, NULL, NULL, rrbuf, sizeof(rrbuf));
-   
-   
-	txt_tok = strtok(rrbuf, quote);
-	while( txt_tok != NULL ) 
-	{
-		prev_txt_token = txt_tok; 
-		txt_tok = strtok(NULL, quote);
+	if (ns_rr_type(rr) == ns_t_txt)
+    {
+        strcpy(jwt_ans, (char *)ns_rr_rdata(rr));
+		return 0;
 	}
-	strcpy(jwt_ans,prev_txt_token);
-    
-	return 0;
+	return -1;
 }
 
 int allow_insecure_conn(const char* serv_url)
