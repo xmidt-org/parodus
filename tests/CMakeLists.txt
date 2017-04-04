@@ -100,28 +100,28 @@ target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-
 #-------------------------------------------------------------------------------
 add_test(NAME test_connection COMMAND test_connection)
 add_executable(test_connection test_connection.c ../src/connection.c ../src/token.c ${PARODUS_COMMON_SRC}) 
-target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} ${PARODUS_CONN_LIBS} -lcmocka)
+target_link_libraries (test_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
 #-------------------------------------------------------------------------------
 add_test(NAME test_createConnection COMMAND test_createConnection)
 add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/token.c ../src/string_helpers.c ../src/config.c) 
-target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} ${PARODUS_CONN_LIBS} -lcmocka )
+target_link_libraries (test_createConnection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka )
 
 #-------------------------------------------------------------------------------
 #   test_client_list
 #-------------------------------------------------------------------------------
 add_test(NAME test_client_list COMMAND test_client_list)
 add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/downstream.c ../src/connection.c ../src/token.c ../src/nopoll_handlers.c ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c ${PARODUS_COMMON_SRC})
-target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS} ${PARODUS_CONN_LIBS})
+target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_service_alive
 #-------------------------------------------------------------------------------
 add_test(NAME test_service_alive COMMAND test_service_alive)
 add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/token.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ${PARODUS_COMMON_SRC})
-target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} ${PARODUS_CONN_LIBS})
+target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_config
@@ -183,7 +183,7 @@ add_executable(simple_connection simple_connection.c ${PARODUS_COMMON_SRC}
                     ../src/ParodusInternal.c
                     ../src/client_list.c
                     ../src/service_alive.c) 
-target_link_libraries (simple_connection ${PARODUS_COMMON_LIBS} ${PARODUS_CONN_LIBS} )
+target_link_libraries (simple_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   simple test
@@ -208,5 +208,5 @@ add_executable(simple simple.c
                     ../src/client_list.c
                     ../src/service_alive.c) 
 
-target_link_libraries (simple ${PARODUS_COMMON_LIBS} ${PARODUS_CONN_LIBS}  gcov -lnopoll -lnanomsg )
+target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  gcov -lnopoll -lnanomsg )
 endif (INTEGRATION_TESTING)
