@@ -59,6 +59,7 @@ typedef struct
     char webpa_uuid[64];
     unsigned int secureFlag;
     char local_url[124];
+    char partner_id[64];
 } ParodusCfg;
 
 /*----------------------------------------------------------------------------*/
