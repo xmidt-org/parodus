@@ -36,6 +36,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
+                    ${INCLUDE_DIR}/cjwt
                    )
 
 # Compile options/flags
@@ -165,6 +166,17 @@ ExternalProject_Add(libparodus
 )
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
+
+# libcjwt external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(cjwt
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cjwt
+    GIT_REPOSITORY https://github.com/Comcast/cjwt.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(libcjwt STATIC SHARED IMPORTED)
+add_dependencies(libcjwt cjwt)
 
 if (BUILD_TESTING)
 # cmocka external dependency

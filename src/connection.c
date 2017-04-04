@@ -18,6 +18,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
+#define SERVER_URL ".fabric.webpa.comcast.net"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -30,6 +31,7 @@ static noPollConn *g_conn = NULL;
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+extern bool allow_insecure_conn(); //RG
 
 noPollConn *get_global_conn(void)
 {
@@ -76,6 +78,9 @@ int createNopollConnection(noPollCtx *ctx)
     connErr_endPtr = &connErr_end;
     //Retry Backoff count shall start at c=2 & calculate 2^c - 1.
     int c=2;
+	//RG
+	char dns_url[36] = "\0";
+	char *tok;
     
     if(ctx == NULL) {
         return nopoll_false;
@@ -126,6 +131,15 @@ int createNopollConnection(noPollCtx *ctx)
 	max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
 	
+	tok = strtok(get_parodus_cfg()->hw_mac,":");
+	while(tok!=NULL)
+	{
+		strcat(dns_url,tok);
+		tok = strtok(NULL,":");
+	}
+    strcat(dns_url,SERVER_URL);
+	ParodusInfo("dns_url %s\n",dns_url);
+	
 	do
 	{
 		//calculate backoffRetryTime and to perform exponential increment during retry
@@ -134,7 +148,11 @@ int createNopollConnection(noPollCtx *ctx)
 			backoffRetryTime = (int) pow(2, c) -1;
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
-								
+			
+		//RG
+		int insecure = allow_insecure_conn(dns_url);
+  		ParodusPrint("allow %s: %d\n",dns_url,insecure);
+
         noPollConn *connection;
 		if(get_parodus_cfg()->secureFlag) 
 		{                    

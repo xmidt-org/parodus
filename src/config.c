@@ -47,11 +47,13 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           {"webpa-backoff-max",  required_argument, 0, 'o'},
           {"webpa-inteface-used",    required_argument, 0, 'i'},
           {"parodus-local-url",  required_argument, 0, 'l'},
+          {JWT_ALGORITHM,    required_argument, 0, 'a'},//RG
+		  {JWT_KEY,    required_argument, 0, 'k'},//RG
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:l:",long_options, &option_index);
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:l:a:k",long_options, &option_index);
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -113,10 +115,18 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
           ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
           break;
-          
         case 'l':
           parStrncpy(cfg->local_url, optarg,sizeof(cfg->local_url));
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
+          break;
+		 
+	case 'a':
+          parStrncpy(cfg->jwt_algo, optarg,sizeof(cfg->jwt_algo));
+          ParodusInfo("jwt_algo is %s\n",cfg->jwt_algo);
+          break;
+	case 'k':
+          parStrncpy(cfg->jwt_key, optarg,sizeof(cfg->jwt_key));
+          ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
 
         case '?':
@@ -226,6 +236,26 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 		strncpy(cfg->local_url, PARODUS_UPSTREAM, strlen(PARODUS_UPSTREAM)+1);
         
     }
+    //RG
+    if(strlen(pConfig->jwt_algo )!=0)
+    {
+        strncpy(cfg->jwt_algo, pConfig->jwt_algo,strlen(pConfig->jwt_algo)+1);
+    }
+    else
+    {
+        strcpy(cfg->jwt_algo, "none");
+        ParodusPrint("jwt_algo is NULL. set to none\n");
+    }
+    if(strlen(pConfig->jwt_key )!=0)
+    {
+        strncpy(cfg->jwt_key, pConfig->jwt_key,strlen(pConfig->jwt_key)+1);
+    }
+    else
+    {
+        strcpy(cfg->jwt_key, "\0");
+        ParodusPrint("jwt_key is NULL. set to empty\n");
+    }
+	//RG
         
     cfg->boot_time = pConfig->boot_time;
     cfg->secureFlag = 1;
