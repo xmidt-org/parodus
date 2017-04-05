@@ -26,6 +26,8 @@
 
 #include "../src/config.h"
 
+#define K_argc 15
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -95,7 +97,7 @@ void test_getParodusConfig()
 
 void test_parseCommandLine()
 {
-    int argc =15;
+    int argc =K_argc;
     char * command[argc+1];
     int i = 0;
 
@@ -145,7 +147,7 @@ void test_parseCommandLineNull()
 
 void err_parseCommandLine()
 {
-    int argc =15;
+    int argc =K_argc;
     char * command[20]={'\0'};
 
     command[0] = "parodus";
