@@ -119,10 +119,10 @@ int nn_bind (int s, const char *addr)
 /*----------------------------------------------------------------------------*/
 void test_getParodusUrl()
 {
-    getParodusUrl();
+    (void ) getParodusUrl();
     
     putenv("PARODUS_SERVICE_URL=tcp://10.0.0.1:6000");
-    getParodusUrl();
+    (void ) getParodusUrl();
 }
 
 void test_packMetaData()

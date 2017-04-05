@@ -22,6 +22,8 @@ target_link_libraries (parodus
     -lmsgpackc
     -ltrower-base64
     -lnopoll
+    -llibseshat
+    -luuid
     -lm
     -lcimplog
     -lssl

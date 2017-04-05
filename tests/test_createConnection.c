@@ -47,7 +47,9 @@ void packMetaData(){
 void setMessageHandlers(){
 }
 
-void getParodusUrl(){
+static const char test_url[32] = {'\0'};
+const char *getParodusUrl(){
+	return test_url;
 }
 
 void *handle_upstream(){

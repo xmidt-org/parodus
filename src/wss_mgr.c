@@ -101,7 +101,7 @@ static void *handle_upstream();
 static void *handleUpStreamEvents();
 static void *messageHandlerTask();
 
-static void getParodusUrl();
+static const char *getParodusUrl();
 
 /*
  Export parodusCfg
@@ -161,7 +161,7 @@ void close_and_unref_connection(noPollConn *conn)
 }
 
 
-static void getParodusUrl()
+static const char *getParodusUrl()
 {
     const char *parodusIp = NULL;
     const char * envParodus = getenv ("PARODUS_SERVICE_URL");
@@ -177,7 +177,8 @@ static void getParodusUrl()
     
     snprintf(parodus_url,sizeof(parodus_url),"%s", parodusIp);
     ParodusInfo("formatted parodus Url %s\n",parodus_url);
-	
+
+    return parodus_url;    
 }
 
 
@@ -213,7 +214,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
 
 	createNopollConnection(ctx);
 
-	getParodusUrl();
+	(void ) getParodusUrl();
         
         UpStreamMsgQ = NULL;
         StartThread(handle_upstream);

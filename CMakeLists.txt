@@ -35,6 +35,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
+                    ${INCLUDE_DIR}/libseshat
                    )
 
 # Compile options/flags
@@ -164,6 +165,16 @@ ExternalProject_Add(libparodus
 )
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
+
+# seshat external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(seshat
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/seshat
+    GIT_REPOSITORY https://github.com/comcast/seshat.git
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(liblibseshat STATIC SHARED IMPORTED)
+add_dependencies(liblibseshat seshat)
 
 if (BUILD_TESTING)
 # cmocka external dependency
