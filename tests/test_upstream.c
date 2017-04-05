@@ -180,7 +180,13 @@ int nn_connect (int s, const char *addr)
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-
+void test_getParodusUrl()
+{
+    (void ) getParodusUrl();
+    
+    putenv("PARODUS_SERVICE_URL=tcp://10.0.0.1:6000");
+    (void ) getParodusUrl();
+}
 
 void test_packMetaData()
 {

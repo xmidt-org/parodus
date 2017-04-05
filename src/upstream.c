@@ -24,6 +24,7 @@
 
 void *metadataPack;
 size_t metaPackSize=-1;
+char parodus_url[MAX_PARODUS_URL_SIZE] ={'\0'};
 
 
 UpStreamMsg *UpStreamMsgQ = NULL;
@@ -40,7 +41,25 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
 
+const char *getParodusUrl()
+{
+    const char *parodusIp = NULL;
+    const char * envParodus = getenv ("PARODUS_SERVICE_URL");
 
+    if( envParodus != NULL)
+    {
+      parodusIp = envParodus;
+    }
+    else
+    {
+      parodusIp = PARODUS_UPSTREAM ;
+    }
+
+    snprintf(parodus_url, MAX_PARODUS_URL_SIZE,"%s", parodusIp);
+    ParodusInfo("formatted parodus Url %s\n",parodus_url);
+
+    return parodus_url;
+}
 
 void packMetaData()
 {

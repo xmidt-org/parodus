@@ -30,13 +30,14 @@ typedef struct UpStreamMsg__
 void packMetaData();
 void *handle_upstream();
 void *processUpstreamMessage();
-
+const char *getParodusUrl();
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size);
 
 #ifdef __cplusplus
 }
 #endif
 
+#define MAX_PARODUS_URL_SIZE 32
 
 #endif /* _UPSTREAM_H_ */
 
