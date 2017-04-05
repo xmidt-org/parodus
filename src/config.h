@@ -61,6 +61,7 @@ typedef struct
     unsigned int secureFlag;
     char local_url[124];
     char partner_id[64];
+    char seshat_url[128];
 } ParodusCfg;
 
 /*----------------------------------------------------------------------------*/
