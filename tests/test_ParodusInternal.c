@@ -25,66 +25,74 @@
 #include <nopoll.h>
 
 #include "../src/ParodusInternal.h"
-#include "../src/connection.h"
 #include "../src/config.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-
-bool close_retry;
+ParodusMsg *ParodusMsgQ;
 bool LastReasonStatus;
-volatile unsigned int heartBeatTimer;
-pthread_mutex_t close_mut;
-
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-char* getWebpaConveyHeader()
+
+nopoll_bool nopoll_base64_encode(const char *content,int length,char *output, int *output_size)
 {
-    return NULL;
+    UNUSED(content); UNUSED(length);  UNUSED(output_size);
+    strcpy(output, "AWYFUJHUDUDKJDDRDKUIIKORE\nSFJLIRRSHLOUTDESTDJJITTESLOIUHJGDRS\nGIUY&%WSJ");
+    function_called();
+    return (nopoll_bool)mock();
 }
 
-int checkHostIp(char * serverIP)
+char *get_global_reconnect_reason()
 {
-    UNUSED(serverIP);
-    return 0;
-}
-
-void setMessageHandlers()
-{
-}
+    function_called();
+    return (char *)mock();
+}	
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 
-void test_get_global_conn()
+void test_getWebpaConveyHeader()
 {
-    assert_null(get_global_conn());
+    ParodusCfg cfg;
+
+    strcpy(cfg.hw_model, "TG1682");
+    strcpy(cfg.hw_serial_number, "Fer23u948590");
+    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
+    strcpy(cfg.hw_mac , "123567892366");
+    strcpy(cfg.hw_last_reboot_reason , "unknown");
+    strcpy(cfg.fw_name , "2.364s2");
+    strcpy(cfg.webpa_path_url , "/api/v2/device");
+    strcpy(cfg.webpa_url , "localhost");
+    strcpy(cfg.webpa_interface_used , "eth0");
+    strcpy(cfg.webpa_protocol , "WebPA-1.6");
+    strcpy(cfg.webpa_uuid , "1234567-345456546");
+    cfg.secureFlag = 1;
+    cfg.boot_time = 423457;
+    cfg.webpa_ping_timeout = 30;
+    cfg.webpa_backoff_max = 255;
+    set_parodus_cfg(&cfg);
+    
+    will_return(get_global_reconnect_reason, "Ping-Miss");
+    expect_function_call(get_global_reconnect_reason);
+    
+    will_return(nopoll_base64_encode, nopoll_true);
+    expect_function_call(nopoll_base64_encode);
+    getWebpaConveyHeader();
 }
 
-void test_set_global_conn()
+void err_getWebpaConveyHeader()
 {
-    static noPollConn *gNPConn;
-    set_global_conn(gNPConn);
-    assert_ptr_equal(gNPConn, get_global_conn());
-}
-
-void test_get_global_reconnect_reason()
-{
-    assert_string_equal("webpa_process_starts", get_global_reconnect_reason());
-}
-
-void test_set_global_reconnect_reason()
-{
-    char *reason = "Factory-Reset";
-    set_global_reconnect_reason(reason);
-    assert_string_equal(reason, get_global_reconnect_reason());
-}
-
-void test_closeConnection()
-{
-    close_and_unref_connection(get_global_conn());
+    ParodusCfg cfg;
+    memset(&cfg, 0, sizeof(ParodusCfg));
+    set_parodus_cfg(&cfg);
+    
+    will_return(get_global_reconnect_reason, NULL);
+    expect_function_call(get_global_reconnect_reason);
+    will_return(nopoll_base64_encode, nopoll_false);
+    expect_function_call(nopoll_base64_encode);
+    getWebpaConveyHeader();
 }
 
 /*----------------------------------------------------------------------------*/
@@ -93,11 +101,8 @@ void test_closeConnection()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_get_global_conn),
-        cmocka_unit_test(test_set_global_conn),
-        cmocka_unit_test(test_get_global_reconnect_reason),
-        cmocka_unit_test(test_set_global_reconnect_reason),
-        cmocka_unit_test(test_closeConnection),
+        cmocka_unit_test(test_getWebpaConveyHeader),
+        cmocka_unit_test(err_getWebpaConveyHeader),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

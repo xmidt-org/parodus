@@ -9,8 +9,7 @@
 #ifndef _CONNECTION_H_
 #define _CONNECTION_H_
 
-#include "nopoll.h"
-#include "upstream.h"
+#include "ParodusInternal.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,19 +19,14 @@ extern "C" {
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
-extern UpStreamMsg *UpStreamMsgQ;
+extern bool close_retry;
+extern volatile unsigned int heartBeatTimer;
+extern pthread_mutex_t close_mut;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-/**
- * @brief Interface to create WebSocket client connections.
- * Loads the WebPA config file, if not provided by the caller,
- *  and creates the intial connection and manages the connection wait, close mechanisms.
- */
-void createSocketConnection(void *config_in, void (* initKeypress)());
-   
 int createNopollConnection(noPollCtx *);
 
 /**

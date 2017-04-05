@@ -49,6 +49,7 @@ void test_setParodusConfig()
     strcpy(cfg.webpa_interface_used , "eth0");
     strcpy(cfg.webpa_protocol , "WebPA-1.6");
     strcpy(cfg.webpa_uuid , "1234567-345456546");
+    strcpy(cfg.partner_id , "comcast");
     cfg.secureFlag = 1;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
@@ -68,6 +69,7 @@ void test_setParodusConfig()
     assert_string_equal(cfg.webpa_interface_used, temp->webpa_interface_used);
     assert_string_equal(cfg.webpa_protocol, temp->webpa_protocol);
     assert_string_equal(cfg.webpa_uuid, temp->webpa_uuid);
+    assert_string_equal(cfg.partner_id, temp->partner_id);
 
     assert_int_equal((int) cfg.secureFlag, (int) temp->secureFlag);
     assert_int_equal((int) cfg.boot_time, (int) temp->boot_time);
@@ -90,7 +92,7 @@ void test_getParodusConfig()
 
 void test_parseCommandLine()
 {
-    int argc =11;
+    int argc =14;
     char * command[15]={'\0'};
 
     command[0] = "parodus";
@@ -104,6 +106,9 @@ void test_parseCommandLine()
     command[8] = "--webpa-inteface-used=br0";
     command[9] = "--webpa-url=localhost";
     command[10] = "--webpa-backoff-max=0";
+    command[11] = "--boot-time=1234";
+    command[12] = "--parodus-local-url=tcp://127.0.0.1:6666";
+    command[13] = "--partner-id=cox";
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
@@ -120,6 +125,9 @@ void test_parseCommandLine()
     assert_string_equal( parodusCfg.webpa_interface_used, "br0");	
     assert_string_equal( parodusCfg.webpa_url, "localhost");
     assert_int_equal( (int) parodusCfg.webpa_backoff_max,0);
+    assert_int_equal( (int) parodusCfg.boot_time,1234);
+    assert_string_equal(  parodusCfg.local_url,"tcp://127.0.0.1:6666");
+    assert_string_equal(  parodusCfg.partner_id,"cox");
 }
 
 void test_parseCommandLineNull()
@@ -129,12 +137,12 @@ void test_parseCommandLineNull()
 
 void err_parseCommandLine()
 {
-    int argc =12;
+    int argc =14;
     char * command[20]={'\0'};
 
     command[0] = "parodus";
     command[1] = "--hw-model=TG1682";
-    command[11] = "webpa";
+    command[12] = "webpa";
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
@@ -160,6 +168,8 @@ void test_loadParodusCfg()
     strcpy(Cfg->webpa_url , "localhost");
     strcpy(Cfg->webpa_interface_used , "eth0");
     strcpy(Cfg->webpa_protocol , "WebPA-1.6");
+    strcpy(Cfg->local_url , "tcp://10.0.0.1:6000");
+    strcpy(Cfg->partner_id , "shaw");
 
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
@@ -167,7 +177,9 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.hw_model, "TG1682");
     assert_string_equal( tmpcfg.hw_serial_number, "Fer23u948590");
     assert_string_equal( tmpcfg.hw_manufacturer, "ARRISGroup,Inc.");
-    assert_string_equal( tmpcfg.hw_mac, "123567892366");	
+    assert_string_equal( tmpcfg.hw_mac, "123567892366");
+    assert_string_equal( tmpcfg.local_url, "tcp://10.0.0.1:6000");
+    assert_string_equal( tmpcfg.partner_id, "shaw");
     free(Cfg);
 }
 
@@ -188,6 +200,7 @@ void test_loadParodusCfgNull()
     assert_string_equal( temp.webpa_path_url, WEBPA_PATH_URL);	
     assert_string_equal( temp.webpa_protocol, WEBPA_PROTOCOL_VALUE);
     assert_string_equal( temp.webpa_uuid,"1234567-345456546");
+    assert_string_equal( temp.local_url, PARODUS_UPSTREAM);
 
     free(cfg);
 }

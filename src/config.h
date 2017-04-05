@@ -35,6 +35,7 @@ extern "C" {
 
 #define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
 #define WEBPA_PATH_URL                                    "/api/v2/device"
+#define PARODUS_UPSTREAM                		"tcp://127.0.0.1:6666"
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -57,6 +58,8 @@ typedef struct
     char webpa_protocol[16];
     char webpa_uuid[64];
     unsigned int secureFlag;
+    char local_url[124];
+    char partner_id[64];
 } ParodusCfg;
 
 /*----------------------------------------------------------------------------*/

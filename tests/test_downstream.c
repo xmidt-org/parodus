@@ -23,32 +23,40 @@
 #include <cmocka.h>
 
 #include "../src/downstream.h"
+#include "../src/config.h"
 #include "../src/ParodusInternal.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-static reg_list_item_t * g_head;
-static int numOfClients;
 ParodusMsg *ParodusMsgQ;
 pthread_mutex_t g_mutex;
 pthread_cond_t g_cond;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
+void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
     UNUSED(resp_bytes); UNUSED(resp_size);
+    function_called();
 }
 
 int get_numOfClients()
 {
-    return numOfClients;
+    function_called();
+    return (int) mock();
 }
 
 reg_list_item_t * get_global_node(void)
 {
-    return g_head;
+    function_called();
+    return (reg_list_item_t *) mock();
+}
+
+ParodusCfg *get_parodus_cfg(void)
+{
+    function_called();
+    return (ParodusCfg*) mock();
 }
 
 ssize_t wrp_to_struct( const void *bytes, const size_t length,
@@ -60,7 +68,11 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length,
     memset(*msg, 0, sizeof(wrp_msg_t));
     (*msg)->msg_type = WRP_MSG_TYPE__REQ;
     (*msg)->u.req.dest = (char *) malloc(sizeof(char) *100);
+    (*msg)->u.req.partner_ids = (partners_t *) malloc(sizeof(partners_t));
+    (*msg)->u.req.partner_ids->count = 1;
+    (*msg)->u.req.partner_ids->partner_ids[0] = (char *) malloc(sizeof(char) *64);
     strcpy((*msg)->u.req.dest,"mac:1122334455/iot");
+    strcpy((*msg)->u.req.partner_ids->partner_ids[0],"comcast");
     return (ssize_t) mock();
 }
 
@@ -76,26 +88,38 @@ int nn_send (int s, const void *buf, size_t len, int flags)
 
 void test_listenerOnMessage()
 {
-    int noClients = 1;
     will_return(wrp_to_struct, 1);
     expect_function_calls(wrp_to_struct, 1);
     reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head, 0, sizeof(reg_list_item_t));
     strcpy(head->service_name, "iot");
     strcpy(head->url, "tcp://10.0.0.1:6600");
-    
+    ParodusCfg cfg;
+    memset(&cfg, 0, sizeof(ParodusCfg));
+    strcpy(cfg.partner_id, "comcast");
+
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
+    will_return(get_parodus_cfg, &cfg);
+    expect_function_call(get_parodus_cfg);
+    will_return(get_global_node, head);
+    expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
-    listenerOnMessage("Hello", 6, &noClients, head);
+
+    listenerOnMessage("Hello", 6);
     free(head);
 }
 
 void test_listenerOnMessageMultipleClients()
 {
-    int noClients = 3;
     will_return(wrp_to_struct, 1);
     expect_function_calls(wrp_to_struct, 1);
     
+    ParodusCfg cfg;
+    memset(&cfg, 0, sizeof(ParodusCfg));
+    strcpy(cfg.partner_id, "comcast");
+
     reg_list_item_t *head2 = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head2, 0, sizeof(reg_list_item_t));
     strcpy(head2->service_name, "iot");
@@ -113,9 +137,16 @@ void test_listenerOnMessageMultipleClients()
     strcpy(head->url, "tcp://10.0.0.1:6600");
     head->next = head1;
     
+    will_return(get_numOfClients, 3);
+    expect_function_call(get_numOfClients);
+    will_return(get_parodus_cfg, &cfg);
+    expect_function_call(get_parodus_cfg);
+    will_return(get_global_node, head);
+    expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
-    listenerOnMessage("Hello", 6, &noClients, head);
+
+    listenerOnMessage("Hello", 6);
     free(head1);
     free(head2);
     free(head);
@@ -123,25 +154,52 @@ void test_listenerOnMessageMultipleClients()
 
 void err_listenerOnMessage()
 {
-    int noClients = 0;
     will_return(wrp_to_struct, 0);
     expect_function_calls(wrp_to_struct, 1);
-    listenerOnMessage("Hello", 6, &noClients, NULL);
     
-    listenerOnMessage(NULL, 0, NULL, NULL);
+    listenerOnMessage("Hello", 6);
 }
 
 void err_listenerOnMessageServiceUnavailable()
 {
-    int noClients = 0;
     will_return(wrp_to_struct, 2);
     expect_function_calls(wrp_to_struct, 1);
-    listenerOnMessage("Hello", 6, &noClients, NULL);
+    
+    ParodusCfg cfg;
+    memset(&cfg, 0, sizeof(ParodusCfg));
+    strcpy(cfg.partner_id, "comcast");
+
+    will_return(get_numOfClients, 0);
+    expect_function_call(get_numOfClients);
+    will_return(get_parodus_cfg, &cfg);
+    expect_function_call(get_parodus_cfg);
+    will_return(get_global_node, NULL);
+    expect_function_call(get_global_node);
+    expect_function_call(sendUpstreamMsgToServer);
+    
+    listenerOnMessage("Hello", 6);
+}
+
+void err_listenerOnMessageInvalidPartnerId()
+{
+    will_return(wrp_to_struct, 2);
+    expect_function_calls(wrp_to_struct, 1);
+
+    ParodusCfg cfg;
+    memset(&cfg, 0, sizeof(ParodusCfg));
+
+    will_return(get_numOfClients, 0);
+    expect_function_call(get_numOfClients);
+    will_return(get_parodus_cfg, &cfg);
+    expect_function_call(get_parodus_cfg);
+    expect_function_call(sendUpstreamMsgToServer);
+
+    listenerOnMessage("Hello", 6);
 }
 
 void err_listenerOnMessageAllNull()
 {
-    listenerOnMessage(NULL, 0, NULL, NULL);
+    listenerOnMessage(NULL, 0);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -155,6 +213,7 @@ int main(void)
         cmocka_unit_test(test_listenerOnMessageMultipleClients),
         cmocka_unit_test(err_listenerOnMessage),
         cmocka_unit_test(err_listenerOnMessageServiceUnavailable),
+        cmocka_unit_test(err_listenerOnMessageInvalidPartnerId),
         cmocka_unit_test(err_listenerOnMessageAllNull),
     };
 

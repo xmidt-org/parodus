@@ -17,7 +17,7 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 #define METADATA_COUNT 					11
-#define PARODUS_UPSTREAM                "tcp://127.0.0.1:6666"
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -25,6 +25,7 @@
 void *metadataPack;
 size_t metaPackSize=-1;
 char parodus_url[MAX_PARODUS_URL_SIZE] ={'\0'};
+
 
 UpStreamMsg *UpStreamMsgQ = NULL;
 
@@ -111,14 +112,15 @@ void *handle_upstream()
     sock = nn_socket( AF_SP, NN_PULL );
     if(sock >= 0)
     {
-        bind = nn_bind(sock, parodus_url);
+        ParodusPrint("Nanomsg bind with get_parodus_cfg()->local_url  %s\n", get_parodus_cfg()->local_url);
+        bind = nn_bind(sock, get_parodus_cfg()->local_url);
         if(bind < 0)
         {
             ParodusError("Unable to bind socket (errno=%d, %s)\n",errno, strerror(errno));
         }
         else
         {
-            while( 1 ) 
+            while( FOREVER() ) 
             {
                 buf = NULL;
                 ParodusInfo("nanomsg server gone into the listening mode...\n");
@@ -180,7 +182,7 @@ void *processUpstreamMessage()
     int matchFlag = 0;
     int status = -1;
 
-    while(1)
+    while(FOREVER())
     {
         pthread_mutex_lock (&nano_mut);
         ParodusPrint("mutex lock in consumer thread\n");
@@ -205,6 +207,8 @@ void *processUpstreamMessage()
                     //Extract serviceName and url & store it in a linked list for reg_clients
                     if(get_numOfClients() !=0)
                     {
+			matchFlag = 0;
+			ParodusPrint("matchFlag reset to %d\n", matchFlag);
                         temp = get_global_node();
                         while(temp!=NULL)
                         {
@@ -214,7 +218,7 @@ void *processUpstreamMessage()
                                 strncpy(temp->url,msg->u.reg.url, strlen(msg->u.reg.url)+1);
                                 if(nn_shutdown(temp->sock, 0) < 0)
                                 {
-                                ParodusError ("Failed to shutdown\n");
+                                    ParodusError ("Failed to shutdown\n");
                                 }
 
                                 temp->sock = nn_socket(AF_SP,NN_PUSH );
@@ -290,7 +294,7 @@ void *processUpstreamMessage()
             }
             else
             {
-            ParodusError("Error in msgpack decoding for upstream\n");
+                ParodusError("Error in msgpack decoding for upstream\n");
             }
             ParodusPrint("Free for upstream decoded msg\n");
             wrp_free_struct(msg);
@@ -298,7 +302,7 @@ void *processUpstreamMessage()
 
             if(nn_freemsg (message->msg) < 0)
             {
-            ParodusError ("Failed to free msg\n");
+                ParodusError ("Failed to free msg\n");
             }
             free(message);
             message = NULL;
@@ -314,10 +318,11 @@ void *processUpstreamMessage()
     return NULL;
 }
 
-void sendUpstreamMsgToServer(void **resp_bytes, int resp_size)
+void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
 	size_t encodedSize;
+
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{

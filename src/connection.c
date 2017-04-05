@@ -7,36 +7,27 @@
  */
  
 #include "connection.h"
-#include "ParodusInternal.h"
 #include "time.h"
 #include "config.h"
-#include "upstream.h"
-#include "downstream.h"
 #include "nopoll_helpers.h"
 #include "mutex.h"
 #include "spin_thread.h"
 #include "service_alive.h"
 #include <libseshat.h>
 
-
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
-#define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
 char deviceMAC[32]={'\0'};
-bool close_retry = false;
-bool LastReasonStatus = false;
 static char *reconnect_reason = "webpa_process_starts";
-volatile unsigned int heartBeatTimer = 0;
 static noPollConn *g_conn = NULL;
-pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -61,6 +52,7 @@ void set_global_reconnect_reason(char *reason)
 {
     reconnect_reason = reason;
 }
+
 void createSocketConnection(void *config_in, void (* initKeypress)())
 {
     int intTimer=0;	
@@ -148,6 +140,11 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     close_and_unref_connection(g_conn);
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
+
+    if (seshat_started) {
+	    shutdown_seshat_lib();
+    }
+
 }
 
 /**
@@ -364,11 +361,6 @@ int createNopollConnection(noPollCtx *ctx)
 		ParodusInfo("Connected to server\n");
 	}
 	
-	//creating tmp file to signal parodus_ready status once connection is successful
-	fp = fopen("/tmp/parodus_ready", "w");
-	fflush(fp);
-	fclose(fp);
-	
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): close_mut lock\n");
 	pthread_mutex_lock (&close_mut);
@@ -381,7 +373,8 @@ int createNopollConnection(noPollCtx *ctx)
 	reconnect_reason = "webpa_process_starts";
 	LastReasonStatus =false;
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
-	
+	setMessageHandlers();
+
 	return nopoll_true;
 }
 

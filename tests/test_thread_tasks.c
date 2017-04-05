@@ -13,91 +13,93 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-#include <stdarg.h>
-
-#include <CUnit/Basic.h>
-#include <stdbool.h>
+#include <assert.h>
+#include <errno.h>
+#include <pthread.h>
+#include <malloc.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
-#include <assert.h>
-#include <nopoll.h>
 
 #include "../src/ParodusInternal.h"
-#include "../src/connection.h"
-#include "../src/config.h"
+#include "../src/thread_tasks.h"
+#include "../src/client_list.h"
+
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-
-bool close_retry;
-bool LastReasonStatus;
-volatile unsigned int heartBeatTimer;
-pthread_mutex_t close_mut;
-
+ParodusMsg *ParodusMsgQ;
+pthread_mutex_t g_mutex;
+pthread_cond_t g_cond;
+int numLoops;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-char* getWebpaConveyHeader()
+
+int get_numOfClients()
 {
-    return NULL;
+    function_called();
+    return (int)mock();
 }
 
-int checkHostIp(char * serverIP)
+reg_list_item_t * get_global_node(void)
 {
-    UNUSED(serverIP);
-    return 0;
+    function_called();
+    return (reg_list_item_t *)mock();
 }
 
-void setMessageHandlers()
+void listenerOnMessage(void * msg, size_t msgSize )
 {
+    check_expected(msg);
+    check_expected(msgSize);
+    function_called();
+}
+
+int pthread_cond_wait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex)
+{
+    UNUSED(cond); UNUSED(mutex);
+    function_called();
+    return (int)mock();
 }
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 
-void test_get_global_conn()
+void test_messageHandlerTask()
 {
-    assert_null(get_global_conn());
+    ParodusMsgQ = (ParodusMsg *) malloc (sizeof(ParodusMsg));
+    ParodusMsgQ->payload = "First message";
+    ParodusMsgQ->len = 9;
+    ParodusMsgQ->next = NULL;
+    
+    numLoops = 1;
+
+    expect_value(listenerOnMessage, msg, ParodusMsgQ->payload);
+    expect_value(listenerOnMessage, msgSize, ParodusMsgQ->len);
+    expect_function_call(listenerOnMessage);
+    
+    messageHandlerTask();
 }
 
-void test_set_global_conn()
+void err_messageHandlerTask()
 {
-    static noPollConn *gNPConn;
-    set_global_conn(gNPConn);
-    assert_ptr_equal(gNPConn, get_global_conn());
+    numLoops = 1;
+    will_return(pthread_cond_wait, 0);
+    expect_function_call(pthread_cond_wait);
+    
+    messageHandlerTask();
 }
-
-void test_get_global_reconnect_reason()
-{
-    assert_string_equal("webpa_process_starts", get_global_reconnect_reason());
-}
-
-void test_set_global_reconnect_reason()
-{
-    char *reason = "Factory-Reset";
-    set_global_reconnect_reason(reason);
-    assert_string_equal(reason, get_global_reconnect_reason());
-}
-
-void test_closeConnection()
-{
-    close_and_unref_connection(get_global_conn());
-}
-
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_get_global_conn),
-        cmocka_unit_test(test_set_global_conn),
-        cmocka_unit_test(test_get_global_reconnect_reason),
-        cmocka_unit_test(test_set_global_reconnect_reason),
-        cmocka_unit_test(test_closeConnection),
+        cmocka_unit_test(test_messageHandlerTask),
+        cmocka_unit_test(err_messageHandlerTask),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
