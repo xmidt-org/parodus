@@ -99,6 +99,7 @@ int createNopollConnection(noPollCtx *ctx)
 	headerValues[1] = "wrp-0.11,getset-0.1";    
 	
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
+	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
 	snprintf(user_agent, sizeof(user_agent),
          "%s (%s; %s/%s;)",

@@ -30,6 +30,7 @@
 #include "../src/config.h"
 #include "../src/client_list.h"
 #include "../src/ParodusInternal.h"
+#include "../src/partners_check.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -58,7 +59,7 @@ char *get_global_reconnect_reason()
 reg_list_item_t * get_global_node(void)
 {
     function_called();
-    return (reg_list_item_t *)mock();
+    return mock_ptr_type(reg_list_item_t *);
 }
 
 int get_numOfClients()
@@ -177,6 +178,13 @@ int nn_connect (int s, const char *addr)
     function_called();
     return (int)mock();
 }
+
+int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
+{
+    UNUSED(msg); UNUSED(partnerIds);
+    function_called();
+    return (int) mock();
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -226,6 +234,8 @@ void test_handle_upstream()
     will_return(nn_recv, 12);
     expect_function_call(nn_recv);
     handle_upstream();
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void err_handleUpstreamBindFailure()
@@ -263,7 +273,10 @@ void test_processUpstreamMessage()
     will_return(wrp_to_struct, 12);
     expect_function_call(wrp_to_struct);
 
-    will_return(appendEncodedData, 12);
+    will_return(validate_partner_id, 1);
+    expect_function_call(validate_partner_id);
+
+    will_return(appendEncodedData, 100);
     expect_function_call(appendEncodedData);
 
     expect_function_call(sendMessage);
@@ -274,6 +287,44 @@ void test_processUpstreamMessage()
 
     processUpstreamMessage();
     free(temp);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
+}
+
+void test_processUpstreamMessageInvalidPartner()
+{
+    numLoops = 1;
+    metaPackSize = 20;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = "Second Message";
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 4;
+
+    will_return(wrp_to_struct, 12);
+    expect_function_call(wrp_to_struct);
+
+    will_return(validate_partner_id, 0);
+    expect_function_call(validate_partner_id);
+
+    will_return(appendEncodedData, 100);
+    expect_function_call(appendEncodedData);
+
+    expect_function_call(sendMessage);
+
+    expect_function_call(wrp_free_struct);
+    will_return(nn_freemsg,1);
+    expect_function_call(nn_freemsg);
+    processUpstreamMessage();
+    free(temp);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void test_processUpstreamMessageRegMsg()
@@ -304,7 +355,7 @@ void test_processUpstreamMessageRegMsg()
     will_return(get_numOfClients, 1);
     expect_function_call(get_numOfClients);
 
-    will_return(get_global_node, head);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
 
     will_return(nn_shutdown, 1);
@@ -332,6 +383,8 @@ void test_processUpstreamMessageRegMsg()
     processUpstreamMessage();
     free(temp);
     free(head);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void test_processUpstreamMessageRegMsgNoClients()
@@ -372,6 +425,8 @@ void test_processUpstreamMessageRegMsgNoClients()
     processUpstreamMessage();
     free(temp);
     free(head);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void err_processUpstreamMessage()
@@ -402,6 +457,7 @@ void err_processUpstreamMessageDecodeErr()
     expect_function_call(nn_freemsg);
     processUpstreamMessage();
     free(temp);
+    free(UpStreamMsgQ);
 }
 
 void err_processUpstreamMessageMetapackFailure()
@@ -425,6 +481,7 @@ void err_processUpstreamMessageMetapackFailure()
     expect_function_call(nn_freemsg);
     processUpstreamMessage();
     free(temp);
+    free(UpStreamMsgQ);
 }
 
 void err_processUpstreamMessageRegMsg()
@@ -458,7 +515,7 @@ void err_processUpstreamMessageRegMsg()
     will_return(get_numOfClients, 1);
     expect_function_call(get_numOfClients);
 
-    will_return(get_global_node, head);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
 
     will_return(nn_shutdown, -1);
@@ -488,7 +545,10 @@ void err_processUpstreamMessageRegMsg()
 
     processUpstreamMessage();
     free(temp);
+    free(head->next);
     free(head);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void test_sendUpstreamMsgToServer()
@@ -505,6 +565,7 @@ void test_sendUpstreamMsgToServer()
     expect_function_call(appendEncodedData);
     expect_function_call(sendMessage);
     sendUpstreamMsgToServer(&bytes, 110);
+    free(bytes);
 }
 
 void err_sendUpstreamMsgToServer()
@@ -527,6 +588,7 @@ int main(void)
         cmocka_unit_test(err_handleUpstreamBindFailure),
         cmocka_unit_test(err_handleUpstreamSockFailure),
         cmocka_unit_test(test_processUpstreamMessage),
+        cmocka_unit_test(test_processUpstreamMessageInvalidPartner),
         cmocka_unit_test(test_processUpstreamMessageRegMsg),
         cmocka_unit_test(test_processUpstreamMessageRegMsgNoClients),
         cmocka_unit_test(err_processUpstreamMessage),

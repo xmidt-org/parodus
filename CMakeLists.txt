@@ -23,8 +23,8 @@ set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
-set(NANOMSG_LIBRARY_DIR ${INSTALL_DIR}/lib/x86_64-linux-gnu)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
+set(COMMON_LIBRARY_DIR ${INSTALL_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE})
 set(TEST_RESULTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_results)
 file(MAKE_DIRECTORY ${TEST_RESULTS_DIR})
 
@@ -144,6 +144,7 @@ add_dependencies(libcimplog cimplog)
 # wrp-c external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(wrp-c
+	DEPENDS trower-base64 msgpack cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
     GIT_REPOSITORY https://github.com/Comcast/wrp-c.git
     GIT_TAG "master"
@@ -151,6 +152,9 @@ ExternalProject_Add(wrp-c
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF
                   -DBUILD_TESTING=OFF
+                  -DMAIN_PROJ_BUILD=ON
+                  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
+    		  -DMAIN_PROJ_INCLUDE_PATH=${INCLUDE_DIR}
 )
 add_library(libwrp-c STATIC SHARED IMPORTED)
 add_dependencies(libwrp-c wrp-c)
@@ -158,10 +162,16 @@ add_dependencies(libwrp-c wrp-c)
 # libparodus external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libparodus
+    DEPENDS trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
     GIT_REPOSITORY https://github.com/Comcast/libparodus.git
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    		  -DMAIN_PROJ_BUILD=ON
+    		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
+    		  -DMAIN_PROJ_LIB64_PATH=${LIBRARY_DIR64}
+    		  -DMAIN_PROJ_COMMON_PATH=${COMMON_LIBRARY_DIR}
+    		  -DMAIN_PROJ_INCLUDE_PATH=${INCLUDE_DIR}
 )
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
@@ -182,8 +192,7 @@ endif (BUILD_TESTING)
 
 endif ()
 
-link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64} ${NANOMSG_LIBRARY_DIR} )
-
+link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR} ${LIBRARY_DIR64} )
 add_subdirectory(src)
 if (BUILD_TESTING)
     add_subdirectory(tests)

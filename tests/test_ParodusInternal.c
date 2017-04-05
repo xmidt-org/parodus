@@ -41,13 +41,13 @@ nopoll_bool nopoll_base64_encode(const char *content,int length,char *output, in
     UNUSED(content); UNUSED(length);  UNUSED(output_size);
     strcpy(output, "AWYFUJHUDUDKJDDRDKUIIKORE\nSFJLIRRSHLOUTDESTDJJITTESLOIUHJGDRS\nGIUY&%WSJ");
     function_called();
-    return (nopoll_bool)mock();
+    return (nopoll_bool)(intptr_t)mock();
 }
 
 char *get_global_reconnect_reason()
 {
     function_called();
-    return (char *)mock();
+    return (char *)(intptr_t)mock();
 }	
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
@@ -74,7 +74,7 @@ void test_getWebpaConveyHeader()
     cfg.webpa_backoff_max = 255;
     set_parodus_cfg(&cfg);
     
-    will_return(get_global_reconnect_reason, "Ping-Miss");
+    will_return(get_global_reconnect_reason, (intptr_t)"Ping-Miss");
     expect_function_call(get_global_reconnect_reason);
     
     will_return(nopoll_base64_encode, nopoll_true);
@@ -88,7 +88,7 @@ void err_getWebpaConveyHeader()
     memset(&cfg, 0, sizeof(ParodusCfg));
     set_parodus_cfg(&cfg);
     
-    will_return(get_global_reconnect_reason, NULL);
+    will_return(get_global_reconnect_reason, (intptr_t)NULL);
     expect_function_call(get_global_reconnect_reason);
     will_return(nopoll_base64_encode, nopoll_false);
     expect_function_call(nopoll_base64_encode);
