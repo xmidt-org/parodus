@@ -26,7 +26,7 @@ link_directories ( ${LIBRARY_DIR} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_mutex COMMAND test_mutex)
 add_executable(test_mutex test_mutex.c ../src/mutex.c)
-target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_networking
