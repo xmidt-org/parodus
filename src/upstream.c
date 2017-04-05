@@ -16,7 +16,7 @@
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
-#define METADATA_COUNT 					11
+#define METADATA_COUNT 					12
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -60,7 +60,8 @@ void packMetaData()
             {LAST_RECONNECT_REASON, get_global_reconnect_reason()},
             {WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol},
             {WEBPA_UUID,get_parodus_cfg()->webpa_uuid},
-            {WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used}
+            {WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used},
+            {PARTNER_ID, get_parodus_cfg()->partner_id}
         };
 
     const data_t metapack = {METADATA_COUNT, meta_pack};

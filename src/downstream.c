@@ -82,8 +82,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         response = cJSON_CreateObject();
                         cJSON_AddNumberToObject(response, "statusCode", 430);
                         cJSON_AddStringToObject(response, "message", "Invalid partner_id");
-                        str = cJSON_PrintUnformatted(response);
-                        ParodusInfo("Payload Response: %s\n", str);
                     }
                 }
 
@@ -120,8 +118,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         response = cJSON_CreateObject();
                         cJSON_AddNumberToObject(response, "statusCode", 531);
                         cJSON_AddStringToObject(response, "message", "Service Unavailable");
-                        str = cJSON_PrintUnformatted(response);
-                        ParodusInfo("Payload Response: %s\n", str);
                     }
                 }
 
@@ -134,17 +130,24 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         resp_msg ->u.req.source = message->u.req.dest;
                         resp_msg ->u.req.dest = message->u.req.source;
                         resp_msg ->u.req.transaction_uuid=message->u.req.transaction_uuid;
-                        resp_msg ->u.req.payload = (void *)str;
-                        resp_msg ->u.req.payload_size = strlen(str);
 
-                        ParodusPrint("msgpack encode\n");
-                        resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
-                        if(resp_size > 0)
+                        if(response != NULL)
                         {
-                            size = (size_t) resp_size;
-                            sendUpstreamMsgToServer(&resp_bytes, size);
+                            str = cJSON_PrintUnformatted(response);
+                            ParodusInfo("Payload Response: %s\n", str);
+
+                            resp_msg ->u.req.payload = (void *)str;
+                            resp_msg ->u.req.payload_size = strlen(str);
+
+                            ParodusPrint("msgpack encode\n");
+                            resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
+                            if(resp_size > 0)
+                            {
+                                size = (size_t) resp_size;
+                                sendUpstreamMsgToServer(&resp_bytes, size);
+                            }
+                            free(str);
                         }
-                        free(str);
                         free(resp_msg);
                 }
             }
