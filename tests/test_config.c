@@ -26,6 +26,8 @@
 
 #include "../src/config.h"
 
+#define K_argc 15
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -50,11 +52,12 @@ void test_setParodusConfig()
     strcpy(cfg.webpa_protocol , "WebPA-1.6");
     strcpy(cfg.webpa_uuid , "1234567-345456546");
     strcpy(cfg.partner_id , "comcast");
+    strcpy(cfg.seshat_url, "ipc://tmp/seshat_service.url");
     cfg.secureFlag = 1;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
     cfg.webpa_backoff_max = 255;
-
+    
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
@@ -70,6 +73,8 @@ void test_setParodusConfig()
     assert_string_equal(cfg.webpa_protocol, temp->webpa_protocol);
     assert_string_equal(cfg.webpa_uuid, temp->webpa_uuid);
     assert_string_equal(cfg.partner_id, temp->partner_id);
+    assert_string_equal(cfg.seshat_url, temp->seshat_url);
+
 
     assert_int_equal((int) cfg.secureFlag, (int) temp->secureFlag);
     assert_int_equal((int) cfg.boot_time, (int) temp->boot_time);
@@ -92,23 +97,26 @@ void test_getParodusConfig()
 
 void test_parseCommandLine()
 {
-    int argc =14;
-    char * command[15]={'\0'};
+    int argc =K_argc;
+    char * command[argc+1];
+    int i = 0;
 
-    command[0] = "parodus";
-    command[1] = "--hw-model=TG1682";
-    command[2] = "--hw-serial-number=Fer23u948590";
-    command[3] = "--hw-manufacturer=ARRISGroup,Inc.";
-    command[4] = "--hw-mac=123567892366";
-    command[5] = "--hw-last-reboot-reason=unknown";
-    command[6] = "--fw-name=TG1682_DEV_master_2016000000sdy";
-    command[7] = "--webpa-ping-time=180";
-    command[8] = "--webpa-inteface-used=br0";
-    command[9] = "--webpa-url=localhost";
-    command[10] = "--webpa-backoff-max=0";
-    command[11] = "--boot-time=1234";
-    command[12] = "--parodus-local-url=tcp://127.0.0.1:6666";
-    command[13] = "--partner-id=cox";
+    command[i++] = "parodus";
+    command[i++] = "--hw-model=TG1682";
+    command[i++] = "--hw-serial-number=Fer23u948590";
+    command[i++] = "--hw-manufacturer=ARRISGroup,Inc.";
+    command[i++] = "--hw-mac=123567892366";
+    command[i++] = "--hw-last-reboot-reason=unknown";
+    command[i++] = "--fw-name=TG1682_DEV_master_2016000000sdy";
+    command[i++] = "--webpa-ping-time=180";
+    command[i++] = "--webpa-inteface-used=br0";
+    command[i++] = "--webpa-url=localhost";
+    command[i++] = "--webpa-backoff-max=0";
+    command[i++] = "--boot-time=1234";
+    command[i++] = "--parodus-local-url=tcp://127.0.0.1:6666";
+    command[i++] = "--partner-id=cox";
+    command[i++] = "--seshat-url=ipc://127.0.0.1:7777";
+    command[i] = '\0';
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
@@ -128,6 +136,8 @@ void test_parseCommandLine()
     assert_int_equal( (int) parodusCfg.boot_time,1234);
     assert_string_equal(  parodusCfg.local_url,"tcp://127.0.0.1:6666");
     assert_string_equal(  parodusCfg.partner_id,"cox");
+    assert_string_equal(  parodusCfg.seshat_url, "ipc://127.0.0.1:7777");
+
 }
 
 void test_parseCommandLineNull()
@@ -137,7 +147,7 @@ void test_parseCommandLineNull()
 
 void err_parseCommandLine()
 {
-    int argc =14;
+    int argc =K_argc;
     char * command[20]={'\0'};
 
     command[0] = "parodus";

@@ -74,11 +74,12 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     }
 
         /* Start seshat lib interface */
-    seshat_started = (0 == init_lib_seshat(get_parodus_cfg()->local_url));
+    seshat_started = (0 == init_lib_seshat(get_parodus_cfg()->seshat_url));
     if (false == seshat_started) {
         ParodusPrint("init_lib_seshat() Failed, seshatlib not available!\n");
     } else {
-        ParodusPrint("init_lib_seshat() seshatlib initialized!\n");           
+        ParodusPrint("init_lib_seshat() seshatlib initialized! (url %s)\n",
+	            get_parodus_cfg()->seshat_url);           
     } 
     
     do

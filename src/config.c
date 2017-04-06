@@ -32,6 +32,7 @@ void set_parodus_cfg(ParodusCfg *cfg)
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     int c;
+
     while (1)
     {
       static struct option long_options[] = {
@@ -48,11 +49,12 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           {"webpa-inteface-used",    required_argument, 0, 'i'},
           {"parodus-local-url",  required_argument, 0, 'l'},
           {"partner-id",  required_argument, 0, 'p'},
+	  {"seshat-url", required_argument, 0, 'e'},
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:",long_options, &option_index);
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:",long_options, &option_index);
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -79,7 +81,12 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
            parStrncpy(cfg->hw_mac, optarg,sizeof(cfg->hw_mac));
            ParodusInfo("hw_mac is %s\n",cfg->hw_mac);
           break;
-        
+
+         case 'e':
+           parStrncpy(cfg->seshat_url, optarg,sizeof(cfg->seshat_url));
+           ParodusInfo("seshat_url is %s\n",cfg->seshat_url);
+          break;
+ 
         case 'r':
           parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
           ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
