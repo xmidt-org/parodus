@@ -114,14 +114,14 @@ target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
 #   test_client_list
 #-------------------------------------------------------------------------------
 add_test(NAME test_client_list COMMAND test_client_list)
-add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c ${PARODUS_COMMON_SRC})
+add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_service_alive
 #-------------------------------------------------------------------------------
 add_test(NAME test_service_alive COMMAND test_service_alive)
-add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ${PARODUS_COMMON_SRC})
+add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
@@ -182,6 +182,7 @@ add_executable(simple_connection simple_connection.c ${PARODUS_COMMON_SRC}
                     ../src/connection.c
                     ../src/ParodusInternal.c
                     ../src/client_list.c
+                    ../src/partners_check.c
                     ../src/service_alive.c) 
 target_link_libraries (simple_connection ${PARODUS_COMMON_LIBS})
 
@@ -205,6 +206,7 @@ add_executable(simple simple.c
                     ../src/ParodusInternal.c
                     ../src/spin_thread.c
                     ../src/client_list.c
+                    ../src/partners_check.c
                     ../src/service_alive.c) 
 
 target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg )

@@ -9,6 +9,7 @@
 #include "ParodusInternal.h"
 #include "upstream.h"
 #include "config.h"
+#include "partners_check.h"
 #include "connection.h"
 #include "client_list.h"
 #include "nopoll_helpers.h"
@@ -39,8 +40,6 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
-
-
 
 void packMetaData()
 {
@@ -158,7 +157,7 @@ void *processUpstreamMessage()
     int rv=-1, rc = -1;	
     int msgType;
     wrp_msg_t *msg;	
-    void *appendData;
+    void *appendData, *bytes;
     size_t encodedSize;
     reg_list_item_t *temp = NULL;
     int matchFlag = 0;
@@ -189,8 +188,8 @@ void *processUpstreamMessage()
                     //Extract serviceName and url & store it in a linked list for reg_clients
                     if(get_numOfClients() !=0)
                     {
-			matchFlag = 0;
-			ParodusPrint("matchFlag reset to %d\n", matchFlag);
+                        matchFlag = 0;
+                        ParodusPrint("matchFlag reset to %d\n", matchFlag);
                         temp = get_global_node();
                         while(temp!=NULL)
                         {
@@ -251,9 +250,40 @@ void *processUpstreamMessage()
                         }
                     }
                 }
+                else if(msgType == WRP_MSG_TYPE__EVENT)
+                {
+                    ParodusInfo(" Received upstream event data\n");
+                    partners_t *partnersList = NULL;
+
+                    int ret = validate_partner_id(msg, &partnersList);
+                    if(ret == 1)
+                    {
+                        wrp_msg_t *eventMsg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+                        eventMsg->msg_type = msgType;
+                        eventMsg->u.event.content_type=msg->u.event.content_type;
+                        eventMsg->u.event.source=msg->u.event.source;
+                        eventMsg->u.event.dest=msg->u.event.dest;
+                        eventMsg->u.event.payload=msg->u.event.payload;
+                        eventMsg->u.event.payload_size=msg->u.event.payload_size;
+                        eventMsg->u.event.headers=msg->u.event.headers;
+                        eventMsg->u.event.metadata=msg->u.event.metadata;
+                        eventMsg->u.event.partner_ids = partnersList;
+
+                        int size = wrp_struct_to( eventMsg, WRP_BYTES, &bytes );
+                        if(size > 0)
+                        {
+                            sendUpstreamMsgToServer(&bytes, size);
+                        }
+                        free(eventMsg);
+                    }
+                    else
+                    {
+                        sendUpstreamMsgToServer(&message->msg, message->len);
+                    }
+                }
                 else
                 {
-                    //Sending to server for msgTypes 3, 4, 5, 6, 7, 8.
+                    //Sending to server for msgTypes 3, 5, 6, 7, 8.
                     ParodusInfo(" Received upstream data with MsgType: %d\n", msgType);
                     //Appending metadata with packed msg received from client
                     if(metaPackSize > 0)
@@ -324,4 +354,3 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	}
 
 }
-

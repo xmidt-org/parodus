@@ -9,8 +9,8 @@
 #include "downstream.h"
 #include "upstream.h" 
 #include "connection.h"
+#include "partners_check.h"
 #include "ParodusInternal.h"
-#include "config.h"
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -24,15 +24,13 @@
  */
 void listenerOnMessage(void * msg, size_t msgSize)
 {
-    int rv =0, i = 0;
+    int rv =0;
     wrp_msg_t *message;
     char* destVal = NULL;
     char dest[32] = {'\0'};
-    char *partnerId = NULL;
     int msgType;
     int bytes =0;
     int destFlag =0;
-    int checkPartnerId = 0, matchFlag = 0;
     size_t size = 0;
     int resp_size = -1 ;
     const char *recivedMsg = NULL;
@@ -59,33 +57,15 @@ void listenerOnMessage(void * msg, size_t msgSize)
             if(message->msg_type == WRP_MSG_TYPE__REQ)
             {
                 ParodusPrint("numOfClients registered is %d\n", get_numOfClients());
-                if(message->u.req.partner_ids !=NULL)
+                int ret = validate_partner_id(message, NULL);
+                if(ret < 0)
                 {
-                    ParodusPrint("Validating partner_id\n");
-                    checkPartnerId = 1;
-                    partnerId = get_parodus_cfg()->partner_id;
-                    ParodusPrint("partnerId: %s\n",partnerId);
-                    ParodusPrint("partner_ids count is %lu\n",message->u.req.partner_ids->count);
-
-                    for(i = 0; i < (int) message->u.req.partner_ids->count; i++)
-                    {
-                        if(strcmp(partnerId, message->u.req.partner_ids->partner_ids[i]) == 0)
-                        {
-                            ParodusInfo("partner_id match found\n");
-                            matchFlag = 1;
-                            break;
-                        }
-                    }
-
-                    if(matchFlag == 0)
-                    {
-                        response = cJSON_CreateObject();
-                        cJSON_AddNumberToObject(response, "statusCode", 430);
-                        cJSON_AddStringToObject(response, "message", "Invalid partner_id");
-                    }
+                    response = cJSON_CreateObject();
+                    cJSON_AddNumberToObject(response, "statusCode", 430);
+                    cJSON_AddStringToObject(response, "message", "Invalid partner_id");
                 }
 
-                if((message->u.req.dest !=NULL) && ((matchFlag == 1 && checkPartnerId == 1) || checkPartnerId == 0))
+                if((message->u.req.dest !=NULL) && (ret >= 0))
                 {
                     destVal = message->u.req.dest;
                     strtok(destVal , "/");
@@ -121,34 +101,34 @@ void listenerOnMessage(void * msg, size_t msgSize)
                     }
                 }
 
-                if(destFlag == 0 || (matchFlag == 0 && checkPartnerId == 1))
+                if(destFlag == 0 || ret < 0)
                 {
-                        resp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
-                        memset(resp_msg, 0, sizeof(wrp_msg_t));
+                    resp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
+                    memset(resp_msg, 0, sizeof(wrp_msg_t));
 
-                        resp_msg ->msg_type = msgType;
-                        resp_msg ->u.req.source = message->u.req.dest;
-                        resp_msg ->u.req.dest = message->u.req.source;
-                        resp_msg ->u.req.transaction_uuid=message->u.req.transaction_uuid;
+                    resp_msg ->msg_type = msgType;
+                    resp_msg ->u.req.source = message->u.req.dest;
+                    resp_msg ->u.req.dest = message->u.req.source;
+                    resp_msg ->u.req.transaction_uuid=message->u.req.transaction_uuid;
 
-                        if(response != NULL)
+                    if(response != NULL)
+                    {
+                        str = cJSON_PrintUnformatted(response);
+                        ParodusInfo("Payload Response: %s\n", str);
+
+                        resp_msg ->u.req.payload = (void *)str;
+                        resp_msg ->u.req.payload_size = strlen(str);
+
+                        ParodusPrint("msgpack encode\n");
+                        resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
+                        if(resp_size > 0)
                         {
-                            str = cJSON_PrintUnformatted(response);
-                            ParodusInfo("Payload Response: %s\n", str);
-
-                            resp_msg ->u.req.payload = (void *)str;
-                            resp_msg ->u.req.payload_size = strlen(str);
-
-                            ParodusPrint("msgpack encode\n");
-                            resp_size = wrp_struct_to( resp_msg, WRP_BYTES, &resp_bytes );
-                            if(resp_size > 0)
-                            {
-                                size = (size_t) resp_size;
-                                sendUpstreamMsgToServer(&resp_bytes, size);
-                            }
-                            free(str);
+                            size = (size_t) resp_size;
+                            sendUpstreamMsgToServer(&resp_bytes, size);
                         }
-                        free(resp_msg);
+                        free(str);
+                    }
+                    free(resp_msg);
                 }
             }
         }
