@@ -47,12 +47,12 @@ int get_numOfClients()
 reg_list_item_t * get_global_node(void)
 {
     function_called();
-    return (reg_list_item_t *)mock();
+    return mock_ptr_type(reg_list_item_t *);
 }
 
 void listenerOnMessage(void * msg, size_t msgSize )
 {
-    check_expected(msg);
+    check_expected((intptr_t)msg);
     check_expected(msgSize);
     function_called();
 }
@@ -76,7 +76,7 @@ void test_messageHandlerTask()
     
     numLoops = 1;
 
-    expect_value(listenerOnMessage, msg, ParodusMsgQ->payload);
+    expect_value(listenerOnMessage, (intptr_t)msg, (intptr_t)ParodusMsgQ->payload);
     expect_value(listenerOnMessage, msgSize, ParodusMsgQ->len);
     expect_function_call(listenerOnMessage);
     

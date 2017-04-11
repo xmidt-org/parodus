@@ -39,7 +39,7 @@ nopoll_bool nopoll_conn_is_ok( noPollConn *conn )
 {
     ParodusInfo("function_called : %s\n",__FUNCTION__);
     function_called();
-	check_expected(conn);
+	check_expected((intptr_t)conn);
 	
     return (nopoll_bool)mock();
 }
@@ -48,7 +48,7 @@ nopoll_bool nopoll_conn_is_ready( noPollConn *conn )
 {
     ParodusInfo("function_called : %s\n",__FUNCTION__);
     function_called();
-	check_expected(conn);
+	check_expected((intptr_t)conn);
 	
     return (nopoll_bool)mock();
 }
@@ -59,7 +59,7 @@ int  __nopoll_conn_send_common (noPollConn * conn, const char * content, long le
     ParodusInfo("function_called : %s\n",__FUNCTION__);
     function_called();
     
-    check_expected(conn);
+    check_expected((intptr_t)conn);
     check_expected(length);
     return (int)mock();
 }
@@ -71,7 +71,7 @@ int nopoll_conn_flush_writes(noPollConn * conn, long timeout, int previous_resul
     ParodusInfo("function_called : %s\n",__FUNCTION__);
     function_called();
     
-    check_expected(conn);
+    check_expected((intptr_t)conn);
     check_expected(previous_result);
     return (int)mock();
 }
@@ -107,9 +107,9 @@ void test_setMessageHandlers()
 void test_sendResponse()
 {
     int len = strlen("Hello Parodus!");
-    expect_value(__nopoll_conn_send_common, conn, conn);
-    expect_value(__nopoll_conn_send_common, length, len);
-    will_return(__nopoll_conn_send_common, len);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
+    expect_value(__nopoll_conn_send_common, length,(intptr_t) len);
+    will_return(__nopoll_conn_send_common, (intptr_t)len);
     expect_function_calls(__nopoll_conn_send_common, 1);
     
     int bytesWritten = sendResponse(conn, "Hello Parodus!", len);
@@ -121,13 +121,13 @@ void test_sendResponseWithFragments()
 {
     int len = (MAX_SEND_SIZE*2)+64;
     
-    expect_value(__nopoll_conn_send_common, conn, conn);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, MAX_SEND_SIZE);
     will_return(__nopoll_conn_send_common, MAX_SEND_SIZE);
-    expect_value(__nopoll_conn_send_common, conn, conn);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, MAX_SEND_SIZE);
     will_return(__nopoll_conn_send_common, MAX_SEND_SIZE);
-    expect_value(__nopoll_conn_send_common, conn, conn);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, 64);
     will_return(__nopoll_conn_send_common, 64);
     expect_function_calls(__nopoll_conn_send_common, 3);
@@ -140,8 +140,8 @@ void err_sendResponse()
 {
     int len = strlen("Hello Parodus!");
     
-    expect_value(__nopoll_conn_send_common, conn, conn);
-    expect_value(__nopoll_conn_send_common, length, len);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
+    expect_value(__nopoll_conn_send_common, length, (intptr_t)len);
     will_return(__nopoll_conn_send_common, -1);
     expect_function_calls(__nopoll_conn_send_common, 1);
     
@@ -154,12 +154,12 @@ void err_sendResponseFlushWrites()
 {
     int len = strlen("Hello Parodus!");
     
-    expect_value(__nopoll_conn_send_common, conn, conn);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len-3);
     expect_function_calls(__nopoll_conn_send_common, 1);
     
-    expect_value(nopoll_conn_flush_writes, conn, conn);
+    expect_value(nopoll_conn_flush_writes, (intptr_t)conn, (intptr_t)conn);
     expect_value(nopoll_conn_flush_writes, previous_result, len-3);
     will_return(nopoll_conn_flush_writes, len-3);
     expect_function_calls(nopoll_conn_flush_writes, 1);
@@ -172,7 +172,7 @@ void err_sendResponseFlushWrites()
 void err_sendResponseConnNull()
 {
     int len = strlen("Hello Parodus!");
-    expect_value(__nopoll_conn_send_common, conn, NULL);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)NULL);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, -1);
     expect_function_calls(__nopoll_conn_send_common, 1);
@@ -186,15 +186,15 @@ void test_sendMessage()
 {
     int len = strlen("Hello Parodus!");
     
-    expect_value(nopoll_conn_is_ok, conn, conn);
+    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)conn);
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
     
-    expect_value(nopoll_conn_is_ready, conn, conn);
+    expect_value(nopoll_conn_is_ready, (intptr_t)conn, (intptr_t)conn);
     will_return(nopoll_conn_is_ready, nopoll_true);
     expect_function_call(nopoll_conn_is_ready);
     
-    expect_value(__nopoll_conn_send_common, conn, conn);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len);
     expect_function_calls(__nopoll_conn_send_common, 1);
@@ -206,20 +206,20 @@ void err_sendMessage()
 {
     int len = strlen("Hello Parodus!");
     
-    expect_value(nopoll_conn_is_ok, conn, conn);
+    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)conn);
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
     
-    expect_value(nopoll_conn_is_ready, conn, conn);
+    expect_value(nopoll_conn_is_ready, (intptr_t)conn, (intptr_t)conn);
     will_return(nopoll_conn_is_ready, nopoll_true);
     expect_function_call(nopoll_conn_is_ready);
     
-    expect_value(__nopoll_conn_send_common, conn, conn);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn,(intptr_t) conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len-2);
     expect_function_calls(__nopoll_conn_send_common, 1);
     
-    expect_value(nopoll_conn_flush_writes, conn, conn);
+    expect_value(nopoll_conn_flush_writes, (intptr_t)conn, (intptr_t)conn);
     expect_value(nopoll_conn_flush_writes, previous_result, len-2);
     will_return(nopoll_conn_flush_writes, len-3);
     expect_function_calls(nopoll_conn_flush_writes, 1);
@@ -231,7 +231,7 @@ void err_sendMessageConnNull()
 {
     int len = strlen("Hello Parodus!");
     
-    expect_value(nopoll_conn_is_ok, conn, NULL);
+    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
     will_return(nopoll_conn_is_ok, nopoll_false);
     expect_function_call(nopoll_conn_is_ok);
     
