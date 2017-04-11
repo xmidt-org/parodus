@@ -59,7 +59,7 @@ char *get_global_reconnect_reason()
 reg_list_item_t * get_global_node(void)
 {
     function_called();
-    return (reg_list_item_t *)mock();
+    return mock_ptr_type(reg_list_item_t *);
 }
 
 int get_numOfClients()
@@ -349,7 +349,7 @@ void test_processUpstreamMessageRegMsg()
     will_return(get_numOfClients, 1);
     expect_function_call(get_numOfClients);
 
-    will_return(get_global_node, head);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
 
     will_return(nn_shutdown, 1);
@@ -503,7 +503,7 @@ void err_processUpstreamMessageRegMsg()
     will_return(get_numOfClients, 1);
     expect_function_call(get_numOfClients);
 
-    will_return(get_global_node, head);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
 
     will_return(nn_shutdown, -1);

@@ -50,7 +50,7 @@ int get_numOfClients()
 reg_list_item_t * get_global_node(void)
 {
     function_called();
-    return (reg_list_item_t *) mock();
+    return mock_ptr_type(reg_list_item_t *);
 }
 
 ssize_t wrp_to_struct( const void *bytes, const size_t length,
@@ -100,7 +100,7 @@ void test_listenerOnMessage()
     expect_function_call(get_numOfClients);
     will_return(validate_partner_id, 1);
     expect_function_call(validate_partner_id);
-    will_return(get_global_node, head);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
@@ -135,7 +135,7 @@ void test_listenerOnMessageMultipleClients()
     expect_function_call(get_numOfClients);
     will_return(validate_partner_id, 0);
     expect_function_call(validate_partner_id);
-    will_return(get_global_node, head);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
@@ -163,7 +163,7 @@ void err_listenerOnMessageServiceUnavailable()
     expect_function_call(get_numOfClients);
     will_return(validate_partner_id, 0);
     expect_function_call(validate_partner_id);
-    will_return(get_global_node, NULL);
+    will_return(get_global_node, (intptr_t)NULL);
     expect_function_call(get_global_node);
     expect_function_call(sendUpstreamMsgToServer);
     

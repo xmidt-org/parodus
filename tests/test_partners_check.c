@@ -35,7 +35,7 @@
 ParodusCfg *get_parodus_cfg(void)
 {
     function_called();
-    return (ParodusCfg*) mock();
+    return (ParodusCfg*) (intptr_t)mock();
 }
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
@@ -53,7 +53,7 @@ void test_validate_partner_id_for_req()
     memset(&cfg, 0, sizeof(ParodusCfg));
     strcpy(cfg.partner_id, "comcast");
     
-    will_return(get_parodus_cfg, &cfg);
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
     assert_int_equal(ret, 1);  
@@ -69,7 +69,7 @@ void test_validate_partner_id_for_req_listNULL()
     memset(&cfg, 0, sizeof(ParodusCfg));
     strcpy(cfg.partner_id, "comcast");
     
-    will_return(get_parodus_cfg, &cfg);
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
     assert_int_equal(ret, 1);  
@@ -84,7 +84,7 @@ void test_validate_partner_id_for_req_withoutId()
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
     
-    will_return(get_parodus_cfg, &cfg);
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
     assert_int_equal(ret, 0);  
@@ -102,7 +102,7 @@ void err_validate_partner_id_for_req()
     memset(&cfg, 0, sizeof(ParodusCfg));
     strcpy(cfg.partner_id, "comcast");
     
-    will_return(get_parodus_cfg, &cfg);
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
     assert_int_equal(ret, -1);  
@@ -120,7 +120,7 @@ void test_validate_partner_id_for_event()
     memset(&cfg, 0, sizeof(ParodusCfg));
     strcpy(cfg.partner_id, "comcast");
     
-    will_return(get_parodus_cfg, &cfg);
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     
     partners_t *list = NULL;
@@ -138,7 +138,7 @@ void test_validate_partner_id_for_event_listNULL()
     memset(&cfg, 0, sizeof(ParodusCfg));
     strcpy(cfg.partner_id, "comcast");
     
-    will_return(get_parodus_cfg, &cfg);
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     partners_t *list = NULL;
     int ret = validate_partner_id(msg, &list); 
@@ -156,7 +156,7 @@ void err_validate_partner_id_for_event()
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
     
-    will_return(get_parodus_cfg, &cfg);
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
     assert_int_equal(ret, 0);  
@@ -174,7 +174,7 @@ void test_validate_partner_id_for_event_withoutId()
     memset(&cfg, 0, sizeof(ParodusCfg));
     strcpy(cfg.partner_id, "comcast");
     
-    will_return(get_parodus_cfg, &cfg);
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     partners_t *list = NULL;
     int ret = validate_partner_id(msg, &list); 

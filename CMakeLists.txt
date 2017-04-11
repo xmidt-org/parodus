@@ -23,8 +23,7 @@ set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
-set(NANOMSG_LIBRARY_DIR ${INSTALL_DIR}/lib/x86_64-linux-gnu)
-set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
+set(COMMON_LIBRARY_DIR ${INSTALL_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE})
 set(TEST_RESULTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_results)
 file(MAKE_DIRECTORY ${TEST_RESULTS_DIR})
 
@@ -193,8 +192,7 @@ endif (BUILD_TESTING)
 
 endif ()
 
-link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64} ${NANOMSG_LIBRARY_DIR} )
-
+link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR})
 add_subdirectory(src)
 if (BUILD_TESTING)
     add_subdirectory(tests)
