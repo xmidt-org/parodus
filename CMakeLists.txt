@@ -172,7 +172,6 @@ add_dependencies(liblibparodus libparodus)
 ExternalProject_Add(seshat
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/seshat
     GIT_REPOSITORY https://github.com/comcast/seshat.git
-    GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(liblibseshat STATIC SHARED IMPORTED)
