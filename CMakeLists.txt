@@ -23,6 +23,7 @@ set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
+set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
 set(COMMON_LIBRARY_DIR ${INSTALL_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE})
 set(TEST_RESULTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_results)
 file(MAKE_DIRECTORY ${TEST_RESULTS_DIR})
@@ -171,6 +172,7 @@ add_dependencies(liblibparodus libparodus)
 ExternalProject_Add(seshat
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/seshat
     GIT_REPOSITORY https://github.com/comcast/seshat.git
+    GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(liblibseshat STATIC SHARED IMPORTED)
@@ -192,7 +194,7 @@ endif (BUILD_TESTING)
 
 endif ()
 
-link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR})
+link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR} ${LIBRARY_DIR64} )
 add_subdirectory(src)
 if (BUILD_TESTING)
     add_subdirectory(tests)
