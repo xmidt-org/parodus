@@ -167,15 +167,15 @@ ExternalProject_Add(libparodus
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
 
-# seshat external dependency
+# libseshat external dependency
 #-------------------------------------------------------------------------------
-ExternalProject_Add(seshat
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/seshat
+ExternalProject_Add(libseshat
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
     GIT_REPOSITORY https://github.com/comcast/seshat.git
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(liblibseshat STATIC SHARED IMPORTED)
-add_dependencies(liblibseshat seshat)
+add_dependencies(liblibseshat libseshat)
 
 if (BUILD_TESTING)
 # cmocka external dependency
