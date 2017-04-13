@@ -171,7 +171,7 @@ target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_partners_check COMMAND test_partners_check)
 add_executable(test_partners_check test_partners_check.c ../src/partners_check.c)
-target_link_libraries (test_partners_check -lcmocka -lwrp-c -lcimplog -Wl,--no-as-needed -lrt)
+target_link_libraries (test_partners_check -lcmocka -lwrp-c -llibseshat ${PARODUS_COMMON_LIBS})
 
 if (INTEGRATION_TESTING)
 #-------------------------------------------------------------------------------
