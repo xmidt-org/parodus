@@ -57,23 +57,17 @@ void set_global_reconnect_reason(char *reason)
  */
 int createNopollConnection(noPollCtx *ctx)
 {
-    bool initial_retry = false;
+    bool initial_retry = false,enable_ipv4 = false;
     int backoffRetryTime = 0;
     int max_retry_sleep;
     char device_id[32]={'\0'};
     char user_agent[512]={'\0'};
-    const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
-    const char *headerValues[HTTP_CUSTOM_HEADER_COUNT];
-    int headerCount = HTTP_CUSTOM_HEADER_COUNT; /* Invalid X-Webpa-Convey header Bug # WEBPA-787 */
     char port[8];
     noPollConnOpts * opts;
     char server_Address[256];
     char redirectURL[128]={'\0'};
     char *temp_ptr, *conveyHeader;
-    int connErr=0;
-    struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
-    connErr_startPtr = &connErr_start;
-    connErr_endPtr = &connErr_end;
+    char * extra_headers = NULL;
     //Retry Backoff count shall start at c=2 & calculate 2^c - 1.
     int c=2;
     
@@ -95,8 +89,6 @@ int createNopollConnection(noPollCtx *ctx)
 	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
 	ParodusInfo("Device_id %s\n",device_id);
 
-	headerValues[0] = device_id;
-	headerValues[1] = "wrp-0.11,getset-0.1";    
 	
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
@@ -108,17 +100,7 @@ int createNopollConnection(noPollCtx *ctx)
          ((0 != strlen(get_parodus_cfg()->hw_manufacturer)) ? get_parodus_cfg()->hw_manufacturer : "unknown"));
 
 	ParodusInfo("User-Agent: %s\n",user_agent);
-	headerValues[2] = user_agent;
 	conveyHeader = getWebpaConveyHeader();
-	if(strlen(conveyHeader) > 0)
-	{
-        headerValues[3] = conveyHeader;
-	}
-	else
-	{
-	    headerValues[3] = ""; 
-        headerCount -= 1;
-	}
 	snprintf(port,sizeof(port),"%d",8080);
 	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
 	ParodusInfo("server_Address %s\n",server_Address);
@@ -143,16 +125,27 @@ int createNopollConnection(noPollCtx *ctx)
 			opts = nopoll_conn_opts_new ();
 			nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
 			nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2); 
-			connection = nopoll_conn_tls_new(ctx, opts, server_Address, port, NULL,
-                               get_parodus_cfg()->webpa_path_url, NULL, NULL, get_parodus_cfg()->webpa_interface_used,
-                                headerNames, headerValues, headerCount);// WEBPA-787
+            extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
+				     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+				     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
+	
+			nopoll_conn_opts_set_extra_headers (opts,extra_headers);
+			if(enable_ipv4)
+	        {
+				connection = nopoll_conn_tls_new(ctx, opts, server_Address, port, NULL,
+                               get_parodus_cfg()->webpa_path_url, NULL, NULL);
+			}
+			else
+			{
+				connection = nopoll_conn_tls_new6(ctx, opts, server_Address, port, NULL,
+                               get_parodus_cfg()->webpa_path_url, NULL, NULL);
+			}
 		}
 		else 
 		{
 		    ParodusPrint("secure false\n");
             connection = nopoll_conn_new(ctx, server_Address, port, NULL,
-                       get_parodus_cfg()->webpa_path_url, NULL, NULL, get_parodus_cfg()->webpa_interface_used,
-                        headerNames, headerValues, headerCount);// WEBPA-787
+                       get_parodus_cfg()->webpa_path_url, NULL, NULL);// WEBPA-787
 		}
         set_global_conn(connection);
 
@@ -220,33 +213,8 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		else
 		{
-			
-			/* If the connect error is due to DNS resolving to 10.0.0.1 then start timer.
-			 * Timeout after 15 minutes if the error repeats continuously and kill itself. 
-			 */
-			if((checkHostIp(server_Address) == -2)) 	
-			{
-				if(connErr == 0)
-				{
-					getCurrentTime(connErr_startPtr);
-					connErr = 1;
-					ParodusInfo("First connect error occurred, initialized the connect error timer\n");
-				}
-				else
-				{
-					getCurrentTime(connErr_endPtr);
-					ParodusPrint("checking timeout difference:%ld\n", timeValDiff(connErr_startPtr, connErr_endPtr));
-					if(timeValDiff(connErr_startPtr, connErr_endPtr) >= (15*60*1000))
-					{
-						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
-						reconnect_reason = "Dns_Res_webpa_reconnect";
-						LastReasonStatus = true;
-						
-						kill(getpid(),SIGTERM);						
-					}
-				}			
-			}
 			initial_retry = true;
+			enable_ipv4 = true;
 			ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 			sleep(backoffRetryTime);
 			c++;
@@ -273,7 +241,6 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusPrint("createNopollConnection(): close_mut unlock\n");
 	heartBeatTimer = 0;
 	// Reset connErr flag on successful connection
-	connErr = 0;
 	reconnect_reason = "webpa_process_starts";
 	LastReasonStatus =false;
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
