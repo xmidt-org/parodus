@@ -160,7 +160,7 @@ int createNopollConnection(noPollCtx *ctx)
 				close_and_unref_connection(get_global_conn());
 				set_global_conn(NULL);
 				initial_retry = true;
-				
+				enable_ipv4 = true;	
 				ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 				sleep(backoffRetryTime);
 				continue;
