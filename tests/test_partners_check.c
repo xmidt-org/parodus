@@ -56,7 +56,8 @@ void test_validate_partner_id_for_req()
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
-    assert_int_equal(ret, 1);  
+    assert_int_equal(ret, 1);
+    free(msg);
 }
 
 void test_validate_partner_id_for_req_listNULL()
@@ -72,7 +73,8 @@ void test_validate_partner_id_for_req_listNULL()
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
-    assert_int_equal(ret, 1);  
+    assert_int_equal(ret, 1);
+    free(msg);
 }
 
 void test_validate_partner_id_for_req_withoutId()
@@ -87,7 +89,8 @@ void test_validate_partner_id_for_req_withoutId()
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
-    assert_int_equal(ret, 0);  
+    assert_int_equal(ret, 0);
+    free(msg);
 }
 
 void err_validate_partner_id_for_req()
@@ -105,7 +108,8 @@ void err_validate_partner_id_for_req()
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
-    assert_int_equal(ret, -1);  
+    assert_int_equal(ret, -1);
+    free(msg);
 }
 
 void test_validate_partner_id_for_event()
@@ -126,6 +130,7 @@ void test_validate_partner_id_for_event()
     partners_t *list = NULL;
     int ret = validate_partner_id(msg, &list); 
     assert_int_equal(ret, 1);  
+    free(msg);
 }
 
 void test_validate_partner_id_for_event_listNULL()
@@ -145,6 +150,13 @@ void test_validate_partner_id_for_event_listNULL()
     assert_int_equal(ret, 1); 
     assert_int_equal(list->count, 1);
     assert_string_equal(list->partner_ids[0], "comcast");
+    int i;
+    for(i = 0; i< (int) list->count; i++)
+    {
+        free(list->partner_ids[i]);
+    }
+    free(list);
+    free(msg);
 }
 
 void err_validate_partner_id_for_event()
@@ -159,16 +171,21 @@ void err_validate_partner_id_for_event()
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
-    assert_int_equal(ret, 0);  
+    assert_int_equal(ret, 0);
+    free(msg);  
 }
 
 void test_validate_partner_id_for_event_withoutId()
 {
-    static partners_t partner_ids = {1,{"shaw"}};
+    partners_t *partner_ids = (partners_t *) malloc(sizeof(partners_t));
+    partner_ids->count = 1;
+    partner_ids->partner_ids[0] = (char *) malloc(sizeof(char)*64);
+    strcpy(partner_ids->partner_ids[0], "shaw");
+
     wrp_msg_t *msg = (wrp_msg_t*) malloc(sizeof(wrp_msg_t));
     memset(msg, 0, sizeof(wrp_msg_t));
     msg->msg_type = WRP_MSG_TYPE__EVENT;
-    msg->u.event.partner_ids = &partner_ids;
+    msg->u.event.partner_ids = partner_ids;
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
@@ -182,6 +199,14 @@ void test_validate_partner_id_for_event_withoutId()
     assert_int_equal(list->count, 2);
     assert_string_equal(list->partner_ids[0], "shaw");
     assert_string_equal(list->partner_ids[1], "comcast");
+    int i;
+    for(i = 0; i< (int) list->count; i++)
+    {
+        free(list->partner_ids[i]);
+    }
+    free(list);
+    free(msg);
+    free(partner_ids);
 }
 
 /*----------------------------------------------------------------------------*/

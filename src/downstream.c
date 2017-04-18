@@ -127,6 +127,9 @@ void listenerOnMessage(void * msg, size_t msgSize)
                             sendUpstreamMsgToServer(&resp_bytes, size);
                         }
                         free(str);
+                        cJSON_Delete(response);
+                        free(resp_bytes);
+                        resp_bytes = NULL;
                     }
                     free(resp_msg);
                 }

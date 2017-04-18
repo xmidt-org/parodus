@@ -59,45 +59,45 @@ void test_set_global_conn()
     set_global_conn(conn);
     CU_ASSERT(conn == get_global_conn());
     close_and_unref_connection(get_global_conn());
+    free(opts);
 }
 
 void test_set_parodus_cfg()
 {
-    ParodusCfg *cfg;
+    ParodusCfg cfg;
 
-    cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
-    strcpy(cfg->hw_model, "TG1682");
-    strcpy(cfg->hw_serial_number, "Fer23u948590");
-    strcpy(cfg->hw_manufacturer , "ARRISGroup,Inc.");
-    strcpy(cfg->hw_mac , "123567892366");
-    strcpy(cfg->hw_last_reboot_reason , "unknown");
-    strcpy(cfg->fw_name , "2.364s2");
-    strcpy(cfg->webpa_path_url , "/api/v2/device");
-    strcpy(cfg->webpa_url , "fabric-cd.webpa.comcast.net");
-    strcpy(cfg->webpa_interface_used , "eth0");
-    strcpy(cfg->webpa_protocol , "WebPA-1.6");
-    strcpy(cfg->webpa_uuid , "1234567-345456546");
-    cfg->secureFlag = 1;
-    cfg->boot_time = 423457;
-    cfg->webpa_ping_timeout = 30;
-    cfg->webpa_backoff_max = 255;
+    strcpy(cfg.hw_model, "TG1682");
+    strcpy(cfg.hw_serial_number, "Fer23u948590");
+    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
+    strcpy(cfg.hw_mac , "123567892366");
+    strcpy(cfg.hw_last_reboot_reason , "unknown");
+    strcpy(cfg.fw_name , "2.364s2");
+    strcpy(cfg.webpa_path_url , "/api/v2/device");
+    strcpy(cfg.webpa_url , "fabric-cd.webpa.comcast.net");
+    strcpy(cfg.webpa_interface_used , "eth0");
+    strcpy(cfg.webpa_protocol , "WebPA-1.6");
+    strcpy(cfg.webpa_uuid , "1234567-345456546");
+    cfg.secureFlag = 1;
+    cfg.boot_time = 423457;
+    cfg.webpa_ping_timeout = 30;
+    cfg.webpa_backoff_max = 255;
 
-    set_parodus_cfg(cfg);
+    set_parodus_cfg(&cfg);
 
-    CU_ASSERT_STRING_EQUAL(cfg->hw_model, get_parodus_cfg()->hw_model);
-    CU_ASSERT_STRING_EQUAL(cfg->webpa_uuid, get_parodus_cfg()->webpa_uuid);
-    CU_ASSERT_STRING_EQUAL(cfg->hw_serial_number, get_parodus_cfg()->hw_serial_number);
-    CU_ASSERT_STRING_EQUAL(cfg->hw_manufacturer , get_parodus_cfg()->hw_manufacturer);
-    CU_ASSERT_STRING_EQUAL(cfg->hw_mac, get_parodus_cfg()->hw_mac);
-    CU_ASSERT_STRING_EQUAL(cfg->hw_last_reboot_reason,get_parodus_cfg()->hw_last_reboot_reason);
-    CU_ASSERT_STRING_EQUAL(cfg->fw_name,get_parodus_cfg()->fw_name);
-    CU_ASSERT_STRING_EQUAL(cfg->webpa_url, get_parodus_cfg()->webpa_url);
-    CU_ASSERT_STRING_EQUAL(cfg->webpa_interface_used , get_parodus_cfg()->webpa_interface_used);
-    CU_ASSERT_STRING_EQUAL(cfg->webpa_protocol, get_parodus_cfg()->webpa_protocol);
-    CU_ASSERT_EQUAL(cfg->boot_time, get_parodus_cfg()->boot_time);
-    CU_ASSERT_EQUAL(cfg->webpa_ping_timeout, get_parodus_cfg()->webpa_ping_timeout);
-    CU_ASSERT_EQUAL(cfg->webpa_backoff_max, get_parodus_cfg()->webpa_backoff_max);
-    CU_ASSERT_EQUAL(cfg->secureFlag, get_parodus_cfg()->secureFlag);
+    CU_ASSERT_STRING_EQUAL(cfg.hw_model, get_parodus_cfg()->hw_model);
+    CU_ASSERT_STRING_EQUAL(cfg.webpa_uuid, get_parodus_cfg()->webpa_uuid);
+    CU_ASSERT_STRING_EQUAL(cfg.hw_serial_number, get_parodus_cfg()->hw_serial_number);
+    CU_ASSERT_STRING_EQUAL(cfg.hw_manufacturer , get_parodus_cfg()->hw_manufacturer);
+    CU_ASSERT_STRING_EQUAL(cfg.hw_mac, get_parodus_cfg()->hw_mac);
+    CU_ASSERT_STRING_EQUAL(cfg.hw_last_reboot_reason,get_parodus_cfg()->hw_last_reboot_reason);
+    CU_ASSERT_STRING_EQUAL(cfg.fw_name,get_parodus_cfg()->fw_name);
+    CU_ASSERT_STRING_EQUAL(cfg.webpa_url, get_parodus_cfg()->webpa_url);
+    CU_ASSERT_STRING_EQUAL(cfg.webpa_interface_used , get_parodus_cfg()->webpa_interface_used);
+    CU_ASSERT_STRING_EQUAL(cfg.webpa_protocol, get_parodus_cfg()->webpa_protocol);
+    CU_ASSERT_EQUAL(cfg.boot_time, get_parodus_cfg()->boot_time);
+    CU_ASSERT_EQUAL(cfg.webpa_ping_timeout, get_parodus_cfg()->webpa_ping_timeout);
+    CU_ASSERT_EQUAL(cfg.webpa_backoff_max, get_parodus_cfg()->webpa_backoff_max);
+    CU_ASSERT_EQUAL(cfg.secureFlag, get_parodus_cfg()->secureFlag);
 }
 
 void test_getWebpaConveyHeader()
@@ -117,6 +117,7 @@ void test_getWebpaConveyHeader()
     CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->webpa_protocol, cJSON_GetObjectItem(payload, WEBPA_PROTOCOL)->valuestring);
     CU_ASSERT_EQUAL((int)get_parodus_cfg()->boot_time, cJSON_GetObjectItem(payload, BOOT_TIME)->valueint);
 
+    cJSON_Delete(payload);
 }
 
 void test_createSecureConnection()
@@ -175,7 +176,7 @@ void test_WebpaConveyHeaderWithNullValues()
     CU_ASSERT_PTR_NULL(cJSON_GetObjectItem(payload, FIRMWARE_NAME));
     CU_ASSERT_PTR_NULL(cJSON_GetObjectItem(payload, WEBPA_INTERFACE));
     free(cfg);
-    
+    cJSON_Delete(payload);
 }
 
 void add_suites( CU_pSuite *suite )

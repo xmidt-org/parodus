@@ -234,6 +234,8 @@ void test_handle_upstream()
     will_return(nn_recv, 12);
     expect_function_call(nn_recv);
     handle_upstream();
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void err_handleUpstreamBindFailure()
@@ -285,6 +287,8 @@ void test_processUpstreamMessage()
 
     processUpstreamMessage();
     free(temp);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void test_processUpstreamMessageInvalidPartner()
@@ -319,6 +323,8 @@ void test_processUpstreamMessageInvalidPartner()
     expect_function_call(nn_freemsg);
     processUpstreamMessage();
     free(temp);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void test_processUpstreamMessageRegMsg()
@@ -377,6 +383,8 @@ void test_processUpstreamMessageRegMsg()
     processUpstreamMessage();
     free(temp);
     free(head);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void test_processUpstreamMessageRegMsgNoClients()
@@ -417,6 +425,8 @@ void test_processUpstreamMessageRegMsgNoClients()
     processUpstreamMessage();
     free(temp);
     free(head);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void err_processUpstreamMessage()
@@ -447,6 +457,7 @@ void err_processUpstreamMessageDecodeErr()
     expect_function_call(nn_freemsg);
     processUpstreamMessage();
     free(temp);
+    free(UpStreamMsgQ);
 }
 
 void err_processUpstreamMessageMetapackFailure()
@@ -470,6 +481,7 @@ void err_processUpstreamMessageMetapackFailure()
     expect_function_call(nn_freemsg);
     processUpstreamMessage();
     free(temp);
+    free(UpStreamMsgQ);
 }
 
 void err_processUpstreamMessageRegMsg()
@@ -533,7 +545,10 @@ void err_processUpstreamMessageRegMsg()
 
     processUpstreamMessage();
     free(temp);
+    free(head->next);
     free(head);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
 }
 
 void test_sendUpstreamMsgToServer()
@@ -550,6 +565,7 @@ void test_sendUpstreamMsgToServer()
     expect_function_call(appendEncodedData);
     expect_function_call(sendMessage);
     sendUpstreamMsgToServer(&bytes, 110);
+    free(bytes);
 }
 
 void err_sendUpstreamMsgToServer()
