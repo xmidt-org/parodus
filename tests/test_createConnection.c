@@ -177,6 +177,7 @@ void test_createSecureConnection()
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
     free(cfg);
+    nopoll_ctx_unref (ctx);
 }
 
 void test_createConnection()
@@ -205,6 +206,7 @@ void test_createConnection()
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
     free(cfg);
+    nopoll_ctx_unref (ctx);
 }
 
 void test_createConnectionConnNull()
@@ -255,6 +257,7 @@ void test_createConnectionConnNull()
     expect_function_call(setMessageHandlers);
     createNopollConnection(ctx);
     free(cfg);
+    nopoll_ctx_unref (ctx);
 }
 
 void test_createConnectionConnNotOk()
@@ -328,6 +331,7 @@ void test_createConnectionConnNotOk()
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
     free(cfg);
+    nopoll_ctx_unref (ctx);
 }
 
 void err_createConnectionCtxNull()

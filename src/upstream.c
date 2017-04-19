@@ -275,6 +275,8 @@ void *processUpstreamMessage()
                             sendUpstreamMsgToServer(&bytes, size);
                         }
                         free(eventMsg);
+                        free(bytes);
+                        bytes = NULL;
                     }
                     else
                     {

@@ -75,6 +75,7 @@ void test_client_addtolist()
 	}
 
 	wrp_free_struct(message);
+	free(bytes);
 	ParodusInfo("test_client_addtolist done..\n");	
 	
 }
@@ -187,6 +188,7 @@ void test_addtolist_multiple_clients()
 	}
 
 	wrp_free_struct(message);
+	free(bytes);
 	ParodusInfo("test_addtolist_multiple_clients done..\n");	
 	
 }

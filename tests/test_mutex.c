@@ -100,15 +100,14 @@ void test_Mutex()
 
 void err_mutex()
 {
-    noPollPtr mutex = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
+    static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+    noPollPtr mutex = &mtx;
 
     will_return(pthread_mutex_destroy, -1);
     destroyMutex(mutex);
 
     will_return(pthread_mutex_init, -1);
     mutex = createMutex();
-
-    free(mutex);
 }
 
 void err_mutexNull()

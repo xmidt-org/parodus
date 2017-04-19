@@ -97,6 +97,7 @@ char* getWebpaConveyHeader()
 	    encodedData[j]='\0';
 	    ParodusPrint("Encoded X-WebPA-Convey Header: [%zd]%s\n", strlen(encodedData), encodedData);
     }
-
+    free(buffer);
+    cJSON_Delete(response);
     return encodedData;
 }
