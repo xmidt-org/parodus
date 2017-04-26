@@ -239,7 +239,7 @@ static noPollConnOpts * createConnOpts ()
     opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
-	
+	nopoll_conn_opts_set_interface (opts,get_parodus_cfg()->webpa_interface_used);	
     snprintf(user_agent, sizeof(user_agent),"%s (%s; %s/%s;)",
          ((0 != strlen(get_parodus_cfg()->webpa_protocol)) ? get_parodus_cfg()->webpa_protocol : "unknown"),
          ((0 != strlen(get_parodus_cfg()->fw_name)) ? get_parodus_cfg()->fw_name : "unknown"),
