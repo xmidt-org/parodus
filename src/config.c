@@ -32,6 +32,7 @@ void set_parodus_cfg(ParodusCfg *cfg)
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     int c;
+
     while (1)
     {
       static struct option long_options[] = {
@@ -43,17 +44,19 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           {"fw-name",  required_argument, 0, 'n'},
           {"boot-time",  required_argument, 0, 'b'},
           {"webpa-url",  required_argument, 0, 'u'},
-          {"webpa-ping-timeout",    required_argument, 0, 'p'},
+          {"webpa-ping-timeout",    required_argument, 0, 't'},
           {"webpa-backoff-max",  required_argument, 0, 'o'},
           {"webpa-inteface-used",    required_argument, 0, 'i'},
           {"parodus-local-url",  required_argument, 0, 'l'},
-          {JWT_ALGORITHM,    required_argument, 0, 'a'},//RG
-		  {JWT_KEY,    required_argument, 0, 'k'},//RG
+          {"partner-id",  required_argument, 0, 'p'},
+	  {"seshat-url", required_argument, 0, 'e'},
+          {JWT_ALGORITHM,    required_argument, 0, 'a'},
+	  {JWT_KEY,    required_argument, 0, 'k'},
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:p:o:i:l:a:k",long_options, &option_index);
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:a:k",long_options, &option_index);
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -80,7 +83,12 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
            parStrncpy(cfg->hw_mac, optarg,sizeof(cfg->hw_mac));
            ParodusInfo("hw_mac is %s\n",cfg->hw_mac);
           break;
-        
+
+         case 'e':
+           parStrncpy(cfg->seshat_url, optarg,sizeof(cfg->seshat_url));
+           ParodusInfo("seshat_url is %s\n",cfg->seshat_url);
+          break;
+ 
         case 'r':
           parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
           ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
@@ -101,7 +109,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
           break;
         
-        case 'p':
+        case 't':
           cfg->webpa_ping_timeout = atoi(optarg);
           ParodusInfo("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
           break;
@@ -127,6 +135,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	case 'k':
           parStrncpy(cfg->jwt_key, optarg,sizeof(cfg->jwt_key));
           ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
+          break;
+
+        case 'p':
+          parStrncpy(cfg->partner_id, optarg,sizeof(cfg->partner_id));
+          ParodusInfo("partner_id is %s\n",cfg->partner_id);
           break;
 
         case '?':
@@ -236,7 +249,16 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 		strncpy(cfg->local_url, PARODUS_UPSTREAM, strlen(PARODUS_UPSTREAM)+1);
         
     }
-    //RG
+
+    if( strlen(pConfig->partner_id) !=0)
+    {
+        strncpy(cfg->partner_id, pConfig->partner_id,strlen(pConfig->partner_id)+1);
+    }
+    else
+    {
+		ParodusPrint("partner_id is NULL. read from tmp file\n");
+    }
+
     if(strlen(pConfig->jwt_algo )!=0)
     {
         strncpy(cfg->jwt_algo, pConfig->jwt_algo,strlen(pConfig->jwt_algo)+1);
@@ -246,6 +268,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         strcpy(cfg->jwt_algo, "none");
         ParodusPrint("jwt_algo is NULL. set to none\n");
     }
+
     if(strlen(pConfig->jwt_key )!=0)
     {
         strncpy(cfg->jwt_key, pConfig->jwt_key,strlen(pConfig->jwt_key)+1);
@@ -255,7 +278,6 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         strcpy(cfg->jwt_key, "\0");
         ParodusPrint("jwt_key is NULL. set to empty\n");
     }
-	//RG
         
     cfg->boot_time = pConfig->boot_time;
     cfg->secureFlag = 1;

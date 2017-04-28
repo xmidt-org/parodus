@@ -31,7 +31,7 @@ static noPollConn *g_conn = NULL;
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-extern bool allow_insecure_conn(); //RG
+extern bool allow_insecure_conn(); 
 
 noPollConn *get_global_conn(void)
 {
@@ -149,9 +149,11 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
 			
-		//RG
+		//JWT validation
+		/*
 		int insecure = allow_insecure_conn(dns_url);
   		ParodusPrint("allow %s: %d\n",dns_url,insecure);
+		*/
 
         noPollConn *connection;
 		if(get_parodus_cfg()->secureFlag) 

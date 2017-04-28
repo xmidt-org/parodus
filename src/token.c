@@ -45,6 +45,12 @@ static int is_http(const cjwt_t *jwt)
 
 static int validate_algo(const cjwt_t *jwt)
 {
+	/* TBD */
+	/* @psuedo
+	/* 1.Read value from get_parodus_cfg()->jwt_algo
+	 *   expected value = comma separated strings e.g."RS256,RS512" 
+	 * 2.Read enum value jwt->header.alg
+	 * 3.Check if jwt algo in (2.) is listed in the values from (1.)
 	/*
 	alg_none = 0,
 	alg_es256,

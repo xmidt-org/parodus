@@ -24,6 +24,7 @@ set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
+set(COMMON_LIBRARY_DIR ${INSTALL_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE})
 set(TEST_RESULTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_results)
 file(MAKE_DIRECTORY ${TEST_RESULTS_DIR})
 
@@ -35,7 +36,9 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
+                    ${INCLUDE_DIR}/libseshat
                     ${INCLUDE_DIR}/cjwt
+                    ${INCLUDE_DIR}/ucresolv
                    )
 
 # Compile options/flags
@@ -144,6 +147,7 @@ add_dependencies(libcimplog cimplog)
 # wrp-c external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(wrp-c
+	DEPENDS trower-base64 msgpack cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
     GIT_REPOSITORY https://github.com/Comcast/wrp-c.git
     GIT_TAG "master"
@@ -151,6 +155,9 @@ ExternalProject_Add(wrp-c
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF
                   -DBUILD_TESTING=OFF
+                  -DMAIN_PROJ_BUILD=ON
+                  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
+    		  -DMAIN_PROJ_INCLUDE_PATH=${INCLUDE_DIR}
 )
 add_library(libwrp-c STATIC SHARED IMPORTED)
 add_dependencies(libwrp-c wrp-c)
@@ -158,13 +165,35 @@ add_dependencies(libwrp-c wrp-c)
 # libparodus external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libparodus
+    DEPENDS trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
     GIT_REPOSITORY https://github.com/Comcast/libparodus.git
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    		  -DMAIN_PROJ_BUILD=ON
+    		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
+    		  -DMAIN_PROJ_LIB64_PATH=${LIBRARY_DIR64}
+    		  -DMAIN_PROJ_COMMON_PATH=${COMMON_LIBRARY_DIR}
+    		  -DMAIN_PROJ_INCLUDE_PATH=${INCLUDE_DIR}
 )
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
+
+# libseshat external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(libseshat
+    DEPENDS cJSON trower-base64 msgpack wrp-c
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
+    GIT_REPOSITORY https://github.com/comcast/seshat.git
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    	          -DMAIN_PROJ_BUILD=ON
+    	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
+    	          -DMAIN_PROJ_LIB64_PATH=${LIBRARY_DIR64}
+    		  -DMAIN_PROJ_COMMON_PATH=${COMMON_LIBRARY_DIR}
+    		  -DMAIN_PROJ_INCLUDE_PATH=${INCLUDE_DIR}
+)
+add_library(liblibseshat STATIC SHARED IMPORTED)
+add_dependencies(liblibseshat libseshat)
 
 # libcjwt external dependency
 #-------------------------------------------------------------------------------
@@ -176,6 +205,17 @@ ExternalProject_Add(cjwt
 )
 add_library(libcjwt STATIC SHARED IMPORTED)
 add_dependencies(libcjwt cjwt)
+
+# libucresolv external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(ucresolv
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
+    GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(libucresolv STATIC SHARED IMPORTED)
+add_dependencies(libucresolv ucresolv)
 
 if (BUILD_TESTING)
 # cmocka external dependency
@@ -193,8 +233,7 @@ endif (BUILD_TESTING)
 
 endif ()
 
-link_directories ( ${LIBRARY_DIR} ${LIBRARY_DIR64})
-
+link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR} ${LIBRARY_DIR64} )
 add_subdirectory(src)
 if (BUILD_TESTING)
     add_subdirectory(tests)

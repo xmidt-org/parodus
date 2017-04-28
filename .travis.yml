@@ -21,12 +21,12 @@ before_install:
 
 install:
     - sudo apt-get update -qq
-    - sudo apt-get install -y -qq libcunit1 libcunit1-dev check
+    - sudo apt-get install -y -qq libcunit1 libcunit1-dev uuid-dev valgrind check
 
 script:
     - mkdir build
     - cd build
-    - cmake .. -DINTEGRATION_TESTING:BOOL=false
+    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=true
     - make
     - make test
 

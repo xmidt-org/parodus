@@ -32,6 +32,7 @@ extern "C" {
 #define WEBPA_URL                                       "webpa-url"
 #define WEBPA_PING_TIMEOUT                              "webpa-ping-timeout"
 #define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
+#define PARTNER_ID                                      "partner-id"
 
 #define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
 #define WEBPA_PATH_URL                                    "/api/v2/device"
@@ -61,6 +62,8 @@ typedef struct
     char webpa_uuid[64];
     unsigned int secureFlag;
     char local_url[124];
+    char partner_id[64];
+    char seshat_url[128];
     char jwt_algo[124];
     char jwt_key[124];
 } ParodusCfg;

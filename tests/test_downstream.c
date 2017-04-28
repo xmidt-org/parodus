@@ -24,6 +24,7 @@
 
 #include "../src/downstream.h"
 #include "../src/ParodusInternal.h"
+#include "../src/partners_check.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -49,7 +50,7 @@ int get_numOfClients()
 reg_list_item_t * get_global_node(void)
 {
     function_called();
-    return (reg_list_item_t *) mock();
+    return mock_ptr_type(reg_list_item_t *);
 }
 
 ssize_t wrp_to_struct( const void *bytes, const size_t length,
@@ -61,13 +62,24 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length,
     memset(*msg, 0, sizeof(wrp_msg_t));
     (*msg)->msg_type = WRP_MSG_TYPE__REQ;
     (*msg)->u.req.dest = (char *) malloc(sizeof(char) *100);
+    (*msg)->u.req.partner_ids = (partners_t *) malloc(sizeof(partners_t));
+    (*msg)->u.req.partner_ids->count = 1;
+    (*msg)->u.req.partner_ids->partner_ids[0] = (char *) malloc(sizeof(char) *64);
     strcpy((*msg)->u.req.dest,"mac:1122334455/iot");
+    strcpy((*msg)->u.req.partner_ids->partner_ids[0],"comcast");
     return (ssize_t) mock();
 }
 
 int nn_send (int s, const void *buf, size_t len, int flags)
 {
     UNUSED(s); UNUSED(buf); UNUSED(len); UNUSED(flags);
+    function_called();
+    return (int) mock();
+}
+
+int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
+{
+    UNUSED(msg); UNUSED(partnerIds);
     function_called();
     return (int) mock();
 }
@@ -83,10 +95,12 @@ void test_listenerOnMessage()
     memset(head, 0, sizeof(reg_list_item_t));
     strcpy(head->service_name, "iot");
     strcpy(head->url, "tcp://10.0.0.1:6600");
-    
+
     will_return(get_numOfClients, 1);
     expect_function_call(get_numOfClients);
-    will_return(get_global_node, head);
+    will_return(validate_partner_id, 1);
+    expect_function_call(validate_partner_id);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
@@ -99,7 +113,7 @@ void test_listenerOnMessageMultipleClients()
 {
     will_return(wrp_to_struct, 1);
     expect_function_calls(wrp_to_struct, 1);
-    
+
     reg_list_item_t *head2 = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head2, 0, sizeof(reg_list_item_t));
     strcpy(head2->service_name, "iot");
@@ -119,7 +133,9 @@ void test_listenerOnMessageMultipleClients()
     
     will_return(get_numOfClients, 3);
     expect_function_call(get_numOfClients);
-    will_return(get_global_node, head);
+    will_return(validate_partner_id, 0);
+    expect_function_call(validate_partner_id);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
@@ -142,13 +158,29 @@ void err_listenerOnMessageServiceUnavailable()
 {
     will_return(wrp_to_struct, 2);
     expect_function_calls(wrp_to_struct, 1);
-    
+
     will_return(get_numOfClients, 0);
     expect_function_call(get_numOfClients);
-    will_return(get_global_node, NULL);
+    will_return(validate_partner_id, 0);
+    expect_function_call(validate_partner_id);
+    will_return(get_global_node, (intptr_t)NULL);
     expect_function_call(get_global_node);
     expect_function_call(sendUpstreamMsgToServer);
     
+    listenerOnMessage("Hello", 6);
+}
+
+void err_listenerOnMessageInvalidPartnerId()
+{
+    will_return(wrp_to_struct, 2);
+    expect_function_calls(wrp_to_struct, 1);
+
+    will_return(get_numOfClients, 0);
+    expect_function_call(get_numOfClients);
+    will_return(validate_partner_id, -1);
+    expect_function_call(validate_partner_id);
+    expect_function_call(sendUpstreamMsgToServer);
+
     listenerOnMessage("Hello", 6);
 }
 
@@ -168,6 +200,7 @@ int main(void)
         cmocka_unit_test(test_listenerOnMessageMultipleClients),
         cmocka_unit_test(err_listenerOnMessage),
         cmocka_unit_test(err_listenerOnMessageServiceUnavailable),
+        cmocka_unit_test(err_listenerOnMessageInvalidPartnerId),
         cmocka_unit_test(err_listenerOnMessageAllNull),
     };
 

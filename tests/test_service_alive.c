@@ -67,6 +67,8 @@ static void add_client()
 	ParodusPrint("addToList status is %d\n", status);
 	
 	CU_ASSERT_EQUAL( status, 0 );
+	wrp_free_struct(message);
+	free(bytes);
 	
 }
 

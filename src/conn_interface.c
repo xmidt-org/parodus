@@ -17,6 +17,7 @@
 #include "mutex.h"
 #include "spin_thread.h"
 #include "service_alive.h"
+#include <libseshat.h>
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -42,7 +43,8 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     int intTimer=0;	
     ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
-
+    bool seshat_started;
+    
     loadParodusCfg(tmpCfg,get_parodus_cfg());
     ParodusPrint("Configure nopoll thread handlers in Parodus\n");
     nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
@@ -71,6 +73,15 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
         (* initKeypress) ();
     }
 
+        /* Start seshat lib interface */
+    seshat_started = (0 == init_lib_seshat(get_parodus_cfg()->seshat_url));
+    if (false == seshat_started) {
+        ParodusPrint("init_lib_seshat() Failed, seshatlib not available!\n");
+    } else {
+        ParodusPrint("init_lib_seshat() seshatlib initialized! (url %s)\n",
+	            get_parodus_cfg()->seshat_url);           
+    } 
+    
     do
     {
         nopoll_loop_wait(ctx, 5000000);
@@ -112,5 +123,10 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
+
+    if (seshat_started) {
+	    shutdown_seshat_lib();
+    }
+    
 }
 
