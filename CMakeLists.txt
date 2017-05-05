@@ -206,17 +206,6 @@ ExternalProject_Add(cjwt
 add_library(libcjwt STATIC SHARED IMPORTED)
 add_dependencies(libcjwt cjwt)
 
-# libucresolv external dependency
-#-------------------------------------------------------------------------------
-ExternalProject_Add(ucresolv
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
-    GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
-    GIT_TAG "master"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
-)
-add_library(libucresolv STATIC SHARED IMPORTED)
-add_dependencies(libucresolv ucresolv)
-
 if (BUILD_TESTING)
 # cmocka external dependency
 #-------------------------------------------------------------------------------
