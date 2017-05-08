@@ -38,8 +38,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/cimplog
                     ${INCLUDE_DIR}/libseshat
                     ${INCLUDE_DIR}/cjwt
-                    ${INCLUDE_DIR}/ucresolv
-                   )
+					)		
 
 # Compile options/flags
 #-------------------------------------------------------------------------------
@@ -205,6 +204,23 @@ ExternalProject_Add(cjwt
 )
 add_library(libcjwt STATIC SHARED IMPORTED)
 add_dependencies(libcjwt cjwt)
+
+if (UCLIBC)
+# libucresolv external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(ucresolv
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
+    GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(libucresolv STATIC SHARED IMPORTED)
+add_dependencies(libucresolv ucresolv)
+include_directories(${INCLUDE_DIR}
+                    ${INCLUDE_DIR}/ucresolv
+					)		
+
+endif (UCLIBC)
 
 if (BUILD_TESTING)
 # cmocka external dependency
