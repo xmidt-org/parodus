@@ -53,6 +53,11 @@ void listenerOnMessage(void * msg, size_t msgSize)
             ParodusPrint("\nDecoded recivedMsg of size:%d\n", rv);
             msgType = message->msg_type;
             ParodusInfo("msgType received:%d\n", msgType);
+            
+            if(message->msg_type == WRP_MSG_TYPE__AUTH)
+            {
+            	ParodusInfo("Authorization Status received with Status code :%d\n", message->u.auth.status);
+            }
 
             if(message->msg_type == WRP_MSG_TYPE__REQ)
             {
