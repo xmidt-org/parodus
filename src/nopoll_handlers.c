@@ -119,11 +119,13 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
 
     if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
     {
+    	ParodusInfo("Reconnect detected, setting Reconnect reason as Server close\n");
         set_global_reconnect_reason("Server_closed_connection");
         LastReasonStatus = true;
     }
     else if ((user_data == NULL) && !LastReasonStatus)
     {
+    	ParodusInfo("Reconnect detected, setting Reconnect reason as Unknown\n");
         set_global_reconnect_reason("Unknown");
     }
 

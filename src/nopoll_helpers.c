@@ -70,7 +70,7 @@ int sendResponse(noPollConn * conn, void * buffer, size_t length)
         {
             if (-1 == bytes_sent || (bytes_sent = nopoll_conn_flush_writes(conn, FLUSH_WAIT_TIME, bytes_sent)) != len_to_send)
             {
-                ParodusPrint("sendResponse() Failed to send all the data\n");
+                ParodusError("sendResponse() Failed to send all the data\n");
                 cp = NULL;
                 break;
             }

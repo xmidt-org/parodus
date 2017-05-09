@@ -92,6 +92,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
             if(!close_retry) 
             {
                 ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
+                ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
                 set_global_reconnect_reason("Ping_Miss");
                 LastReasonStatus = true;
                 pthread_mutex_lock (&close_mut);
