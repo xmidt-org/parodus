@@ -249,6 +249,16 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 		ParodusPrint("partner_id is NULL. read from tmp file\n");
     }
         
+    if( strlen(pConfig->seshat_url) !=0)
+    {
+        strncpy(cfg->seshat_url, pConfig->seshat_url,strlen(pConfig->seshat_url)+1);
+    }
+    else
+    {
+        ParodusInfo("seshat_url is NULL. Read from tmp file\n");
+
+    }
+
     cfg->boot_time = pConfig->boot_time;
     cfg->secureFlag = 1;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
