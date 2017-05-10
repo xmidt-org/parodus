@@ -24,6 +24,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
+#define SESHAT_SERVICE_NAME                             "Parodus"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -35,6 +36,12 @@ volatile unsigned int heartBeatTimer = 0;
 pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
+/*                             Function Prototypes                            */
+/*----------------------------------------------------------------------------*/
+
+static bool __registerWithSeshat(void);
+
+/*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 
@@ -43,7 +50,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     int intTimer=0;	
     ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
-    bool seshat_started;
+    bool seshat_registered = false;
     
     loadParodusCfg(tmpCfg,get_parodus_cfg());
     ParodusPrint("Configure nopoll thread handlers in Parodus\n");
@@ -73,14 +80,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
         (* initKeypress) ();
     }
 
-        /* Start seshat lib interface */
-    seshat_started = (0 == init_lib_seshat(get_parodus_cfg()->seshat_url));
-    if (false == seshat_started) {
-        ParodusPrint("init_lib_seshat() Failed, seshatlib not available!\n");
-    } else {
-        ParodusPrint("init_lib_seshat() seshatlib initialized! (url %s)\n",
-	            get_parodus_cfg()->seshat_url);           
-    } 
+    seshat_registered = __registerWithSeshat();
     
     do
     {
@@ -112,6 +112,10 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
             intTimer = 0;		
         }
 
+        if( false == seshat_registered ) {
+            __registerWithSeshat();
+        }
+
         if(close_retry)
         {
             ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
@@ -124,10 +128,46 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
-
-    if (seshat_started) {
-	    shutdown_seshat_lib();
-    }
-    
 }
 
+/*----------------------------------------------------------------------------*/
+/*                             Internal functions                             */
+/*----------------------------------------------------------------------------*/
+/**
+ * @brief Helper function to register with seshat.
+ * 
+ * @note return whether successfully registered.
+ *
+ * @return true when registered, false otherwise.
+ */
+static bool __registerWithSeshat()
+{
+    char *seshat_url = get_parodus_cfg()->seshat_url;
+    char *parodus_url = get_parodus_cfg()->local_url;
+    char *discover_url = NULL;
+    bool rv = false;
+
+    if( 0 == init_lib_seshat(seshat_url) ) {
+        ParodusInfo("seshatlib initialized! (url %s)\n", seshat_url);
+
+        if( 0 == seshat_register(SESHAT_SERVICE_NAME, parodus_url) ) {
+            ParodusInfo("seshatlib registered! (url %s)\n", parodus_url);
+
+            discover_url = seshat_discover(SESHAT_SERVICE_NAME);
+            if( 0 == strcmp(parodus_url, discover_url) ) {
+                ParodusInfo("seshatlib discovered url = %s\n", discover_url);
+                rv = true;
+            } else {
+                ParodusError("seshatlib registration error (url %s)!", discover_url);
+            }
+            free(discover_url);
+        } else {
+            ParodusError("seshatlib not registered! (url %s)\n", parodus_url);
+        }
+    } else {
+        ParodusPrint("seshatlib not initialized! (url %s)\n", seshat_url);
+    }
+
+    shutdown_seshat_lib();
+    return rv;
+}
