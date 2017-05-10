@@ -165,7 +165,7 @@ static bool __registerWithSeshat()
             ParodusError("seshatlib not registered! (url %s)\n", parodus_url);
         }
     } else {
-        ParodusError("seshatlib not initialized! (url %s)\n", seshat_url);
+        ParodusPrint("seshatlib not initialized! (url %s)\n", seshat_url);
     }
 
     shutdown_seshat_lib();
