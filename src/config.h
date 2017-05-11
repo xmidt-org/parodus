@@ -36,6 +36,8 @@ extern "C" {
 
 #define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
 #define WEBPA_PATH_URL                                    "/api/v2/device"
+#define JWT_ALGORITHM					"jwt-algo"
+#define	JWT_KEY						"jwt-key"
 #define PARODUS_UPSTREAM                		"tcp://127.0.0.1:6666"
 
 /*----------------------------------------------------------------------------*/
@@ -62,6 +64,8 @@ typedef struct
     char local_url[124];
     char partner_id[64];
     char seshat_url[128];
+    char jwt_algo[124];
+    char jwt_key[124];
 } ParodusCfg;
 
 /*----------------------------------------------------------------------------*/

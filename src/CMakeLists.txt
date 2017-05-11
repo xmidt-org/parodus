@@ -13,6 +13,7 @@
 #   limitations under the License.
 set(SOURCES main.c mutex.c networking.c nopoll_helpers.c nopoll_handlers.c ParodusInternal.c 
     string_helpers.c time.c config.c conn_interface.c connection.c spin_thread.c client_list.c service_alive.c upstream.c downstream.c thread_tasks.c partners_check.c)
+    #string_helpers.c time.c config.c conn_interface.c connection.c spin_thread.c client_list.c service_alive.c upstream.c downstream.c thread_tasks.c partners_check.c token.c)
 
 add_executable(parodus ${SOURCES})
 
@@ -32,5 +33,7 @@ target_link_libraries (parodus
     -lcjson
     -lpthread
     -lrt
+    -lresolv
+    -lcjwt
     )
 install (TARGETS parodus DESTINATION bin)
