@@ -18,7 +18,6 @@
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
-#define SERVER_URL ".fabric.webpa.comcast.net"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -78,15 +77,13 @@ int createNopollConnection(noPollCtx *ctx)
     connErr_endPtr = &connErr_end;
     //Retry Backoff count shall start at c=2 & calculate 2^c - 1.
     int c=2;
+	FILE *fp;
 	//RG
-	char dns_url[36] = "\0";
-	char *tok;
     
     if(ctx == NULL) {
         return nopoll_false;
     }
 
-	FILE *fp;
 	fp = fopen("/tmp/parodus_ready", "r");
 
 	if (fp!=NULL)
@@ -131,17 +128,11 @@ int createNopollConnection(noPollCtx *ctx)
 	max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
 	
-	tok = strtok(get_parodus_cfg()->hw_mac,":");
-	while(tok!=NULL)
-	{
-		strcat(dns_url,tok);
-		tok = strtok(NULL,":");
-	}
-    strcat(dns_url,SERVER_URL);
-	ParodusInfo("dns_url %s\n",dns_url);
-	
 	do
 	{
+		int allow_insecure;
+    noPollConn *connection;
+
 		//calculate backoffRetryTime and to perform exponential increment during retry
 		if(backoffRetryTime < max_retry_sleep)
 		{
@@ -149,14 +140,11 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
 			
-		//JWT validation
-		/*
-		int insecure = allow_insecure_conn(dns_url);
-  		ParodusPrint("allow %s: %d\n",dns_url,insecure);
-		*/
+		//query dns and validate JWT
+		allow_insecure = allow_insecure_conn();
+		ParodusPrint("allow: %d\n", allow_insecure);
 
-        noPollConn *connection;
-		if(get_parodus_cfg()->secureFlag) 
+		if(get_parodus_cfg()->secureFlag || (!allow_insecure))
 		{                    
 		    ParodusPrint("secure true\n");
 			/* disable verification */
