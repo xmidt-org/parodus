@@ -113,7 +113,7 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
         }
 
         if( false == seshat_registered ) {
-            __registerWithSeshat();
+            seshat_registered = __registerWithSeshat();
         }
 
         if(close_retry)
