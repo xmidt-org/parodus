@@ -58,8 +58,8 @@ void set_global_reconnect_reason(char *reason)
  */
 int createNopollConnection(noPollCtx *ctx)
 {
-    bool initial_retry = false;
-    int backoffRetryTime = 0;
+	bool initial_retry = false;
+	int backoffRetryTime = 0;
     int max_retry_sleep;
     char device_id[32]={'\0'};
     char user_agent[512]={'\0'};
@@ -70,13 +70,14 @@ int createNopollConnection(noPollCtx *ctx)
     noPollConnOpts * opts;
     char server_Address[256];
     char redirectURL[128]={'\0'};
+		int allow_insecure;
     char *temp_ptr, *conveyHeader;
     int connErr=0;
     struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
     connErr_startPtr = &connErr_start;
     connErr_endPtr = &connErr_end;
     //Retry Backoff count shall start at c=2 & calculate 2^c - 1.
-    int c=2;
+	int c=2;
 	FILE *fp;
 	//RG
     
@@ -91,6 +92,13 @@ int createNopollConnection(noPollCtx *ctx)
 		unlink("/tmp/parodus_ready");
 		ParodusPrint("Closing Parodus_Ready FIle \n");
 		fclose(fp);
+	}
+
+	//query dns and validate JWT
+	allow_insecure = allow_insecure_conn();
+	ParodusPrint("allow: %d\n", allow_insecure);
+	if (allow_insecure < 0) {
+		return nopoll_false;
 	}
 
 	parStrncpy(deviceMAC, get_parodus_cfg()->hw_mac,sizeof(deviceMAC));
@@ -128,9 +136,9 @@ int createNopollConnection(noPollCtx *ctx)
 	max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
 	
+
 	do
 	{
-		int allow_insecure;
     noPollConn *connection;
 
 		//calculate backoffRetryTime and to perform exponential increment during retry
@@ -140,10 +148,6 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
 			
-		//query dns and validate JWT
-		allow_insecure = allow_insecure_conn();
-		ParodusPrint("allow: %d\n", allow_insecure);
-
 		if(get_parodus_cfg()->secureFlag || (!allow_insecure))
 		{                    
 		    ParodusPrint("secure true\n");

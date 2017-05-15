@@ -120,6 +120,7 @@ static int nquery(const char* dns_txt_record_id,u_char *nsbuf)
     }
 
 		ParodusInfo ("Domain : %s\n", dns_txt_record_id);
+		memset (nsbuf, 0, NS_MAXBUF);
 		len = res_nquery(&statp, dns_txt_record_id, ns_c_any, ns_t_txt, nsbuf, NS_MAXBUF);
     if (len < 0) {
 				const char *msg = hstrerror (statp.res_h_errno);
@@ -238,6 +239,7 @@ int allow_insecure_conn(void)
 	jwt_token = malloc (NS_MAXBUF);
 	if (NULL == jwt_token) {
 		ParodusError ("Unable to allocate jwt_token in allow_insecure_conn\n");
+		insecure = -1;
 		goto end;
 	}
 
@@ -246,6 +248,7 @@ int allow_insecure_conn(void)
 	//Querying dns for jwt token
 	ret = query_dns(dns_txt_record_id, jwt_token);
 	if(ret){
+		insecure = -1;
 		goto end;
 	}
 	
@@ -258,6 +261,7 @@ int allow_insecure_conn(void)
 			ParodusError ("Memory allocation failed in JWT decode\n");
 		else
 			ParodusError ("CJWT decode error\n");
+		insecure = -1;
 		goto end;
 	}else{
 		ParodusPrint("Decoded CJWT successfully\n");
