@@ -32,14 +32,61 @@ void set_parodus_cfg(ParodusCfg *cfg)
     parodusCfg = *cfg;
 }
 
+const char *get_tok (const char *src, int delim, char *result, int resultsize)
+{
+	int i;
+	char c;
+	int endx = resultsize-1;
+
+	memset (result, 0, resultsize);
+	for (i=0; (c=src[i]) != 0; i++) {
+		if (c == delim)
+			break;
+ 		if (i < endx)
+			result[i] = c;
+	}
+	if (c == 0)
+		return NULL;
+	return src + i + 1;
+}
+
 // the algorithm mask indicates which algorithms are allowed
-static unsigned int get_algo_mask (char *algo_str)
+unsigned int get_algo_mask (const char *algo_str)
+{
+  unsigned int mask = 0;
+#define BUFLEN 16
+  char tok[BUFLEN];
+	int alg_val;
+
+	while(NULL != algo_str)
+	{
+		algo_str = get_tok (algo_str, ':', tok, BUFLEN);
+		alg_val = cjwt_alg_str_to_enum (tok);
+		if ((alg_val < 0)  || (alg_val >= num_algorithms)) {
+       ParodusError("Invalid jwt algorithm %s\n", tok);
+       abort ();
+		}
+		mask |= (1<<alg_val);
+		
+	}
+	return mask;
+#undef BUFLEN
+}
+
+// the algorithm mask indicates which algorithms are allowed
+#if 0
+unsigned int get_algo_mask (const char *algo_str)
 {
   unsigned int mask = 0;
   char *tok;
 	int alg_val;
+#define BUFLEN 128
+	char algo_buf[BUFLEN];
 
-	tok = strtok(algo_str, ":");
+	strncpy (algo_buf, algo_str, BUFLEN-1);
+	algo_buf[BUFLEN-1] = 0;
+
+	tok = strtok(algo_buf, ":");
 	while(tok!=NULL)
 	{
 		alg_val = cjwt_alg_str_to_enum (tok);
@@ -51,7 +98,9 @@ static unsigned int get_algo_mask (char *algo_str)
 		tok = strtok(NULL,":");
 	}
 	return mask;
+#undef BUFLEN
 }
+#endif
 
 static int open_input_file (const char *fname)
 {
@@ -64,7 +113,7 @@ static int open_input_file (const char *fname)
   return fd;
 } 
 
-static void read_key_from_file (const char *fname, char *buf, size_t buflen)
+void read_key_from_file (const char *fname, char *buf, size_t buflen)
 {
   ssize_t nbytes;
   int fd = open_input_file(fname);

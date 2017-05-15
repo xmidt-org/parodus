@@ -70,11 +70,14 @@ static int is_http(const cjwt_t *jwt)
 {
 	cJSON *claims = jwt->private_claims;
 	cJSON *endpoint = NULL;
+	int ret;
 	
 	//retrieve 'endpoint' claim and check for https/http
 	if( claims ){
 		endpoint = cJSON_GetObjectItem(claims, ENDPOINT_NAME);
-		if(endpoint->valuestring && !strncmp(endpoint->valuestring,"http:",5))
+		ret = strncmp(endpoint->valuestring,"http:",5);
+		ParodusInfo ("is_http strncmp: %d\n", ret);
+		if(endpoint->valuestring && !ret)
 		{
 			return 1;
 		}
@@ -94,8 +97,10 @@ static bool validate_algo(const cjwt_t *jwt)
 	if ((alg < 0) || (alg >= num_algorithms))
 		return false;
 	alg_mask = 1<<alg;
-	if ((alg_mask & cfg->jwt_algo) == 0)
+	if ((alg_mask & cfg->jwt_algo) == 0) {
+		ParodusError ("Algorithm %d not allowed (mask %d)\n", alg, alg_mask); 
 		return false;
+	}
 	return true;
 }
 
@@ -196,6 +201,9 @@ static int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 			rrlen = strlen (rr_ptr);
 			if (rrlen == 0)
 				continue;
+			// strip new line or other non-b64 char at end
+			if (!valid_b64_char (rr_ptr[rrlen-1])) 
+				--rrlen;
 			// strip quote or other non-b64 char at end
 			if (!valid_b64_char (rr_ptr[rrlen-1])) 
 				--rrlen;
