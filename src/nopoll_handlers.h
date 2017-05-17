@@ -37,7 +37,8 @@ extern bool close_retry;
  * @param[in] msg The message received from server for various process requests
  * @param[out] user_data data which is to be sent
  */
-void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,noPollPtr user_data);
+
+void listenerOnrequest_queue(void *requestMsg,int reqSize);
 
 /**
  * @brief listenerOnPingMessage function to create WebSocket listener to receive heartbeat ping messages

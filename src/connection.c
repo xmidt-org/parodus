@@ -9,15 +9,18 @@
 #include "connection.h"
 #include "time.h"
 #include "config.h"
+#include "upstream.h"
 #include "nopoll_helpers.h"
 #include "mutex.h"
 #include "spin_thread.h"
+#include "nopoll_handlers.h"
+#include <libwebsockets.h>
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
-#define HTTP_CUSTOM_HEADER_COUNT                    	4
+#define MAX_PAYLOAD                                     1024
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -25,20 +28,28 @@
 
 char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
-static noPollConn *g_conn = NULL;
+static struct lws_context *g_context;
+static struct lws *wsi_dumb;
+int connected = 0;
+pthread_mutex_t res_mutex ;
+
+bool conn_retry;
+char * fragmentMsg = NULL;
+int fragmentSize = 0;
+int payloadSize = 0;
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 
-noPollConn *get_global_conn(void)
+struct lws_context *get_global_context(void)
 {
-    return g_conn;
+    return g_context;
 }
 
-void set_global_conn(noPollConn *conn)
+void set_global_context(struct lws_context *contextRef)
 {
-    g_conn = conn;
+    g_context = contextRef;
 }
 
 char *get_global_reconnect_reason()
@@ -51,245 +62,267 @@ void set_global_reconnect_reason(char *reason)
     reconnect_reason = reason;
 }
 
-/**
- * @brief createNopollConnection interface to create WebSocket client connections.
- *Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
- */
-int createNopollConnection(noPollCtx *ctx)
+
+void
+dump_handshake_info(struct lws *wsi)
 {
-    bool initial_retry = false;
-    int backoffRetryTime = 0;
-    int max_retry_sleep;
-    char device_id[32]={'\0'};
-    char user_agent[512]={'\0'};
-    const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
-    const char *headerValues[HTTP_CUSTOM_HEADER_COUNT];
-    int headerCount = HTTP_CUSTOM_HEADER_COUNT; /* Invalid X-Webpa-Convey header Bug # WEBPA-787 */
-    char port[8];
-    noPollConnOpts * opts;
-    char server_Address[256];
-    char redirectURL[128]={'\0'};
-    char *temp_ptr, *conveyHeader;
-    int connErr=0;
-    struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
-    connErr_startPtr = &connErr_start;
-    connErr_endPtr = &connErr_end;
-    //Retry Backoff count shall start at c=2 & calculate 2^c - 1.
-    int c=2;
-    
-    if(ctx == NULL) {
-        return nopoll_false;
-    }
+	int n = 0, len;
+	char buf[256];
+	const unsigned char *c;
 
-	FILE *fp;
-	fp = fopen("/tmp/parodus_ready", "r");
+	do {
+		c = lws_token_to_string(n);
+		if (!c) {
+			n++;
+			continue;
+		}
 
-	if (fp!=NULL)
-	{
-		unlink("/tmp/parodus_ready");
-		ParodusPrint("Closing Parodus_Ready FIle \n");
-		fclose(fp);
-	}
+		len = lws_hdr_total_length(wsi, n);
+		if (!len || len > sizeof(buf) - 1) {
+			n++;
+			continue;
+		}
 
-	parStrncpy(deviceMAC, get_parodus_cfg()->hw_mac,sizeof(deviceMAC));
-	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
-	ParodusInfo("Device_id %s\n",device_id);
+		lws_hdr_copy(wsi, buf, sizeof buf, n);
+		buf[sizeof(buf) - 1] = '\0';
 
-	headerValues[0] = device_id;
-	headerValues[1] = "wrp-0.11,getset-0.1";    
-	
-	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
-	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
-	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
-	snprintf(user_agent, sizeof(user_agent),
-         "%s (%s; %s/%s;)",
+		fprintf(stderr, "    %s = %s\n", (char *)c, buf);
+		n++;
+	} while (c);
+}
+
+char * join_fragment_msg (char *firstMsg,int firstSize,char *secondMsg,int secondSize,int * result)
+{
+    *result = firstSize + secondSize;
+    char *tmpMsg = (char *)malloc(sizeof(char)* (*result));
+    memcpy(tmpMsg,firstMsg,firstSize);
+    memcpy (tmpMsg + (firstSize), secondMsg, secondSize);
+    return tmpMsg;
+} 
+
+static int
+parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
+			void *user, void *in, size_t len)
+{
+	int n;
+	char * payload = NULL;
+    char * out = NULL;
+	switch (reason) {
+
+	case LWS_CALLBACK_CLIENT_ESTABLISHED:
+		ParodusInfo("Connected to server successfully\n");
+		connected = 1;
+		conn_retry = false;
+		break;
+
+	case LWS_CALLBACK_CLOSED:
+		ParodusInfo("Callback closed, websocket session ends \n");
+		wsi_dumb = NULL;
+		conn_retry = true;
+		break;
+    case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
+		dump_handshake_info(wsi);
+		/* you could return non-zero here and kill the connection */
+		break;
+	case LWS_CALLBACK_CLIENT_RECEIVE:
+	    ((char *)in)[len] = '\0';
+	    
+		//lwsl_notice("length %d payload : %s\n", (int)len, (char *)in);
+
+		ParodusInfo("**** Recieved %d bytes from server\n",(int)len);
+		char * tmpMsg = NULL;
+		payload = (char *)malloc(sizeof(char)*len);
+		strcpy(payload,(char *)in);
+	    if (lws_is_final_fragment(wsi))
+	    {
+	        
+	        if(fragmentMsg == NULL)
+	        {
+		        listenerOnrequest_queue(payload,len);
+		    }
+		    else
+		    {
+		        tmpMsg = join_fragment_msg(fragmentMsg,fragmentSize,payload,len,&payloadSize);  
+		        len = payloadSize;
+		        listenerOnrequest_queue(tmpMsg,len);
+		        fragmentMsg = NULL;
+		        len = 0;
+		    }   
+	    }
+	    else
+	    {
+		    if(fragmentMsg == NULL)
+		    {
+		        fragmentMsg = payload;
+		        fragmentSize = len;
+		    }
+		    else
+		    {
+                fragmentMsg = join_fragment_msg(fragmentMsg,fragmentSize,payload,len,&payloadSize);
+		    }
+	    }
+		
+		lws_callback_on_writable(wsi);
+		break;
+
+	case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
+		ParodusError("***** Failed to Connected to server *******\n");
+		wsi_dumb = NULL;
+		conn_retry = true;
+		break;
+
+	case LWS_CALLBACK_CLIENT_WRITEABLE:
+		// Call back to send response to server
+        if(ResponseMsgQ != NULL)
+        {
+            //Read response data from queue
+            pthread_mutex_lock (&res_mutex);
+            while(ResponseMsgQ)
+            {
+                UpStreamMsg *message = ResponseMsgQ;
+                ResponseMsgQ = ResponseMsgQ->next;
+                pthread_mutex_unlock (&res_mutex);
+
+                out = (char *)malloc(sizeof(char) * (LWS_PRE + message->len));
+                memcpy (LWS_PRE + out, message->msg, message->len);
+                char * tmpPtr = LWS_PRE + out;
+                n = lws_write(wsi, tmpPtr, message->len, LWS_WRITE_BINARY);
+	            if (n < 0)
+	            {
+                    ParodusError("Failed to send to server\n");
+		            free(message);
+                    message = NULL;
+		            return 1;
+		        }
+		        if (n < message->len) {
+			        ParodusError("Partial write\n");
+			        return -1;
+		        }    
+                ParodusInfo("Sent %d bytes of data to server successfully \n",n);
+                free(out);
+                free(message);
+                message = NULL;
+            }
+        }
+                   
+	    lws_callback_on_writable(wsi);
+		break;
+
+	case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
+	    //Call back to send custom header to server
+	    ParodusPrint("Send custom header to server\n");
+	    char device_id[32]={'\0'};
+	    char user_agent[512]={'\0'};
+	    char *conveyHeader;
+		unsigned char **p = (unsigned char **)in, *end = (*p) + len;
+		strncpy(deviceMAC, get_parodus_cfg()->hw_mac,sizeof(deviceMAC));
+	    snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
+	    snprintf(user_agent, sizeof(user_agent),"%s (%s; %s/%s;)",
          ((0 != strlen(get_parodus_cfg()->webpa_protocol)) ? get_parodus_cfg()->webpa_protocol : "unknown"),
          ((0 != strlen(get_parodus_cfg()->fw_name)) ? get_parodus_cfg()->fw_name : "unknown"),
          ((0 != strlen(get_parodus_cfg()->hw_model)) ? get_parodus_cfg()->hw_model : "unknown"),
          ((0 != strlen(get_parodus_cfg()->hw_manufacturer)) ? get_parodus_cfg()->hw_manufacturer : "unknown"));
-
-	ParodusInfo("User-Agent: %s\n",user_agent);
-	headerValues[2] = user_agent;
-	conveyHeader = getWebpaConveyHeader();
-	if(strlen(conveyHeader) > 0)
-	{
-        headerValues[3] = conveyHeader;
-	}
-	else
-	{
-	    headerValues[3] = ""; 
-        headerCount -= 1;
-	}
-	snprintf(port,sizeof(port),"%d",8080);
-	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
-	ParodusInfo("server_Address %s\n",server_Address);
-					
-	max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
-	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
-	
-	do
-	{
-		//calculate backoffRetryTime and to perform exponential increment during retry
-		if(backoffRetryTime < max_retry_sleep)
+        
+        ParodusInfo("User-Agent: %s\n",user_agent);
+	    /*TODO Implement base64 encoding, currently we are using nopoll API to encode data*/
+	    //conveyHeader = getWebpaConveyHeader();			
+		
+		if (lws_add_http_header_by_name(wsi,
+				(unsigned char *)"X-WebPA-Device-Name:",
+				(unsigned char *)device_id,strlen(device_id),p,end))
+		    return -1;
+		if (lws_add_http_header_by_name(wsi,
+				(unsigned char *)"X-WebPA-Device-Protocols:",
+				(unsigned char *)"wrp-0.11,getset-0.1",strlen("wrp-0.11,getset-0.1"),p,end))
+		    return -1;
+		if (lws_add_http_header_by_name(wsi,
+				(unsigned char *)"User-Agent:",
+				(unsigned char *)user_agent,strlen(user_agent),p,end))
+		    return -1;
+		    
+		/* if(strlen(conveyHeader) > 0)
 		{
-			backoffRetryTime = (int) pow(2, c) -1;
-		}
-		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
-								
-        noPollConn *connection;
-		if(get_parodus_cfg()->secureFlag) 
-		{                    
-		    ParodusPrint("secure true\n");
-			/* disable verification */
-			opts = nopoll_conn_opts_new ();
-			nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
-			nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2); 
-			connection = nopoll_conn_tls_new(ctx, opts, server_Address, port, NULL,
-                               get_parodus_cfg()->webpa_path_url, NULL, NULL, get_parodus_cfg()->webpa_interface_used,
-                                headerNames, headerValues, headerCount);// WEBPA-787
-		}
-		else 
-		{
-		    ParodusPrint("secure false\n");
-            connection = nopoll_conn_new(ctx, server_Address, port, NULL,
-                       get_parodus_cfg()->webpa_path_url, NULL, NULL, get_parodus_cfg()->webpa_interface_used,
-                        headerNames, headerValues, headerCount);// WEBPA-787
-		}
-        set_global_conn(connection);
-
-		if(get_global_conn() != NULL)
-		{
-			if(!nopoll_conn_is_ok(get_global_conn())) 
-			{
-				ParodusError("Error connecting to server\n");
-				ParodusError("RDK-10037 - WebPA Connection Lost\n");
-				// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-				parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
-				close_and_unref_connection(get_global_conn());
-				set_global_conn(NULL);
-				initial_retry = true;
-				
-				ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
-				sleep(backoffRetryTime);
-				continue;
-			}
-			else 
-			{
-				ParodusPrint("Connected to Server but not yet ready\n");
-				initial_retry = false;
-				//reset backoffRetryTime back to the starting value, as next reason can be different					
-				c = 2;
-				backoffRetryTime = (int) pow(2, c) -1;
-			}
-
-			if(!nopoll_conn_wait_until_connection_ready(get_global_conn(), 10, redirectURL)) 
-			{
-				
-				if (strncmp(redirectURL, "Redirect:", 9) == 0) // only when there is a http redirect
-				{
-					ParodusError("Received temporary redirection response message %s\n", redirectURL);
-					// Extract server Address and port from the redirectURL
-					temp_ptr = strtok(redirectURL , ":"); //skip Redirect 
-					temp_ptr = strtok(NULL , ":"); // skip https
-					temp_ptr = strtok(NULL , ":");
-					parStrncpy(server_Address, temp_ptr+2, sizeof(server_Address));
-					parStrncpy(port, strtok(NULL , "/"), sizeof(port));
-					ParodusInfo("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
-					//reset c=2 to start backoffRetryTime as retrying using new redirect server
-					c = 2;
-				}
-				else
-				{
-					ParodusError("Client connection timeout\n");	
-					ParodusError("RDK-10037 - WebPA Connection Lost\n");
-					// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-					parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
-					ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
-					sleep(backoffRetryTime);
-					c++;
-				}
-				close_and_unref_connection(get_global_conn());
-				set_global_conn(NULL);
-				initial_retry = true;
-				
-			}
-			else 
-			{
-				initial_retry = false;				
-				ParodusInfo("Connection is ready\n");
-			}
-		}
-		else
-		{
-			
-			/* If the connect error is due to DNS resolving to 10.0.0.1 then start timer.
-			 * Timeout after 15 minutes if the error repeats continuously and kill itself. 
-			 */
-			if((checkHostIp(server_Address) == -2)) 	
-			{
-				if(connErr == 0)
-				{
-					getCurrentTime(connErr_startPtr);
-					connErr = 1;
-					ParodusInfo("First connect error occurred, initialized the connect error timer\n");
-				}
-				else
-				{
-					getCurrentTime(connErr_endPtr);
-					ParodusPrint("checking timeout difference:%ld\n", timeValDiff(connErr_startPtr, connErr_endPtr));
-					if(timeValDiff(connErr_startPtr, connErr_endPtr) >= (15*60*1000))
-					{
-						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
-						reconnect_reason = "Dns_Res_webpa_reconnect";
-						LastReasonStatus = true;
-						
-						kill(getpid(),SIGTERM);						
-					}
-				}			
-			}
-			initial_retry = true;
-			ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
-			sleep(backoffRetryTime);
-			c++;
-			// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-			parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
-		}
-				
-	}while(initial_retry);
-	
-	if(get_parodus_cfg()->secureFlag) 
-	{
-		ParodusInfo("Connected to server over SSL\n");
+		    if (lws_add_http_header_by_name(wsi,
+				    (unsigned char *)"X-WebPA-Convey:",
+				    (unsigned char *)conveyHeader,strlen(conveyHeader),p,end))
+		    return -1;
+		}*/
+		break;
+    case LWS_CALLBACK_OPENSSL_PERFORM_SERVER_CERT_VERIFICATION:
+            /* Disable self signed verification */
+            X509_STORE_CTX_set_error((X509_STORE_CTX*)user, X509_V_OK);
+            return 0;
+        break;
+	default:
+		break;
 	}
-	else 
-	{
-		ParodusInfo("Connected to server\n");
-	}
-	
-	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
-	ParodusPrint("createNopollConnection(): close_mut lock\n");
-	pthread_mutex_lock (&close_mut);
-	close_retry = false;
-	pthread_mutex_unlock (&close_mut);
-	ParodusPrint("createNopollConnection(): close_mut unlock\n");
-	heartBeatTimer = 0;
-	// Reset connErr flag on successful connection
-	connErr = 0;
-	reconnect_reason = "webpa_process_starts";
-	LastReasonStatus =false;
-	ParodusPrint("LastReasonStatus reset after successful connection\n");
-	setMessageHandlers();
 
-	return nopoll_true;
+	return 0;
 }
 
-void close_and_unref_connection(noPollConn *conn)
+static const struct lws_protocols protocols[] = {
+	{
+		NULL,
+		parodus_callback,
+		0,
+		MAX_PAYLOAD,
+	},
+	{ NULL, NULL, 0, 0 } /* end */
+};
+
+LWS_VISIBLE void lwsl_emit_syslog(int level, const char *line)
 {
-    if (conn) {
-        nopoll_conn_close(conn);
-        if (0 < nopoll_conn_ref_count (conn)) {
-            nopoll_conn_unref(conn);
-        }
-    }
+	ParodusInfo(" %s\n",line);
+}
+
+void createLWSconnection()
+{
+    struct lws_context_creation_info info;
+	struct lws_client_connect_info i;
+	struct lws_context *context;
+	const char *prot, *p;
+	int port = 8080,use_ssl =0;
+    
+	memset(&info, 0, sizeof info);
+	memset(&i, 0, sizeof(i));
+	 
+	use_ssl = LCCSCF_USE_SSL;			  
+	info.port = CONTEXT_PORT_NO_LISTEN;
+	info.protocols = protocols;
+	info.gid = -1;
+	info.uid = -1;
+	lws_set_log_level(LLL_INFO | LLL_NOTICE | LLL_WARN | LLL_LATENCY | LLL_CLIENT | LLL_COUNT,NULL);
+
+	info.options |= LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+
+	context = lws_create_context(&info);
+	if (context == NULL) {
+		fprintf(stderr, "Creating libwebsocket context failed\n");
+		exit(1);
+	}
+    set_global_context(context);
+	i.port = port;
+	i.address = get_parodus_cfg()->webpa_url;
+	i.context = context;
+	i.ssl_connection = use_ssl;
+	i.host = i.address;
+	i.path = "/api/v2/device";
+	while(1)
+	{
+		if (!wsi_dumb)
+		{
+			ParodusInfo("Connecting to server..\n");
+			i.pwsi = &wsi_dumb;
+			lws_client_connect_via_info(&i);
+		}
+		/*We need lws service here till client connects to server, without lws_service callback will not work*/
+		lws_service(context, 500);
+		if(connected)
+		{
+		    /*Connected to server, break the loop and try lws service from main thread*/
+		    conn_retry = false;
+		    break;
+		}    
+	}
 }
 

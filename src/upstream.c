@@ -28,7 +28,9 @@ size_t metaPackSize=-1;
 
 
 UpStreamMsg *UpStreamMsgQ = NULL;
+UpStreamMsg *ResponseMsgQ = NULL;
 
+pthread_mutex_t res_mutex ;
 pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
@@ -295,10 +297,10 @@ void *processUpstreamMessage()
                         ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
                         ParodusPrint("metadata appended upstream msg %s\n", (char *)appendData);
                         ParodusInfo("Sending metadata appended upstream msg to server\n");
-                        sendMessage(get_global_conn(),appendData, encodedSize);
+                        response_queue(appendData,encodedSize);
 
-                        free( appendData);
-                        appendData =NULL;
+                        //free( appendData);
+                        //appendData =NULL;
                     }
                     else
                     {		
@@ -345,14 +347,46 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
 		ParodusInfo("Sending response to server\n");
-	   	sendMessage(get_global_conn(),appendData, encodedSize);
+		response_queue(appendData,encodedSize);
 	   	
-		free(appendData);
-		appendData =NULL;
+		//free(appendData);
+		//appendData =NULL;
 	}
 	else
 	{		
 		ParodusError("Failed to send upstream as metadata packing is not successful\n");
 	}
 
+}
+
+void response_queue(void *responseMsg,int reqSize)
+{
+    UpStreamMsg *message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
+    if(message)
+    {
+        message->msg =responseMsg;
+        message->len =reqSize;
+        message->next=NULL;
+        pthread_mutex_lock (&res_mutex);
+
+        if(ResponseMsgQ == NULL)
+        {
+            ResponseMsgQ = message;
+            pthread_mutex_unlock (&res_mutex);
+        }
+        else
+        {
+            UpStreamMsg *temp = ResponseMsgQ;
+            while(temp->next)
+            {
+                temp = temp->next;
+            }
+            temp->next = message;
+            pthread_mutex_unlock (&res_mutex);
+       }
+     }
+     else
+     {
+        ParodusError("failure in allocation for message\n");
+     }
 }

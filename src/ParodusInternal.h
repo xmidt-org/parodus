@@ -50,7 +50,6 @@ extern int numLoops;
 
 typedef struct ParodusMsg__
 {
-	noPollMsg * msg;
 	void * payload;
 	size_t len;
 	struct ParodusMsg__ *next;

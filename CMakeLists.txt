@@ -44,8 +44,8 @@ include_directories(${INCLUDE_DIR}
 add_definitions(-std=c99)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -DNOPOLL_LOGGER ")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-missing-field-initializers")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-missing-field-initializers")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
 
 
 # pthread external dependency
@@ -64,6 +64,18 @@ ExternalProject_Add(trower-base64
 )
 add_library(libtrower-base64 STATIC SHARED IMPORTED)
 add_dependencies(libtrower-base64 trower-base64)
+
+# libwebsocket external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(lws
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/lws
+    GIT_REPOSITORY https://github.com/warmcat/libwebsockets.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+                   -DCMAKE_BUILD_TYPE=DEBUG
+)
+add_library(libwebsockets STATIC SHARED IMPORTED)
+add_dependencies(libwebsockets lws)
 
 
 # nopoll external dependency
@@ -212,5 +224,5 @@ endif ()
 link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR} ${LIBRARY_DIR64} )
 add_subdirectory(src)
 if (BUILD_TESTING)
-    add_subdirectory(tests)
+#    add_subdirectory(tests)
 endif (BUILD_TESTING)

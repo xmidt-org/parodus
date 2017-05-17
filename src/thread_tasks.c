@@ -37,9 +37,8 @@ void *messageHandlerTask()
 
             listenerOnMessage(message->payload, message->len);
 
-            nopoll_msg_unref(message->msg);
-            free(message);
-            message = NULL;
+            //free(message);
+            //message = NULL;
         }
         else
         {

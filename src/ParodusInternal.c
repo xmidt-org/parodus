@@ -74,7 +74,7 @@ char* getWebpaConveyHeader()
 	
     buffer = cJSON_PrintUnformatted(response);
     ParodusInfo("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
-
+    /*TODO Remove nopoll related API*/
     if(nopoll_base64_encode (buffer, strlen(buffer), encodedData, &encodedDataSize) != nopoll_true)
     {
 	    ParodusError("Base64 Encoding failed for Connection Header\n");

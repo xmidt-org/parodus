@@ -23,6 +23,10 @@ typedef struct UpStreamMsg__
 	struct UpStreamMsg__ *next;
 } UpStreamMsg;
 
+
+extern pthread_mutex_t res_mutex;
+extern UpStreamMsg *ResponseMsgQ;
+
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
@@ -32,6 +36,7 @@ void *handle_upstream();
 void *processUpstreamMessage();
 
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size);
+void response_queue(void *responseMsg,int reqSize);
 
 #ifdef __cplusplus
 }

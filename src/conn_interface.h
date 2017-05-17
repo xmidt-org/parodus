@@ -30,7 +30,7 @@ extern UpStreamMsg *UpStreamMsgQ;
  * Loads the WebPA config file, if not provided by the caller,
  *  and creates the intial connection and manages the connection wait, close mechanisms.
  */
-void createSocketConnection(void *config_in, void (* initKeypress)());
+void createLWSsocket(void *config_in, void (* initKeypress)());
    
 #ifdef __cplusplus
 }
