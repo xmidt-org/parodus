@@ -16,10 +16,11 @@
  */
  
 #include <string.h>
-
+#include "stdlib.h"
 #include "config.h"
 #include "conn_interface.h"
 #include "parodus_log.h"
+#include "signal.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -39,13 +40,26 @@
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-/* none */
+static void sig_handler(int sig);
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 int main( int argc, char **argv)
 {
+    signal(SIGTERM, sig_handler);
+	signal(SIGINT, sig_handler);
+	signal(SIGUSR1, sig_handler);
+	signal(SIGUSR2, sig_handler);
+	signal(SIGSEGV, sig_handler);
+	signal(SIGBUS, sig_handler);
+	signal(SIGKILL, sig_handler);
+	signal(SIGFPE, sig_handler);
+	signal(SIGILL, sig_handler);
+	signal(SIGQUIT, sig_handler);
+	signal(SIGHUP, sig_handler);
+	signal(SIGALRM, sig_handler);
+	
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
     
@@ -65,4 +79,43 @@ const char *rdk_logger_module_fetch(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
-/* none */
+static void sig_handler(int sig)
+{
+
+	if ( sig == SIGINT ) 
+	{
+		signal(SIGINT, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGINT received!\n");
+		exit(0);
+	}
+	else if ( sig == SIGUSR1 ) 
+	{
+		signal(SIGUSR1, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGUSR1 received!\n");
+	}
+	else if ( sig == SIGUSR2 ) 
+	{
+		ParodusInfo("SIGUSR2 received!\n");
+	}
+	else if ( sig == SIGCHLD ) 
+	{
+		signal(SIGCHLD, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGHLD received!\n");
+	}
+	else if ( sig == SIGPIPE ) 
+	{
+		signal(SIGPIPE, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGPIPE received!\n");
+	}
+	else if ( sig == SIGALRM ) 
+	{
+		signal(SIGALRM, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGALRM received!\n");
+	}
+	else 
+	{
+		ParodusInfo("Signal %d received!\n", sig);
+		exit(0);
+	}
+	
+}
