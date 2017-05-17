@@ -43,6 +43,14 @@
 
 #define TXT_REC_ID_MAXSIZE	128
 
+#define MAX_RR_RECS 10
+#define SEQ_TABLE_SIZE (MAX_RR_RECS + 1)
+
+typedef struct {
+	const char *rr_ptr;
+	int rr_len;
+} rr_rec_t;
+
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -145,19 +153,201 @@ static bool valid_b64_char (char c)
 		return true;
 	if ((c>='0') && (c<='9'))
 		return true;
-  if ((c=='/') || (c=='+'))
+  if ((c=='/') || (c=='+') || (c=='-') || (c=='_'))
 		return true;
 	return false;
+}
+
+static bool is_digit (char c)
+{
+	return (bool) ((c>='0') && (c<='9'));
+}
+
+// strip quotes and newlines from rr rec
+static const char *strip_rr_data (const char *rr_ptr, int *rrlen)
+{
+	int len;
+	const char *optr = rr_ptr;
+	char c;
+
+	len = strlen (optr);
+	if (len > 0) {
+		c = optr[0];
+		if (!is_digit(c)) {
+			optr++;
+			len--;
+		}
+	}
+	if (len > 0) {
+		if (!valid_b64_char (optr[len-1]))
+			len--;
+	}
+	if (len > 0) {
+		if (!valid_b64_char (optr[len-1]))
+			len--;
+	}
+	*rrlen = len;
+	return optr;
+}
+
+// return offset to seq number in record
+// return -1 if not found
+int find_seq_num (const char *rr_ptr, int rrlen)
+{
+	char c;
+	int i;
+	int digit_ct = 0;
+
+	for (i=0; i<rrlen; i++)
+	{
+		c = rr_ptr[i];
+		if (c == ':') {
+			if (digit_ct >= 2)
+				return i - 2;
+			else
+				return -1;
+		}
+		if (is_digit (c))
+			digit_ct++;
+		else
+			digit_ct = 0;
+	}
+	return -1;		
+}
+
+// get seq num in rr rec
+// return -1 if not formatted correctly
+static int get_rr_seq_num (const char *rr_ptr, int rrlen)
+{
+	char c;
+	int lo, hi;
+	if (rrlen < 3)
+		return -1;
+	if (rr_ptr[2] != ':')
+		return -1;
+	c = rr_ptr[0];
+	if (is_digit (c))
+		hi = c - '0';
+	else
+		return -1;
+	c = rr_ptr[1];
+	if (is_digit (c))
+		lo = c - '0';
+	else
+		return -1;
+	return (10*hi) + lo;
+}
+
+// scan rr recs and build seq table using seq numbers in the recs
+// return num_txt_recs
+static int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_table)
+{
+	ns_rr rr;
+	const char *rr_ptr;
+	int seq_pos;
+	int rrlen;
+	int i, ret, seq_num;
+	int num_txt_recs = 0;
+
+	if (num_rr_recs > MAX_RR_RECS) {
+		ParodusError ("num rr recs (%d) to big, > %d\n", num_rr_recs, MAX_RR_RECS);
+		return -1;
+	}
+	// clear seq table
+	for (i=0; i<SEQ_TABLE_SIZE; i++)
+	{
+		seq_table[i].rr_ptr = NULL;
+		seq_table[i].rr_len = 0;
+	}
+
+	// extract and concatenate all the records in rr
+	for (i=0; i<num_rr_recs; i++) {
+		ret = ns_parserr(msg_handle, ns_s_an, i, &rr);
+		if (ret != 0) {
+			ParodusError ("query_dns: ns_parserr failed: %s\n", strerror (errno));
+			return ret;
+		}
+		if (ns_rr_type(rr) != ns_t_txt)
+    	continue;
+		++num_txt_recs;
+    rr_ptr = (const char *)ns_rr_rdata(rr);
+		ParodusPrint ("Found rr rec: %s\n", rr_ptr);
+		rr_ptr = strip_rr_data (rr_ptr, &rrlen);		
+		ParodusPrint ("Stripped rr rec: %s\n", rr_ptr);
+		seq_pos = find_seq_num (rr_ptr, rrlen);
+		if (seq_pos < 0) {
+			seq_num = 0;
+		} else {
+			rr_ptr += seq_pos;
+			rrlen -= seq_pos;
+			seq_num = get_rr_seq_num (rr_ptr, rrlen);
+		}
+		ParodusPrint ("Found seq num %d in rr rec %d\n", seq_num, i);
+
+		if (seq_num < 0) {
+			ParodusError ("Seq number not found in rr record %d\n", i);
+			return -1;
+		}
+		if (seq_num > num_rr_recs) {
+			ParodusError ("Invalid seq number (too big) in rr record %d\n", i);
+			return -1;
+		}
+		if (NULL != seq_table[seq_num].rr_ptr) {
+			ParodusError ("Duplicate rr record number %d\n", seq_num);
+			return -1;
+		}
+		if (seq_num != 0) {
+			rr_ptr += 3; // skip the seq number
+			rrlen -= 3;
+		}
+		seq_table[seq_num].rr_ptr = rr_ptr;
+		seq_table[seq_num].rr_len = rrlen;
+	}
+
+	if (NULL != seq_table[0].rr_ptr) {
+		// sequence-less record should not be used when there
+		// are multiple records
+		if (num_txt_recs > 1) {
+			ParodusError ("Seq number not found in rr record\n");
+			return -1;
+		}
+		// when there is only one record, use the sequence-less record
+		seq_table[1].rr_ptr = seq_table[0].rr_ptr;
+		seq_table[1].rr_len = seq_table[0].rr_len;
+	}
+
+	// check if we got them all
+	for (i=1; i<num_txt_recs; i++) {
+		if (NULL == seq_table[i].rr_ptr) {
+			ParodusError ("Missing rr record number %d\n", i+1);
+			return -1;
+		}
+	}
+	return num_txt_recs;
+}
+
+static int assemble_jwt_from_dns (ns_msg *msg_handle, int num_rr_recs, char *jwt_ans)
+{
+	// slot 0 in the seq table is for the sequence-less record that
+	// you get when there is only one record.
+	rr_rec_t seq_table[SEQ_TABLE_SIZE];
+	int i;
+	int num_txt_recs = get_rr_seq_table (msg_handle, num_rr_recs, seq_table);
+
+	if (num_txt_recs < 0)
+		return num_txt_recs;
+	ParodusPrint ("Found %d TXT records\n", num_txt_recs);
+	jwt_ans[0] = 0;
+	for (i=1; i<=num_txt_recs; i++)
+		strncat (jwt_ans, seq_table[i].rr_ptr, seq_table[i].rr_len);
+	return 0;
 }
 
 static int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 {
 	u_char *nsbuf;
 	ns_msg msg_handle;
-	ns_rr rr;
-	const char *rr_ptr;
-	int rrlen;
-	int i, ret;
+	int ret;
 	int l = -1;
 	
 	if( !dns_txt_record_id || !jwt_ans )
@@ -174,6 +364,7 @@ static int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 		return l;
 	}
  	
+	ParodusInfo ("initparse\n");
 	ret = ns_initparse(nsbuf, l, &msg_handle);
 	if (ret != 0) {
 		ParodusError ("ns_initparse failed\n");
@@ -182,42 +373,14 @@ static int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 	}
 	
 	l = ns_msg_count(msg_handle, ns_s_an);
-	ParodusPrint ("query_dns: ns_msg_count : %d\n",l);
+	ParodusInfo ("query_dns: ns_msg_count : %d\n",l);
   jwt_ans[0] = 0;
 	
-	// extract and concatenate all the records in rr
-	for (i=0; i<l; i++) {
-		ret = ns_parserr(&msg_handle, ns_s_an, i, &rr);
-		if (ret != 0) {
-			ParodusError ("query_dns: ns_parserr failed: %s\n", strerror (errno));
-			free (nsbuf);
-			return ret;
-		}
-		if (ns_rr_type(rr) == ns_t_txt)
-    {
-      rr_ptr = (const char *)ns_rr_rdata(rr);
-			// strip quote or other non-b64 char at front
-			if (!valid_b64_char (rr_ptr[0]))	
-				rr_ptr++;
-			rrlen = strlen (rr_ptr);
-			if (rrlen == 0)
-				continue;
-			// strip new line or other non-b64 char at end
-			if (!valid_b64_char (rr_ptr[rrlen-1])) 
-				--rrlen;
-			// strip quote or other non-b64 char at end
-			if (!valid_b64_char (rr_ptr[rrlen-1])) 
-				--rrlen;
-			if ((strlen(jwt_ans) + rrlen) > JWT_MAXBUF) {
-				ParodusError ("query_dns: rr data too big for ns buffer\n");
-				free (nsbuf);
-				return -1;
-			}
-			strncat (jwt_ans, rr_ptr, rrlen); 
-		}
-	}
-	ParodusInfo ("query_dns JWT: %s\n", jwt_ans);
-	return 0;
+	ret = assemble_jwt_from_dns (&msg_handle, l, jwt_ans);
+	free (nsbuf);
+	if (ret == 0)
+		ParodusInfo ("query_dns JWT: %s\n", jwt_ans);
+	return ret;
 }
 
 static void get_dns_txt_record_id (char *buf)
