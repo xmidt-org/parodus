@@ -12,7 +12,6 @@
 #include "partners_check.h"
 #include "connection.h"
 #include "client_list.h"
-#include "nopoll_helpers.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */

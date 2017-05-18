@@ -10,11 +10,8 @@
 #include "time.h"
 #include "config.h"
 #include "upstream.h"
-#include "nopoll_helpers.h"
-#include "mutex.h"
 #include "spin_thread.h"
-#include "nopoll_handlers.h"
-#include <libwebsockets.h>
+#include "lws_handlers.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -94,9 +91,12 @@ dump_handshake_info(struct lws *wsi)
 char * join_fragment_msg (char *firstMsg,int firstSize,char *secondMsg,int secondSize,int * result)
 {
     *result = firstSize + secondSize;
+    fragmentSize = *result;
     char *tmpMsg = (char *)malloc(sizeof(char)* (*result));
     memcpy(tmpMsg,firstMsg,firstSize);
     memcpy (tmpMsg + (firstSize), secondMsg, secondSize);
+    free(firstMsg);
+    free(secondMsg);
     return tmpMsg;
 } 
 
@@ -106,7 +106,7 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
 {
 	int n;
 	char * payload = NULL;
-    char * out = NULL;
+    unsigned char * out = NULL;
 	switch (reason) {
 
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
@@ -133,34 +133,36 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
 		char * tmpMsg = NULL;
 		payload = (char *)malloc(sizeof(char)*len);
 		strcpy(payload,(char *)in);
-	    if (lws_is_final_fragment(wsi))
-	    {
-	        
-	        if(fragmentMsg == NULL)
-	        {
-		        listenerOnrequest_queue(payload,len);
-		    }
-		    else
-		    {
-		        tmpMsg = join_fragment_msg(fragmentMsg,fragmentSize,payload,len,&payloadSize);  
-		        len = payloadSize;
-		        listenerOnrequest_queue(tmpMsg,len);
-		        fragmentMsg = NULL;
-		        len = 0;
-		    }   
-	    }
-	    else
-	    {
-		    if(fragmentMsg == NULL)
-		    {
-		        fragmentMsg = payload;
-		        fragmentSize = len;
-		    }
-		    else
-		    {
-                fragmentMsg = join_fragment_msg(fragmentMsg,fragmentSize,payload,len,&payloadSize);
-		    }
-	    }
+
+		if (lws_is_final_fragment(wsi))
+		{
+
+			if(fragmentMsg == NULL)
+			{
+				listenerOnrequest_queue(payload,len);
+			}
+			else
+			{
+				tmpMsg = join_fragment_msg(fragmentMsg,fragmentSize,payload,len,&payloadSize);  
+				len = payloadSize;
+				listenerOnrequest_queue(tmpMsg,len);
+				fragmentMsg = NULL;
+				fragmentSize = 0;
+				payloadSize = 0;
+			}   
+		}
+		else
+		{
+			if(fragmentMsg == NULL)
+			{
+				fragmentMsg = payload;
+				fragmentSize = len;
+			}
+			else
+			{
+				fragmentMsg = join_fragment_msg(fragmentMsg,fragmentSize,payload,len,&payloadSize);
+			}
+		}
 		
 		lws_callback_on_writable(wsi);
 		break;
@@ -176,22 +178,21 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
         if(ResponseMsgQ != NULL)
         {
             //Read response data from queue
-            pthread_mutex_lock (&res_mutex);
-            while(ResponseMsgQ)
+             while(ResponseMsgQ)
             {
+	            pthread_mutex_lock (&res_mutex);	
                 UpStreamMsg *message = ResponseMsgQ;
                 ResponseMsgQ = ResponseMsgQ->next;
                 pthread_mutex_unlock (&res_mutex);
 
-                out = (char *)malloc(sizeof(char) * (LWS_PRE + message->len));
+                out = (unsigned char *)malloc(sizeof(unsigned char) * (LWS_PRE + message->len));
                 memcpy (LWS_PRE + out, message->msg, message->len);
-                char * tmpPtr = LWS_PRE + out;
-                n = lws_write(wsi, tmpPtr, message->len, LWS_WRITE_BINARY);
+                n = lws_write(wsi, LWS_PRE + out, message->len, LWS_WRITE_BINARY);
 	            if (n < 0)
 	            {
                     ParodusError("Failed to send to server\n");
-		            free(message);
-                    message = NULL;
+		            free(message->msg);
+                    message->msg = NULL;
 		            return 1;
 		        }
 		        if (n < message->len) {
@@ -200,8 +201,8 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
 		        }    
                 ParodusInfo("Sent %d bytes of data to server successfully \n",n);
                 free(out);
-                free(message);
-                message = NULL;
+                free(message->msg);
+                message->msg = NULL;
             }
         }
                    
@@ -224,8 +225,7 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
          ((0 != strlen(get_parodus_cfg()->hw_manufacturer)) ? get_parodus_cfg()->hw_manufacturer : "unknown"));
         
         ParodusInfo("User-Agent: %s\n",user_agent);
-	    /*TODO Implement base64 encoding, currently we are using nopoll API to encode data*/
-	    //conveyHeader = getWebpaConveyHeader();			
+	    conveyHeader = getWebpaConveyHeader();			
 		
 		if (lws_add_http_header_by_name(wsi,
 				(unsigned char *)"X-WebPA-Device-Name:",
@@ -240,13 +240,13 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
 				(unsigned char *)user_agent,strlen(user_agent),p,end))
 		    return -1;
 		    
-		/* if(strlen(conveyHeader) > 0)
+		 if(strlen(conveyHeader) > 0)
 		{
 		    if (lws_add_http_header_by_name(wsi,
 				    (unsigned char *)"X-WebPA-Convey:",
 				    (unsigned char *)conveyHeader,strlen(conveyHeader),p,end))
 		    return -1;
-		}*/
+		}
 		break;
     case LWS_CALLBACK_OPENSSL_PERFORM_SERVER_CERT_VERIFICATION:
             /* Disable self signed verification */
@@ -272,7 +272,7 @@ static const struct lws_protocols protocols[] = {
 
 LWS_VISIBLE void lwsl_emit_syslog(int level, const char *line)
 {
-	ParodusInfo(" %s\n",line);
+	ParodusInfo(" %s",line);
 }
 
 void createLWSconnection()
@@ -280,7 +280,6 @@ void createLWSconnection()
     struct lws_context_creation_info info;
 	struct lws_client_connect_info i;
 	struct lws_context *context;
-	const char *prot, *p;
 	int port = 8080,use_ssl =0;
     
 	memset(&info, 0, sizeof info);
@@ -291,7 +290,7 @@ void createLWSconnection()
 	info.protocols = protocols;
 	info.gid = -1;
 	info.uid = -1;
-	lws_set_log_level(LLL_INFO | LLL_NOTICE | LLL_WARN | LLL_LATENCY | LLL_CLIENT | LLL_COUNT,NULL);
+	lws_set_log_level(LLL_INFO | LLL_NOTICE | LLL_WARN | LLL_LATENCY | LLL_CLIENT | LLL_COUNT,lwsl_emit_syslog);
 
 	info.options |= LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
 

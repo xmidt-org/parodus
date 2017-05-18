@@ -13,8 +13,6 @@
 #include "upstream.h"
 #include "downstream.h"
 #include "thread_tasks.h"
-#include "nopoll_helpers.h"
-#include "mutex.h"
 #include "spin_thread.h"
 #include "service_alive.h"
 #include <libseshat.h>
@@ -33,8 +31,6 @@
 
 bool conn_retry = false;
 bool LastReasonStatus = false;
-volatile unsigned int heartBeatTimer = 0;
-pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -67,6 +63,7 @@ void createLWSsocket(void *config_in, void (* initKeypress)())
     }
 
     seshat_registered = __registerWithSeshat();
+    UNUSED(seshat_registered);
     
     do
     {

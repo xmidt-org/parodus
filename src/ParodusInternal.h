@@ -25,10 +25,10 @@
 #include <sys/wait.h>
 
 #include <cJSON.h>
-#include <nopoll.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
 #include <wrp-c.h>
+#include <libwebsockets.h>
 
 #include "parodus_log.h"
 /*----------------------------------------------------------------------------*/

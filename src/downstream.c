@@ -145,6 +145,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
             ParodusError( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
         }
         ParodusPrint("free for downstream decoded msg\n");
+        free(msg);
         wrp_free_struct(message);
     }
 }

@@ -1,13 +1,13 @@
 /**
- * @file nopoll_handlers.c
+ * @file lws_handlers.c
  *
- * @description This describes nopoll handler functions.
+ * @description This describes lws handler functions.
  *
  * Copyright (c) 2015  Comcast
  */
 
 #include "ParodusInternal.h"
-#include "nopoll_handlers.h"
+#include "lws_handlers.h"
 #include "connection.h"
 
 /*----------------------------------------------------------------------------*/

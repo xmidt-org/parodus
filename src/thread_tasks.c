@@ -37,8 +37,8 @@ void *messageHandlerTask()
 
             listenerOnMessage(message->payload, message->len);
 
-            //free(message);
-            //message = NULL;
+            free(message);
+            message = NULL;
         }
         else
         {
