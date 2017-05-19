@@ -23,7 +23,7 @@
 #include <arpa/nameser.h>
 #include <ctype.h>
 #include <errno.h>
-
+#include <time.h>
 
 #include <cjwt/cjwt.h>
 #include "config.h"
@@ -74,24 +74,54 @@ typedef struct {
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
 
-static int is_http(const cjwt_t *jwt)
+
+static void show_times (time_t exp_time, time_t cur_time)
+{
+	char exp_buf[30];
+	char cur_buf[30];
+	ctime_r (&exp_time, exp_buf);
+	exp_buf[strlen(exp_buf)-1] = 0;
+	ctime_r (&cur_time, cur_buf);
+	cur_buf[strlen(cur_buf)-1] = 0;
+	ParodusInfo ("Exp: %s, Current: %s\n", exp_buf+4, cur_buf+4);
+}
+
+// returns 1 if insecure, 0 if secure, -1 if error
+static int analyze_jwt (const cjwt_t *jwt)
 {
 	cJSON *claims = jwt->private_claims;
 	cJSON *endpoint = NULL;
-	int ret;
-	
-	//retrieve 'endpoint' claim and check for https/http
-	if( claims ){
-		endpoint = cJSON_GetObjectItem(claims, ENDPOINT_NAME);
-		ret = strncmp(endpoint->valuestring,"http:",5);
-		ParodusInfo ("is_http strncmp: %d\n", ret);
-		if(endpoint->valuestring && !ret)
-		{
-			return 1;
-		}
+	cJSON *exp = NULL;
+	time_t exp_time, cur_time;
+	int http_match;
+
+	if (!claims) {
+		ParodusError ("Private claims not found in jwt\n");
+		return -1;
 	}
-		
-	return 0;
+
+	endpoint = cJSON_GetObjectItem(claims, ENDPOINT_NAME);
+	if (!endpoint) {
+		ParodusError ("Endpoint claim not found in jwt\n");
+		return -1;
+	}
+
+	http_match = strncmp(endpoint->valuestring,"http:",5);
+	ParodusInfo ("is_http strncmp: %d\n", http_match);
+	exp = cJSON_GetObjectItem (claims, "exp");
+	if (exp) {
+		exp_time = exp->valueint;
+		cur_time = time(NULL);
+		show_times (exp_time, cur_time);
+		if (exp_time < cur_time) {
+			ParodusError ("JWT has expired\n");
+			return -1;
+		}
+	} else {
+		ParodusInfo ("exp claim not found in jwt\n");
+	}
+
+	return (http_match == 0);
 }
 
 static bool validate_algo(const cjwt_t *jwt)
@@ -431,7 +461,7 @@ int allow_insecure_conn(void)
 
 		//validate algo from --jwt_algo
 		if( validate_algo(jwt) ){
-			insecure = is_http(jwt);
+			insecure = analyze_jwt (jwt);
 		}
 	}
 	cjwt_destroy(&jwt);
