@@ -21,7 +21,6 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <assert.h>
-#include <nopoll.h>
 
 #include "../src/ParodusInternal.h"
 #include "../src/conn_interface.h"
@@ -33,45 +32,20 @@
 /*----------------------------------------------------------------------------*/
 UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
-extern bool close_retry;
-extern volatile unsigned int heartBeatTimer;
+extern bool conn_retry;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-int createNopollConnection(noPollCtx *ctx)
+
+void createLWSconnection()
 {
-    UNUSED(ctx);
-    function_called();
-    return (int) mock();
+	function_called();
 }
 
-void nopoll_log_set_handler	(noPollCtx *ctx, noPollLogHandler handler, noPollPtr user_data)
-{
-    UNUSED(ctx); UNUSED(handler); UNUSED(user_data);
-    function_called(); 
-}
-
-void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
-{
-    UNUSED(ctx); UNUSED(level); UNUSED(log_msg); UNUSED(user_data);
-    function_called(); 
-}
-
-void nopoll_thread_handlers	(	noPollMutexCreate 	mutex_create,
-noPollMutexDestroy 	mutex_destroy,
-noPollMutexLock 	mutex_lock,
-noPollMutexUnlock 	mutex_unlock 
-)
-{
-    UNUSED(mutex_create); UNUSED(mutex_destroy); UNUSED(mutex_lock); UNUSED(mutex_unlock);
-    function_called();
-}
 void packMetaData()
 {
     function_called();
 }
-
-
 
 void *handle_upstream()
 {
@@ -93,9 +67,9 @@ void *serviceAliveTask()
     return NULL;
 }
 
-int nopoll_loop_wait(noPollCtx * ctx,long timeout)
+int lws_service(struct lws_context * context,int timeout)
 {
-    UNUSED(ctx); UNUSED(timeout);
+    UNUSED(context); UNUSED(timeout);
     function_called();
     return (int) mock();
 }
@@ -106,32 +80,21 @@ void set_global_reconnect_reason(char *reason)
     function_called();
 }
 
-void close_and_unref_connection(noPollConn *conn)
+void lws_context_destroy(struct lws_context * context)	
 {
-    UNUSED(conn);
+    UNUSED(context);
     function_called();
 }
 
-void nopoll_cleanup_library	()	
+struct lws_context *get_global_context(void)
 {
     function_called();
+    return (struct lws_context *) (intptr_t)mock();
 }
 
-void nopoll_ctx_unref(noPollCtx * ctx)
+void set_global_context(struct lws_context *contextRef)
 {
-    UNUSED(ctx);
-    function_called();
-}
-
-noPollConn *get_global_conn(void)
-{
-    function_called();
-    return (noPollConn *) (intptr_t)mock();
-}
-
-void set_global_conn(noPollConn *conn)
-{
-    UNUSED(conn);
+    UNUSED(contextRef);
     function_called();
 }
 
@@ -141,11 +104,6 @@ void StartThread(void *(*start_routine) (void *))
     function_called(); 
 }
 
-noPollCtx* nopoll_ctx_new(void)
-{
-    function_called();
-    return (noPollCtx*) (intptr_t)mock();
-}
 void initKeypress()
 {
     function_called();
@@ -154,158 +112,27 @@ void initKeypress()
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 
-void test_createSocketConnection()
+void test_createLWSsocket()
 {
-    noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(ParodusCfg));
     
-    close_retry = false;
-    expect_function_call(nopoll_thread_handlers);
+    conn_retry = true;
+    expect_function_call(createLWSconnection);
     
-    will_return(nopoll_ctx_new, (intptr_t)&ctx);
-    expect_function_call(nopoll_ctx_new);
-    expect_function_call(nopoll_log_set_handler);
-    will_return(createNopollConnection, nopoll_true);
-    expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
     expect_function_calls(StartThread, 4);
     expect_function_call(initKeypress);
-    will_return(nopoll_loop_wait, 1);
-    expect_function_call(nopoll_loop_wait);
-    
-    expect_function_call(set_global_reconnect_reason);
-    will_return(get_global_conn, (intptr_t)NULL);
-    expect_function_call(get_global_conn);
-    expect_function_call(close_and_unref_connection);
-    expect_function_call(set_global_conn);
-    will_return(createNopollConnection, nopoll_true);
-    expect_function_call(createNopollConnection);
-    will_return(get_global_conn, (intptr_t)NULL);
-    expect_function_call(get_global_conn);
-    expect_function_call(close_and_unref_connection);
-    expect_function_call(nopoll_ctx_unref);
-    expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(&cfg,initKeypress);
-}
-
-void test_createSocketConnection1()
-{
-    noPollCtx *ctx;
-    ParodusCfg cfg;
-    memset(&cfg,0, sizeof(ParodusCfg));
-    close_retry = true;
-    expect_function_call(nopoll_thread_handlers);
-    
-    will_return(nopoll_ctx_new, (intptr_t)&ctx);
-    expect_function_call(nopoll_ctx_new);
-    expect_function_call(nopoll_log_set_handler);
-    will_return(createNopollConnection, nopoll_true);
-    expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
-
-    expect_function_calls(StartThread, 4);
-    will_return(nopoll_loop_wait, 1);
-    expect_function_call(nopoll_loop_wait);
-    
-    will_return(get_global_conn, (intptr_t)NULL);
-    expect_function_call(get_global_conn);
-    expect_function_call(close_and_unref_connection);
-    expect_function_call(set_global_conn);
-    will_return(createNopollConnection, nopoll_true);
-    expect_function_call(createNopollConnection);
-    will_return(get_global_conn, (intptr_t)NULL);
-    expect_function_call(get_global_conn);
-    expect_function_call(close_and_unref_connection);
-    expect_function_call(nopoll_ctx_unref);
-    expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(&cfg,NULL);
-    
-}
-
-void test_createSocketConnection2()
-{
-    noPollCtx *ctx;
-    ParodusCfg cfg;
-    memset(&cfg,0,sizeof(ParodusCfg));
-    strcpy(cfg.hw_model, "TG1682");
-    strcpy(cfg.hw_serial_number, "Fer23u948590");
-    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
-    strcpy(cfg.hw_mac , "123567892366");
-    strcpy(cfg.hw_last_reboot_reason , "unknown");
-    strcpy(cfg.fw_name , "2.364s2");
-    strcpy(cfg.webpa_path_url , "/v1");
-    strcpy(cfg.webpa_url , "localhost");
-    strcpy(cfg.webpa_interface_used , "eth0");
-    strcpy(cfg.webpa_protocol , "WebPA-1.6");
-    strcpy(cfg.webpa_uuid , "1234567-345456546");
-    cfg.webpa_ping_timeout = 1;
-    
-    close_retry = false;
-    expect_function_call(nopoll_thread_handlers);
-    
-    will_return(nopoll_ctx_new, (intptr_t)&ctx);
-    expect_function_call(nopoll_ctx_new);
-    expect_function_call(nopoll_log_set_handler);
-    will_return(createNopollConnection, nopoll_true);
-    expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
-
-    expect_function_calls(StartThread, 4);
-    will_return(nopoll_loop_wait, 1);
-    will_return(nopoll_loop_wait, 1);
-    will_return(nopoll_loop_wait, 1);
-    will_return(nopoll_loop_wait, 1);
-    will_return(nopoll_loop_wait, 1);
-    will_return(nopoll_loop_wait, 1);
-    will_return(nopoll_loop_wait, 1);
-    expect_function_calls(nopoll_loop_wait, 7);
-    
-    expect_function_call(set_global_reconnect_reason);
-    will_return(get_global_conn, (intptr_t)NULL);
-    expect_function_call(get_global_conn);
-    expect_function_call(close_and_unref_connection);
-    expect_function_call(set_global_conn);
-    will_return(createNopollConnection, nopoll_true);
-    expect_function_call(createNopollConnection);
-    will_return(get_global_conn, (intptr_t)NULL);
-    expect_function_call(get_global_conn);
-    expect_function_call(close_and_unref_connection);
-    expect_function_call(nopoll_ctx_unref);
-    expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(&cfg,NULL);
-}
-
-void err_createSocketConnection()
-{
-    close_retry = true;
-    heartBeatTimer = 0;
-    expect_function_call(nopoll_thread_handlers);
-    
-    will_return(nopoll_ctx_new, (intptr_t)NULL);
-    expect_function_call(nopoll_ctx_new);
-    expect_function_call(nopoll_log_set_handler);
-    will_return(createNopollConnection, nopoll_true);
-    expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
-
-    expect_function_calls(StartThread, 4);
-    will_return(nopoll_loop_wait, 1);
-    expect_function_call(nopoll_loop_wait);
-    
-    will_return(get_global_conn, (intptr_t)NULL);
-    expect_function_call(get_global_conn);
-    expect_function_call(close_and_unref_connection);
-    expect_function_call(set_global_conn);
-    will_return(createNopollConnection, nopoll_true);
-    expect_function_call(createNopollConnection);
-    will_return(get_global_conn, (intptr_t)NULL);
-    expect_function_call(get_global_conn);
-    expect_function_call(close_and_unref_connection);
-    expect_function_call(nopoll_ctx_unref);
-    expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(NULL,NULL);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    will_return(lws_service, 1);
+    expect_function_call(lws_service);
+    expect_function_call(createLWSconnection);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    expect_function_call(lws_context_destroy);
+    createLWSsocket(&cfg,initKeypress);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -315,10 +142,7 @@ void err_createSocketConnection()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_createSocketConnection),
-        cmocka_unit_test(test_createSocketConnection1),
-        cmocka_unit_test(test_createSocketConnection2),
-        cmocka_unit_test(err_createSocketConnection),
+        cmocka_unit_test(test_createLWSsocket),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

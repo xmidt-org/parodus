@@ -22,7 +22,6 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#include <nopoll.h>
 #include <wrp-c.h>
 #include <nanomsg/nn.h>
 
@@ -35,7 +34,6 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-static noPollConn *conn;
 static char *reconnect_reason = "webpa_process_starts";
 static ParodusCfg parodusCfg;
 extern size_t metaPackSize;
@@ -46,10 +44,6 @@ wrp_msg_t *temp = NULL;
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
 
-noPollConn *get_global_conn()
-{
-    return conn;   
-}
 
 char *get_global_reconnect_reason()
 {
@@ -67,11 +61,7 @@ int get_numOfClients()
     function_called();
     return (int)mock();
 }
-void sendMessage(noPollConn *conn, void *msg, size_t len)
-{
-    (void) conn; (void) msg; (void) len;
-    function_called();
-}
+
 
 ParodusCfg *get_parodus_cfg(void) 
 {
@@ -279,7 +269,7 @@ void test_processUpstreamMessage()
     will_return(appendEncodedData, 100);
     expect_function_call(appendEncodedData);
 
-    expect_function_call(sendMessage);
+    //expect_function_call(sendMessage);
 
     expect_function_call(wrp_free_struct);
     will_return(nn_freemsg,1);
@@ -316,7 +306,7 @@ void test_processUpstreamMessageInvalidPartner()
     will_return(appendEncodedData, 100);
     expect_function_call(appendEncodedData);
 
-    expect_function_call(sendMessage);
+    //expect_function_call(sendMessage);
 
     expect_function_call(wrp_free_struct);
     will_return(nn_freemsg,1);
@@ -563,7 +553,7 @@ void test_sendUpstreamMsgToServer()
     
     will_return(appendEncodedData, 100);
     expect_function_call(appendEncodedData);
-    expect_function_call(sendMessage);
+    //expect_function_call(sendMessage);
     sendUpstreamMsgToServer(&bytes, 110);
     free(bytes);
 }

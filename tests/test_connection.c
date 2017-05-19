@@ -22,7 +22,6 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <assert.h>
-#include <nopoll.h>
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
@@ -45,11 +44,6 @@ char* getWebpaConveyHeader()
     return NULL;
 }
 
-int checkHostIp(char * serverIP)
-{
-    UNUSED(serverIP);
-    return 0;
-}
 
 void setMessageHandlers()
 {
@@ -58,17 +52,6 @@ void setMessageHandlers()
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 
-void test_get_global_conn()
-{
-    assert_null(get_global_conn());
-}
-
-void test_set_global_conn()
-{
-    static noPollConn *gNPConn;
-    set_global_conn(gNPConn);
-    assert_ptr_equal(gNPConn, get_global_conn());
-}
 
 void test_get_global_reconnect_reason()
 {
@@ -82,10 +65,6 @@ void test_set_global_reconnect_reason()
     assert_string_equal(reason, get_global_reconnect_reason());
 }
 
-void test_closeConnection()
-{
-    close_and_unref_connection(get_global_conn());
-}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -93,11 +72,8 @@ void test_closeConnection()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_get_global_conn),
-        cmocka_unit_test(test_set_global_conn),
         cmocka_unit_test(test_get_global_reconnect_reason),
         cmocka_unit_test(test_set_global_reconnect_reason),
-        cmocka_unit_test(test_closeConnection),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

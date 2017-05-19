@@ -63,7 +63,8 @@ void set_global_reconnect_reason(char *reason)
 void
 dump_handshake_info(struct lws *wsi)
 {
-	int n = 0, len;
+	int n = 0;
+	size_t len;
 	char buf[256];
 	const unsigned char *c;
 
@@ -195,7 +196,7 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
                     message->msg = NULL;
 		            return 1;
 		        }
-		        if (n < message->len) {
+		        if (n < (int)message->len) {
 			        ParodusError("Partial write\n");
 			        return -1;
 		        }    
@@ -272,6 +273,7 @@ static const struct lws_protocols protocols[] = {
 
 LWS_VISIBLE void lwsl_emit_syslog(int level, const char *line)
 {
+	UNUSED(level);
 	ParodusInfo(" %s",line);
 }
 

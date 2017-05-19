@@ -22,7 +22,6 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <assert.h>
-#include <nopoll.h>
 
 #include "../src/ParodusInternal.h"
 #include "../src/config.h"
@@ -36,12 +35,12 @@ bool LastReasonStatus;
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
 
-nopoll_bool nopoll_base64_encode(const char *content,int length,char *output, int *output_size)
+int lws_b64_encode_string(const char *content,int length,char *output, int output_size)
 {
     UNUSED(content); UNUSED(length);  UNUSED(output_size);
     strcpy(output, "AWYFUJHUDUDKJDDRDKUIIKORE\nSFJLIRRSHLOUTDESTDJJITTESLOIUHJGDRS\nGIUY&%WSJ");
     function_called();
-    return (nopoll_bool)(intptr_t)mock();
+    return (int)(intptr_t)mock();
 }
 
 char *get_global_reconnect_reason()
@@ -77,8 +76,8 @@ void test_getWebpaConveyHeader()
     will_return(get_global_reconnect_reason, (intptr_t)"Ping-Miss");
     expect_function_call(get_global_reconnect_reason);
     
-    will_return(nopoll_base64_encode, nopoll_true);
-    expect_function_call(nopoll_base64_encode);
+    will_return(lws_b64_encode_string, 352);
+    expect_function_call(lws_b64_encode_string);
     getWebpaConveyHeader();
 }
 
@@ -90,8 +89,8 @@ void err_getWebpaConveyHeader()
     
     will_return(get_global_reconnect_reason, (intptr_t)NULL);
     expect_function_call(get_global_reconnect_reason);
-    will_return(nopoll_base64_encode, nopoll_false);
-    expect_function_call(nopoll_base64_encode);
+    will_return(lws_b64_encode_string, -1);
+    expect_function_call(lws_b64_encode_string);
     getWebpaConveyHeader();
 }
 
