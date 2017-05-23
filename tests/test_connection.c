@@ -45,13 +45,21 @@ char* getWebpaConveyHeader()
 }
 
 
-void setMessageHandlers()
-{
-}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 
+void test_get_global_context()
+{
+    assert_null(get_global_context());
+}
+
+void test_set_global_context()
+{
+    static struct lws_context *context;
+    set_global_context(context);
+    assert_ptr_equal(context, get_global_context());
+}
 
 void test_get_global_reconnect_reason()
 {
@@ -72,6 +80,8 @@ void test_set_global_reconnect_reason()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+    	cmocka_unit_test(test_get_global_context),
+    	cmocka_unit_test(test_set_global_context),
         cmocka_unit_test(test_get_global_reconnect_reason),
         cmocka_unit_test(test_set_global_reconnect_reason),
     };

@@ -135,6 +135,80 @@ void test_createLWSsocket()
     createLWSsocket(&cfg,initKeypress);
 }
 
+void test_createLWSsocket1()
+{
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(ParodusCfg));
+    
+    conn_retry = true;
+    expect_function_call(createLWSconnection);
+    
+    expect_function_call(packMetaData);
+
+    expect_function_calls(StartThread, 4);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    will_return(lws_service, 1);
+    expect_function_call(lws_service);
+    expect_function_call(createLWSconnection);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    expect_function_call(lws_context_destroy);
+    createLWSsocket(&cfg,NULL);
+}
+
+void test_createLWSsocket2()
+{
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(ParodusCfg));
+    strcpy(cfg.hw_model, "TG1682");
+    strcpy(cfg.hw_serial_number, "Fer23u948590");
+    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
+    strcpy(cfg.hw_mac , "123567892366");
+    strcpy(cfg.hw_last_reboot_reason , "unknown");
+    strcpy(cfg.fw_name , "2.364s2");
+    strcpy(cfg.webpa_path_url , "/v1");
+    strcpy(cfg.webpa_url , "localhost");
+    strcpy(cfg.webpa_interface_used , "eth0");
+    strcpy(cfg.webpa_protocol , "WebPA-1.6");
+    strcpy(cfg.webpa_uuid , "1234567-345456546");
+    cfg.webpa_ping_timeout = 1;
+    
+    conn_retry = true;
+    expect_function_call(createLWSconnection);
+    
+    expect_function_call(packMetaData);
+
+    expect_function_calls(StartThread, 4);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    will_return(lws_service, 1);
+    expect_function_call(lws_service);
+    expect_function_call(createLWSconnection);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    expect_function_call(lws_context_destroy);
+    createLWSsocket(&cfg,NULL);
+}
+
+void err_createLWSsocket()
+{
+    conn_retry = true;
+    expect_function_call(createLWSconnection);
+    
+    expect_function_call(packMetaData);
+
+    expect_function_calls(StartThread, 4);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    will_return(lws_service, 1);
+    expect_function_call(lws_service);
+    expect_function_call(createLWSconnection);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    expect_function_call(lws_context_destroy);
+    createLWSsocket(NULL,NULL);
+}
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -143,6 +217,9 @@ int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_createLWSsocket),
+        cmocka_unit_test(test_createLWSsocket1),
+        cmocka_unit_test(test_createLWSsocket2),
+        cmocka_unit_test(err_createLWSsocket),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

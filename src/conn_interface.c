@@ -70,7 +70,7 @@ void createLWSsocket(void *config_in, void (* initKeypress)())
         lws_service(get_global_context(), 500);
         if(conn_retry)
         {
-            //ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
+            ParodusInfo("conn_retry is %d, hence closing the connection and retrying\n", conn_retry);
             createLWSconnection();
         }
         
