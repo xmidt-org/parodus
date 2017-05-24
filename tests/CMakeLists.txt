@@ -104,9 +104,10 @@ target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 #-------------------------------------------------------------------------------
 #   test_connection - function createLWSconnection
 #-------------------------------------------------------------------------------
-#add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
-#add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
-#target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
+add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
+add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c ../src/lws_handlers.c ../src/upstream.c ../src/client_list.c ../src/partners_check.c ../src/ParodusInternal.c) 
+target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
+
 
 #-------------------------------------------------------------------------------
 #   test_client_list
