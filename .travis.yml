@@ -8,9 +8,9 @@ compiler:
 addons:
   coverity_scan:
     project:
-      name: "Comcast/parodus"
+      name: "selvamKrish-parodus"
       description: "C implementation of the WebPA client coordinator"
-    notification_email: weston_schmidt@alumni.purdue.edu
+    notification_email: kselvam019@gmail.com
     build_command_prepend: "mkdir coverity_build && cd coverity_build && cmake .."
     build_command:   "make"
     branch_pattern: parodus_lws
