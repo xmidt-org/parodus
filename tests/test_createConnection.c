@@ -33,7 +33,7 @@
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
-extern int connected;
+bool conn_retry;
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -69,7 +69,7 @@ void test_createSecureConnection()
     memset(cfg, 0, sizeof(ParodusCfg));
     struct lws_context *lwscontext;
     struct lws * info;
-    connected = 1;
+    conn_retry = false;
     cfg->secureFlag = 1;
     strcpy(cfg->webpa_url , "fabric.webpa.comcast.net");
     set_parodus_cfg(cfg);

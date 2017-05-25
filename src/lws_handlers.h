@@ -19,7 +19,6 @@ extern "C" {
 
 extern pthread_mutex_t g_mutex;
 extern pthread_cond_t g_cond; 
-extern bool close_retry;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */

@@ -27,10 +27,9 @@ char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
 static struct lws_context *g_context;
 static struct lws *wsi_dumb;
-int connected = 0;
 pthread_mutex_t res_mutex ;
 
-bool conn_retry;
+bool conn_retry = true;
 char * fragmentMsg = NULL;
 int fragmentSize = 0;
 int payloadSize = 0;
@@ -59,36 +58,6 @@ void set_global_reconnect_reason(char *reason)
     reconnect_reason = reason;
 }
 
-
-void
-dump_handshake_info(struct lws *wsi)
-{
-	int n = 0;
-	size_t len;
-	char buf[256];
-	const unsigned char *c;
-
-	do {
-		c = lws_token_to_string(n);
-		if (!c) {
-			n++;
-			continue;
-		}
-
-		len = lws_hdr_total_length(wsi, n);
-		if (!len || len > sizeof(buf) - 1) {
-			n++;
-			continue;
-		}
-
-		lws_hdr_copy(wsi, buf, sizeof buf, n);
-		buf[sizeof(buf) - 1] = '\0';
-
-		fprintf(stderr, "    %s = %s\n", (char *)c, buf);
-		n++;
-	} while (c);
-}
-
 char * join_fragment_msg (char *firstMsg,int firstSize,char *secondMsg,int secondSize,int * result)
 {
     *result = firstSize + secondSize;
@@ -101,9 +70,7 @@ char * join_fragment_msg (char *firstMsg,int firstSize,char *secondMsg,int secon
     return tmpMsg;
 } 
 
-static int
-parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
-			void *user, void *in, size_t len)
+int parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,void *user, void *in, size_t len)
 {
 	int n;
 	char * payload = NULL;
@@ -112,7 +79,6 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
 
 	case LWS_CALLBACK_CLIENT_ESTABLISHED:
 		ParodusInfo("Connected to server successfully\n");
-		connected = 1;
 		conn_retry = false;
 		break;
 
@@ -121,14 +87,11 @@ parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,
 		wsi_dumb = NULL;
 		conn_retry = true;
 		break;
-    case LWS_CALLBACK_FILTER_PROTOCOL_CONNECTION:
-		dump_handshake_info(wsi);
-		/* you could return non-zero here and kill the connection */
-		break;
+    
 	case LWS_CALLBACK_CLIENT_RECEIVE:
 	    ((char *)in)[len] = '\0';
 	    
-		//lwsl_notice("length %d payload : %s\n", (int)len, (char *)in);
+		//ParodusInfo("length %d payload : %s\n", (int)len, (char *)in);
 
 		ParodusInfo("**** Recieved %d bytes from server\n",(int)len);
 		char * tmpMsg = NULL;
@@ -298,7 +261,7 @@ void createLWSconnection()
 
 	context = lws_create_context(&info);
 	if (context == NULL) {
-		fprintf(stderr, "Creating libwebsocket context failed\n");
+		ParodusError("Creating libwebsocket context failed\n");
 		exit(1);
 	}
     set_global_context(context);
@@ -318,12 +281,10 @@ void createLWSconnection()
 		}
 		/*We need lws service here till client connects to server, without lws_service callback will not work*/
 		lws_service(context, 500);
-		if(connected)
-		{
+		if(!conn_retry)
 		    /*Connected to server, break the loop and try lws service from main thread*/
-		    conn_retry = false;
-		    break;
-		}    
+		 	   break;
+		    
 	}
 }
 
