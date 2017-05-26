@@ -83,15 +83,15 @@ static void show_times (time_t exp_time, time_t cur_time)
 	exp_buf[strlen(exp_buf)-1] = 0;
 	ctime_r (&cur_time, cur_buf);
 	cur_buf[strlen(cur_buf)-1] = 0;
-	ParodusInfo ("Exp: %s, Current: %s\n", exp_buf+4, cur_buf+4);
+	ParodusInfo ("Exp: %d %s, Current: %d %s\n", 
+		(int)exp_time, exp_buf+4, (int)cur_time, cur_buf+4);
 }
 
 // returns 1 if insecure, 0 if secure, -1 if error
-static int analyze_jwt (const cjwt_t *jwt)
+int analyze_jwt (const cjwt_t *jwt)
 {
 	cJSON *claims = jwt->private_claims;
 	cJSON *endpoint = NULL;
-	cJSON *exp = NULL;
 	time_t exp_time, cur_time;
 	int http_match;
 
@@ -108,23 +108,22 @@ static int analyze_jwt (const cjwt_t *jwt)
 
 	http_match = strncmp(endpoint->valuestring,"http:",5);
 	ParodusInfo ("is_http strncmp: %d\n", http_match);
-	exp = cJSON_GetObjectItem (claims, "exp");
-	if (exp) {
-		exp_time = exp->valueint;
+	exp_time = jwt->exp.tv_sec;
+	if (0 == exp_time) {
+		ParodusError ("exp not found in JWT payload\n");
+	} else {
 		cur_time = time(NULL);
 		show_times (exp_time, cur_time);
 		if (exp_time < cur_time) {
 			ParodusError ("JWT has expired\n");
 			return -1;
 		}
-	} else {
-		ParodusInfo ("exp claim not found in jwt\n");
 	}
 
 	return (http_match == 0);
 }
 
-static bool validate_algo(const cjwt_t *jwt)
+bool validate_algo(const cjwt_t *jwt)
 {
 	// return true if jwt->header.alg is included in the set
 	// of allowed algorithms specified by cfg->jwt_algo
@@ -143,7 +142,7 @@ static bool validate_algo(const cjwt_t *jwt)
 }
 
 
-static int nquery(const char* dns_txt_record_id,u_char *nsbuf)
+int nquery(const char* dns_txt_record_id,u_char *nsbuf)
 {
 	
     int len;
