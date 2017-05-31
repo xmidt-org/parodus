@@ -174,7 +174,7 @@ int nquery(const char* dns_txt_record_id,u_char *nsbuf)
 
 }
 
-static bool valid_b64_char (char c)
+bool valid_b64_char (char c)
 {
 	if ((c>='A') && (c<='Z'))
 		return true;
@@ -193,7 +193,7 @@ static bool is_digit (char c)
 }
 
 // strip quotes and newlines from rr rec
-static const char *strip_rr_data (const char *rr_ptr, int *rrlen)
+const char *strip_rr_data (const char *rr_ptr, int *rrlen)
 {
 	int len;
 	const char *optr = rr_ptr;
@@ -246,7 +246,7 @@ int find_seq_num (const char *rr_ptr, int rrlen)
 
 // get seq num in rr rec
 // return -1 if not formatted correctly
-static int get_rr_seq_num (const char *rr_ptr, int rrlen)
+int get_rr_seq_num (const char *rr_ptr, int rrlen)
 {
 	char c;
 	int lo, hi;

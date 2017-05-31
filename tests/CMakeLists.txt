@@ -193,6 +193,13 @@ add_test(NAME test_partners_check COMMAND ${MEMORY_CHECK} ./test_partners_check)
 add_executable(test_partners_check test_partners_check.c ../src/partners_check.c)
 target_link_libraries (test_partners_check -lcmocka -lwrp-c -llibseshat ${PARODUS_COMMON_LIBS})
 
+#-------------------------------------------------------------------------------
+#   test_token - token.c tests
+#-------------------------------------------------------------------------------
+add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
+add_executable(test_token test_token.c ../src/token.c ../src/string_helpers.c ../src/config.c) 
+target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
+
 if (INTEGRATION_TESTING)
 #-------------------------------------------------------------------------------
 #   simple_connection test
