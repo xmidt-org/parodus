@@ -40,32 +40,13 @@ bool conn_retry;
 /*----------------------------------------------------------------------------*/
 
 
-struct lws_context* lws_create_context ( struct lws_context_creation_info *  info)
-{
-	function_called();
-	return (struct lws_context *) (intptr_t)mock();	
-}	
-
-struct lws* lws_client_connect_via_info (struct lws_client_connect_info *  	ccinfo)
-{
-	function_called();
-	return (struct lws *) (intptr_t)mock();
-}
-
-int lws_service(struct lws_context * context,int timeout)
-{
-    UNUSED(context); UNUSED(timeout);
-    function_called();
-    return (int) mock();
-}
-
 int lws_is_final_fragment (struct lws * wsi)
 {
 	function_called();
 	return (int) mock();
 }
 
-int lws_callback_on_writable (struct lws * wsi) 	
+int lws_callback_on_writable (struct lws * wsi)
 {
 	return 1;
 }
@@ -73,6 +54,24 @@ void listenerOnrequest_queue(void *requestMsg,int reqSize)
 {
 	UNUSED(requestMsg);
 	UNUSED(reqSize);
+}
+
+int lws_write (struct lws * wsi,unsigned char *  buf,size_t  len,enum lws_write_protocol  protocol)
+{
+	function_called();
+	return (int) mock();
+}
+
+char* getWebpaConveyHeader()
+{
+    function_called();
+    return (char*) (intptr_t)mock();
+}
+
+int LWS_WARN_UNUSED_RESULT lws_add_http_header_by_name (struct lws * wsi,const unsigned char *name,const unsigned char *value,int length,unsigned char **p,unsigned char *end)
+{
+	function_called();
+	return (int) mock();
 }
  	
 /*----------------------------------------------------------------------------*/
@@ -90,10 +89,6 @@ void test_callBack1()
     {
 	    ParodusInfo("Success: conn_retry status changed %d\n",conn_retry);
 	}
-	else    
-	{
-	    ParodusError("Failure: conn_retry status not changed %d\n",conn_retry);
-	}
 	free(info);    
 }
 
@@ -107,10 +102,6 @@ void test_callBack2()
     if(conn_retry)
     {
 	    ParodusInfo("Success: conn_retry status changed %d\n",conn_retry);
-	}
-	else    
-	{
-	    ParodusError("Failure: conn_retry status not changed %d\n",conn_retry);
 	}
 	free(info); 
 }
@@ -191,21 +182,180 @@ void test_callBack5()
     {
 	    ParodusInfo("Success: conn_retry status changed %d\n",conn_retry);
 	}
-	else    
-	{
-	    ParodusError("Failure: conn_retry status not changed %d\n",conn_retry);
-	}
-	free(info); 
+	free(info);
 }
+
 void test_callBack6()
 {
     struct lws *info = malloc(10);
-    X509_STORE_CTX *ctx;
-  	ctx = X509_STORE_CTX_new();
-  	if (ctx == NULL)
-  		ParodusError("Failed to create X509 ctx object\n");
+    void *user = "connection";
     void *in = "payload";
     size_t size = 0;
+    UpStreamMsg *message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
+    message->msg = (char*)malloc(sizeof(char)*10);
+    strcpy(message->msg,"payload");
+    message->len = 7;
+    message->next = NULL;
+    ResponseMsgQ = message;
+    will_return(lws_write,7);
+    expect_function_call(lws_write);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_WRITEABLE,user,in,size);
+    free(message->msg);
+    free(message);
+    free(info);
+}
+
+void test_callBack7()
+{
+    struct lws *info = malloc(10);
+    void *user = "connection";
+    void *in = "payload";
+    size_t size = 0;
+    UpStreamMsg *message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
+    message->msg = (char*)malloc(sizeof(char)*10);
+    strcpy(message->msg,"payload");
+    message->len = 7;
+    message->next = NULL;
+    ResponseMsgQ = message;
+    will_return(lws_write,-1);
+    expect_function_call(lws_write);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_WRITEABLE,user,in,size);
+    free(message->msg);
+    free(message);
+    free(info);
+}
+
+void test_callBack8()
+{
+    struct lws *info = malloc(10);
+    void *user = "connection";
+    void *in = "payload";
+    size_t size = 0;
+    UpStreamMsg *message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
+    message->msg = (char*)malloc(sizeof(char)*10);
+    strcpy(message->msg,"payload");
+    message->len = 7;
+    message->next = NULL;
+    ResponseMsgQ = message;
+    will_return(lws_write,5);
+    expect_function_call(lws_write);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_WRITEABLE,user,in,size);
+    free(message->msg);
+    free(message);
+    free(info);
+}
+
+void test_callBack9()
+{
+    struct lws *info = malloc(10);
+    void *user = "connection";
+    void *in = "payload";
+    size_t size = 0;
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER,user,in,size);
+    free(info);
+}
+
+void test_callBack10()
+{
+    struct lws *info = malloc(10);
+    void *user = "connection";
+    void *in = "payload";
+    size_t size = 0;
+    will_return(getWebpaConveyHeader, (intptr_t)"");
+    expect_function_call(getWebpaConveyHeader);
+    will_return(lws_add_http_header_by_name,1);
+    expect_function_call(lws_add_http_header_by_name);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER,user,in,size);
+    free(info);
+}
+void test_callBack11()
+{
+    struct lws *info = malloc(10);
+    void *user = "connection";
+    void *in = "payload";
+    size_t size = 0;
+    will_return(getWebpaConveyHeader, (intptr_t)"");
+    expect_function_call(getWebpaConveyHeader);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,1);
+    expect_function_call(lws_add_http_header_by_name);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER,user,in,size);
+    free(info);
+}
+void test_callBack12()
+{
+    struct lws *info = malloc(10);
+    void *user = "connection";
+    void *in = "payload";
+    size_t size = 0;
+    will_return(getWebpaConveyHeader, (intptr_t)"");
+    expect_function_call(getWebpaConveyHeader);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,1);
+    expect_function_call(lws_add_http_header_by_name);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER,user,in,size);
+    free(info);
+}
+
+void test_callBack13()
+{
+    struct lws *info = malloc(10);
+    void *user = "connection";
+    void *in = "payload";
+    size_t size = 0;
+    will_return(getWebpaConveyHeader, (intptr_t)"");
+    expect_function_call(getWebpaConveyHeader);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER,user,in,size);
+    free(info);
+}
+
+void test_callBack14()
+{
+    struct lws *info = malloc(10);
+    void *user = "connection";
+    void *in = "payload";
+    size_t size = 0;
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,0);
+    expect_function_call(lws_add_http_header_by_name);
+    will_return(lws_add_http_header_by_name,1);
+    expect_function_call(lws_add_http_header_by_name);
+    parodus_callback(info,LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER,user,in,size);
+    free(info);
+}
+
+void test_callBack15()
+{
+    struct lws *info = malloc(10);
+    void *in = "payload";
+    size_t size = 0;
+    X509_STORE_CTX *ctx;
+	ctx = X509_STORE_CTX_new();
     parodus_callback(info,LWS_CALLBACK_OPENSSL_PERFORM_SERVER_CERT_VERIFICATION,ctx,in,size);
     free(info);
 }
@@ -223,6 +373,15 @@ int main(void)
         cmocka_unit_test(test_callBack4),
         cmocka_unit_test(test_callBack5),
         cmocka_unit_test(test_callBack6),
+        cmocka_unit_test(test_callBack7),
+        cmocka_unit_test(test_callBack8),
+        cmocka_unit_test(test_callBack9),
+        cmocka_unit_test(test_callBack10),
+        cmocka_unit_test(test_callBack11),
+        cmocka_unit_test(test_callBack12),
+        cmocka_unit_test(test_callBack13),
+        cmocka_unit_test(test_callBack14),
+        cmocka_unit_test(test_callBack15),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

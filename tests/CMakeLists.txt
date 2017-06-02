@@ -90,9 +90,9 @@ target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 #   test_lws_handlers
 #-------------------------------------------------------------------------------
-#add_test(NAME test_lws_handlers COMMAND ${MEMORY_CHECK} ./test_lws_handlers)
-#add_executable(test_lws_handlers test_nopoll_handlers.c ../src/lws_handlers.c)
-#target_link_libraries (test_lws_handlers -lwebsockets -lcrypto -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm)
+add_test(NAME test_lws_handlers COMMAND ${MEMORY_CHECK} ./test_lws_handlers)
+add_executable(test_lws_handlers test_lws_handlers.c ../src/lws_handlers.c)
+target_link_libraries (test_lws_handlers -lwebsockets -lcrypto -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm)
 
 #-------------------------------------------------------------------------------
 #   test_connection
@@ -113,7 +113,7 @@ target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
 #   test_paroduCallback - function parodus_callback
 #-------------------------------------------------------------------------------
 add_test(NAME test_parodusCallback COMMAND ${MEMORY_CHECK} ./test_parodusCallback)
-add_executable(test_parodusCallback test_parodusCallback.c ../src/connection.c ../src/string_helpers.c ../src/config.c ../src/upstream.c ../src/client_list.c ../src/partners_check.c ../src/ParodusInternal.c) 
+add_executable(test_parodusCallback test_parodusCallback.c ../src/connection.c ../src/string_helpers.c ../src/config.c ../src/upstream.c ../src/client_list.c ../src/partners_check.c) 
 target_link_libraries (test_parodusCallback ${PARODUS_COMMON_LIBS} -lcmocka)
 
 

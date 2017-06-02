@@ -148,7 +148,6 @@ int parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,void *use
                 UpStreamMsg *message = ResponseMsgQ;
                 ResponseMsgQ = ResponseMsgQ->next;
                 pthread_mutex_unlock (&res_mutex);
-
                 out = (unsigned char *)malloc(sizeof(unsigned char) * (LWS_PRE + message->len));
                 memcpy (LWS_PRE + out, message->msg, message->len);
                 n = lws_write(wsi, LWS_PRE + out, message->len, LWS_WRITE_BINARY);
@@ -203,7 +202,6 @@ int parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,void *use
 				(unsigned char *)"User-Agent:",
 				(unsigned char *)user_agent,strlen(user_agent),p,end))
 		    return -1;
-		    
 		 if(strlen(conveyHeader) > 0)
 		{
 		    if (lws_add_http_header_by_name(wsi,
