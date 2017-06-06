@@ -197,28 +197,4 @@ add_executable(simple_connection simple_connection.c ${PARODUS_COMMON_SRC}
                     ../src/service_alive.c) 
 target_link_libraries (simple_connection ${PARODUS_COMMON_LIBS})
 
-#-------------------------------------------------------------------------------
-#   simple test
-#-------------------------------------------------------------------------------
-add_test(NAME simple COMMAND ${MEMORY_CHECK} ./simple)
-add_executable(simple simple.c
-                    ../src/upstream.c
-                    ../src/conn_interface.c
-                    ../src/downstream.c
-                    ../src/thread_tasks.c
-                    ../src/networking.c
-                    ../src/nopoll_helpers.c
-                    ../src/nopoll_handlers.c
-                    ../src/string_helpers.c
-                    ../src/mutex.c
-                    ../src/time.c
-                    ../src/config.c
-                    ../src/connection.c
-                    ../src/ParodusInternal.c
-                    ../src/spin_thread.c
-                    ../src/client_list.c
-                    ../src/partners_check.c
-                    ../src/service_alive.c) 
-
-target_link_libraries (simple ${PARODUS_COMMON_LIBS} gcov -lnopoll -lnanomsg )
 endif (INTEGRATION_TESTING)
