@@ -26,6 +26,8 @@
 char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
 static noPollConn *g_conn = NULL;
+static noPollConnOpts * createConnOpts ();
+static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort);
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -60,20 +62,10 @@ int createNopollConnection(noPollCtx *ctx)
     bool initial_retry = false;
     int backoffRetryTime = 0;
     int max_retry_sleep;
-    char device_id[32]={'\0'};
-    char user_agent[512]={'\0'};
-    const char * headerNames[HTTP_CUSTOM_HEADER_COUNT] = {"X-WebPA-Device-Name","X-WebPA-Device-Protocols","User-Agent", "X-WebPA-Convey"};
-    const char *headerValues[HTTP_CUSTOM_HEADER_COUNT];
-    int headerCount = HTTP_CUSTOM_HEADER_COUNT; /* Invalid X-Webpa-Convey header Bug # WEBPA-787 */
     char port[8];
-    noPollConnOpts * opts;
     char server_Address[256];
     char redirectURL[128]={'\0'};
-    char *temp_ptr, *conveyHeader;
-    int connErr=0;
-    struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
-    connErr_startPtr = &connErr_start;
-    connErr_endPtr = &connErr_end;
+    char *temp_ptr;
     //Retry Backoff count shall start at c=2 & calculate 2^c - 1.
     int c=2;
     
@@ -91,34 +83,9 @@ int createNopollConnection(noPollCtx *ctx)
 		fclose(fp);
 	}
 
-	parStrncpy(deviceMAC, get_parodus_cfg()->hw_mac,sizeof(deviceMAC));
-	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
-	ParodusInfo("Device_id %s\n",device_id);
-
-	headerValues[0] = device_id;
-	headerValues[1] = "wrp-0.11,getset-0.1";    
-	
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
-	snprintf(user_agent, sizeof(user_agent),
-         "%s (%s; %s/%s;)",
-         ((0 != strlen(get_parodus_cfg()->webpa_protocol)) ? get_parodus_cfg()->webpa_protocol : "unknown"),
-         ((0 != strlen(get_parodus_cfg()->fw_name)) ? get_parodus_cfg()->fw_name : "unknown"),
-         ((0 != strlen(get_parodus_cfg()->hw_model)) ? get_parodus_cfg()->hw_model : "unknown"),
-         ((0 != strlen(get_parodus_cfg()->hw_manufacturer)) ? get_parodus_cfg()->hw_manufacturer : "unknown"));
-
-	ParodusInfo("User-Agent: %s\n",user_agent);
-	headerValues[2] = user_agent;
-	conveyHeader = getWebpaConveyHeader();
-	if(strlen(conveyHeader) > 0)
-	{
-        headerValues[3] = conveyHeader;
-	}
-	else
-	{
-	    headerValues[3] = ""; 
-        headerCount -= 1;
-	}
+	
 	snprintf(port,sizeof(port),"%d",8080);
 	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
 	ParodusInfo("server_Address %s\n",server_Address);
@@ -139,20 +106,13 @@ int createNopollConnection(noPollCtx *ctx)
 		if(get_parodus_cfg()->secureFlag) 
 		{                    
 		    ParodusPrint("secure true\n");
-			/* disable verification */
-			opts = nopoll_conn_opts_new ();
-			nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
-			nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2); 
-			connection = nopoll_conn_tls_new(ctx, opts, server_Address, port, NULL,
-                               get_parodus_cfg()->webpa_path_url, NULL, NULL, get_parodus_cfg()->webpa_interface_used,
-                                headerNames, headerValues, headerCount);// WEBPA-787
+            connection = nopoll_tls_common_conn(ctx,server_Address, port);                
 		}
 		else 
 		{
 		    ParodusPrint("secure false\n");
             connection = nopoll_conn_new(ctx, server_Address, port, NULL,
-                       get_parodus_cfg()->webpa_path_url, NULL, NULL, get_parodus_cfg()->webpa_interface_used,
-                        headerNames, headerValues, headerCount);// WEBPA-787
+                       get_parodus_cfg()->webpa_path_url, NULL, NULL);// WEBPA-787
 		}
         set_global_conn(connection);
 
@@ -167,7 +127,6 @@ int createNopollConnection(noPollCtx *ctx)
 				close_and_unref_connection(get_global_conn());
 				set_global_conn(NULL);
 				initial_retry = true;
-				
 				ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 				sleep(backoffRetryTime);
 				continue;
@@ -220,32 +179,6 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		else
 		{
-			
-			/* If the connect error is due to DNS resolving to 10.0.0.1 then start timer.
-			 * Timeout after 15 minutes if the error repeats continuously and kill itself. 
-			 */
-			if((checkHostIp(server_Address) == -2)) 	
-			{
-				if(connErr == 0)
-				{
-					getCurrentTime(connErr_startPtr);
-					connErr = 1;
-					ParodusInfo("First connect error occurred, initialized the connect error timer\n");
-				}
-				else
-				{
-					getCurrentTime(connErr_endPtr);
-					ParodusPrint("checking timeout difference:%ld\n", timeValDiff(connErr_startPtr, connErr_endPtr));
-					if(timeValDiff(connErr_startPtr, connErr_endPtr) >= (15*60*1000))
-					{
-						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
-						reconnect_reason = "Dns_Res_webpa_reconnect";
-						LastReasonStatus = true;
-						
-						kill(getpid(),SIGTERM);						
-					}
-				}			
-			}
 			initial_retry = true;
 			ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 			sleep(backoffRetryTime);
@@ -273,7 +206,6 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusPrint("createNopollConnection(): close_mut unlock\n");
 	heartBeatTimer = 0;
 	// Reset connErr flag on successful connection
-	connErr = 0;
 	reconnect_reason = "webpa_process_starts";
 	LastReasonStatus =false;
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
@@ -281,6 +213,54 @@ int createNopollConnection(noPollCtx *ctx)
 
 	return nopoll_true;
 }
+static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort)
+{
+        noPollConnOpts * opts;
+        noPollConn *connection = NULL;
+        opts = createConnOpts();
+        ParodusPrint("Trying connection with Ipv6 \n"); 
+        connection = nopoll_conn_tls_new6 (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
+        if(connection == NULL)
+        {
+            ParodusPrint("Ipv6 connection failed. Trying connection with Ipv4 \n");
+            opts = createConnOpts();
+            connection = nopoll_conn_tls_new (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
+        }
+        return connection;
+}
+
+static noPollConnOpts * createConnOpts ()
+{
+    noPollConnOpts * opts;
+    char device_id[32]={'\0'};
+    char * extra_headers, *conveyHeader = NULL;
+    char user_agent[512]={'\0'};
+    
+    opts = nopoll_conn_opts_new ();
+	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
+	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
+	nopoll_conn_opts_set_interface (opts,get_parodus_cfg()->webpa_interface_used);	
+    snprintf(user_agent, sizeof(user_agent),"%s (%s; %s/%s;)",
+         ((0 != strlen(get_parodus_cfg()->webpa_protocol)) ? get_parodus_cfg()->webpa_protocol : "unknown"),
+         ((0 != strlen(get_parodus_cfg()->fw_name)) ? get_parodus_cfg()->fw_name : "unknown"),
+         ((0 != strlen(get_parodus_cfg()->hw_model)) ? get_parodus_cfg()->hw_model : "unknown"),
+         ((0 != strlen(get_parodus_cfg()->hw_manufacturer)) ? get_parodus_cfg()->hw_manufacturer : "unknown"));
+
+	ParodusInfo("User-Agent: %s\n",user_agent);
+	conveyHeader = getWebpaConveyHeader();
+	    
+	parStrncpy(deviceMAC, get_parodus_cfg()->hw_mac,sizeof(deviceMAC));
+	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
+	ParodusInfo("Device_id %s\n",device_id);
+	
+    extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
+		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
+
+	nopoll_conn_opts_set_extra_headers (opts,extra_headers); 
+	return opts;   
+}
+
 
 void close_and_unref_connection(noPollConn *conn)
 {
