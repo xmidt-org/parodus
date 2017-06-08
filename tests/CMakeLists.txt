@@ -19,7 +19,8 @@ set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-cov
 set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c)
 set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -llibseshat -lwrp-c
  -luuid -lpthread -lm -lmsgpackc -lcjson -ltrower-base64
- -lcjwt -lssl -lcrypto -lnopoll -lnanomsg -Wl,--no-as-needed -lrt
+ -lnopoll -lnanomsg -Wl,--no-as-needed -lrt
+ -lcjwt -lssl -lcrypto
 )
 set (PARODUS_CONN_LIBS -lresolv)
 if(NOT DISABLE_VALGRIND)
@@ -198,7 +199,7 @@ target_link_libraries (test_partners_check -lcmocka -lwrp-c -llibseshat ${PARODU
 #-------------------------------------------------------------------------------
 add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
 add_executable(test_token test_token.c ../src/token.c ../src/string_helpers.c ../src/config.c) 
-target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
+target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
 
 if (INTEGRATION_TESTING)
 #-------------------------------------------------------------------------------
