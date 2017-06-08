@@ -21,7 +21,7 @@ before_install:
 
 install:
     - sudo apt-get update -qq
-    - sudo apt-get install -y -qq check libcunit1 libcunit1-dev uuid-dev ssl-dev crypto-dev valgrind
+    - sudo apt-get install -y -qq check libcunit1 libcunit1-dev uuid-dev ssl crypto valgrind
 
 script:
     - mkdir build
