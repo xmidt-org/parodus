@@ -471,17 +471,3 @@ end:
 	ParodusPrint ("Allow Insecure %d\n", insecure);
 	return insecure;
 }
-/*
-int main()
-{
-#define SERVER_URL "14cfe21463f2.fabric.webpa.comcast.net"
-	//char dns_url[64];
-	//strcpy(dns_url,get_parodus_cfg()->hw_mac );
-	//strcat(dns_url,SERVER_URL);
-  printf("Parodus integration\n");
-  int insecure = allow_insecure_conn(SERVER_URL);
-  printf("allow : %d\n",insecure);
-
-  return(0);
-}
-*/
