@@ -149,8 +149,10 @@ target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_
 #-------------------------------------------------------------------------------
 add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
 add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
-target_link_libraries (test_config -lcmocka -lcjwt -lssl -lcrypto
- -lcjson -ltrower-base64 -lm -Wl,--no-as-needed -lrt -lcimplog)
+target_link_libraries (test_config -lcmocka
+ -lcjson -Wl,--no-as-needed -lcimplog
+ -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm
+)
 
 #-------------------------------------------------------------------------------
 #   test_upstream
