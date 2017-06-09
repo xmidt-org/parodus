@@ -18,9 +18,9 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-cove
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
 set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c)
 set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -llibseshat -lwrp-c
- -luuid -lpthread -lmsgpackc -lcjson
+ -luuid -lpthread -lmsgpackc
  -lnopoll -lnanomsg -Wl,--no-as-needed
- -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm
+ -lcjwt -lcjson -ltrower-base64 -lssl -lcrypto -lrt -lm
 )
 set (PARODUS_CONN_LIBS -lresolv)
 if(NOT DISABLE_VALGRIND)
