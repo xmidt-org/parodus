@@ -37,7 +37,8 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
                     ${INCLUDE_DIR}/libseshat
-                   )
+                    ${INCLUDE_DIR}/cjwt
+					)		
 
 # Compile options/flags
 #-------------------------------------------------------------------------------
@@ -60,7 +61,7 @@ ExternalProject_Add(trower-base64
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/trower-base64
     GIT_REPOSITORY https://github.com/Comcast/trower-base64.git
     GIT_TAG "master"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libtrower-base64 STATIC SHARED IMPORTED)
 add_dependencies(libtrower-base64 trower-base64)
@@ -110,7 +111,7 @@ ExternalProject_Add(cJSON
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cJSON
     GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
     GIT_TAG "aafb64a1c549b7b927e339df6d35b1d5059dc235"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcJSON STATIC SHARED IMPORTED)
 add_dependencies(libcJSON cJSON)
@@ -192,6 +193,34 @@ ExternalProject_Add(libseshat
 )
 add_library(liblibseshat STATIC SHARED IMPORTED)
 add_dependencies(liblibseshat libseshat)
+
+# libcjwt external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(cjwt
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cjwt
+    GIT_REPOSITORY https://github.com/Comcast/cjwt.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+)
+add_library(libcjwt STATIC SHARED IMPORTED)
+add_dependencies(libcjwt cjwt)
+
+if (UCLIBC)
+# libucresolv external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(ucresolv
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
+    GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+)
+add_library(libucresolv STATIC SHARED IMPORTED)
+add_dependencies(libucresolv ucresolv)
+include_directories(${INCLUDE_DIR}
+                    ${INCLUDE_DIR}/ucresolv
+					)		
+
+endif (UCLIBC)
 
 if (BUILD_TESTING)
 # cmocka external dependency
