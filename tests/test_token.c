@@ -49,6 +49,73 @@ const char *payload_no_end  = "{" \
 
 const char *txt_record_id = "aabbccddeeff.test.webpa.comcast.net";
 
+#define MAX_RR_RECS 10
+
+const char *dns_recs_test =
+	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
+	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+;
+
+const char *dns_recs_extra =
+	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
+	"\n" // non-txt record type
+	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+;
+
+char *rr_recs_test[] = {
+	"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm",
+	"X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-",
+	"ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA"
+};
+
+char *dns_jwt_test = 
+	"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm"
+	"X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-"
+	"ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA"
+;
+
+
+const char *dns_recs_fabric =
+	"\"eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJlbmRwb2ludCI6Imh0dHBzOi8vZmFicmljLndlYnBhLmNvbWNhc3QubmV0OjgwODAvIn0.24cvUmCGYqqXuSsgC7nNnle2JH-uy6Jwp5BKXADhXpc\""
+;
+
+char *rr_recs_fabric[] = {
+	"eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJlbmRwb2ludCI6Imh0dHBzOi8vZmFicmljLndlYnBhLmNvbWNhc3QubmV0OjgwODAvIn0.24cvUmCGYqqXuSsgC7nNnle2JH-uy6Jwp5BKXADhXpc"
+};
+
+const char *dns_recs_err1 = // missing seq
+	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
+	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+;
+
+const char *dns_recs_err2 = // invalid seq
+	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\"0:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
+	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+;
+
+const char *dns_recs_err3 = // invalid seq too high
+	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\"99:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
+	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+;
+
+const char *dns_recs_err4 = // duplicate seq number
+	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
+	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+;
+
+const char *dns_recs_err5 = // missing rec 1
+	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\n" // non-txt record type
+	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+;
+
 cjwt_t jwt1;	// secure, payload good
 cjwt_t jwt2;	// secure, payload good, but expired
 cjwt_t jwt3;	// insecure
@@ -62,6 +129,9 @@ extern bool valid_b64_char (char c);
 extern const char *strip_rr_data (const char *rr_ptr, int *rrlen);
 extern int find_seq_num (const char *rr_ptr, int rrlen);
 extern int get_rr_seq_num (const char *rr_ptr, int rrlen);
+extern int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_table);
+extern int assemble_jwt_from_dns (ns_msg *msg_handle, int num_rr_recs, char *jwt_ans);
+extern int query_dns(const char* dns_txt_record_id,char *jwt_ans);
 
 
 int setup_test_jwts (void)
@@ -101,7 +171,31 @@ int setup_test_jwts (void)
 	return 0;
 }
 
+static int get_dns_text (const char *dns_rec_id, u_char *nsbuf, int bufsize)
+{
+	const char *rec = NULL;
 
+	if (strstr (dns_rec_id, ".test.") != NULL)
+		rec = dns_recs_test;
+	else if (strstr (dns_rec_id, ".extra.") != NULL)
+		rec = dns_recs_extra;
+	else if (strstr (dns_rec_id, ".fabric.") != NULL)
+		rec = dns_recs_fabric;
+	else if (strstr (dns_rec_id, ".err1.") != NULL)
+		rec = dns_recs_err1;
+	else if (strstr (dns_rec_id, ".err2.") != NULL)
+		rec = dns_recs_err2;
+	else if (strstr (dns_rec_id, ".err3.") != NULL)
+		rec = dns_recs_err3;
+	else if (strstr (dns_rec_id, ".err4.") != NULL)
+		rec = dns_recs_err4;
+	else if (strstr (dns_rec_id, ".err5.") != NULL)
+		rec = dns_recs_err5;
+	else
+		return -1;
+	strncpy ((char *) nsbuf, rec, bufsize);
+	return 0;
+}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -109,17 +203,57 @@ int setup_test_jwts (void)
 
 int ns_initparse(const u_char *nsbuf, int l, ns_msg *msg_handle)
 {
-	UNUSED(nsbuf); UNUSED(l); UNUSED(msg_handle);
-	function_called ();
-	return (int) mock();
+	UNUSED(l);
+	char *buf = (char*) nsbuf;
+	char *next;
+	int i, count = 0;
+
+	msg_handle->_msg_ptr = nsbuf;
+	while (true)
+	{
+		if (buf[0] == 0)
+			break;
+		count++;
+		next = strchr (buf, '\n');
+		if (NULL == next)
+			break;
+		*next = 0;
+		buf = ++next;
+	}
+	for (i=0; i<ns_s_max; i++) {
+		if (i == ns_s_an)
+			msg_handle->_counts[i] = count;
+		else
+			msg_handle->_counts[i] = 0;
+	}
+	return 0;
 }
 
 int ns_parserr(ns_msg *msg_handle, ns_sect sect, int rec, ns_rr *rr)
 {
-	UNUSED(msg_handle); UNUSED(sect); UNUSED(rec); UNUSED(rr);
-	function_called ();
-	return (int) mock();
+	UNUSED(sect);
+	int i, l;
+	char *ptr = (char *) msg_handle->_msg_ptr;
+
+	if (rec >= msg_handle->_counts[ns_s_an]) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	for (i=0; i < rec; i++) {
+		l = strlen (ptr);
+		ptr += (l+1);
+	}
+
+	if (strlen (ptr) == 0) {
+		rr->type = ns_t_key;
+	} else {
+		rr->type = ns_t_txt;
+	}
+	rr->rdata = (u_char *) ptr;
+	return 0;
 }
+
 
 int		__res_ninit (res_state statp)
 {
@@ -131,11 +265,12 @@ int		__res_ninit (res_state statp)
 int		__res_nquery (res_state statp, const char * txt_record, 
 			int class, int type_, u_char * buf, int bufsize)
 {
-	UNUSED(statp); UNUSED(txt_record); UNUSED(class); UNUSED(type_);
-	UNUSED(buf); UNUSED(bufsize);
-
-	function_called ();
-	return (int) mock();
+	UNUSED(statp); UNUSED(class); UNUSED(type_);
+	int ret = get_dns_text (txt_record, buf, bufsize);
+	if (ret == 0)
+		return strlen ( (char*) buf); 
+	else
+		return -1;
 }
 
 void		__res_nclose (res_state statp)
@@ -181,13 +316,10 @@ void test_nquery ()
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
 
-	will_return (__res_nquery, 4096);
-	expect_function_call (__res_nquery);
-
 	expect_function_call (__res_nclose);
 
 	len = nquery (txt_record_id, nsbuf);
-	assert_int_equal (len, 4096);
+	assert_int_equal (len, strlen(dns_recs_test));
 
 	will_return (__res_ninit, -1);
 	expect_function_call (__res_ninit);
@@ -198,10 +330,7 @@ void test_nquery ()
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
 
-	will_return (__res_nquery, -1);
-	expect_function_call (__res_nquery);
-
-	len = nquery (txt_record_id, nsbuf);
+	len = nquery (".nosuch.", nsbuf);
 	assert_int_equal (len, -1);
 
 }
@@ -249,10 +378,10 @@ void test_find_seq_num ()
 	assert_int_equal (pos, 0);
 
 	pos = find_seq_num (s2, strlen(s2));
-	assert_int_equal (pos, -1);
+	assert_int_equal (pos, -2);
 
 	pos = find_seq_num (s3, strlen(s3));
-	assert_int_equal (pos, -1);
+	assert_int_equal (pos, -2);
 
 	pos = find_seq_num (s4, strlen(s4));
 	assert_int_equal (pos, 1);
@@ -288,6 +417,151 @@ void test_get_rr_seq_num ()
 	assert_int_equal (result, 11);
 }
 
+void test_get_rr_seq_table()
+{
+#define SEQ_TABLE_SIZE (MAX_RR_RECS + 1)
+	u_char nsbuf[4096];
+	ns_msg msg_handle;
+	int i, num_txt_recs, ret;
+	rr_rec_t seq_table[SEQ_TABLE_SIZE];
+
+	memset (&msg_handle, sizeof(ns_msg), 0);
+
+	ret = get_dns_text (".test.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  3);
+	num_txt_recs = get_rr_seq_table (&msg_handle, 3, seq_table);
+	assert_int_equal (num_txt_recs, 3);
+	assert_ptr_equal (seq_table[0].rr_ptr, NULL);
+	for (i=0; i<3; i++) {
+		int len = strlen (rr_recs_test[i]);
+		assert_int_equal (len, seq_table[i+1].rr_len);
+		ret = strncmp (seq_table[i+1].rr_ptr, rr_recs_test[i], len);
+		assert_int_equal (ret, 0);
+	}
+
+	ret = get_dns_text (".fabric.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  1);
+	num_txt_recs = get_rr_seq_table (&msg_handle, 1, seq_table);
+	assert_int_equal (num_txt_recs, 1);
+	assert_ptr_not_equal (seq_table[0].rr_ptr, NULL);
+	if (NULL != seq_table[0].rr_ptr) {
+		int len = strlen (rr_recs_fabric[0]);
+		assert_int_equal (len, seq_table[0].rr_len);
+		ret = strncmp (seq_table[0].rr_ptr, rr_recs_fabric[0], len);
+		assert_int_equal (ret, 0);
+	}
+
+	ret = get_dns_text (".extra.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  4);
+	num_txt_recs = get_rr_seq_table (&msg_handle, 4, seq_table);
+	assert_int_equal (num_txt_recs, 3);
+	assert_ptr_equal (seq_table[0].rr_ptr, NULL);
+	for (i=0; i<3; i++) {
+		int len = strlen (rr_recs_test[i]);
+		assert_int_equal (len, seq_table[i+1].rr_len);
+		ret = strncmp (seq_table[i+1].rr_ptr, rr_recs_test[i], len);
+		assert_int_equal (ret, 0);
+	}
+
+	ret = get_dns_text (".err1.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  3);
+	num_txt_recs = get_rr_seq_table (&msg_handle, 3, seq_table);
+	assert_int_equal (num_txt_recs, -1);
+
+	ret = get_dns_text (".err2.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  3);
+	num_txt_recs = get_rr_seq_table (&msg_handle, 3, seq_table);
+	assert_int_equal (num_txt_recs, -1);
+
+	ret = get_dns_text (".err3.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  3);
+	num_txt_recs = get_rr_seq_table (&msg_handle, 3, seq_table);
+	assert_int_equal (num_txt_recs, -1);
+
+	ret = get_dns_text (".err4.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  4);
+	num_txt_recs = get_rr_seq_table (&msg_handle, 4, seq_table);
+	assert_int_equal (num_txt_recs, -1);
+
+	ret = get_dns_text (".err5.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  3);
+	num_txt_recs = get_rr_seq_table (&msg_handle, 3, seq_table);
+	assert_int_equal (num_txt_recs, -1);
+}
+
+void test_assemble_jwt_from_dns ()
+{
+	ns_msg msg_handle;
+	u_char nsbuf[4096];
+	char jwt_token[8192];
+	int ret;
+
+	memset (&msg_handle, sizeof(ns_msg), 0);
+
+	ret = get_dns_text (".test.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  3);
+	ret = assemble_jwt_from_dns (&msg_handle, 3, jwt_token);
+	assert_int_equal (ret, 0);
+
+	ret = strcmp (dns_jwt_test, jwt_token);
+	assert_int_equal (ret, 0);
+
+	ret = get_dns_text (".err5.", nsbuf, 4096);
+	assert_int_equal (ret, 0);
+	ns_initparse (nsbuf, 4096, &msg_handle);
+	assert_int_equal (msg_handle._counts[ns_s_an],  3);
+	ret = assemble_jwt_from_dns (&msg_handle, 3, jwt_token);
+	assert_int_equal (ret, -1);
+
+}
+
+void test_query_dns ()
+{
+	int ret;
+	char jwt_buf[8192];
+
+	will_return (__res_ninit, 0);
+	expect_function_call (__res_ninit);
+
+	expect_function_call (__res_nclose);
+
+	ret = query_dns (txt_record_id, jwt_buf);
+	assert_int_equal (ret, 0);
+
+	will_return (__res_ninit, 0);
+	expect_function_call (__res_ninit);
+
+	//expect_function_call (__res_nclose);
+
+	ret = query_dns (".nosuch.", jwt_buf);
+	assert_int_equal (ret, -1);
+
+	will_return (__res_ninit, 0);
+	expect_function_call (__res_ninit);
+
+	expect_function_call (__res_nclose);
+
+	ret = query_dns (".err5.", jwt_buf);
+	assert_int_equal (ret, -1);
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -303,6 +577,9 @@ int main(void)
 				cmocka_unit_test(test_strip_rrdata),
 				cmocka_unit_test(test_find_seq_num),
 				cmocka_unit_test(test_get_rr_seq_num),
+				cmocka_unit_test(test_get_rr_seq_table),
+				cmocka_unit_test(test_assemble_jwt_from_dns),
+        cmocka_unit_test(test_query_dns),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
