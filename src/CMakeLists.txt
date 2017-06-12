@@ -11,7 +11,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
-set(SOURCES main.c networking.c lws_handlers.c ParodusInternal.c 
+set(SOURCES main.c lws_handlers.c ParodusInternal.c 
     string_helpers.c time.c config.c conn_interface.c connection.c spin_thread.c client_list.c service_alive.c upstream.c downstream.c thread_tasks.c partners_check.c)
 
 add_executable(parodus ${SOURCES})

@@ -28,7 +28,7 @@ extern bool conn_retry;
 /**
  * @brief Interface to terminate WebSocket client connections and clean up resources.
  */
-
+int parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,void *user, void *in, size_t len);
 char *get_global_reconnect_reason();
 void set_global_reconnect_reason(char *reason);
 void createLWSconnection();

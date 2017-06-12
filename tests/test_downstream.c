@@ -89,6 +89,9 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
 
 void test_listenerOnMessage()
 {
+	char * msg = "Hello";
+    char * message = (char*)malloc(sizeof(char)*strlen(msg));
+    strcpy(message,msg);
     will_return(wrp_to_struct, 1);
     expect_function_calls(wrp_to_struct, 1);
     reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
@@ -104,13 +107,15 @@ void test_listenerOnMessage()
     expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
-
-    listenerOnMessage("Hello", 6);
+    listenerOnMessage(message, strlen(message));
     free(head);
 }
 
 void test_listenerOnMessageMultipleClients()
 {
+    char * msg = "Hello";
+    char * message = (char*)malloc(sizeof(char)*strlen(msg));
+    strcpy(message,msg);
     will_return(wrp_to_struct, 1);
     expect_function_calls(wrp_to_struct, 1);
 
@@ -140,7 +145,7 @@ void test_listenerOnMessageMultipleClients()
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
 
-    listenerOnMessage("Hello", 6);
+    listenerOnMessage(message, strlen(message));
     free(head1);
     free(head2);
     free(head);
@@ -148,14 +153,20 @@ void test_listenerOnMessageMultipleClients()
 
 void err_listenerOnMessage()
 {
+    char * msg = "Hello";
+    char * message = (char*)malloc(sizeof(char)*strlen(msg));
+    strcpy(message,msg);
     will_return(wrp_to_struct, 0);
     expect_function_calls(wrp_to_struct, 1);
     
-    listenerOnMessage("Hello", 6);
+    listenerOnMessage(message, strlen(message));
 }
 
 void err_listenerOnMessageServiceUnavailable()
 {
+    char * msg = "Hello";
+    char * message = (char*)malloc(sizeof(char)*strlen(msg));
+    strcpy(message,msg);
     will_return(wrp_to_struct, 2);
     expect_function_calls(wrp_to_struct, 1);
 
@@ -167,11 +178,14 @@ void err_listenerOnMessageServiceUnavailable()
     expect_function_call(get_global_node);
     expect_function_call(sendUpstreamMsgToServer);
     
-    listenerOnMessage("Hello", 6);
+    listenerOnMessage(message, strlen(message));
 }
 
 void err_listenerOnMessageInvalidPartnerId()
 {
+    char * msg = "Hello";
+    char * message = (char*)malloc(sizeof(char)*strlen(msg));
+    strcpy(message,msg);
     will_return(wrp_to_struct, 2);
     expect_function_calls(wrp_to_struct, 1);
 
@@ -181,7 +195,7 @@ void err_listenerOnMessageInvalidPartnerId()
     expect_function_call(validate_partner_id);
     expect_function_call(sendUpstreamMsgToServer);
 
-    listenerOnMessage("Hello", 6);
+    listenerOnMessage(message, strlen(message));
 }
 
 void err_listenerOnMessageAllNull()
