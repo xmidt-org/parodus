@@ -20,6 +20,8 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 
 extern bool conn_retry;
+extern volatile unsigned int heartBeatTimer;
+extern struct lws *wsi_dumb;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */

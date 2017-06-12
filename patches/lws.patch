@@ -1,0 +1,43 @@
+diff --git a/lib/client-parser.c b/lib/client-parser.c
+index b979c62..79b25be 100644
+--- a/lib/client-parser.c
++++ b/lib/client-parser.c
+@@ -439,6 +439,7 @@ spill:
+ 
+ 			/* get it sent as soon as possible */
+ 			lws_callback_on_writable(wsi);
++			callback_action = LWS_CALLBACK_CLIENT_RECEIVE_PING;
+ ping_drop:
+ 			wsi->u.ws.rx_ubuf_head = 0;
+ 			handled = 1;
+@@ -494,7 +495,7 @@ ping_drop:
+ 		 * It's nicely buffered with the pre-padding taken care of
+ 		 * so it can be sent straight out again using lws_write
+ 		 */
+-		if (handled)
++		if (handled && callback_action != LWS_CALLBACK_CLIENT_RECEIVE_PING)
+ 			goto already_done;
+ 
+ 		eff_buf.token = &wsi->u.ws.rx_ubuf[LWS_PRE];
+@@ -533,7 +534,7 @@ utf8_fail:			lwsl_info("utf8 error\n");
+ 		}
+ 
+ 		if (eff_buf.token_len < 0 &&
+-		    callback_action != LWS_CALLBACK_CLIENT_RECEIVE_PONG)
++		    callback_action != LWS_CALLBACK_CLIENT_RECEIVE_PONG && callback_action != LWS_CALLBACK_CLIENT_RECEIVE_PING)
+ 			goto already_done;
+ 
+ 		if (!eff_buf.token)
+diff --git a/lib/libwebsockets.h b/lib/libwebsockets.h
+index 185a569..56b7693 100644
+--- a/lib/libwebsockets.h
++++ b/lib/libwebsockets.h
+@@ -1186,6 +1186,8 @@ enum lws_callback_reasons {
+ 	/**< RAW mode file is writeable */
+ 	LWS_CALLBACK_RAW_CLOSE_FILE				= 66,
+ 	/**< RAW mode wsi that adopted a file is closing */
++	LWS_CALLBACK_CLIENT_RECEIVE_PING			=  67,
++	/**< clients receive PING packets with this callback reason */
+ 
+ 	/****** add new things just above ---^ ******/
+ 
