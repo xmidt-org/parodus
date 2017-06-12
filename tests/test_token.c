@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <cjwt/cjwt.h>
 
+#include "../src/token.h"
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
 #include "../src/config.h"
@@ -132,6 +133,7 @@ extern int get_rr_seq_num (const char *rr_ptr, int rrlen);
 extern int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_table);
 extern int assemble_jwt_from_dns (ns_msg *msg_handle, int num_rr_recs, char *jwt_ans);
 extern int query_dns(const char* dns_txt_record_id,char *jwt_ans);
+extern void read_key_from_file (const char *fname, char *buf, size_t buflen);
 
 
 int setup_test_jwts (void)
@@ -286,11 +288,11 @@ void test_analyze_jwt ()
 	ret = analyze_jwt (&jwt1);
 	assert_int_equal (ret, 0);
 	ret = analyze_jwt (&jwt2);
-	assert_int_equal (ret, -1);
+	assert_int_equal (ret, TOKEN_ERR_JWT_EXPIRED);
 	ret = analyze_jwt (&jwt3);
 	assert_int_equal (ret, 1);
 	ret = analyze_jwt (&jwt4);
-	assert_int_equal (ret, -1);
+	assert_int_equal (ret, TOKEN_ERR_INVALID_JWT_CONTENT);
 
 }
 
@@ -425,7 +427,7 @@ void test_get_rr_seq_table()
 	int i, num_txt_recs, ret;
 	rr_rec_t seq_table[SEQ_TABLE_SIZE];
 
-	memset (&msg_handle, sizeof(ns_msg), 0);
+	memset (&msg_handle, 0, sizeof(ns_msg));
 
 	ret = get_dns_text (".test.", nsbuf, 4096);
 	assert_int_equal (ret, 0);
@@ -512,7 +514,7 @@ void test_assemble_jwt_from_dns ()
 	char jwt_token[8192];
 	int ret;
 
-	memset (&msg_handle, sizeof(ns_msg), 0);
+	memset (&msg_handle, 0, sizeof(ns_msg));
 
 	ret = get_dns_text (".test.", nsbuf, 4096);
 	assert_int_equal (ret, 0);
@@ -540,7 +542,6 @@ void test_query_dns ()
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
-
 	expect_function_call (__res_nclose);
 
 	ret = query_dns (txt_record_id, jwt_buf);
@@ -548,7 +549,6 @@ void test_query_dns ()
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
-
 	//expect_function_call (__res_nclose);
 
 	ret = query_dns (".nosuch.", jwt_buf);
@@ -556,11 +556,39 @@ void test_query_dns ()
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
-
 	expect_function_call (__res_nclose);
 
 	ret = query_dns (".err5.", jwt_buf);
 	assert_int_equal (ret, -1);
+}
+
+void test_allow_insecure_conn ()
+{
+	int insecure;
+	ParodusCfg *cfg = get_parodus_cfg();
+
+	strcpy (cfg->hw_mac, "aabbccddeeff");
+	strcpy (cfg->dns_id, "test");
+	cfg->jwt_algo = (1<<alg_none) | (1<<alg_rs256);
+	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
+
+	will_return (__res_ninit, 0);
+	expect_function_call (__res_ninit);
+	expect_function_call (__res_nclose);
+
+	insecure = allow_insecure_conn ();
+	assert_int_equal (insecure, 0);
+
+	strcpy (cfg->hw_mac, "aabbccddeeff");
+	strcpy (cfg->dns_id, "err5");
+
+	will_return (__res_ninit, 0);
+	expect_function_call (__res_ninit);
+	expect_function_call (__res_nclose);
+
+	insecure = allow_insecure_conn ();
+	assert_int_equal (insecure, TOKEN_ERR_QUERY_DNS_FAIL);
+
 }
 
 /*----------------------------------------------------------------------------*/
@@ -580,6 +608,7 @@ int main(void)
 				cmocka_unit_test(test_get_rr_seq_table),
 				cmocka_unit_test(test_assemble_jwt_from_dns),
         cmocka_unit_test(test_query_dns),
+        cmocka_unit_test(test_allow_insecure_conn),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

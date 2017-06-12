@@ -26,6 +26,7 @@
 #include <time.h>
 
 #include <cjwt/cjwt.h>
+#include "token.h"
 #include "config.h"
 #include "parodus_log.h"
 #include "ParodusInternal.h"
@@ -83,7 +84,7 @@ static void show_times (time_t exp_time, time_t cur_time)
 		(int)exp_time, exp_buf+4, (int)cur_time, cur_buf+4);
 }
 
-// returns 1 if insecure, 0 if secure, -1 if error
+// returns 1 if insecure, 0 if secure, < 0 if error
 int analyze_jwt (const cjwt_t *jwt)
 {
 	cJSON *claims = jwt->private_claims;
@@ -93,13 +94,13 @@ int analyze_jwt (const cjwt_t *jwt)
 
 	if (!claims) {
 		ParodusError ("Private claims not found in jwt\n");
-		return -1;
+		return TOKEN_ERR_INVALID_JWT_CONTENT;
 	}
 
 	endpoint = cJSON_GetObjectItem(claims, ENDPOINT_NAME);
 	if (!endpoint) {
 		ParodusError ("Endpoint claim not found in jwt\n");
-		return -1;
+		return TOKEN_ERR_INVALID_JWT_CONTENT;
 	}
 
 	http_match = strncmp(endpoint->valuestring,"http:",5);
@@ -112,7 +113,7 @@ int analyze_jwt (const cjwt_t *jwt)
 		show_times (exp_time, cur_time);
 		if (exp_time < cur_time) {
 			ParodusError ("JWT has expired\n");
-			return -1;
+			return TOKEN_ERR_JWT_EXPIRED;
 		}
 	}
 
@@ -386,7 +387,7 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 	nsbuf = malloc (NS_MAXBUF);
 	if (NULL == nsbuf) {
 		ParodusError ("Unable to allocate nsbuf in query_dns\n");
-		return -1;
+		return TOKEN_ERR_MEMORY_FAIL;
 	}
 	l = nquery(dns_txt_record_id,nsbuf);
 	if (l < 0) {
@@ -432,7 +433,7 @@ int allow_insecure_conn(void)
 	jwt_token = malloc (NS_MAXBUF);
 	if (NULL == jwt_token) {
 		ParodusError ("Unable to allocate jwt_token in allow_insecure_conn\n");
-		insecure = -1;
+		insecure = TOKEN_ERR_MEMORY_FAIL;
 		goto end;
 	}
 
@@ -441,7 +442,10 @@ int allow_insecure_conn(void)
 	//Querying dns for jwt token
 	ret = query_dns(dns_txt_record_id, jwt_token);
 	if(ret){
-		insecure = -1;
+		if (ret == TOKEN_ERR_MEMORY_FAIL)
+			insecure = ret;
+		else
+			insecure = TOKEN_ERR_QUERY_DNS_FAIL;
 		goto end;
 	}
 	
@@ -454,16 +458,19 @@ int allow_insecure_conn(void)
 			ParodusError ("Memory allocation failed in JWT decode\n");
 		else
 			ParodusError ("CJWT decode error\n");
-		insecure = -1;
+		insecure = TOKEN_ERR_JWT_DECODE_FAIL;
 		goto end;
-	}else{
-		ParodusPrint("Decoded CJWT successfully\n");
-
-		//validate algo from --jwt_algo
-		if( validate_algo(jwt) ){
-			insecure = analyze_jwt (jwt);
-		}
 	}
+
+	ParodusPrint("Decoded CJWT successfully\n");
+
+	//validate algo from --jwt_algo
+	if( validate_algo(jwt) ) {
+		insecure = analyze_jwt (jwt);
+	} else {
+		insecure = TOKEN_ERR_ALGO_NOT_ALLOWED;
+	}
+
 	cjwt_destroy(&jwt);
 	
 end:
