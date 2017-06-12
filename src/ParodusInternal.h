@@ -56,6 +56,12 @@ typedef struct ParodusMsg__
 	struct ParodusMsg__ *next;
 } ParodusMsg;
 
+// Used in token.c to get jwt from dns server
+typedef struct {
+	const char *rr_ptr;
+	int rr_len;
+} rr_rec_t;
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/

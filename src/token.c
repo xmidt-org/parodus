@@ -28,6 +28,7 @@
 #include <cjwt/cjwt.h>
 #include "config.h"
 #include "parodus_log.h"
+#include "ParodusInternal.h"
 
 #define JWT_MAXBUF	8192
 
@@ -45,11 +46,6 @@
 
 #define MAX_RR_RECS 10
 #define SEQ_TABLE_SIZE (MAX_RR_RECS + 1)
-
-typedef struct {
-	const char *rr_ptr;
-	int rr_len;
-} rr_rec_t;
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -160,8 +156,10 @@ int nquery(const char* dns_txt_record_id,u_char *nsbuf)
 		memset (nsbuf, 0, NS_MAXBUF);
 		len = res_nquery(&statp, dns_txt_record_id, ns_c_any, ns_t_txt, nsbuf, NS_MAXBUF);
     if (len < 0) {
-				const char *msg = hstrerror (statp.res_h_errno);
-        ParodusError ("Error in res_nquery: %s\n", msg);
+				if (0 != statp.res_h_errno) {
+					const char *msg = hstrerror (statp.res_h_errno);
+        	ParodusError ("Error in res_nquery: %s\n", msg);
+				}
         return len;
     }
     res_nclose (&statp);
@@ -220,7 +218,7 @@ const char *strip_rr_data (const char *rr_ptr, int *rrlen)
 }
 
 // return offset to seq number in record
-// return -1 if not found
+// return -1 if not found, -2 if invalid fmt
 int find_seq_num (const char *rr_ptr, int rrlen)
 {
 	char c;
@@ -234,7 +232,7 @@ int find_seq_num (const char *rr_ptr, int rrlen)
 			if (digit_ct >= 2)
 				return i - 2;
 			else
-				return -1;
+				return -2;
 		}
 		if (is_digit (c))
 			digit_ct++;
@@ -269,7 +267,7 @@ int get_rr_seq_num (const char *rr_ptr, int rrlen)
 
 // scan rr recs and build seq table using seq numbers in the recs
 // return num_txt_recs
-static int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_table)
+int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_table)
 {
 	ns_rr rr;
 	const char *rr_ptr;
@@ -300,10 +298,13 @@ static int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_
     	continue;
 		++num_txt_recs;
     rr_ptr = (const char *)ns_rr_rdata(rr);
-		ParodusPrint ("Found rr rec: %s\n", rr_ptr);
+		ParodusPrint ("Found rr rec type %d: %s\n", ns_t_txt, rr_ptr);
 		rr_ptr = strip_rr_data (rr_ptr, &rrlen);		
-		ParodusPrint ("Stripped rr rec: %s\n", rr_ptr);
 		seq_pos = find_seq_num (rr_ptr, rrlen);
+		if (seq_pos == -2) {
+			ParodusError ("Invalid seq number in rr record %d\n", i);
+			return -1;
+		}
 		if (seq_pos < 0) {
 			seq_num = 0;
 		} else {
@@ -355,7 +356,7 @@ static int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_
 	return num_txt_recs;
 }
 
-static int assemble_jwt_from_dns (ns_msg *msg_handle, int num_rr_recs, char *jwt_ans)
+int assemble_jwt_from_dns (ns_msg *msg_handle, int num_rr_recs, char *jwt_ans)
 {
 	// slot 0 in the seq table is for the sequence-less record that
 	// you get when there is only one record.
@@ -372,7 +373,7 @@ static int assemble_jwt_from_dns (ns_msg *msg_handle, int num_rr_recs, char *jwt
 	return 0;
 }
 
-static int query_dns(const char* dns_txt_record_id,char *jwt_ans)
+int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 {
 	u_char *nsbuf;
 	ns_msg msg_handle;
