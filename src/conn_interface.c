@@ -39,7 +39,11 @@ pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
+#if BUILD_YOCTO
 static bool __registerWithSeshat(void);
+#else
+bool __registerWithSeshat(void);
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -140,7 +144,11 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
  *
  * @return true when registered, false otherwise.
  */
+#if BUILD_YOCTO
 static bool __registerWithSeshat()
+#else
+bool __registerWithSeshat()
+#endif
 {
     char *seshat_url = get_parodus_cfg()->seshat_url;
     char *parodus_url = get_parodus_cfg()->local_url;
