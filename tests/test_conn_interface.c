@@ -35,6 +35,7 @@ UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
 extern bool close_retry;
 extern volatile unsigned int heartBeatTimer;
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -150,6 +151,7 @@ void initKeypress()
 {
     function_called();
 }
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -220,8 +222,7 @@ void test_createSocketConnection1()
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(&cfg,NULL);
-    
+    createSocketConnection(&cfg,NULL);    
 }
 
 void test_createSocketConnection2()
