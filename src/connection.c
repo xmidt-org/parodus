@@ -26,7 +26,7 @@
 char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
 static struct lws_context *g_context;
-static struct lws *wsi_dumb;
+struct lws *wsi_dumb;
 pthread_mutex_t res_mutex ;
 
 bool conn_retry = true;
@@ -171,6 +171,11 @@ int parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,void *use
                    
 	    lws_callback_on_writable(wsi);
 		break;
+
+	case LWS_CALLBACK_CLIENT_RECEIVE_PING:
+	    ParodusInfo("Resetting HeartBeat Timer\n");
+	    heartBeatTimer = 0;
+	    break;
 
 	case LWS_CALLBACK_CLIENT_APPEND_HANDSHAKE_HEADER:
 	    //Call back to send custom header to server

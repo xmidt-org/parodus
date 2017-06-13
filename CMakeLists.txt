@@ -67,10 +67,12 @@ add_dependencies(libtrower-base64 trower-base64)
 
 # libwebsocket external dependency
 #-------------------------------------------------------------------------------
+set(PATCHES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/patches)
 ExternalProject_Add(lws
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/lws
     GIT_REPOSITORY https://github.com/warmcat/libwebsockets.git
     GIT_TAG "ed92b6dfe75ad65a78dadfa4dc96da4568d95d69"
+    PATCH_COMMAND patch -p1 < ${PATCHES_DIR}/lws.patch
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                    -DCMAKE_BUILD_TYPE=DEBUG
 )

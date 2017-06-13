@@ -33,6 +33,7 @@
 UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
 bool conn_retry;
+struct lws *wsi_dumb;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -122,12 +123,15 @@ void test_createLWSsocket()
     
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     expect_function_call(initKeypress);
     will_return(get_global_context, NULL);
     expect_function_call(get_global_context);
     will_return(lws_service, 1);
     expect_function_call(lws_service);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    expect_function_call(lws_context_destroy);
     expect_function_call(createLWSconnection);
     will_return(get_global_context, NULL);
     expect_function_call(get_global_context);
@@ -145,11 +149,14 @@ void test_createLWSsocket1()
     
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(get_global_context, NULL);
     expect_function_call(get_global_context);
     will_return(lws_service, 1);
     expect_function_call(lws_service);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    expect_function_call(lws_context_destroy);
     expect_function_call(createLWSconnection);
     will_return(get_global_context, NULL);
     expect_function_call(get_global_context);
@@ -179,11 +186,14 @@ void test_createLWSsocket2()
     
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(get_global_context, NULL);
     expect_function_call(get_global_context);
     will_return(lws_service, 1);
     expect_function_call(lws_service);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    expect_function_call(lws_context_destroy);
     expect_function_call(createLWSconnection);
     will_return(get_global_context, NULL);
     expect_function_call(get_global_context);
@@ -198,11 +208,14 @@ void err_createLWSsocket()
     
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(get_global_context, NULL);
     expect_function_call(get_global_context);
     will_return(lws_service, 1);
     expect_function_call(lws_service);
+    will_return(get_global_context, NULL);
+    expect_function_call(get_global_context);
+    expect_function_call(lws_context_destroy);
     expect_function_call(createLWSconnection);
     will_return(get_global_context, NULL);
     expect_function_call(get_global_context);
