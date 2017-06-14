@@ -8,6 +8,7 @@
  
 #include "connection.h"
 #include "time.h"
+#include "token.h"
 #include "config.h"
 #include "nopoll_helpers.h"
 #include "mutex.h"
@@ -30,8 +31,6 @@ static noPollConn *g_conn = NULL;
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-extern bool allow_insecure_conn(); 
-
 noPollConn *get_global_conn(void)
 {
     return g_conn;
