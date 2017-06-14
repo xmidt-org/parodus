@@ -442,10 +442,11 @@ int allow_insecure_conn(void)
 	//Querying dns for jwt token
 	ret = query_dns(dns_txt_record_id, jwt_token);
 	if(ret){
-		if (ret == TOKEN_ERR_MEMORY_FAIL)
+		if (ret == TOKEN_ERR_MEMORY_FAIL) {
 			insecure = ret;
-		else
+		} else {
 			insecure = TOKEN_ERR_QUERY_DNS_FAIL;
+		}
 		goto end;
 	}
 	
@@ -454,10 +455,11 @@ int allow_insecure_conn(void)
 	ret = cjwt_decode( jwt_token, 0, &jwt, ( const uint8_t * )key,strlen(key) );
 
 	if(ret) {
-		if (ret == ENOMEM)
+		if (ret == ENOMEM) {
 			ParodusError ("Memory allocation failed in JWT decode\n");
-		else
+		} else {
 			ParodusError ("CJWT decode error\n");
+		}
 		insecure = TOKEN_ERR_JWT_DECODE_FAIL;
 		goto end;
 	}
