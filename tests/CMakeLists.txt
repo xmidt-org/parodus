@@ -203,6 +203,29 @@ add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
 add_executable(test_token test_token.c ../src/token.c ../src/string_helpers.c ../src/config.c) 
 target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
 
+#-------------------------------------------------------------------------------
+#   test_conn_interface - registerWithSeshat
+#-------------------------------------------------------------------------------
+add_test(NAME test_conn_interface-rws COMMAND ${MEMORY_CHECK} ./test_conn_interface-rws)
+add_executable(test_conn_interface-rws test_conn_interface-rws.c
+                    ../src/string_helpers.c
+                    ../src/mutex.c
+                    ../src/time.c
+                    ../src/spin_thread.c
+                    ../src/upstream.c
+                    ../src/conn_interface.c
+                    ../src/thread_tasks.c
+                    ../src/downstream.c
+                    ../src/networking.c
+                    ../src/nopoll_helpers.c
+                    ../src/nopoll_handlers.c
+                    ../src/connection.c
+                    ../src/ParodusInternal.c
+                    ../src/client_list.c
+                    ../src/partners_check.c
+                    ../src/service_alive.c)
+target_link_libraries (test_conn_interface-rws -lcmocka -lwrp-c ${PARODUS_COMMON_LIBS})
+
 if (INTEGRATION_TESTING)
 #-------------------------------------------------------------------------------
 #   simple_connection test

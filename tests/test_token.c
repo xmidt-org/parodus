@@ -425,7 +425,7 @@ void test_get_rr_seq_table()
 	int i, num_txt_recs, ret;
 	rr_rec_t seq_table[SEQ_TABLE_SIZE];
 
-	memset (&msg_handle, sizeof(ns_msg), 0);
+	memset (&msg_handle, 0, sizeof(ns_msg));
 
 	ret = get_dns_text (".test.", nsbuf, 4096);
 	assert_int_equal (ret, 0);
@@ -512,7 +512,7 @@ void test_assemble_jwt_from_dns ()
 	char jwt_token[8192];
 	int ret;
 
-	memset (&msg_handle, sizeof(ns_msg), 0);
+	memset (&msg_handle, 0, sizeof(ns_msg));
 
 	ret = get_dns_text (".test.", nsbuf, 4096);
 	assert_int_equal (ret, 0);
