@@ -17,7 +17,7 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
-#define MAX_PAYLOAD                                     1024
+#define MAX_PAYLOAD                                     102400
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -258,6 +258,7 @@ void createLWSconnection()
 	info.protocols = protocols;
 	info.gid = -1;
 	info.uid = -1;
+	info.iface = get_parodus_cfg()->webpa_interface_used;
 	lws_set_log_level(LLL_INFO | LLL_NOTICE | LLL_WARN | LLL_LATENCY | LLL_CLIENT | LLL_COUNT,lwsl_emit_syslog);
 
 	info.options |= LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
