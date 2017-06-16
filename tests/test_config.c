@@ -28,6 +28,9 @@
 
 #define K_argc 15
 
+extern const char *get_tok (const char *src, int delim, char *result, int resultsize);
+extern unsigned int get_algo_mask (const char *algo_str);
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -35,6 +38,40 @@
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
+void test_get_tok()
+{
+	const char *str0 = "";
+	const char *str1 = "none";
+	const char *str2 = "none:rs256";
+	char result[20];
+	const char *next;
+
+	next = get_tok (str0, ':', result, 20);
+	assert_ptr_equal (next, NULL);
+	assert_int_equal ((int) result[0], 0);
+
+	next = get_tok (str1, ':', result, 20);
+	assert_string_equal (result, "none");
+	assert_ptr_equal (next, NULL);
+
+	next = get_tok (str2, ':', result, 20);
+	assert_string_equal (result, "none");
+	next = get_tok (next, ':', result, 20);
+	assert_string_equal (result, "rs256");
+	assert_ptr_equal (next, NULL);
+}
+
+void test_get_algo_mask ()
+{
+	unsigned mask;
+
+	mask = get_algo_mask ("none");
+	assert_int_equal ((int) mask, 1);
+
+	mask = get_algo_mask ("none:rs256");
+	assert_int_equal ((int) mask, 1025);
+}
+
 void test_setParodusConfig()
 {
     ParodusCfg cfg;
@@ -233,6 +270,8 @@ int main(void)
         cmocka_unit_test(test_loadParodusCfg),
         cmocka_unit_test(test_loadParodusCfgNull),
         cmocka_unit_test(err_loadParodusCfg),
+        cmocka_unit_test(test_get_tok),
+        cmocka_unit_test(test_get_algo_mask),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
