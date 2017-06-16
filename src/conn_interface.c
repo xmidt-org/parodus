@@ -67,7 +67,7 @@ void createLWSsocket(void *config_in, void (* initKeypress)())
     
     do
     {
-        lws_service(get_global_context(), 500);
+        lws_service(get_global_context(), 50);
         if(conn_retry)
         {
             wsi_dumb = NULL;
