@@ -29,10 +29,10 @@ index b979c62..79b25be 100644
  
  		if (!eff_buf.token)
 diff --git a/lib/libwebsockets.h b/lib/libwebsockets.h
-index 185a569..56b7693 100644
+index 23d6588..2081b0a 100644
 --- a/lib/libwebsockets.h
 +++ b/lib/libwebsockets.h
-@@ -1186,6 +1186,8 @@ enum lws_callback_reasons {
+@@ -1235,6 +1235,8 @@ enum lws_callback_reasons {
  	/**< RAW mode file is writeable */
  	LWS_CALLBACK_RAW_CLOSE_FILE				= 66,
  	/**< RAW mode wsi that adopted a file is closing */
@@ -41,3 +41,17 @@ index 185a569..56b7693 100644
  
  	/****** add new things just above ---^ ******/
  
+diff --git a/lib/ssl.c b/lib/ssl.c
+index 651757f..d928afc 100644
+--- a/lib/ssl.c
++++ b/lib/ssl.c
+@@ -378,6 +378,9 @@ lws_ssl_capable_read(struct lws *wsi, unsigned char *buf, int len)
+ 	lwsl_debug("%p: SSL_read says %d\n", wsi, n);
+ 	/* manpage: returning 0 means connection shut down */
+ 	if (!n) {
++		/* Setting close reason for SSL socket close from server */
++		wsi->vhost->protocols->callback(wsi, LWS_CALLBACK_WS_PEER_INITIATED_CLOSE,
++                                              wsi->user_space, "SSL_Socket_Close", 16 );
+ 		n = lws_ssl_get_error(wsi, n);
+ 		lwsl_debug("%p: ssl err %d errno %d\n", wsi, n, errno);
+ 		if (n == SSL_ERROR_ZERO_RETURN)
