@@ -105,7 +105,7 @@ static bool __registerWithSeshat()
             ParodusInfo("seshatlib registered! (url %s)\n", parodus_url);
 
             discover_url = seshat_discover(SESHAT_SERVICE_NAME);
-            if( 0 == strcmp(parodus_url, discover_url) ) {
+            if( (NULL != discover_url) && (0 == strcmp(parodus_url, discover_url)) ) {
                 ParodusInfo("seshatlib discovered url = %s\n", discover_url);
                 rv = true;
             } else {

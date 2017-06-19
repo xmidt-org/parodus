@@ -84,6 +84,12 @@ int parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,void *use
 
 	case LWS_CALLBACK_CLOSED:
 		ParodusInfo("Callback closed, websocket session ends \n");
+		if(!LastReasonStatus)
+    		{
+    			ParodusInfo("Setting reconnect reason as Unknown\n");
+        		set_global_reconnect_reason("Unknown");
+    		}
+
 		wsi_dumb = NULL;
 		conn_retry = true;
 		break;
@@ -136,6 +142,18 @@ int parodus_callback(struct lws *wsi, enum lws_callback_reasons reason,void *use
 		wsi_dumb = NULL;
 		conn_retry = true;
 		break;
+		
+	case LWS_CALLBACK_WS_PEER_INITIATED_CLOSE:
+                 ParodusInfo("Received server socket close\n");
+                
+                 if( (NULL != (char *)in) && (0 == strcmp((char *)in, "SSL_Socket_Close")) ) 
+                 {            
+                	ParodusInfo("Last close reason received is %s\n", (char *)in);
+                	set_global_reconnect_reason("Server_closed_connection");
+        		LastReasonStatus = true;
+        	 }
+        
+                break;
 
 	case LWS_CALLBACK_CLIENT_WRITEABLE:
 		// Call back to send response to server
