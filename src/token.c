@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
+#ifdef UCLIBC
+#include <ucresolv/ucresolv.h>
+#endif
 #include <netinet/in.h>
 #include <resolv.h>
 //#include <res_update.h>
