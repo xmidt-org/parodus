@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
-#ifdef UCLIBC
+#ifdef __UCLIBC__
 #include <ucresolv/ucresolv.h>
 #endif
 #include <netinet/in.h>
