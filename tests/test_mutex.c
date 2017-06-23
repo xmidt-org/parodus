@@ -17,6 +17,9 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmocka.h>
 
 #include <CUnit/Basic.h>
 
@@ -31,8 +34,17 @@ struct shared_data {
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-/* none */
+int pthread_mutex_init(pthread_mutex_t *restrict mutex, const pthread_mutexattr_t *restrict attr)
+{
+    UNUSED(attr); UNUSED(mutex);
+    return (int)mock();
+}
 
+int pthread_mutex_destroy(pthread_mutex_t *mutex)
+{
+    UNUSED(mutex);
+    return (int)mock();
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -72,6 +84,7 @@ void test_Mutex()
     pthread_t thread[2];
 
     data.number = 0;
+    will_return(pthread_mutex_init, 0);
     data.mutex = createMutex();
 
     pthread_create(&thread[0], NULL, a, (void*)(&data));
@@ -80,44 +93,40 @@ void test_Mutex()
     pthread_join(thread[0], NULL);
     pthread_join(thread[1], NULL);
 
+    will_return(pthread_mutex_destroy, 0);
     destroyMutex(data.mutex);
-
-    CU_ASSERT(33 == data.number);
+    assert_int_equal(33, data.number);
 }
 
-void add_suites( CU_pSuite *suite )
+void err_mutex()
 {
-    ParodusInfo("--------Start of Test Cases Execution ---------\n");
-    *suite = CU_add_suite( "tests", NULL, NULL );
-    CU_add_test( *suite, "Test checkHostIp()", test_Mutex );
+    static pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+    noPollPtr mutex = &mtx;
+
+    will_return(pthread_mutex_destroy, -1);
+    destroyMutex(mutex);
+
+    will_return(pthread_mutex_init, -1);
+    mutex = createMutex();
 }
 
-
-
+void err_mutexNull()
+{
+    lockMutex(NULL);
+    unlockMutex(NULL);
+    destroyMutex(NULL);
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 int main( void )
 {
-    unsigned rv = 1;
-    CU_pSuite suite = NULL;
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_Mutex),
+        cmocka_unit_test(err_mutex),
+        cmocka_unit_test(err_mutexNull),
+    };
 
-    if( CUE_SUCCESS == CU_initialize_registry() ) {
-        add_suites( &suite );
-
-        if( NULL != suite ) {
-            CU_basic_set_mode( CU_BRM_VERBOSE );
-            CU_basic_run_tests();
-            ParodusPrint( "\n" );
-            CU_basic_show_failures( CU_get_failure_list() );
-            ParodusPrint( "\n\n" );
-            rv = CU_get_number_of_tests_failed();
-        }
-
-        CU_cleanup_registry();
-
-    }
-
-    return rv;
+    return cmocka_run_group_tests(tests, NULL, NULL);
 }

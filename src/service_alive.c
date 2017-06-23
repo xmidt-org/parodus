@@ -82,7 +82,7 @@ void *serviceAliveTask()
 	            	else
 	            	{
 	            		ParodusInfo("No clients are registered, waiting ..\n");
-	            		sleep(70);
+	            		sleep(50);
 	            	}
 	        }
 	}

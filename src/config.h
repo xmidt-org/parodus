@@ -32,6 +32,7 @@ extern "C" {
 #define WEBPA_URL                                       "webpa-url"
 #define WEBPA_PING_TIMEOUT                              "webpa-ping-timeout"
 #define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
+#define PARTNER_ID                                      "partner-id"
 
 #define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
 #define WEBPA_PATH_URL                                    "/api/v2/device"

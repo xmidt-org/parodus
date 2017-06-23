@@ -23,8 +23,8 @@
 #include <cmocka.h>
 
 #include "../src/downstream.h"
-#include "../src/config.h"
 #include "../src/ParodusInternal.h"
+#include "../src/partners_check.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -50,13 +50,7 @@ int get_numOfClients()
 reg_list_item_t * get_global_node(void)
 {
     function_called();
-    return (reg_list_item_t *) mock();
-}
-
-ParodusCfg *get_parodus_cfg(void)
-{
-    function_called();
-    return (ParodusCfg*) mock();
+    return mock_ptr_type(reg_list_item_t *);
 }
 
 ssize_t wrp_to_struct( const void *bytes, const size_t length,
@@ -82,6 +76,13 @@ int nn_send (int s, const void *buf, size_t len, int flags)
     function_called();
     return (int) mock();
 }
+
+int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
+{
+    UNUSED(msg); UNUSED(partnerIds);
+    function_called();
+    return (int) mock();
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -94,15 +95,12 @@ void test_listenerOnMessage()
     memset(head, 0, sizeof(reg_list_item_t));
     strcpy(head->service_name, "iot");
     strcpy(head->url, "tcp://10.0.0.1:6600");
-    ParodusCfg cfg;
-    memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
 
     will_return(get_numOfClients, 1);
     expect_function_call(get_numOfClients);
-    will_return(get_parodus_cfg, &cfg);
-    expect_function_call(get_parodus_cfg);
-    will_return(get_global_node, head);
+    will_return(validate_partner_id, 1);
+    expect_function_call(validate_partner_id);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
@@ -115,10 +113,6 @@ void test_listenerOnMessageMultipleClients()
 {
     will_return(wrp_to_struct, 1);
     expect_function_calls(wrp_to_struct, 1);
-    
-    ParodusCfg cfg;
-    memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
 
     reg_list_item_t *head2 = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head2, 0, sizeof(reg_list_item_t));
@@ -139,9 +133,9 @@ void test_listenerOnMessageMultipleClients()
     
     will_return(get_numOfClients, 3);
     expect_function_call(get_numOfClients);
-    will_return(get_parodus_cfg, &cfg);
-    expect_function_call(get_parodus_cfg);
-    will_return(get_global_node, head);
+    will_return(validate_partner_id, 0);
+    expect_function_call(validate_partner_id);
+    will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
     will_return(nn_send, 20);
     expect_function_calls(nn_send, 1);
@@ -164,16 +158,12 @@ void err_listenerOnMessageServiceUnavailable()
 {
     will_return(wrp_to_struct, 2);
     expect_function_calls(wrp_to_struct, 1);
-    
-    ParodusCfg cfg;
-    memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
 
     will_return(get_numOfClients, 0);
     expect_function_call(get_numOfClients);
-    will_return(get_parodus_cfg, &cfg);
-    expect_function_call(get_parodus_cfg);
-    will_return(get_global_node, NULL);
+    will_return(validate_partner_id, 0);
+    expect_function_call(validate_partner_id);
+    will_return(get_global_node, (intptr_t)NULL);
     expect_function_call(get_global_node);
     expect_function_call(sendUpstreamMsgToServer);
     
@@ -185,13 +175,10 @@ void err_listenerOnMessageInvalidPartnerId()
     will_return(wrp_to_struct, 2);
     expect_function_calls(wrp_to_struct, 1);
 
-    ParodusCfg cfg;
-    memset(&cfg, 0, sizeof(ParodusCfg));
-
     will_return(get_numOfClients, 0);
     expect_function_call(get_numOfClients);
-    will_return(get_parodus_cfg, &cfg);
-    expect_function_call(get_parodus_cfg);
+    will_return(validate_partner_id, -1);
+    expect_function_call(validate_partner_id);
     expect_function_call(sendUpstreamMsgToServer);
 
     listenerOnMessage("Hello", 6);

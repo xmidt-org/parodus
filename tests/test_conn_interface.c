@@ -126,7 +126,7 @@ void nopoll_ctx_unref(noPollCtx * ctx)
 noPollConn *get_global_conn(void)
 {
     function_called();
-    return (noPollConn *) mock();
+    return (noPollConn *) (intptr_t)mock();
 }
 
 void set_global_conn(noPollConn *conn)
@@ -144,7 +144,7 @@ void StartThread(void *(*start_routine) (void *))
 noPollCtx* nopoll_ctx_new(void)
 {
     function_called();
-    return (noPollCtx*) mock();
+    return (noPollCtx*) (intptr_t)mock();
 }
 void initKeypress()
 {
@@ -163,7 +163,7 @@ void test_createSocketConnection()
     close_retry = false;
     expect_function_call(nopoll_thread_handlers);
     
-    will_return(nopoll_ctx_new, &ctx);
+    will_return(nopoll_ctx_new, (intptr_t)&ctx);
     expect_function_call(nopoll_ctx_new);
     expect_function_call(nopoll_log_set_handler);
     will_return(createNopollConnection, nopoll_true);
@@ -176,13 +176,13 @@ void test_createSocketConnection()
     expect_function_call(nopoll_loop_wait);
     
     expect_function_call(set_global_reconnect_reason);
-    will_return(get_global_conn, NULL);
+    will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(set_global_conn);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    will_return(get_global_conn, NULL);
+    will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
@@ -198,7 +198,7 @@ void test_createSocketConnection1()
     close_retry = true;
     expect_function_call(nopoll_thread_handlers);
     
-    will_return(nopoll_ctx_new, &ctx);
+    will_return(nopoll_ctx_new, (intptr_t)&ctx);
     expect_function_call(nopoll_ctx_new);
     expect_function_call(nopoll_log_set_handler);
     will_return(createNopollConnection, nopoll_true);
@@ -209,13 +209,13 @@ void test_createSocketConnection1()
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
-    will_return(get_global_conn, NULL);
+    will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(set_global_conn);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    will_return(get_global_conn, NULL);
+    will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
@@ -245,7 +245,7 @@ void test_createSocketConnection2()
     close_retry = false;
     expect_function_call(nopoll_thread_handlers);
     
-    will_return(nopoll_ctx_new, &ctx);
+    will_return(nopoll_ctx_new, (intptr_t)&ctx);
     expect_function_call(nopoll_ctx_new);
     expect_function_call(nopoll_log_set_handler);
     will_return(createNopollConnection, nopoll_true);
@@ -263,13 +263,13 @@ void test_createSocketConnection2()
     expect_function_calls(nopoll_loop_wait, 7);
     
     expect_function_call(set_global_reconnect_reason);
-    will_return(get_global_conn, NULL);
+    will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(set_global_conn);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    will_return(get_global_conn, NULL);
+    will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
@@ -283,7 +283,7 @@ void err_createSocketConnection()
     heartBeatTimer = 0;
     expect_function_call(nopoll_thread_handlers);
     
-    will_return(nopoll_ctx_new, NULL);
+    will_return(nopoll_ctx_new, (intptr_t)NULL);
     expect_function_call(nopoll_ctx_new);
     expect_function_call(nopoll_log_set_handler);
     will_return(createNopollConnection, nopoll_true);
@@ -294,13 +294,13 @@ void err_createSocketConnection()
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
-    will_return(get_global_conn, NULL);
+    will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(set_global_conn);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    will_return(get_global_conn, NULL);
+    will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
