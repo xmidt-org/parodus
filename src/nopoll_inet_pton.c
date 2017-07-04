@@ -70,7 +70,7 @@ static int inet_pton4(const char *src, unsigned char *dst)
 {
   static const char digits[] = "0123456789";
   int saw_digit, octets, ch;
-  unsigned char tmp[INADDRSZ], *tp;
+  unsigned char tmp[INTADDRSZ], *tp;
 
   saw_digit = 0;
   octets = 0;
@@ -105,7 +105,7 @@ static int inet_pton4(const char *src, unsigned char *dst)
   }
   if(octets < 4)
     return (0);
-  memcpy(dst, tmp, INADDRSZ);
+  memcpy(dst, tmp, INTADDRSZ);
   return (1);
 }
 
@@ -126,13 +126,13 @@ static int inet_pton6(const char *src, unsigned char *dst)
 {
   static const char xdigits_l[] = "0123456789abcdef",
     xdigits_u[] = "0123456789ABCDEF";
-  unsigned char tmp[IN6ADDRSZ], *tp, *endp, *colonp;
+  unsigned char tmp[INT6ADDRSZ], *tp, *endp, *colonp;
   const char *xdigits, *curtok;
   int ch, saw_xdigit;
   size_t val;
 
-  memset((tp = tmp), 0, IN6ADDRSZ);
-  endp = tp + IN6ADDRSZ;
+  memset((tp = tmp), 0, INT6ADDRSZ);
+  endp = tp + INT6ADDRSZ;
   colonp = NULL;
   /* Leading :: requires some special handling. */
   if(*src == ':')
@@ -162,7 +162,7 @@ static int inet_pton6(const char *src, unsigned char *dst)
         colonp = tp;
         continue;
       }
-      if(tp + INT16SZ > endp)
+      if(tp + INT16SIZE > endp)
         return (0);
       *tp++ = (unsigned char) ((val >> 8) & 0xff);
       *tp++ = (unsigned char) (val & 0xff);
@@ -170,16 +170,16 @@ static int inet_pton6(const char *src, unsigned char *dst)
       val = 0;
       continue;
     }
-    if(ch == '.' && ((tp + INADDRSZ) <= endp) &&
+    if(ch == '.' && ((tp + INTADDRSZ) <= endp) &&
         inet_pton4(curtok, tp) > 0) {
-      tp += INADDRSZ;
+      tp += INTADDRSZ;
       saw_xdigit = 0;
       break;    /* '\0' was seen by inet_pton4(). */
     }
     return (0);
   }
   if(saw_xdigit) {
-    if(tp + INT16SZ > endp)
+    if(tp + INT16SIZE > endp)
       return (0);
     *tp++ = (unsigned char) ((val >> 8) & 0xff);
     *tp++ = (unsigned char) (val & 0xff);
@@ -202,6 +202,6 @@ static int inet_pton6(const char *src, unsigned char *dst)
   }
   if(tp != endp)
     return (0);
-  memcpy(dst, tmp, IN6ADDRSZ);
+  memcpy(dst, tmp, INT6ADDRSZ);
   return (1);
 }

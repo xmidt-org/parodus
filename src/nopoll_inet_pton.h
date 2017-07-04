@@ -19,9 +19,9 @@
 
 #include <nopoll_hostname_validation.h>
 
-#define IN6ADDRSZ       16
-#define INADDRSZ         4
-#define INT16SZ          2
+#define INT6ADDRSZ       16
+#define INTADDRSZ         4
+#define INT16SIZE          2
 
 int nopoll_inet_pton(int, const char *, void *);
 
