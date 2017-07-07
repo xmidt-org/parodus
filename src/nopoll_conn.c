@@ -47,7 +47,8 @@
 
 #include <nopoll_conn.h>
 #include <nopoll_private.h>
-
+#include <nopoll_hostname_validation.h>
+#include <pthread.h>
 #if defined(NOPOLL_OS_UNIX)
 # include <netinet/tcp.h>
 #endif
@@ -295,11 +296,11 @@ NOPOLL_SOCKET __nopoll_conn_sock_connect_opts_internal (noPollCtx       * ctx,
 	} /* end if */
 
 	/* set non blocking status */
-	nopoll_conn_set_sock_block (session, nopoll_false);
+	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG,"Create socket with blocking-mode");
+	nopoll_conn_set_sock_block (session, nopoll_true);
 	
 	/* do a tcp connect */
         if (connect (session, res->ai_addr, res->ai_addrlen) < 0) {
-		if(errno != NOPOLL_EINPROGRESS && errno != NOPOLL_EWOULDBLOCK && errno != NOPOLL_ENOTCONN) { 
 		        shutdown (session, SHUT_RDWR);
                         nopoll_close_socket (session);
 
@@ -310,7 +311,10 @@ NOPOLL_SOCKET __nopoll_conn_sock_connect_opts_internal (noPollCtx       * ctx,
 			freeaddrinfo (res);
 			
 			return -1;
-		} /* end if */
+	}
+	else
+	{
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG,"socket connect successfull");
 	} /* end if */
 
 	/* relase address info */
@@ -551,7 +555,14 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 {
 	int         res;
 	nopoll_bool needs_retry;
-
+	int ret = 0;
+	static pthread_mutex_t mut = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+        
+	ret = pthread_mutex_lock (&mut);
+	if(ret != 0)
+	{
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "mutex failed to lock ( ret = %d) ( errno = %d)",ret, errno);
+	}
 	/* call to read content */
 	res = SSL_write (conn->ssl, buffer, buffer_size);
 	nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "SSL: sent %d bytes (requested: %d)..", res, buffer_size); 
@@ -566,7 +577,11 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 		WSASetLastError(NOPOLL_EWOULDBLOCK);
 #endif
 	}
-
+	ret = pthread_mutex_unlock (&mut);
+	if(ret != 0)
+	{
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "mutex failed to unlock ( ret = %d) ( errno = %d)",ret, errno);
+	}
 	return res;
 }
 
@@ -783,7 +798,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 	if (session == NOPOLL_INVALID_SOCKET) {
 		/* release connection options */
 		__nopoll_conn_opts_release_if_needed (options);
-		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Failed to connect to remote host %s:%s", host_ip, host_port);
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Failed to connect to remote host %s:%s", host_ip, host_port);
 		return NULL;
 	} /* end if */
 
@@ -978,6 +993,28 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 			__nopoll_conn_opts_release_if_needed (options);
 
 			return conn;
+		}
+		
+		/* Check for opts to verify hostname validation during conn handshake */  
+		if (options == NULL ||  options->host_verify) 
+		{
+		    HostnameValidationResult status = Error;
+		    /* hostname should be validated without http/https, so pass conn->host_name */
+		    status = nopoll_validate_hostname(conn->host_name,server_cert);
+		    if( status == MatchFound )
+		    {
+		        nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Hostname validation SUCCESS, done as part of client \n");  
+		    }
+		    else
+		    {
+		        nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL,"Hostname validation FAILED with errno %d \n",status);
+		        /* release connection options */
+			    nopoll_free (content);
+			    nopoll_conn_shutdown (conn);
+			    __nopoll_conn_opts_release_if_needed (options);
+                X509_free (server_cert);
+			    return NULL;
+		    }
 		}
 		X509_free (server_cert);
 
@@ -1530,7 +1567,9 @@ nopoll_bool    nopoll_conn_is_ready (noPollConn * conn)
 		return nopoll_false;
 	if (conn->session == NOPOLL_INVALID_SOCKET)
 		return nopoll_false;
-	if (! conn->handshake_ok) {
+
+	/* conn->handshake->received_307 will always be false other than http redirect */
+	if (! conn->handshake_ok && !conn->handshake->received_307) {
 		/* acquire here handshake mutex */
 		nopoll_mutex_lock (conn->ref_mutex);
 
@@ -1539,6 +1578,11 @@ nopoll_bool    nopoll_conn_is_ready (noPollConn * conn)
 
 		/* release here handshake mutex */
 		nopoll_mutex_unlock (conn->ref_mutex);
+	}
+	
+	if(conn->handshake->received_307)
+	{
+		return nopoll_true; /* in case of http redirection, conn->handshake_ok will never be true as the response buffer from the server will never have "Sec-Websocket-Accept". Consequently, we have to return true to break the loop inside nopoll_conn_wait_until_connection_ready() */
 	}
 	return conn->handshake_ok;
 }
@@ -1856,6 +1900,13 @@ void          nopoll_conn_shutdown (noPollConn * conn)
 	/* call to on close handler if defined */
 	if (conn->session != NOPOLL_INVALID_SOCKET && conn->on_close)
 	        conn->on_close (conn->ctx, conn, conn->on_close_data);
+
+	if(conn->on_close_data != NULL)
+        {
+	        nopoll_log(conn->ctx, NOPOLL_LEVEL_DEBUG,"freeing conn->on_close_data from shutdown...\n");
+	        nopoll_free(conn->on_close_data);
+	        conn->on_close_data = NULL;
+        }
 
 	/* shutdown connection here */
 	if (conn->session != NOPOLL_INVALID_SOCKET) {
@@ -2238,6 +2289,32 @@ void __nopoll_pack_content (char * buffer, int start, int bytes)
 	return;
 }
 
+/**
+ * @internal Function to delay
+ * @note delay goes up by factor of .125 each time
+ * @note up to 1 sec max
+*/ 
+static void __nopoll_receive_delay (long *wait_usecs)
+{
+	long rem;
+	long t = *wait_usecs;
+
+	nopoll_sleep (t);
+
+	if (t == 1000000) {
+		return;
+	}
+
+	rem = t >> 3;
+	t += rem;
+	if (t > 1000000) {
+		t = 1000000;
+	}
+
+	*wait_usecs = t;
+}
+
+    
 /** 
  * @internal Function used to read bytes from the wire. 
  *
@@ -2247,6 +2324,7 @@ void __nopoll_pack_content (char * buffer, int start, int bytes)
 int         __nopoll_conn_receive  (noPollConn * conn, char  * buffer, int  maxlen)
 {
 	int         nread;
+	long				wait_usecs = 500;
 
 	if (conn->pending_buf_bytes > 0) {
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "Calling with bytes we can reuse (%d), requested: %d",
@@ -2285,14 +2363,21 @@ int         __nopoll_conn_receive  (noPollConn * conn, char  * buffer, int  maxl
 #elif defined(NOPOLL_OS_WIN32)
 	WSASetLastError(0);
 #endif
-	if ((nread = conn->receive (conn, buffer, maxlen)) == NOPOLL_SOCKET_ERROR) {
-		/* nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, " returning errno=%d (%s)", errno, strerror (errno)); */
-		if (errno == NOPOLL_EAGAIN) 
-			return 0;
-		if (errno == NOPOLL_EWOULDBLOCK) 
-			return 0;
-		if (errno == NOPOLL_EINTR) 
+	/* if ((nread = conn->receive (conn, buffer, maxlen)) == NOPOLL_SOCKET_ERROR) { */
+	if ((nread = conn->receive (conn, buffer, maxlen)) < 0) {
+                nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, " conn receive nread=%d, errno=%d (%s)", nread,errno, strerror (errno));
+		if (errno == NOPOLL_EAGAIN) {
+			__nopoll_receive_delay (&wait_usecs);
 			goto keep_reading;
+			/* return 0; */
+		}
+		if (errno == NOPOLL_EWOULDBLOCK) {
+			return 0;
+		}
+		if (errno == NOPOLL_EINTR) {
+			__nopoll_receive_delay (&wait_usecs);
+			goto keep_reading;
+		}
 		
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "unable to readn=%d, error code was: %d (%s) (shutting down connection)", maxlen, errno, strerror (errno));
 		nopoll_conn_shutdown (conn);
@@ -2302,6 +2387,12 @@ int         __nopoll_conn_receive  (noPollConn * conn, char  * buffer, int  maxl
 	/* nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, " returning bytes read = %d", nread); */
 	if (nread == 0) {
 		/* check for blocking operations */
+		if (errno == NOPOLL_EAGAIN) {
+			__nopoll_receive_delay (&wait_usecs);
+			goto keep_reading;
+			/* return 0; */
+		}
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "conn receive zero bytes, errno=%d (%s)", errno, strerror (errno));
 		if (errno == NOPOLL_EAGAIN || errno == NOPOLL_EWOULDBLOCK) {
 			nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, "unable to read from conn-id=%d (%s:%s), connection is not ready (errno: %d : %s)",
 				    conn->id, conn->host, conn->port, errno, strerror (errno));
@@ -2311,12 +2402,15 @@ int         __nopoll_conn_receive  (noPollConn * conn, char  * buffer, int  maxl
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "received connection close while reading from conn id %d (errno=%d : %s) (%d, %d, %d), shutting down connection..", 
 			    conn->id, errno, strerror (errno),
 			    NOPOLL_EAGAIN, NOPOLL_EWOULDBLOCK, NOPOLL_EINTR);
+		conn->on_close_data = nopoll_strdup ("SSL_Socket_Close:received connection close while reading from conn: shutting down connection");
 		nopoll_conn_shutdown (conn);
 	} /* end if */
 
 	/* ensure we don't access outside the array */
-	if (nread < 0) 
+	if (nread < 0) {
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "** nread < 0 (%d)", nread);
 		nread = 0;
+	}
 
 	buffer[nread] = 0;
 	return nread;
@@ -2809,6 +2903,13 @@ int nopoll_conn_complete_handshake_client (noPollCtx * ctx, noPollConn * conn, c
 			iterator++;
 		if (! nopoll_ncmp (buffer + iterator, "101", 3)) {
 			nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "websocket server denied connection with: %s", buffer + iterator);
+			if(nopoll_ncmp (buffer + iterator, "307", 3)|| nopoll_ncmp (buffer + iterator, "302", 3) || nopoll_ncmp (buffer + iterator, "303", 3) )
+			{
+				nopoll_log (ctx, NOPOLL_LEVEL_INFO, "Received HTTP 30x response from server");
+                /* Mark 307 flag as true */
+                conn->handshake->received_307 = nopoll_true;
+				return 1; /* continue to read next lines for redirect Location */
+			}
 			return 0; /* do not continue */
 		} /* end if */
 
@@ -2846,7 +2947,14 @@ int nopoll_conn_complete_handshake_client (noPollCtx * ctx, noPollConn * conn, c
 	} else if (strcasecmp (header, "Connection") == 0) {
 		conn->handshake->connection_upgrade = 1;
 		nopoll_free (value);
-	} else {
+	} else if (strcasecmp (header, "Location") == 0) {
+		if(conn->handshake->received_307)
+		{
+			conn->handshake->redirectURL = value;
+			nopoll_log (ctx, NOPOLL_LEVEL_INFO, "nopoll_conn_complete_handshake_client: conn->handshake->redirectURL: %s",conn->handshake->redirectURL);
+		}
+	}
+	else {
 		/* release value, no body claimed it */
 		nopoll_free (value);
 	} /* end if */
@@ -3174,7 +3282,7 @@ noPollMsg   * nopoll_conn_get_msg (noPollConn * conn)
 		memcpy (conn->pending_buf + conn->pending_buf_bytes, buffer, bytes);
 		conn->pending_buf_bytes += bytes;
 		
-		nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, 
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, 
 			    "Expected to receive complete websocket frame header but found only %d bytes over conn-id=%d, saving to reuse later",
 			    bytes, conn->id);
 		return NULL;
@@ -3304,7 +3412,7 @@ noPollMsg   * nopoll_conn_get_msg (noPollConn * conn)
 			/* nothing more to add here, close frame
 			   without content received, so we have no
 			   reason to keep on reading */
-			nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "Proper connection close frame received id=%d, shutting down", conn->id);
+			nopoll_log (conn->ctx, NOPOLL_LEVEL_INFO, "Proper connection close frame received id=%d, shutting down", conn->id);
 			nopoll_msg_unref (msg);
 			nopoll_conn_shutdown (conn);
 			return NULL;
@@ -3414,6 +3522,8 @@ read_payload:
 
 	/* update was a fragment */
 	conn->previous_was_fragment = msg->is_fragment && msg->has_fin == 0;
+
+	nopoll_log(conn->ctx, NOPOLL_LEVEL_DEBUG, "bytes %d, msg->payload_size %d, msg->remain_bytes %d, msg->has_fin %d, msg->op_code %d\n",bytes,msg->payload_size,msg->remain_bytes,msg->has_fin,msg->op_code);
 
 	/* do not notify any frame since no content was found */
 	if (bytes == 0 && msg == conn->previous_msg) {
@@ -3953,6 +4063,20 @@ void          nopoll_conn_set_on_msg (noPollConn              * conn,
 
 	return;
 }
+void          nopoll_conn_set_on_ping_msg (noPollConn              * conn,
+				      noPollOnMessageHandler    on_ping_msg,
+				      noPollPtr                 user_data)
+{
+	if (conn == NULL)
+		return;
+
+	/* configure on message handler */
+	conn->on_ping_msg      = on_ping_msg;
+	conn->on_ping_msg_data = user_data;
+
+	return;
+}
+
 
 /** 
  * @brief Allows to configure a handler that is called when the
@@ -4795,14 +4919,18 @@ nopoll_bool nopoll_conn_accept_complete (noPollCtx * ctx, noPollConn * listener,
  * @param timeout The timeout operation to limit the wait
  * operation. Timeout is provided in seconds.
  *
+ * @param message in-out parameter of 64 byte. The response message string description indicating 
+ * "Success", "Failure" or "Redirect: Redirect_URL". Caller needs to allocate memory for this. 
+ *
  * @return The function returns when the timeout was reached or the
  * connection is ready. In the case the connection is ready when the
  * function finished nopoll_true is returned, otherwise nopoll_false.
  */
 nopoll_bool      nopoll_conn_wait_until_connection_ready (noPollConn * conn,
-							  int          timeout)
+							  int          timeout, char * message)
 {
 	long int total_timeout = timeout * 1000000;
+	nopoll_bool result = nopoll_false;
 
 	/* check if the connection already finished its connection
 	   handshake */
@@ -4819,8 +4947,31 @@ nopoll_bool      nopoll_conn_wait_until_connection_ready (noPollConn * conn,
 		total_timeout = total_timeout - 500;
 	} /* end if */
 
+	result = nopoll_conn_is_ok (conn) && nopoll_conn_is_ready (conn);
+	
+	if(conn->handshake->received_307 == nopoll_true && (conn->handshake->redirectURL != NULL))
+	{
+		if(message != NULL)
+		{
+			snprintf(message, strlen(conn->handshake->redirectURL) + 10, "Redirect:%s", conn->handshake->redirectURL);
+			nopoll_free (conn->handshake->redirectURL);
+		}
+		conn->handshake->received_307 = nopoll_false;
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_INFO, "nopoll_conn_wait_until_connection_ready() response: message: %s" ,message );		
+		return nopoll_false; /* retry with redirection URLs */
+	}
+	else if(result && message != NULL)
+	{
+		strncpy(message, "Success", strlen("Success")+1);
+	}
+	else if(message != NULL)
+	{
+		strncpy(message, "Failure", strlen("Failure")+1);
+	}
+	nopoll_log (conn->ctx, NOPOLL_LEVEL_INFO, "*****End nopoll_conn_wait_until_connection_ready ****");	
+		    
 	/* report if the connection is ok */
-	return nopoll_conn_is_ok (conn) && nopoll_conn_is_ready (conn);
+	return result;
 }
 
 /* @} */

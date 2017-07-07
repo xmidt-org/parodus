@@ -215,6 +215,122 @@ nopoll_bool test_01_masking (void) {
 	return nopoll_true;
 }
 
+
+nopoll_bool test_01_hostname_check (void) {
+
+     /*success case*/
+    if(! nopoll_cert_hostcheck("www.example.com", "www.example.com"))
+    {
+		printf ("ERROR (1): expected to match hostname validation www.example.com..\n");
+		return nopoll_false;
+	}
+	if(! nopoll_cert_hostcheck("*.example.com", "www.example.com"))
+    {
+		printf ("ERROR (1): expected to match hostname validation *.example.com..\n");
+		return nopoll_false;
+	}
+	if(! nopoll_cert_hostcheck("xxx*.example.com", "xxxwww.example.com"))
+    {
+		printf ("ERROR (1): expected to match hostname validation xxx*.example.com..\n");
+		return nopoll_false;
+	}
+	if(! nopoll_cert_hostcheck("f*.example.com", "foo.example.com"))
+    {
+		printf ("ERROR (1): expected to match hostname validation f*.example.com..\n");
+		return nopoll_false;
+	}
+	if(! nopoll_cert_hostcheck("192.168.0.0", "192.168.0.0"))
+    {
+		printf ("ERROR (1): expected to match hostname validation 192.168.0.0..\n");
+		return nopoll_false;
+	}
+	if(! nopoll_cert_hostcheck("example.com","example.com"))
+    {
+		printf ("ERROR (1): expected to match hostname validation example.com..\n");
+		return nopoll_false;
+	}
+	if(! nopoll_cert_hostcheck("fe80::3285:a9ff:fe46:b619","fe80::3285:a9ff:fe46:b619"))
+    {
+		printf ("ERROR (1): expected to match hostname validation fe80::3285:a9ff:fe46:b619..\n");
+		return nopoll_false;
+	}
+
+    /*Failure case*/
+
+    if(nopoll_cert_hostcheck("xxx.example.com", "www.example.com"))
+    {
+		printf ("ERROR (1): expected not to match hostname validation xxx.example.com\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*", "www.example.com"))
+    {
+		printf ("ERROR (1): expected not to match hostname validation for * with www.example.com\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*.*.com", "www.example.com"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation *.*.com\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*.example.com", "baa.foo.example.com"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation *.example.com with baa.foo.example.com..\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("f*.example.com", "baa.example.com"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation f*.example.com with baa.example.com\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*.com", "example.com"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation *.com with example.com.\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*fail.com", "example.com"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation for *fail.com with example.com\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*.example.", "www.example."))
+    {
+		printf ("ERROR (1): expected to not match hostname validation for *.example. with www.example.\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*.example.", "www.example"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation for *.example. with www.example\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("", "www"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation NULL with www \n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*", "www"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation * with www\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*::3285:a9ff:fe46:b619","fe80::3285:a9ff:fe46:b619"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation *::3285:a9ff:fe46:b619 with  fe80::3285:a9ff:fe46:b619 \n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("*.168.0.0", "192.168.0.0"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation *.168.0.0 with 192.168.0.0\n");
+		return nopoll_false;
+	}
+	if(nopoll_cert_hostcheck("www.example.com", "192.168.0.0"))
+    {
+		printf ("ERROR (1): expected to not match hostname validation for www.example.com with 192.168.0.0\n");
+		return nopoll_false;
+	}
+    return nopoll_true;
+}
+
+
 nopoll_bool test_01 (void) {
 	noPollCtx  * ctx;
 	noPollConn * conn;
@@ -669,7 +785,7 @@ nopoll_bool test_04b (void) {
 	}
 
 	printf ("Test 04-b: waiting until connection is ok\n");
-	nopoll_conn_wait_until_connection_ready (conn, 5);
+	nopoll_conn_wait_until_connection_ready (conn, 5, NULL);
 
 	printf ("Test 04-b: sending was quick as possible to flood local buffers..\n");
 	
@@ -741,7 +857,7 @@ nopoll_bool test_04b (void) {
 	}
 
 	printf ("Test 04-b: waiting until connection is ok\n");
-	nopoll_conn_wait_until_connection_ready (conn, 5);
+	nopoll_conn_wait_until_connection_ready (conn, 5, NULL);
 
 	/* send a cleanup message */
 	bytes_written = nopoll_conn_send_text (conn, "release-message", 15);
@@ -789,7 +905,7 @@ nopoll_bool test_04c (void) {
 	}
 
 	printf ("Test 04-c: waiting until connection is ok\n");
-	nopoll_conn_wait_until_connection_ready (conn, 5);
+	nopoll_conn_wait_until_connection_ready (conn, 5, NULL);
 
 	/* remove local file */
 	if (stat ("copy-test-04c.txt", &file_info) == 0) {
@@ -984,6 +1100,50 @@ nopoll_bool test_05 (void) {
 	return nopoll_true;
 }
 
+
+nopoll_bool test_05_hostname_validation (void) {
+
+	char * fileName = "hostname-check.pem";
+	char *hostname_valid = "test.nopoll.com";
+	char *hostname_invalid = "invalid.com";
+	FILE *fp = NULL;
+
+	#if defined(NOPOLL_OS_WIN32)
+	fp = fopen (fileName, "rb");
+    #else
+	fp = fopen (fileName, "r");
+    #endif
+    
+    if(!fp)
+    {
+	    printf("unable to open cert file for hostname validation: %s\n", fileName);
+	    return nopoll_false;
+    }
+
+    X509 *cert = PEM_read_X509(fp, NULL, NULL, NULL);
+    if(!cert)
+    {
+	    printf("unable to parse certificate for hostname validation : %s\n", fileName);
+	    fclose(fp);
+	    return nopoll_false;
+    }
+   
+    if(nopoll_validate_hostname(hostname_valid, cert))
+    {
+        printf("hostname %s doesn't match with dnsname \n",hostname_valid);
+        return nopoll_false;
+    }
+    
+    if(!nopoll_validate_hostname(hostname_invalid, cert))
+    {
+        printf("hostname %s matched with dnsname \n",hostname_invalid);
+        return nopoll_false;
+    }
+    X509_free(cert);
+    fclose(fp);
+	return nopoll_true;
+}
+
 nopoll_bool test_06 (void) {
 
 	noPollCtx      * ctx;
@@ -996,6 +1156,7 @@ nopoll_bool test_06 (void) {
 	/* disable verification */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* call to create a connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1235", NULL, NULL, NULL, NULL);
@@ -1044,7 +1205,8 @@ nopoll_bool test_06a (void) {
 	/* disable verification */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
-
+    nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
+    
 	/* call to create a connection */
 	conn = nopoll_conn_tls_new6 (ctx, opts, "::1", "2235", NULL, NULL, NULL, NULL);
 	if (! nopoll_conn_is_ok (conn)) {
@@ -1092,6 +1254,7 @@ nopoll_bool test_07 (void) {
 	/* disable verification */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* call to create a connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1235", NULL, NULL, NULL, NULL);
@@ -1225,7 +1388,7 @@ nopoll_bool test_11 (void) {
 	/* create a working connection */
 	conn = nopoll_conn_new (ctx, "localhost", "1234", NULL, NULL, NULL, NULL);
 
-	if (! nopoll_conn_wait_until_connection_ready (conn, 5)) {
+	if (! nopoll_conn_wait_until_connection_ready (conn, 5, NULL)) {
 		printf ("ERROR: Expected a FAILING connection status due to origing denied, but it working..\n");
 		return nopoll_false;
 	} /* end if */
@@ -1267,7 +1430,7 @@ nopoll_bool test_12 (void) {
 		/* create a working connection */
 		conn = nopoll_conn_new (ctx, "localhost", "1234", NULL, NULL, NULL, NULL);
 		
-		if (! nopoll_conn_wait_until_connection_ready (conn, 5)) {
+		if (! nopoll_conn_wait_until_connection_ready (conn, 5, NULL)) {
 			printf ("ERROR: Expected NOT to find a FAILING connection status, errno is=%d..\n", errno);
 			return nopoll_false;
 		} /* end if */
@@ -1783,6 +1946,7 @@ nopoll_bool test_18 (void) {
 	/* disable verification */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* call to create a connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1235", NULL, NULL, NULL, NULL);
@@ -1821,6 +1985,7 @@ nopoll_bool test_19 (void) {
 	/* create options */
 	opts     = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_SSLV23);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* create connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1236", NULL, NULL, NULL, NULL);
@@ -1844,6 +2009,7 @@ nopoll_bool test_19 (void) {
 	/* create options */
 	opts     = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_SSLV23);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* create connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1235", NULL, NULL, NULL, NULL);
@@ -1865,6 +2031,7 @@ nopoll_bool test_19 (void) {
 	/* create options */
 	opts     = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_SSLV3);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* create connection */
 	printf ("Test 19: checking SSLv3 with TLSv1..\n");
@@ -1886,6 +2053,7 @@ nopoll_bool test_19 (void) {
 	/* create options */
 	opts     = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* create connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1235", NULL, NULL, NULL, NULL);
@@ -1909,6 +2077,7 @@ nopoll_bool test_19 (void) {
 	/* create options */
 	opts     = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_1);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* create connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1238", NULL, NULL, NULL, NULL);
@@ -1930,6 +2099,7 @@ nopoll_bool test_19 (void) {
 	/* create options */
 	opts     = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_1);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* create connection */
 	conn = nopoll_conn_tls_new6 (ctx, opts, "::1", "2238", NULL, NULL, NULL, NULL);
@@ -1954,6 +2124,7 @@ nopoll_bool test_19 (void) {
 	/* create options */
 	opts     = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 
 	/* create connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1240", NULL, NULL, NULL, NULL);
@@ -2039,6 +2210,7 @@ nopoll_bool test_21 (void) {
 					NULL,
 					/* ca certificate */
 					"root.pem");
+    nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);					
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1239", NULL, NULL, NULL, NULL);
 	if (! test_sending_and_check_echo (conn, "Test 21", "This is a test")) {
 		printf ("ERROR: it should WORK, client certificate isn't working..\n");
@@ -2118,7 +2290,7 @@ nopoll_bool test_22 (void) {
 	/* disable verification */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
-
+    nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 	/* call to create a connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1235", NULL, NULL, NULL, NULL);
 	if (! nopoll_conn_is_ok (conn)) {
@@ -2246,7 +2418,7 @@ nopoll_bool test_23 (void) {
 	/* disable verification */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
-
+    nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 	/* call to create a connection */
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1235", NULL, NULL, NULL, NULL);
 	if (! nopoll_conn_is_ok (conn)) {
@@ -2264,6 +2436,7 @@ nopoll_bool test_23 (void) {
 	/* call to create a connection second connection */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
+	nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 	conn = nopoll_conn_tls_new (ctx, opts, "localhost", "1235", NULL, NULL, NULL, NULL);
 	if (! nopoll_conn_is_ok (conn)) {
 		printf ("ERROR: Expected to find proper client connection status, but found error..\n");
@@ -2300,7 +2473,8 @@ nopoll_bool test_24 (void) {
 	/* configure cookie */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_cookie (opts, "theme=light; sessionToken=abc123");
-
+    nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
+    
 	/* create connection */
 	conn = nopoll_conn_new_opts (ctx, opts, "localhost", "1234", NULL, NULL, NULL, NULL);
 	if (! nopoll_conn_is_ok (conn)) {
@@ -2355,7 +2529,7 @@ nopoll_bool test_25_check_cookie (noPollCtx * ctx, const char * cookie) {
 
 	/* set a cookie bigger than 1044 */
 	nopoll_conn_opts_set_cookie (opts, cookie);
-
+    nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 	/* create connection */
 	conn = nopoll_conn_new_opts (ctx, opts, "localhost", "1234", NULL, NULL, NULL, NULL);
 	if (! nopoll_conn_is_ok (conn)) {
@@ -2506,7 +2680,7 @@ nopoll_bool test_28 (void) {
 	} /* end if */
 
 	/* wait until it is connected */
-	nopoll_conn_wait_until_connection_ready (conn, 5);
+	nopoll_conn_wait_until_connection_ready (conn, 5, NULL);
 
 	/* send a message to request connection close with a particular message */
 	if (nopoll_conn_send_text (conn, "close with message", 18) != 18) {
@@ -2559,7 +2733,7 @@ nopoll_bool test_29 (void) {
 	/* configure extra headers */
 	opts = nopoll_conn_opts_new ();
 	nopoll_conn_opts_set_extra_headers (opts, "\r\nfoo: bar");
-
+    nopoll_conn_opts_ssl_host_verify (opts, nopoll_false);
 	/* create connection */
 	conn = nopoll_conn_new_opts (ctx, opts, "localhost", "1234", NULL, NULL, NULL, NULL);
 	if (! nopoll_conn_is_ok (conn)) {
@@ -2568,7 +2742,7 @@ nopoll_bool test_29 (void) {
 	} /* end if */
 
 	/* wait until it is connected */
-	nopoll_conn_wait_until_connection_ready (conn, 5);
+	nopoll_conn_wait_until_connection_ready (conn, 5,NULL);
 
 	/* close connection */
 	nopoll_conn_close (conn);
@@ -2606,7 +2780,7 @@ nopoll_bool test_30_common_header_stop (const char * label, int bytes_to_send_be
 
 	printf ("Test %s: waiting until connection is ready..\n", label);
 	/* wait until it is connected */
-	nopoll_conn_wait_until_connection_ready (conn, 5);
+	nopoll_conn_wait_until_connection_ready (conn, 5,NULL);
 	printf ("Test %s: ok..\n", label);
 
 	/* send a message to request connection close with a particular message */
@@ -2837,6 +3011,13 @@ int main (int argc, char ** argv)
 		printf ("Test 01-masking: Library websocket content masking support [ FAILED ]\n");
 		return -1;
 	}
+	
+	if (test_01_hostname_check ()) {
+		printf ("Test 01_hostname_check: Library websocket hostname validation [   OK   ]\n");
+	}else {
+		printf ("Test 01_hostname_check: Library websocket hostname validation [ FAILED ]\n");
+		return -1;
+	}
 
 	if (test_01 ()) {	
 		printf ("Test 01: Simple connect and disconnect [   OK   ]\n");
@@ -2923,6 +3104,13 @@ int main (int argc, char ** argv)
 		return -1;
 	}
 
+    if (test_05_hostname_validation()) {
+		printf ("Test 05 hostname_validation: testing basic TLS connect with hostname validation [   OK   ]\n");
+	} else {
+		printf ("Test 05 hostname_validation: testing basic TLS connect with hostname validation[ FAILED ]\n");
+		return -1;
+	}
+    
 	if (test_06 ()) {
 		printf ("Test 06: testing basic TLS connect [   OK   ]\n");
 	} else {
