@@ -245,7 +245,6 @@ void test_loadParodusCfgNull()
     assert_string_equal(temp.hw_manufacturer, "");
     assert_int_equal( (int) temp.secureFlag,1);	
     assert_string_equal( temp.webpa_path_url, WEBPA_PATH_URL);	
-    assert_string_equal( temp.webpa_protocol, WEBPA_PROTOCOL_VALUE);
     assert_string_equal( temp.webpa_uuid,"1234567-345456546");
     assert_string_equal( temp.local_url, PARODUS_UPSTREAM);
 
