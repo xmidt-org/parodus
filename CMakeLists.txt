@@ -68,13 +68,11 @@ add_dependencies(libtrower-base64 trower-base64)
 
 # nopoll external dependency
 #-------------------------------------------------------------------------------
-set(PATCHES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/patches)
-set(NOPOLL_LOG_SRC ${PREFIX_DIR}/nopoll/src/nopoll/src/nopoll_log.c)
 ExternalProject_Add(nopoll
     PREFIX ${PREFIX_DIR}/nopoll
-    GIT_REPOSITORY https://github.com/ASPLes/nopoll.git
-    GIT_TAG "b18aacc06b4dc9700e0a261efc201a8e125e4328"
-    PATCH_COMMAND patch -p1 < ${PATCHES_DIR}/nopoll.patch
+    GIT_REPOSITORY https://github.com/Comcast/nopoll.git
+    GIT_TAG "nopoll_yocto"
+    PATCH_COMMAND ""
     COMMAND touch NEWS README AUTHORS ChangeLog
     COMMAND libtoolize --force
     COMMAND aclocal
