@@ -38,7 +38,18 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/cimplog
                     ${INCLUDE_DIR}/libseshat
                     ${INCLUDE_DIR}/cjwt
-					)		
+					)	
+
+# Get git commit hash 
+#-------------------------------------------------------------------------------
+execute_process(
+  COMMAND git describe --tags --always
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_TAG
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+add_definitions("-DGIT_COMMIT_TAG=\"${GIT_COMMIT_TAG}\"")	
 
 # Compile options/flags
 #-------------------------------------------------------------------------------

@@ -34,7 +34,7 @@ extern "C" {
 #define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
 #define PARTNER_ID                                      "partner-id"
 
-#define WEBPA_PROTOCOL_VALUE 				"WebPA-1.6"
+#define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                                    "/api/v2/device"
 #define JWT_ALGORITHM					"jwt-algo"
 #define	JWT_KEY						"jwt-key"
@@ -59,7 +59,7 @@ typedef struct
     char webpa_path_url[124];
     unsigned int webpa_backoff_max;
     char webpa_interface_used[16];
-    char webpa_protocol[16];
+    char webpa_protocol[32];
     char webpa_uuid[64];
     unsigned int secureFlag;
     char dns_id[64];
