@@ -1003,7 +1003,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		    status = nopoll_validate_hostname(conn->host_name,server_cert);
 		    if( status == MatchFound )
 		    {
-		        nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Hostname validation SUCCESS, done as part of client \n");  
+		        nopoll_log (ctx, NOPOLL_LEVEL_INFO, "Hostname validation SUCCESS, done as part of client \n");  
 		    }
 		    else
 		    {
