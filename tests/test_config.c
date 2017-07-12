@@ -204,6 +204,7 @@ void test_loadParodusCfg()
     ParodusCfg  tmpcfg;
     ParodusCfg *Cfg;
     Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
+    char protocol[32] = {'\0'};
 
     strcpy(Cfg->hw_model, "TG1682");
     strcpy(Cfg->hw_serial_number, "Fer23u948590");
@@ -214,7 +215,8 @@ void test_loadParodusCfg()
     strcpy(Cfg->webpa_path_url , "/v1");
     strcpy(Cfg->webpa_url , "localhost");
     strcpy(Cfg->webpa_interface_used , "eth0");
-    strcpy(Cfg->webpa_protocol , "WebPA-1.6");
+    snprintf(protocol, sizeof(protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
+    strcpy(Cfg->webpa_protocol , protocol);
     strcpy(Cfg->local_url , "tcp://10.0.0.1:6000");
     strcpy(Cfg->partner_id , "shaw");
 
@@ -227,6 +229,7 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.hw_mac, "123567892366");
     assert_string_equal( tmpcfg.local_url, "tcp://10.0.0.1:6000");
     assert_string_equal( tmpcfg.partner_id, "shaw");
+    assert_string_equal( tmpcfg.webpa_protocol, protocol);
     free(Cfg);
 }
 
@@ -257,6 +260,28 @@ void err_loadParodusCfg()
     loadParodusCfg(NULL,&cfg);
 }
 
+void test_parodusGitVersion()
+{
+   FILE *fp;
+   char version[32] = {'\0'};
+   char *command = "git describe --tags --always";
+   int n;
+   size_t len;
+   fp = popen(command,"r"); 
+   while(fgets(version, 32, fp) !=NULL)
+   {
+   	len = strlen(version);
+  	if (len > 0 && version[len-1] == '\n') 
+  	{
+    		version[--len] = '\0';
+  	}
+   }
+   fclose(fp);
+   
+   n = strcmp( version, GIT_COMMIT_TAG);
+   assert_int_equal(n, 0);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -274,6 +299,7 @@ int main(void)
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
+        cmocka_unit_test(test_parodusGitVersion)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
