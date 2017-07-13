@@ -77,19 +77,19 @@ void test_setParodusConfig()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
 
-    strcpy(cfg.hw_model, "TG1682");
-    strcpy(cfg.hw_serial_number, "Fer23u948590");
-    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
-    strcpy(cfg.hw_mac , "123567892366");
-    strcpy(cfg.hw_last_reboot_reason , "unknown");
-    strcpy(cfg.fw_name , "2.364s2");
-    strcpy(cfg.webpa_path_url , "/v1");
-    strcpy(cfg.webpa_url , "localhost");
-    strcpy(cfg.webpa_interface_used , "eth0");
-    strcpy(cfg.webpa_protocol , "WebPA-1.6");
-    strcpy(cfg.webpa_uuid , "1234567-345456546");
-    strcpy(cfg.partner_id , "comcast");
-    strcpy(cfg.seshat_url, "ipc://tmp/seshat_service.url");
+    strncpy(cfg.hw_model, "TG1682", strlen("TG1682")+1);
+    strncpy(cfg.hw_serial_number, "Fer23u948590", strlen("Fer23u948590")+1);
+    strncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", strlen("ARRISGroup,Inc.")+1);
+    strncpy(cfg.hw_mac , "123567892366", strlen("123567892366")+1);
+    strncpy(cfg.hw_last_reboot_reason , "unknown", strlen("unknown")+1);
+    strncpy(cfg.fw_name , "2.364s2", strlen("2.364s2")+1);
+    strncpy(cfg.webpa_path_url , "/v1", strlen("/v1")+1);
+    strncpy(cfg.webpa_url , "localhost", strlen("localhost")+1);
+    strncpy(cfg.webpa_interface_used , "eth0", strlen("eth0")+1);
+    strncpy(cfg.webpa_protocol , "WebPA-1.6", strlen("WebPA-1.6")+1);
+    strncpy(cfg.webpa_uuid , "1234567-345456546", strlen("1234567-345456546")+1);
+    strncpy(cfg.partner_id , "comcast", strlen("comcast")+1);
+    strncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", strlen("ipc://tmp/seshat_service.url")+1);
     cfg.secureFlag = 1;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
@@ -124,7 +124,7 @@ void test_getParodusConfig()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
 
-    strcpy(cfg.hw_model, "TG1682133");
+    strncpy(cfg.hw_model, "TG1682133", strlen("TG1682133")+1);
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
@@ -206,19 +206,20 @@ void test_loadParodusCfg()
     Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     char protocol[32] = {'\0'};
 
-    strcpy(Cfg->hw_model, "TG1682");
-    strcpy(Cfg->hw_serial_number, "Fer23u948590");
-    strcpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.");
-    strcpy(Cfg->hw_mac , "123567892366");
-    strcpy(Cfg->hw_last_reboot_reason , "unknown");
-    strcpy(Cfg->fw_name , "2.364s2");
-    strcpy(Cfg->webpa_path_url , "/v1");
-    strcpy(Cfg->webpa_url , "localhost");
-    strcpy(Cfg->webpa_interface_used , "eth0");
+    strncpy(Cfg->hw_model, "TG1682", strlen("TG1682")+1);
+    strncpy(Cfg->hw_serial_number, "Fer23u948590", strlen("Fer23u948590")+1);
+    strncpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.", strlen("ARRISGroup,Inc.")+1);
+    strncpy(Cfg->hw_mac , "123567892366", strlen("123567892366")+1);
+    strncpy(Cfg->hw_last_reboot_reason , "unknown", strlen("unknown")+1);
+    strncpy(Cfg->fw_name , "2.364s2", strlen("2.364s2")+1);
+    strncpy(Cfg->webpa_path_url , "/v1", strlen( "/v1")+1);
+    strncpy(Cfg->webpa_url , "localhost", strlen("localhost")+1);
+    strncpy(Cfg->webpa_interface_used , "eth0", strlen("eth0")+1);
     snprintf(protocol, sizeof(protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
-    strcpy(Cfg->webpa_protocol , protocol);
-    strcpy(Cfg->local_url , "tcp://10.0.0.1:6000");
-    strcpy(Cfg->partner_id , "shaw");
+    strncpy(Cfg->webpa_protocol , protocol, strlen(protocol)+1);
+    printf("!!!!-----------Cfg->webpa_protocol ----%s\n", Cfg->webpa_protocol);
+    strncpy(Cfg->local_url , "tcp://10.0.0.1:6000", strlen("tcp://10.0.0.1:6000")+1);
+    strncpy(Cfg->partner_id , "shaw", strlen("shaw")+1);
 
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
