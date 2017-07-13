@@ -104,7 +104,7 @@ int allow_insecure_conn(void)
 /*----------------------------------------------------------------------------*/
 void test_all_pass()
 {
-    strcpy(g_config.local_url, URL);
+    strncpy(g_config.local_url, URL, strlen(URL)+1);
 
     will_return(init_lib_seshat, 0);
     expect_function_call(init_lib_seshat);
@@ -113,7 +113,7 @@ void test_all_pass()
     expect_function_call(seshat_register);
 
     char *d_url = malloc(sizeof(g_config.local_url));
-    strcpy(d_url, g_config.local_url);
+    strncpy(d_url, g_config.local_url, strlen(g_config.local_url)+1);
     will_return(seshat_discover, d_url);
     expect_function_call(seshat_discover);
 
@@ -168,7 +168,7 @@ void test_discover_fail()
 
 void test_discover_pass_but_lru_expected_fail()
 {
-    strcpy(g_config.local_url, URL);
+    strncpy(g_config.local_url, URL, strlen(URL)+1);
 
     will_return(init_lib_seshat, 0);
     expect_function_call(init_lib_seshat);
@@ -177,7 +177,7 @@ void test_discover_pass_but_lru_expected_fail()
     expect_function_call(seshat_register);
 
     char *d_url = malloc(sizeof(g_config.local_url));
-    strcpy(d_url, LRU);
+    strncpy(d_url, LRU, strlen(LRU)+1);
     will_return(seshat_discover, d_url);
     expect_function_call(seshat_discover);
 
