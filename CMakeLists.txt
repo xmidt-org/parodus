@@ -207,6 +207,7 @@ add_dependencies(liblibseshat libseshat)
 include_directories(${INCLUDE_DIR}/libseshat)
 endif (ENABLE_SESHAT)
 
+if (ENABLE_CJWT)
 # libcjwt external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cjwt
@@ -234,6 +235,7 @@ include_directories(${INCLUDE_DIR}
 					)		
 
 endif (UCLIBC)
+endif (ENABLE_CJWT)
 
 if (BUILD_TESTING)
 # cmocka external dependency

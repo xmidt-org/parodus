@@ -66,7 +66,7 @@ typedef struct
     char local_url[124];
     char partner_id[64];
     char seshat_url[128];
-    unsigned int jwt_algo;  // bit mask set for each allowed algorithm
+    char jwt_algo[32];  // bit mask set for each allowed algorithm
     char jwt_key[4096]; // may be read in from a pem file
 } ParodusCfg;
 

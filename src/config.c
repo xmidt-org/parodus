@@ -10,7 +10,6 @@
 #include <fcntl.h> 
 #include "config.h"
 #include "ParodusInternal.h"
-#include <cjwt/cjwt.h>
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -30,47 +29,6 @@ ParodusCfg *get_parodus_cfg(void)
 void set_parodus_cfg(ParodusCfg *cfg) 
 {
     parodusCfg = *cfg;
-}
-
-const char *get_tok (const char *src, int delim, char *result, int resultsize)
-{
-	int i;
-	char c;
-	int endx = resultsize-1;
-
-	memset (result, 0, resultsize);
-	for (i=0; (c=src[i]) != 0; i++) {
-		if (c == delim)
-			break;
- 		if (i < endx)
-			result[i] = c;
-	}
-	if (c == 0)
-		return NULL;
-	return src + i + 1;
-}
-
-// the algorithm mask indicates which algorithms are allowed
-unsigned int get_algo_mask (const char *algo_str)
-{
-  unsigned int mask = 0;
-#define BUFLEN 16
-  char tok[BUFLEN];
-	int alg_val;
-
-	while(NULL != algo_str)
-	{
-		algo_str = get_tok (algo_str, ':', tok, BUFLEN);
-		alg_val = cjwt_alg_str_to_enum (tok);
-		if ((alg_val < 0)  || (alg_val >= num_algorithms)) {
-       ParodusError("Invalid jwt algorithm %s\n", tok);
-       abort ();
-		}
-		mask |= (1<<alg_val);
-		
-	}
-	return mask;
-#undef BUFLEN
 }
 
 // the algorithm mask indicates which algorithms are allowed
@@ -256,27 +214,25 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
         case 'D':
-					// like 'fabric' or 'test'
-					// this parameter is used, along with the hw_mac parameter
-					// to create the dns txt record id
+          // like 'fabric' or 'test'
+          // this parameter is used, along with the hw_mac parameter
+          // to create the dns txt record id
           parStrncpy(cfg->dns_id, optarg,sizeof(cfg->dns_id));
           ParodusInfo("parodus dns_id is %s\n",cfg->dns_id);
           break;
 		 
 	case 'a':
-					// the command line argument is a list of allowed algoritms,
-					// separated by colons, like "RS256:RS512:none"
-					cfg->jwt_algo = get_algo_mask (optarg);
-          ParodusInfo("jwt_algo is %u\n",cfg->jwt_algo);
+          parStrncpy(cfg->jwt_algo, optarg, sizeof(cfg->jwt_algo));
+          ParodusInfo("jwt_algo is %s\n",cfg->jwt_algo);
           break;
 	case 'k':
-					// if the key argument has a '.' character in it, then it is
-					// assumed to be a file, and the file is read in.
-					if (strchr (optarg, '.') == NULL) {
-          	parStrncpy(cfg->jwt_key, optarg,sizeof(cfg->jwt_key));
-					} else {
-						read_key_from_file (optarg, cfg->jwt_key, sizeof(cfg->jwt_key));
-					}
+          // if the key argument has a '.' character in it, then it is
+          // assumed to be a file, and the file is read in.
+          if (strchr (optarg, '.') == NULL) {
+             parStrncpy(cfg->jwt_key, optarg,sizeof(cfg->jwt_key));
+          } else {
+             read_key_from_file (optarg, cfg->jwt_key, sizeof(cfg->jwt_key));
+          }
           ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
 
@@ -430,15 +386,24 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         strcpy(cfg->jwt_key, "\0");
         ParodusPrint("jwt_key is NULL. set to empty\n");
     }
+    
+    if(strlen(pConfig->jwt_algo )!=0)
+    {
+        strncpy(cfg->jwt_algo, pConfig->jwt_algo,strlen(pConfig->jwt_algo)+1);
+    }
+    else
+    {
+        strcpy(cfg->jwt_algo, "\0");
+        ParodusPrint("jwt_algo is NULL. set to empty\n");
+    }
 
-		cfg->jwt_algo = pConfig->jwt_algo;        
     cfg->boot_time = pConfig->boot_time;
     cfg->secureFlag = 1;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
     strncpy(cfg->webpa_path_url, WEBPA_PATH_URL, strlen(WEBPA_PATH_URL)+1);
     snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
-	ParodusPrint("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
+    ParodusPrint("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
     strncpy(cfg->webpa_uuid, "1234567-345456546", strlen("1234567-345456546")+1);
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
