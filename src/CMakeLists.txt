@@ -16,6 +16,12 @@ set(SOURCES main.c mutex.c networking.c nopoll_helpers.c nopoll_handlers.c
     connection.c spin_thread.c client_list.c service_alive.c
     upstream.c downstream.c thread_tasks.c partners_check.c token.c)
 
+if (ENABLE_SESHAT)
+set(SOURCES ${SOURCES} seshat_interface.c)
+else()
+set(SOURCES ${SOURCES} seshat_interface_stub.c)
+endif (ENABLE_SESHAT)
+
 add_executable(parodus ${SOURCES})
 
 target_link_libraries (parodus
@@ -24,7 +30,6 @@ target_link_libraries (parodus
     -lmsgpackc
     -ltrower-base64
     -lnopoll
-    -llibseshat
     -luuid
     -lm
     -lcimplog
@@ -37,4 +42,9 @@ target_link_libraries (parodus
     -lresolv
     -lcjwt
     )
+
+if (ENABLE_SESHAT)
+target_link_libraries (parodus -llibseshat)
+endif (ENABLE_SESHAT)
+
 install (TARGETS parodus DESTINATION bin)

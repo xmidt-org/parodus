@@ -17,14 +17,13 @@
 #include "mutex.h"
 #include "spin_thread.h"
 #include "service_alive.h"
-#include <libseshat.h>
+#include "seshat_interface.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
-#define SESHAT_SERVICE_NAME                             "Parodus"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -38,12 +37,6 @@ pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-
-#if BUILD_YOCTO
-static bool __registerWithSeshat(void);
-#else
-bool __registerWithSeshat(void);
-#endif
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -134,48 +127,3 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     nopoll_cleanup_library();
 }
 
-/*----------------------------------------------------------------------------*/
-/*                             Internal functions                             */
-/*----------------------------------------------------------------------------*/
-/**
- * @brief Helper function to register with seshat.
- * 
- * @note return whether successfully registered.
- *
- * @return true when registered, false otherwise.
- */
-#if BUILD_YOCTO
-static bool __registerWithSeshat()
-#else
-bool __registerWithSeshat()
-#endif
-{
-    char *seshat_url = get_parodus_cfg()->seshat_url;
-    char *parodus_url = get_parodus_cfg()->local_url;
-    char *discover_url = NULL;
-    bool rv = false;
-
-    if( 0 == init_lib_seshat(seshat_url) ) {
-        ParodusInfo("seshatlib initialized! (url %s)\n", seshat_url);
-
-        if( 0 == seshat_register(SESHAT_SERVICE_NAME, parodus_url) ) {
-            ParodusInfo("seshatlib registered! (url %s)\n", parodus_url);
-
-            discover_url = seshat_discover(SESHAT_SERVICE_NAME);
-            if( (NULL != discover_url) && (0 == strcmp(parodus_url, discover_url)) ) {
-                ParodusInfo("seshatlib discovered url = %s\n", discover_url);
-                rv = true;
-            } else {
-                ParodusError("seshatlib registration error (url %s)!", discover_url);
-            }
-            free(discover_url);
-        } else {
-            ParodusError("seshatlib not registered! (url %s)\n", parodus_url);
-        }
-    } else {
-        ParodusPrint("seshatlib not initialized! (url %s)\n", seshat_url);
-    }
-
-    shutdown_seshat_lib();
-    return rv;
-}
