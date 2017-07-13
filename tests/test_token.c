@@ -134,7 +134,8 @@ extern int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_
 extern int assemble_jwt_from_dns (ns_msg *msg_handle, int num_rr_recs, char *jwt_ans);
 extern int query_dns(const char* dns_txt_record_id,char *jwt_ans);
 extern void read_key_from_file (const char *fname, char *buf, size_t buflen);
-
+extern const char *get_tok (const char *src, int delim, char *result, int resultsize);
+extern unsigned int get_algo_mask (const char *algo_str);
 
 int setup_test_jwts (void)
 {
@@ -300,7 +301,7 @@ void test_validate_algo ()
 {
 	bool ret;
 	ParodusCfg cfg;
-	cfg.jwt_algo = (1<<alg_none) | (1<<alg_rs256);
+	strcpy (cfg.jwt_algo, "none:RS256");
 	set_parodus_cfg (&cfg);
 	jwt1.header.alg = alg_rs256;
 	ret = validate_algo (&jwt1);
@@ -569,7 +570,8 @@ void test_allow_insecure_conn ()
 
 	strcpy (cfg->hw_mac, "aabbccddeeff");
 	strcpy (cfg->dns_id, "test");
-	cfg->jwt_algo = (1<<alg_none) | (1<<alg_rs256);
+	strcpy (cfg->jwt_algo, "none:RS256");
+
 	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
 
 	will_return (__res_ninit, 0);
@@ -591,7 +593,7 @@ void test_allow_insecure_conn ()
 
 	strcpy (cfg->hw_mac, "aabbccddeeff");
 	strcpy (cfg->dns_id, "test");
-	cfg->jwt_algo = (1<<alg_none) | (1<<alg_rs256);
+	strcpy (cfg->jwt_algo, "none:RS256");
 	strcpy (cfg->jwt_key, "xxxxxxxxxx");
 
 	will_return (__res_ninit, 0);
@@ -603,7 +605,7 @@ void test_allow_insecure_conn ()
 
 	strcpy (cfg->hw_mac, "aabbccddeeff");
 	strcpy (cfg->dns_id, "test");
-	cfg->jwt_algo = (1<<alg_none) | (1<<alg_rs512);
+	strcpy (cfg->jwt_algo, "none:RS512");
 	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
 
 	will_return (__res_ninit, 0);
@@ -613,6 +615,40 @@ void test_allow_insecure_conn ()
 	insecure = allow_insecure_conn ();
 	assert_int_equal (insecure, TOKEN_ERR_ALGO_NOT_ALLOWED);
 
+}
+
+void test_get_tok()
+{
+	const char *str0 = "";
+	const char *str1 = "none";
+	const char *str2 = "none:rs256";
+	char result[20];
+	const char *next;
+
+	next = get_tok (str0, ':', result, 20);
+	assert_ptr_equal (next, NULL);
+	assert_int_equal ((int) result[0], 0);
+
+	next = get_tok (str1, ':', result, 20);
+	assert_string_equal (result, "none");
+	assert_ptr_equal (next, NULL);
+
+	next = get_tok (str2, ':', result, 20);
+	assert_string_equal (result, "none");
+	next = get_tok (next, ':', result, 20);
+	assert_string_equal (result, "rs256");
+	assert_ptr_equal (next, NULL);
+}
+
+void test_get_algo_mask ()
+{
+	unsigned mask;
+
+	mask = get_algo_mask ("none");
+	assert_int_equal ((int) mask, 1);
+
+	mask = get_algo_mask ("none:rs256");
+	assert_int_equal ((int) mask, 1025);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -625,14 +661,16 @@ int main(void)
         cmocka_unit_test(test_analyze_jwt),
         cmocka_unit_test(test_validate_algo),
         cmocka_unit_test(test_nquery),
-				cmocka_unit_test(test_valid_b64_char),
-				cmocka_unit_test(test_strip_rrdata),
-				cmocka_unit_test(test_find_seq_num),
-				cmocka_unit_test(test_get_rr_seq_num),
-				cmocka_unit_test(test_get_rr_seq_table),
-				cmocka_unit_test(test_assemble_jwt_from_dns),
+	cmocka_unit_test(test_valid_b64_char),
+	cmocka_unit_test(test_strip_rrdata),
+	cmocka_unit_test(test_find_seq_num),
+	cmocka_unit_test(test_get_rr_seq_num),
+	cmocka_unit_test(test_get_rr_seq_table),
+	cmocka_unit_test(test_assemble_jwt_from_dns),
         cmocka_unit_test(test_query_dns),
         cmocka_unit_test(test_allow_insecure_conn),
+        cmocka_unit_test(test_get_tok),
+        cmocka_unit_test(test_get_algo_mask),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

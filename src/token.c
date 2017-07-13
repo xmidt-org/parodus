@@ -123,18 +123,59 @@ int analyze_jwt (const cjwt_t *jwt)
 	return (http_match == 0);
 }
 
+const char *get_tok (const char *src, int delim, char *result, int resultsize)
+{
+	int i;
+	char c;
+	int endx = resultsize-1;
+
+	memset (result, 0, resultsize);
+	for (i=0; (c=src[i]) != 0; i++) {
+		if (c == delim)
+			break;
+ 		if (i < endx)
+			result[i] = c;
+	}
+	if (c == 0)
+		return NULL;
+	return src + i + 1;
+}
+
+// the algorithm mask indicates which algorithms are allowed
+unsigned int get_algo_mask (const char *algo_str)
+{
+    unsigned int mask = 0;
+#define BUFLEN 16
+    char tok[BUFLEN];
+    int alg_val;
+
+    while(NULL != algo_str)
+    {
+        algo_str = get_tok (algo_str, ':', tok, BUFLEN);
+        alg_val = cjwt_alg_str_to_enum (tok);
+        if ((alg_val < 0)  || (alg_val >= num_algorithms)) 
+        {
+            ParodusError("Invalid jwt algorithm %s\n", tok);
+            abort ();
+        }
+        mask |= (1<<alg_val);
+    }
+    return mask;
+#undef BUFLEN
+}
+
 bool validate_algo(const cjwt_t *jwt)
 {
 	// return true if jwt->header.alg is included in the set
 	// of allowed algorithms specified by cfg->jwt_algo
 	ParodusCfg *cfg = get_parodus_cfg();
-  int alg = jwt->header.alg;
-  int alg_mask;
+        int alg = jwt->header.alg;
+        int alg_mask;
 
 	if ((alg < 0) || (alg >= num_algorithms))
 		return false;
 	alg_mask = 1<<alg;
-	if ((alg_mask & cfg->jwt_algo) == 0) {
+	if ((alg_mask & get_algo_mask(cfg->jwt_algo)) == 0) {
 		ParodusError ("Algorithm %d not allowed (mask %d)\n", alg, alg_mask); 
 		return false;
 	}

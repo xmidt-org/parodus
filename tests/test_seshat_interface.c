@@ -24,8 +24,7 @@
 #include <nopoll.h>
 
 #include "../src/ParodusInternal.h"
-#include "../src/conn_interface.h"
-#include "../src/connection.h"
+#include "../src/seshat_interface.h"
 #include "../src/config.h"
 
 /*----------------------------------------------------------------------------*/
@@ -37,7 +36,6 @@
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-extern bool __registerWithSeshat(void);
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */

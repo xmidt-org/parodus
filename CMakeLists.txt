@@ -36,7 +36,6 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
-                    ${INCLUDE_DIR}/libseshat
                     ${INCLUDE_DIR}/cjwt
 					)	
 
@@ -189,6 +188,7 @@ ExternalProject_Add(libparodus
 add_library(liblibparodus STATIC SHARED IMPORTED)
 add_dependencies(liblibparodus libparodus)
 
+if (ENABLE_SESHAT)
 # libseshat external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libseshat
@@ -204,7 +204,10 @@ ExternalProject_Add(libseshat
 )
 add_library(liblibseshat STATIC SHARED IMPORTED)
 add_dependencies(liblibseshat libseshat)
+include_directories(${INCLUDE_DIR}/libseshat)
+endif (ENABLE_SESHAT)
 
+if (ENABLE_CJWT)
 # libcjwt external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cjwt
@@ -232,6 +235,7 @@ include_directories(${INCLUDE_DIR}
 					)		
 
 endif (UCLIBC)
+endif (ENABLE_CJWT)
 
 if (BUILD_TESTING)
 # cmocka external dependency
