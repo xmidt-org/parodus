@@ -39,7 +39,7 @@ bool LastReasonStatus;
 nopoll_bool nopoll_base64_encode(const char *content,int length,char *output, int *output_size)
 {
     UNUSED(content); UNUSED(length);  UNUSED(output_size);
-    strcpy(output, "AWYFUJHUDUDKJDDRDKUIIKORE\nSFJLIRRSHLOUTDESTDJJITTESLOIUHJGDRS\nGIUY&%WSJ");
+    strncpy(output, "AWYFUJHUDUDKJDDRDKUIIKORE\nSFJLIRRSHLOUTDESTDJJITTESLOIUHJGDRS\nGIUY&%WSJ", strlen("AWYFUJHUDUDKJDDRDKUIIKORE\nSFJLIRRSHLOUTDESTDJJITTESLOIUHJGDRS\nGIUY&%WSJ")+1);
     function_called();
     return (nopoll_bool)(intptr_t)mock();
 }
@@ -57,17 +57,17 @@ void test_getWebpaConveyHeader()
 {
     ParodusCfg cfg;
 
-    strcpy(cfg.hw_model, "TG1682");
-    strcpy(cfg.hw_serial_number, "Fer23u948590");
-    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
-    strcpy(cfg.hw_mac , "123567892366");
-    strcpy(cfg.hw_last_reboot_reason , "unknown");
-    strcpy(cfg.fw_name , "2.364s2");
-    strcpy(cfg.webpa_path_url , "/api/v2/device");
-    strcpy(cfg.webpa_url , "localhost");
-    strcpy(cfg.webpa_interface_used , "eth0");
-    strcpy(cfg.webpa_protocol , "WebPA-1.6");
-    strcpy(cfg.webpa_uuid , "1234567-345456546");
+    strncpy(cfg.hw_model, "TG1682", strlen("TG1682")+1);
+    strncpy(cfg.hw_serial_number, "Fer23u948590", strlen("Fer23u948590")+1);
+    strncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", strlen("ARRISGroup,Inc.")+1);
+    strncpy(cfg.hw_mac , "123567892366", strlen("123567892366")+1);
+    strncpy(cfg.hw_last_reboot_reason , "unknown", strlen("unknown")+1);
+    strncpy(cfg.fw_name , "2.364s2", strlen("2.364s2")+1);
+    strncpy(cfg.webpa_path_url , "/api/v2/device", strlen("/api/v2/device")+1);
+    strncpy(cfg.webpa_url , "localhost", strlen("localhost")+1);
+    strncpy(cfg.webpa_interface_used , "eth0", strlen("eth0")+1);
+    strncpy(cfg.webpa_protocol , "WebPA-1.6", strlen("WebPA-1.6")+1);
+    strncpy(cfg.webpa_uuid , "1234567-345456546", strlen("1234567-345456546")+1);
     cfg.secureFlag = 1;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;

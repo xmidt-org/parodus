@@ -383,7 +383,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        strcpy(cfg->jwt_key, "\0");
+        strncpy(cfg->jwt_key, "\0", strlen("\0")+1);
         ParodusPrint("jwt_key is NULL. set to empty\n");
     }
     
@@ -393,7 +393,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     else
     {
-        strcpy(cfg->jwt_algo, "\0");
+        strncpy(cfg->jwt_algo, "\0", strlen("\0")+1);
         ParodusPrint("jwt_algo is NULL. set to empty\n");
     }
 
