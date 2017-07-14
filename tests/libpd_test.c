@@ -127,7 +127,7 @@ char *new_str (const char *str)
 	char *buf = malloc (strlen(str) + 1);
 	if (NULL == buf)
 		return NULL;
-	strcpy (buf, str);
+	strncpy (buf, str, strlen(str)+1);
 	return buf;
 }
 
