@@ -301,7 +301,7 @@ void test_validate_algo ()
 {
 	bool ret;
 	ParodusCfg cfg;
-	strcpy (cfg.jwt_algo, "none:RS256");
+	parStrncpy (cfg.jwt_algo, "none:RS256", sizeof(cfg.jwt_algo));
 	set_parodus_cfg (&cfg);
 	jwt1.header.alg = alg_rs256;
 	ret = validate_algo (&jwt1);
@@ -568,9 +568,9 @@ void test_allow_insecure_conn ()
 	int insecure;
 	ParodusCfg *cfg = get_parodus_cfg();
 
-	strcpy (cfg->hw_mac, "aabbccddeeff");
-	strcpy (cfg->dns_id, "test");
-	strcpy (cfg->jwt_algo, "none:RS256");
+	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
+	parStrncpy (cfg->dns_id, "test", sizeof(cfg->dns_id));
+	parStrncpy (cfg->jwt_algo, "none:RS256", sizeof(cfg->jwt_algo));
 
 	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
 
@@ -581,8 +581,8 @@ void test_allow_insecure_conn ()
 	insecure = allow_insecure_conn ();
 	assert_int_equal (insecure, 0);
 
-	strcpy (cfg->hw_mac, "aabbccddeeff");
-	strcpy (cfg->dns_id, "err5");
+	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
+	parStrncpy (cfg->dns_id, "err5", sizeof(cfg->dns_id));
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
@@ -591,10 +591,10 @@ void test_allow_insecure_conn ()
 	insecure = allow_insecure_conn ();
 	assert_int_equal (insecure, TOKEN_ERR_QUERY_DNS_FAIL);
 
-	strcpy (cfg->hw_mac, "aabbccddeeff");
-	strcpy (cfg->dns_id, "test");
-	strcpy (cfg->jwt_algo, "none:RS256");
-	strcpy (cfg->jwt_key, "xxxxxxxxxx");
+	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
+	parStrncpy (cfg->dns_id, "test", sizeof(cfg->dns_id));
+	parStrncpy (cfg->jwt_algo, "none:RS256", sizeof(cfg->jwt_algo));
+	parStrncpy (cfg->jwt_key, "xxxxxxxxxx", sizeof(cfg->jwt_key));
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
@@ -603,9 +603,9 @@ void test_allow_insecure_conn ()
 	insecure = allow_insecure_conn ();
 	assert_int_equal (insecure, TOKEN_ERR_JWT_DECODE_FAIL);
 
-	strcpy (cfg->hw_mac, "aabbccddeeff");
-	strcpy (cfg->dns_id, "test");
-	strcpy (cfg->jwt_algo, "none:RS512");
+	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
+	parStrncpy (cfg->dns_id, "test", sizeof(cfg->dns_id));
+	parStrncpy (cfg->jwt_algo, "none:RS512", sizeof(cfg->jwt_algo));
 	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
 
 	will_return (__res_ninit, 0);

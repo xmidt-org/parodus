@@ -69,9 +69,8 @@ int addToList( wrp_msg_t **msg)
 	                ParodusPrint("(*msg)->u.reg.service_name is %s\n", (*msg)->u.reg.service_name);
 	                ParodusPrint("(*msg)->u.reg.url is %s\n", (*msg)->u.reg.url);
 
-	                strncpy(new_node->service_name, (*msg)->u.reg.service_name, strlen((*msg)->u.reg.service_name)+1);
-	                strncpy(new_node->url, (*msg)->u.reg.url, strlen((*msg)->u.reg.url)+1);
-
+	                parStrncpy(new_node->service_name, (*msg)->u.reg.service_name, sizeof(new_node->service_name));
+	                parStrncpy(new_node->url, (*msg)->u.reg.url, sizeof(new_node->url));
 	                new_node->next=NULL;
 	                 
 	                if (g_head == NULL) //adding first client

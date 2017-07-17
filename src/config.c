@@ -276,7 +276,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     
     if(strlen (pConfig->hw_model) !=0)
     {
-        strncpy(cfg->hw_model, pConfig->hw_model,strlen(pConfig->hw_model)+1);
+          parStrncpy(cfg->hw_model, pConfig->hw_model, sizeof(cfg->hw_model));
     }
     else
     {
@@ -284,7 +284,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if( strlen(pConfig->hw_serial_number) !=0)
     {
-        strncpy(cfg->hw_serial_number, pConfig->hw_serial_number,strlen(pConfig->hw_serial_number)+1);
+        parStrncpy(cfg->hw_serial_number, pConfig->hw_serial_number, sizeof(cfg->hw_serial_number));
     }
     else
     {
@@ -292,7 +292,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if(strlen(pConfig->hw_manufacturer) !=0)
     {
-        strncpy(cfg->hw_manufacturer, pConfig->hw_manufacturer,strlen(pConfig->hw_manufacturer)+1);
+        parStrncpy(cfg->hw_manufacturer, pConfig->hw_manufacturer,sizeof(cfg->hw_manufacturer));
     }
     else
     {
@@ -300,7 +300,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if(strlen(pConfig->hw_mac) !=0)
     {
-       strncpy(cfg->hw_mac, pConfig->hw_mac,strlen(pConfig->hw_mac)+1);
+       parStrncpy(cfg->hw_mac, pConfig->hw_mac,sizeof(cfg->hw_mac));
     }
     else
     {
@@ -308,7 +308,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if(strlen (pConfig->hw_last_reboot_reason) !=0)
     {
-         strncpy(cfg->hw_last_reboot_reason, pConfig->hw_last_reboot_reason,strlen(pConfig->hw_last_reboot_reason)+1);
+         parStrncpy(cfg->hw_last_reboot_reason, pConfig->hw_last_reboot_reason,sizeof(cfg->hw_last_reboot_reason));
     }
     else
     {
@@ -316,7 +316,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if(strlen(pConfig->fw_name) !=0)
     {   
-        strncpy(cfg->fw_name, pConfig->fw_name,strlen(pConfig->fw_name)+1);
+        parStrncpy(cfg->fw_name, pConfig->fw_name,sizeof(cfg->fw_name));
     }
     else
     {
@@ -324,7 +324,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if( strlen(pConfig->webpa_url) !=0)
     {
-        strncpy(cfg->webpa_url, pConfig->webpa_url,strlen(pConfig->webpa_url)+1);
+        parStrncpy(cfg->webpa_url, pConfig->webpa_url,sizeof(cfg->webpa_url));
     }
     else
     {
@@ -332,7 +332,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if(strlen(pConfig->webpa_interface_used )!=0)
     {
-        strncpy(cfg->webpa_interface_used, pConfig->webpa_interface_used,strlen(pConfig->webpa_interface_used)+1);
+        parStrncpy(cfg->webpa_interface_used, pConfig->webpa_interface_used,sizeof(cfg->webpa_interface_used));
     }
     else
     {
@@ -340,29 +340,29 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if( strlen(pConfig->local_url) !=0)
     {
-        strncpy(cfg->local_url, pConfig->local_url,strlen(pConfig->local_url)+1);
+        parStrncpy(cfg->local_url, pConfig->local_url,sizeof(cfg->local_url));
     }
     else
     {
 		ParodusInfo("parodus local_url is NULL. adding default url\n");
-		strncpy(cfg->local_url, PARODUS_UPSTREAM, strlen(PARODUS_UPSTREAM)+1);
+		parStrncpy(cfg->local_url, PARODUS_UPSTREAM, sizeof(cfg->local_url));
         
     }
 
     if( strlen(pConfig->dns_id) !=0)
     {
-        strncpy(cfg->dns_id, pConfig->dns_id,strlen(pConfig->dns_id)+1);
+        parStrncpy(cfg->dns_id, pConfig->dns_id,sizeof(cfg->dns_id));
     }
     else
     {
 		ParodusInfo("parodus dns-id is NULL. adding default\n");
-		strncpy(cfg->dns_id, DNS_ID, strlen(DNS_ID)+1);
+		parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
         
     }
 
     if( strlen(pConfig->partner_id) !=0)
     {
-        strncpy(cfg->partner_id, pConfig->partner_id,strlen(pConfig->partner_id)+1);
+        parStrncpy(cfg->partner_id, pConfig->partner_id,sizeof(cfg->partner_id));
     }
     else
     {
@@ -371,7 +371,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         
     if( strlen(pConfig->seshat_url) !=0)
     {
-        strncpy(cfg->seshat_url, pConfig->seshat_url,strlen(pConfig->seshat_url)+1);
+        parStrncpy(cfg->seshat_url, pConfig->seshat_url,sizeof(cfg->seshat_url));
     }
     else
     {
@@ -379,21 +379,21 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 		}
     if(strlen(pConfig->jwt_key )!=0)
     {
-        strncpy(cfg->jwt_key, pConfig->jwt_key,strlen(pConfig->jwt_key)+1);
+        parStrncpy(cfg->jwt_key, pConfig->jwt_key,sizeof(cfg->jwt_key));
     }
     else
     {
-        strcpy(cfg->jwt_key, "\0");
+        parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
         ParodusPrint("jwt_key is NULL. set to empty\n");
     }
     
     if(strlen(pConfig->jwt_algo )!=0)
     {
-        strncpy(cfg->jwt_algo, pConfig->jwt_algo,strlen(pConfig->jwt_algo)+1);
+        parStrncpy(cfg->jwt_algo, pConfig->jwt_algo,sizeof(cfg->jwt_algo));
     }
     else
     {
-        strcpy(cfg->jwt_algo, "\0");
+        parStrncpy(cfg->jwt_algo, "\0", sizeof(cfg->jwt_algo));
         ParodusPrint("jwt_algo is NULL. set to empty\n");
     }
 
@@ -401,10 +401,10 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->secureFlag = 1;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
-    strncpy(cfg->webpa_path_url, WEBPA_PATH_URL, strlen(WEBPA_PATH_URL)+1);
+    parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     ParodusPrint("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
-    strncpy(cfg->webpa_uuid, "1234567-345456546", strlen("1234567-345456546")+1);
+    parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
 }

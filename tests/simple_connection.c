@@ -66,17 +66,17 @@ void test_set_parodus_cfg()
 {
     ParodusCfg cfg;
 
-    strcpy(cfg.hw_model, "TG1682");
-    strcpy(cfg.hw_serial_number, "Fer23u948590");
-    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
-    strcpy(cfg.hw_mac , "123567892366");
-    strcpy(cfg.hw_last_reboot_reason , "unknown");
-    strcpy(cfg.fw_name , "2.364s2");
-    strcpy(cfg.webpa_path_url , "/api/v2/device");
-    strcpy(cfg.webpa_url , "fabric-cd.webpa.comcast.net");
-    strcpy(cfg.webpa_interface_used , "eth0");
-    strcpy(cfg.webpa_protocol , "WebPA-1.6");
-    strcpy(cfg.webpa_uuid , "1234567-345456546");
+    parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
+    parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+    parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
+    parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+    parStrncpy(cfg.hw_last_reboot_reason , "unknown", sizeof(cfg.hw_last_reboot_reason));
+    parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
+    parStrncpy(cfg.webpa_path_url , "/api/v2/device", sizeof(cfg.webpa_path_url));
+    parStrncpy(cfg.webpa_url , "fabric-cd.webpa.comcast.net", sizeof(cfg.webpa_url));
+    parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+    parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
+    parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
     cfg.secureFlag = 1;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;

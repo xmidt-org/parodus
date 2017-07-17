@@ -51,7 +51,7 @@ void test_validate_partner_id_for_req()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -68,7 +68,7 @@ void test_validate_partner_id_for_req_listNULL()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -103,7 +103,7 @@ void err_validate_partner_id_for_req()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -122,7 +122,7 @@ void test_validate_partner_id_for_event()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -141,7 +141,7 @@ void test_validate_partner_id_for_event_listNULL()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -180,7 +180,7 @@ void test_validate_partner_id_for_event_withoutId()
     partners_t *partner_ids = (partners_t *) malloc(sizeof(partners_t));
     partner_ids->count = 1;
     partner_ids->partner_ids[0] = (char *) malloc(sizeof(char)*64);
-    strcpy(partner_ids->partner_ids[0], "shaw");
+    parStrncpy(partner_ids->partner_ids[0], "shaw", 64);
 
     wrp_msg_t *msg = (wrp_msg_t*) malloc(sizeof(wrp_msg_t));
     memset(msg, 0, sizeof(wrp_msg_t));
@@ -189,7 +189,7 @@ void test_validate_partner_id_for_event_withoutId()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    strcpy(cfg.partner_id, "comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);

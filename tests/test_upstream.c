@@ -91,7 +91,7 @@ size_t appendEncodedData( void **appendData, void *encodedBuffer, size_t encoded
     (void) encodedBuffer; (void) encodedSize; (void) metadataPack; (void) metadataSize;
     function_called();
     char *data = (char *) malloc (sizeof(char) * 100);
-    strcpy(data, "AAAAAAAAYYYYIGkYTUYFJH");
+    parStrncpy(data, "AAAAAAAAYYYYIGkYTUYFJH", 100);
     *appendData = data;
     return (size_t)mock();
 }
@@ -340,8 +340,8 @@ void test_processUpstreamMessageRegMsg()
 
     reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head, 0, sizeof(reg_list_item_t));
-    strcpy(head->service_name, "iot");
-    strcpy(head->url, "tcp://10.0.0.1:6600");
+    parStrncpy(head->service_name, "iot", sizeof(head->service_name));
+    parStrncpy(head->url, "tcp://10.0.0.1:6600", sizeof(head->url));
 
     temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
     memset(temp,0,sizeof(wrp_msg_t));
@@ -400,8 +400,8 @@ void test_processUpstreamMessageRegMsgNoClients()
 
     reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head, 0, sizeof(reg_list_item_t));
-    strcpy(head->service_name, "iot");
-    strcpy(head->url, "tcp://10.0.0.1:6600");
+    parStrncpy(head->service_name, "iot", sizeof(head->service_name));
+    parStrncpy(head->url, "tcp://10.0.0.1:6600", sizeof(head->url));
 
     temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
     memset(temp,0,sizeof(wrp_msg_t));
@@ -496,11 +496,11 @@ void err_processUpstreamMessageRegMsg()
     UpStreamMsgQ->next->next = NULL;
 
     reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
-    strcpy(head->service_name, "iot");
-    strcpy(head->url, "tcp://10.0.0.1:6600");
+    parStrncpy(head->service_name, "iot", sizeof(head->service_name));
+    parStrncpy(head->url, "tcp://10.0.0.1:6600", sizeof(head->url));
     head->next = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
-    strcpy(head->next->service_name, "iot");
-    strcpy(head->next->url, "tcp://10.0.0.1:6600");
+    parStrncpy(head->next->service_name, "iot", sizeof(head->service_name));
+    parStrncpy(head->next->url, "tcp://10.0.0.1:6600", sizeof(head->url));
     head->next->next = NULL;
 
     temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));

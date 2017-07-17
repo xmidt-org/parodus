@@ -196,7 +196,7 @@ void *processUpstreamMessage()
                             if(strcmp(temp->service_name, msg->u.reg.service_name)==0)
                             {
                                 ParodusInfo("match found, client is already registered\n");
-                                strncpy(temp->url,msg->u.reg.url, strlen(msg->u.reg.url)+1);
+                                parStrncpy(temp->url,msg->u.reg.url, sizeof(temp->url));
                                 if(nn_shutdown(temp->sock, 0) < 0)
                                 {
                                     ParodusError ("Failed to shutdown\n");
