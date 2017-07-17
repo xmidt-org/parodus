@@ -403,7 +403,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
-    ParodusPrint("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
+    ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
