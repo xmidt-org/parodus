@@ -36,10 +36,12 @@ extern "C" {
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                                    "/api/v2/device"
+#ifdef ENABLE_CJWT
 #define JWT_ALGORITHM					"jwt-algo"
 #define	JWT_KEY						"jwt-key"
-#define PARODUS_UPSTREAM                		"tcp://127.0.0.1:6666"
 #define DNS_ID	"fabric"
+#endif
+#define PARODUS_UPSTREAM                		"tcp://127.0.0.1:6666"
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -62,12 +64,16 @@ typedef struct
     char webpa_protocol[32];
     char webpa_uuid[64];
     unsigned int secureFlag;
-    char dns_id[64];
     char local_url[124];
     char partner_id[64];
+#ifdef ENABLE_SESHAT
     char seshat_url[128];
+#endif
+#ifdef ENABLE_CJWT
+    char dns_id[64];
     char jwt_algo[32];  // bit mask set for each allowed algorithm
     char jwt_key[4096]; // may be read in from a pem file
+#endif
 } ParodusCfg;
 
 /*----------------------------------------------------------------------------*/

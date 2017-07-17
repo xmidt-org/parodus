@@ -205,6 +205,7 @@ ExternalProject_Add(libseshat
 add_library(liblibseshat STATIC SHARED IMPORTED)
 add_dependencies(liblibseshat libseshat)
 include_directories(${INCLUDE_DIR}/libseshat)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_SESHAT ")
 endif (ENABLE_SESHAT)
 
 if (ENABLE_CJWT)
@@ -235,6 +236,7 @@ include_directories(${INCLUDE_DIR}
 					)		
 
 endif (UCLIBC)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_CJWT ")
 endif (ENABLE_CJWT)
 
 if (BUILD_TESTING)

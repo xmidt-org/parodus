@@ -53,7 +53,9 @@ void test_setParodusConfig()
     parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
     parStrncpy(cfg.partner_id , "comcast", sizeof(cfg.partner_id));
+#ifdef ENABLE_SESHAT
     parStrncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", sizeof(cfg.seshat_url));
+#endif
     cfg.secureFlag = 1;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
@@ -74,9 +76,9 @@ void test_setParodusConfig()
     assert_string_equal(cfg.webpa_protocol, temp->webpa_protocol);
     assert_string_equal(cfg.webpa_uuid, temp->webpa_uuid);
     assert_string_equal(cfg.partner_id, temp->partner_id);
+#ifdef ENABLE_SESHAT
     assert_string_equal(cfg.seshat_url, temp->seshat_url);
-
-
+#endif
     assert_int_equal((int) cfg.secureFlag, (int) temp->secureFlag);
     assert_int_equal((int) cfg.boot_time, (int) temp->boot_time);
     assert_int_equal((int) cfg.webpa_ping_timeout, (int) temp->webpa_ping_timeout);
@@ -99,6 +101,9 @@ void test_getParodusConfig()
 void test_parseCommandLine()
 {
     int argc =K_argc;
+#ifndef ENABLE_SESHAT
+    argc = argc - 1;
+#endif
     char * command[argc+1];
     int i = 0;
 
@@ -116,7 +121,9 @@ void test_parseCommandLine()
     command[i++] = "--boot-time=1234";
     command[i++] = "--parodus-local-url=tcp://127.0.0.1:6666";
     command[i++] = "--partner-id=cox";
+#ifdef ENABLE_SESHAT
     command[i++] = "--seshat-url=ipc://127.0.0.1:7777";
+#endif
     command[i] = '\0';
 
     ParodusCfg parodusCfg;
@@ -137,7 +144,9 @@ void test_parseCommandLine()
     assert_int_equal( (int) parodusCfg.boot_time,1234);
     assert_string_equal(  parodusCfg.local_url,"tcp://127.0.0.1:6666");
     assert_string_equal(  parodusCfg.partner_id,"cox");
+#ifdef ENABLE_SESHAT
     assert_string_equal(  parodusCfg.seshat_url, "ipc://127.0.0.1:7777");
+#endif
 
 }
 
@@ -149,6 +158,9 @@ void test_parseCommandLineNull()
 void err_parseCommandLine()
 {
     int argc =K_argc;
+#ifndef ENABLE_SESHAT
+    argc = argc - 1;
+#endif
     char * command[20]={'\0'};
 
     command[0] = "parodus";
