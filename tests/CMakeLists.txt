@@ -57,7 +57,7 @@ target_link_libraries (test_nopoll_helpers -Wl,--no-as-needed -lrt -lcmocka -lci
 #-------------------------------------------------------------------------------
 #   libpd_test
 #-------------------------------------------------------------------------------
-add_executable (libpd_test libpd_test.c)
+add_executable (libpd_test libpd_test.c ../src/string_helpers.c) 
 
 target_link_libraries (libpd_test
                        cunit
@@ -194,7 +194,7 @@ target_link_libraries (test_config -lcmocka
 #   test_upstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_upstream COMMAND ${MEMORY_CHECK} ./test_upstream)
-add_executable(test_upstream test_upstream.c ../src/upstream.c)
+add_executable(test_upstream test_upstream.c ../src/upstream.c ../src/string_helpers.c)
 target_link_libraries (test_upstream -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
@@ -235,7 +235,7 @@ target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} )
 #   test_partners_check
 #-------------------------------------------------------------------------------
 add_test(NAME test_partners_check COMMAND ${MEMORY_CHECK} ./test_partners_check)
-add_executable(test_partners_check test_partners_check.c ../src/partners_check.c)
+add_executable(test_partners_check test_partners_check.c ../src/partners_check.c ../src/string_helpers.c)
 target_link_libraries (test_partners_check -lcmocka ${PARODUS_COMMON_LIBS} -lwrp-c)
 
 #-------------------------------------------------------------------------------
@@ -255,7 +255,7 @@ target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lc
 #-------------------------------------------------------------------------------
 add_test(NAME test_seshat_interface COMMAND ${MEMORY_CHECK} ./test_seshat_interface)
 if (ENABLE_SESHAT)
-set(SOURCES test_seshat_interface.c ../src/seshat_interface.c)
+set(SOURCES test_seshat_interface.c ../src/seshat_interface.c ../src/string_helpers.c)
 else()
 set(SOURCES test_seshat_interface_stub.c ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)

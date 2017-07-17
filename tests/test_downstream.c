@@ -65,8 +65,8 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length,
     (*msg)->u.req.partner_ids = (partners_t *) malloc(sizeof(partners_t));
     (*msg)->u.req.partner_ids->count = 1;
     (*msg)->u.req.partner_ids->partner_ids[0] = (char *) malloc(sizeof(char) *64);
-    strcpy((*msg)->u.req.dest,"mac:1122334455/iot");
-    strcpy((*msg)->u.req.partner_ids->partner_ids[0],"comcast");
+    parStrncpy((*msg)->u.req.dest,"mac:1122334455/iot", 100);
+    parStrncpy((*msg)->u.req.partner_ids->partner_ids[0],"comcast", 64);
     return (ssize_t) mock();
 }
 
@@ -93,8 +93,8 @@ void test_listenerOnMessage()
     expect_function_calls(wrp_to_struct, 1);
     reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head, 0, sizeof(reg_list_item_t));
-    strcpy(head->service_name, "iot");
-    strcpy(head->url, "tcp://10.0.0.1:6600");
+    parStrncpy(head->service_name, "iot", sizeof(head->service_name));
+    parStrncpy(head->url, "tcp://10.0.0.1:6600", sizeof(head->url));
 
     will_return(get_numOfClients, 1);
     expect_function_call(get_numOfClients);
@@ -116,19 +116,19 @@ void test_listenerOnMessageMultipleClients()
 
     reg_list_item_t *head2 = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head2, 0, sizeof(reg_list_item_t));
-    strcpy(head2->service_name, "iot");
-    strcpy(head2->url, "tcp://10.0.0.1:6622");
+    parStrncpy(head2->service_name, "iot", sizeof(head2->service_name));
+    parStrncpy(head2->url, "tcp://10.0.0.1:6622", sizeof(head2->url));
     
     reg_list_item_t *head1 = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head1, 0, sizeof(reg_list_item_t));
-    strcpy(head1->service_name, "lmlite");
-    strcpy(head1->url, "tcp://10.0.0.1:6611");
+    parStrncpy(head1->service_name, "lmlite", sizeof(head1->service_name));
+    parStrncpy(head1->url, "tcp://10.0.0.1:6611", sizeof(head1->url));
     head1->next = head2;
     
     reg_list_item_t *head = (reg_list_item_t *) malloc(sizeof(reg_list_item_t));
     memset(head, 0, sizeof(reg_list_item_t));
-    strcpy(head->service_name, "config");
-    strcpy(head->url, "tcp://10.0.0.1:6600");
+    parStrncpy(head->service_name, "config", sizeof(head->service_name));
+    parStrncpy(head->url, "tcp://10.0.0.1:6600", sizeof(head->url));
     head->next = head1;
     
     will_return(get_numOfClients, 3);

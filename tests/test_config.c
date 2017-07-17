@@ -25,7 +25,7 @@
 #include <CUnit/Basic.h>
 
 #include "../src/config.h"
-
+#include "../src/ParodusInternal.h"
 #define K_argc 15
 
 /*----------------------------------------------------------------------------*/
@@ -41,19 +41,19 @@ void test_setParodusConfig()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
 
-    strcpy(cfg.hw_model, "TG1682");
-    strcpy(cfg.hw_serial_number, "Fer23u948590");
-    strcpy(cfg.hw_manufacturer , "ARRISGroup,Inc.");
-    strcpy(cfg.hw_mac , "123567892366");
-    strcpy(cfg.hw_last_reboot_reason , "unknown");
-    strcpy(cfg.fw_name , "2.364s2");
-    strcpy(cfg.webpa_path_url , "/v1");
-    strcpy(cfg.webpa_url , "localhost");
-    strcpy(cfg.webpa_interface_used , "eth0");
-    strcpy(cfg.webpa_protocol , "WebPA-1.6");
-    strcpy(cfg.webpa_uuid , "1234567-345456546");
-    strcpy(cfg.partner_id , "comcast");
-    strcpy(cfg.seshat_url, "ipc://tmp/seshat_service.url");
+    parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
+    parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+    parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
+    parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+    parStrncpy(cfg.hw_last_reboot_reason , "unknown", sizeof(cfg.hw_last_reboot_reason));
+    parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
+    parStrncpy(cfg.webpa_path_url , "/v1", sizeof(cfg.webpa_path_url));
+    parStrncpy(cfg.webpa_url , "localhost", sizeof(cfg.webpa_url));
+    parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+    parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
+    parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
+    parStrncpy(cfg.partner_id , "comcast", sizeof(cfg.partner_id));
+    parStrncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", sizeof(cfg.seshat_url));
     cfg.secureFlag = 1;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
@@ -88,7 +88,7 @@ void test_getParodusConfig()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
 
-    strcpy(cfg.hw_model, "TG1682133");
+    parStrncpy(cfg.hw_model, "TG1682133",sizeof(cfg.hw_model));
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
@@ -168,19 +168,21 @@ void test_loadParodusCfg()
     ParodusCfg  tmpcfg;
     ParodusCfg *Cfg;
     Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
+    char protocol[32] = {'\0'};
 
-    strcpy(Cfg->hw_model, "TG1682");
-    strcpy(Cfg->hw_serial_number, "Fer23u948590");
-    strcpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.");
-    strcpy(Cfg->hw_mac , "123567892366");
-    strcpy(Cfg->hw_last_reboot_reason , "unknown");
-    strcpy(Cfg->fw_name , "2.364s2");
-    strcpy(Cfg->webpa_path_url , "/v1");
-    strcpy(Cfg->webpa_url , "localhost");
-    strcpy(Cfg->webpa_interface_used , "eth0");
-    strcpy(Cfg->webpa_protocol , "WebPA-1.6");
-    strcpy(Cfg->local_url , "tcp://10.0.0.1:6000");
-    strcpy(Cfg->partner_id , "shaw");
+    parStrncpy(Cfg->hw_model, "TG1682", sizeof(Cfg->hw_model));
+    parStrncpy(Cfg->hw_serial_number, "Fer23u948590", sizeof(Cfg->hw_serial_number));
+    parStrncpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.", sizeof(Cfg->hw_manufacturer));
+    parStrncpy(Cfg->hw_mac , "123567892366", sizeof(Cfg->hw_mac));
+    parStrncpy(Cfg->hw_last_reboot_reason , "unknown", sizeof(Cfg->hw_last_reboot_reason));
+    parStrncpy(Cfg->fw_name , "2.364s2", sizeof(Cfg->fw_name));
+    parStrncpy(Cfg->webpa_path_url , "/v1", sizeof(Cfg->webpa_path_url));
+    parStrncpy(Cfg->webpa_url , "localhost", sizeof(Cfg->webpa_url));
+    parStrncpy(Cfg->webpa_interface_used , "eth0", sizeof(Cfg->webpa_interface_used));
+    snprintf(protocol, sizeof(protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
+    parStrncpy(Cfg->webpa_protocol , protocol, sizeof(Cfg->webpa_protocol));
+    parStrncpy(Cfg->local_url , "tcp://10.0.0.1:6000", sizeof(Cfg->local_url));
+    parStrncpy(Cfg->partner_id , "shaw", sizeof(Cfg->partner_id));
 
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
@@ -191,6 +193,7 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.hw_mac, "123567892366");
     assert_string_equal( tmpcfg.local_url, "tcp://10.0.0.1:6000");
     assert_string_equal( tmpcfg.partner_id, "shaw");
+    assert_string_equal( tmpcfg.webpa_protocol, protocol);
     free(Cfg);
 }
 
@@ -221,6 +224,28 @@ void err_loadParodusCfg()
     loadParodusCfg(NULL,&cfg);
 }
 
+void test_parodusGitVersion()
+{
+   FILE *fp;
+   char version[32] = {'\0'};
+   char *command = "git describe --tags --always";
+   int n;
+   size_t len;
+   fp = popen(command,"r"); 
+   while(fgets(version, 32, fp) !=NULL)
+   {
+   	len = strlen(version);
+  	if (len > 0 && version[len-1] == '\n') 
+  	{
+    		version[--len] = '\0';
+  	}
+   }
+   fclose(fp);
+   
+   n = strcmp( version, GIT_COMMIT_TAG);
+   assert_int_equal(n, 0);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -236,6 +261,7 @@ int main(void)
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
+        cmocka_unit_test(test_parodusGitVersion)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

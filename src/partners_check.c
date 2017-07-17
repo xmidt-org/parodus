@@ -61,7 +61,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
                     ParodusPrint("(*partnerIds)->partner_ids[%d] : %s\n",i,(*partnerIds)->partner_ids[i]);
                 }
                 (*partnerIds)->partner_ids[count] = (char *) malloc(sizeof(char) * 64);
-                strcpy((*partnerIds)->partner_ids[count], partnerId);
+                parStrncpy((*partnerIds)->partner_ids[count], partnerId, 64);
                 ParodusPrint("(*partnerIds)->partner_ids[%d] : %s\n",count,(*partnerIds)->partner_ids[count]);
             }
         }
@@ -71,7 +71,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
             (*partnerIds) = (partners_t *) malloc(sizeof(partners_t));
             (*partnerIds)->count = 1;
             (*partnerIds)->partner_ids[0] = (char *) malloc(sizeof(char) * 64);
-            strcpy((*partnerIds)->partner_ids[0], partnerId);
+            parStrncpy((*partnerIds)->partner_ids[0], partnerId, 64);
             ParodusPrint("(*partnerIds)->partner_ids[0] : %s\n",(*partnerIds)->partner_ids[0]);
         }
     }
