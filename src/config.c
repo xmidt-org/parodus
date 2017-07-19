@@ -128,10 +128,14 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           {"webpa-inteface-used",    required_argument, 0, 'i'},
           {"parodus-local-url",  required_argument, 0, 'l'},
           {"partner-id",  required_argument, 0, 'p'},
-	  {"seshat-url", required_argument, 0, 'e'},
-					{"dns-id", required_argument, 0, 'D'},
+#ifdef ENABLE_SESHAT
+          {"seshat-url", required_argument, 0, 'e'},
+#endif
+#ifdef ENABLE_CJWT
+          {"dns-id", required_argument, 0, 'D'},
           {JWT_ALGORITHM,    required_argument, 0, 'a'},
-	  {JWT_KEY,    required_argument, 0, 'k'},
+          {JWT_KEY,    required_argument, 0, 'k'},
+#endif
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
@@ -168,12 +172,12 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 						abort ();
 					}
           break;
-
+#ifdef ENABLE_SESHAT
          case 'e':
            parStrncpy(cfg->seshat_url, optarg,sizeof(cfg->seshat_url));
            ParodusInfo("seshat_url is %s\n",cfg->seshat_url);
           break;
- 
+#endif
         case 'r':
           parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
           ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
@@ -213,6 +217,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->local_url, optarg,sizeof(cfg->local_url));
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
+#ifdef ENABLE_CJWT
         case 'D':
           // like 'fabric' or 'test'
           // this parameter is used, along with the hw_mac parameter
@@ -235,7 +240,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           }
           ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
-
+#endif
         case 'p':
           parStrncpy(cfg->partner_id, optarg,sizeof(cfg->partner_id));
           ParodusInfo("partner_id is %s\n",cfg->partner_id);
@@ -349,17 +354,6 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         
     }
 
-    if( strlen(pConfig->dns_id) !=0)
-    {
-        parStrncpy(cfg->dns_id, pConfig->dns_id,sizeof(cfg->dns_id));
-    }
-    else
-    {
-		ParodusInfo("parodus dns-id is NULL. adding default\n");
-		parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
-        
-    }
-
     if( strlen(pConfig->partner_id) !=0)
     {
         parStrncpy(cfg->partner_id, pConfig->partner_id,sizeof(cfg->partner_id));
@@ -368,7 +362,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     {
 		ParodusPrint("partner_id is NULL. read from tmp file\n");
     }
-        
+#ifdef ENABLE_SESHAT
     if( strlen(pConfig->seshat_url) !=0)
     {
         parStrncpy(cfg->seshat_url, pConfig->seshat_url,sizeof(cfg->seshat_url));
@@ -376,7 +370,19 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     else
     {
         ParodusInfo("seshat_url is NULL. Read from tmp file\n");
-		}
+    }
+#endif
+#ifdef ENABLE_CJWT
+     if( strlen(pConfig->dns_id) !=0)
+    {
+        parStrncpy(cfg->dns_id, pConfig->dns_id,sizeof(cfg->dns_id));
+    }
+    else
+    {
+	ParodusInfo("parodus dns-id is NULL. adding default\n");
+	parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
+    }
+
     if(strlen(pConfig->jwt_key )!=0)
     {
         parStrncpy(cfg->jwt_key, pConfig->jwt_key,sizeof(cfg->jwt_key));
@@ -396,7 +402,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->jwt_algo, "\0", sizeof(cfg->jwt_algo));
         ParodusPrint("jwt_algo is NULL. set to empty\n");
     }
-
+#endif
     cfg->boot_time = pConfig->boot_time;
     cfg->secureFlag = 1;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
