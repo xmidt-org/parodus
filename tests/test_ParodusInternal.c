@@ -39,7 +39,7 @@ bool LastReasonStatus;
 nopoll_bool nopoll_base64_encode(const char *content,int length,char *output, int *output_size)
 {
     UNUSED(content); UNUSED(length);  UNUSED(output_size);
-    parStrncpy(output, "AWYFUJHUDUDKJDDRDKUIIKORE\nSFJLIRRSHLOUTDESTDJJITTESLOIUHJGDRS\nGIUY&%WSJ", sizeof(output));
+    parStrncpy(output, "AWYFUJHUDUDKJDDRDKUIIKORE\nSFJLIRRSHLOUTDESTDJJITTESLOIUHJGDRS\nGIUY&%WSJ", (size_t) *output_size);
     function_called();
     return (nopoll_bool)(intptr_t)mock();
 }

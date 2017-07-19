@@ -252,7 +252,7 @@ void test_parodusGitVersion()
     		version[--len] = '\0';
   	}
    }
-   fclose(fp);
+   pclose(fp);
    
    n = strcmp( version, GIT_COMMIT_TAG);
    assert_int_equal(n, 0);
