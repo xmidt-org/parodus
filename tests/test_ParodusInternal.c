@@ -56,7 +56,7 @@ char *get_global_reconnect_reason()
 void test_getWebpaConveyHeader()
 {
     ParodusCfg cfg;
-
+    memset(&cfg, 0, sizeof(ParodusCfg));
     parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
     parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
     parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));

@@ -129,7 +129,8 @@ void test_validate_partner_id_for_event()
     
     partners_t *list = NULL;
     int ret = validate_partner_id(msg, &list); 
-    assert_int_equal(ret, 1);  
+    assert_int_equal(ret, 1);
+    free(list);  
     free(msg);
 }
 

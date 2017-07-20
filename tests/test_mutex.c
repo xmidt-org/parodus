@@ -54,9 +54,7 @@ void* a(void *in)
 
     lockMutex(data->mutex);
     data->number++;
-    sleep(1);
     data->number++;
-    sleep(1);
     data->number++;
     unlockMutex(data->mutex);
 
@@ -69,9 +67,7 @@ void* b(void *in)
 
     lockMutex(data->mutex);
     data->number+=10;
-    sleep(1);
     data->number+=10;
-    sleep(1);
     data->number+=10;
     unlockMutex(data->mutex);
 
@@ -108,6 +104,8 @@ void err_mutex()
 
     will_return(pthread_mutex_init, -1);
     mutex = createMutex();
+    destroyMutex(mutex);
+    
 }
 
 void err_mutexNull()
