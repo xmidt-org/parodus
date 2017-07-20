@@ -34,6 +34,7 @@
 UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
 extern bool close_retry;
+extern pthread_mutex_t close_mut;
 extern volatile unsigned int heartBeatTimer;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -160,7 +161,9 @@ void test_createSocketConnection()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(ParodusCfg));
     
+    pthread_mutex_lock (&close_mut);
     close_retry = false;
+    pthread_mutex_unlock (&close_mut);
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -195,7 +198,9 @@ void test_createSocketConnection1()
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0, sizeof(ParodusCfg));
+    pthread_mutex_lock (&close_mut);
     close_retry = true;
+    pthread_mutex_unlock (&close_mut);
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -242,7 +247,9 @@ void test_createSocketConnection2()
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
     cfg.webpa_ping_timeout = 1;
     
+    pthread_mutex_lock (&close_mut);
     close_retry = false;
+    pthread_mutex_unlock (&close_mut);
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -279,7 +286,9 @@ void test_createSocketConnection2()
 
 void err_createSocketConnection()
 {
+    pthread_mutex_lock (&close_mut);
     close_retry = true;
+    pthread_mutex_unlock (&close_mut);
     heartBeatTimer = 0;
     expect_function_call(nopoll_thread_handlers);
     

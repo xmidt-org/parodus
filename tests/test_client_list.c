@@ -87,13 +87,23 @@ static void *client_rcv_task()
 	int byte =0;
 	int rv1=0;
 	int t=25000;
+	int rc = -1;
+	int bind;
 	wrp_msg_t  *msg1;
 
 	int sock1 = nn_socket (AF_SP, NN_PULL);
-	nn_bind(sock1, TEST_CLIENT1_URL);
+	bind = nn_bind(sock1, TEST_CLIENT1_URL);
+	if(bind < 0)
+        {
+            ParodusError("Unable to bind socket (errno=%d, %s)\n",errno, strerror(errno));
+        }
 	
 	void *buf = NULL;
-	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	rc = nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	if(rc < 0)
+        {
+        	ParodusError ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
+        }
 	
 	ParodusPrint("Client 1 waiting for acknowledgement \n");
 	byte = nn_recv(sock1, &buf, NN_MSG, 0);
@@ -119,13 +129,23 @@ static void *client2_rcv_task()
 	int byte =0;
 	int rv1=0;
 	int t=25000;
+	int rc = -1;
+	int bind;
 	wrp_msg_t  *msg1;
 
 	int sock1 = nn_socket (AF_SP, NN_PULL);
-	nn_bind(sock1, TEST_CLIENT2_URL);
+	bind = nn_bind(sock1, TEST_CLIENT2_URL);
+	if(bind < 0)
+        {
+            ParodusError("Unable to bind socket (errno=%d, %s)\n",errno, strerror(errno));
+        }
 	
 	void *buf = NULL;
-	nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	rc = nn_setsockopt(sock1, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+	if(rc < 0)
+        {
+                ParodusError ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
+        }
 	
 	ParodusPrint("Client 2 waiting for acknowledgement \n");
 	byte = nn_recv(sock1, &buf, NN_MSG, 0);
