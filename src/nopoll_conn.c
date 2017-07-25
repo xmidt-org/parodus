@@ -236,8 +236,11 @@ NOPOLL_SOCKET __nopoll_conn_sock_connect_opts_internal (noPollCtx       * ctx,
 							noPollConnOpts  * options)
 {
 
-	struct addrinfo      hints, *res = NULL;
+	struct addrinfo      hints, *res = NULL,*rp;
 	NOPOLL_SOCKET        session     = NOPOLL_INVALID_SOCKET;
+	char addrstr[100];
+	void *ptr = NULL;
+	char *localIp = "10.0.0.1";
 
 	/* clear hints structure */
 	memset (&hints, 0, sizeof(struct addrinfo));
@@ -252,10 +255,6 @@ NOPOLL_SOCKET __nopoll_conn_sock_connect_opts_internal (noPollCtx       * ctx,
 		if (getaddrinfo (host, port, &hints, &res) != 0) {
 			nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "unable to resolve host name %s, errno=%d", host, errno);
 			return -1;
-		} /* end if */
-
-		/* create the socket and check if it */
-		session      = socket (AF_INET, SOCK_STREAM, 0);
 		break;
 	case NOPOLL_TRANSPORT_IPV6:
 		/* configure hints */
@@ -267,11 +266,41 @@ NOPOLL_SOCKET __nopoll_conn_sock_connect_opts_internal (noPollCtx       * ctx,
 			nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "unable to resolve host name %s, errno=%d", host, errno);
 			return -1;
 		} /* end if */
-
-		/* create the socket and check if it */
-		session      = socket (AF_INET6, SOCK_STREAM, 0);
 		break;
 	} /* end switch */
+	
+	for (rp = res; rp != NULL; rp = rp->ai_next) 
+	{
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "rp->ai_family %d ", rp->ai_family);
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "rp->ai_socktype %d",  rp->ai_socktype);
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "rp->ai_protocol %d",  rp->ai_protocol);
+
+		if(rp->ai_family == AF_INET)
+		{
+			ptr = &((struct sockaddr_in *) rp->ai_addr)->sin_addr;
+			inet_ntop (rp->ai_family, ptr, addrstr, 100);
+			nopoll_log (ctx, NOPOLL_LEVEL_INFO, "IPv4 address of %s is %s \n", host, addrstr);
+
+			if (strcmp(localIp,addrstr) == 0)
+			{
+				/* If Host DNS is resolved to 10.0.0.1 which means there is problem and client should not connect to this address */
+				nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Host Ip resolved to 10.0.0.1");
+				nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "unable to connect to remote host %s:%s as IP resolved to 10.0.0.1", host, port);
+				freeaddrinfo(res);
+				return -1;			
+
+			}
+		}
+		else if(rp->ai_family == AF_INET6)
+		{
+			ptr = &((struct sockaddr_in6 *) rp->ai_addr)->sin6_addr;
+			inet_ntop (rp->ai_family, ptr, addrstr, 100);
+			nopoll_log (ctx, NOPOLL_LEVEL_INFO, "IPv6 address of %s is %s \n", host, addrstr);
+		}
+	}
+	
+	/* create the socket and check if it */
+	session      = socket (hints.ai_family, hints.ai_socktype, 0);
 	
 	if (session == NOPOLL_INVALID_SOCKET) {
 		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "unable to create socket");
