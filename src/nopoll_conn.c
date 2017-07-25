@@ -255,6 +255,7 @@ NOPOLL_SOCKET __nopoll_conn_sock_connect_opts_internal (noPollCtx       * ctx,
 		if (getaddrinfo (host, port, &hints, &res) != 0) {
 			nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "unable to resolve host name %s, errno=%d", host, errno);
 			return -1;
+		} /* end if */
 		break;
 	case NOPOLL_TRANSPORT_IPV6:
 		/* configure hints */
