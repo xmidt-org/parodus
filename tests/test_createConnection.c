@@ -41,10 +41,10 @@ pthread_mutex_t close_mut;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx, noPollConnOpts * options, const char * host_ip, const char * host_port, const char * host_name, const char * get_url, const char * protocols, const char * origin, const char * outbound_interface, const char * headerNames[], const char * headerValues[], const int headerCount)
+noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx, noPollConnOpts * options, const char * host_ip, const char * host_port, const char * host_name, const char * get_url, const char * protocols, const char * origin)
 {
     UNUSED(options); UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); 
-    UNUSED(origin); UNUSED(outbound_interface); UNUSED(headerNames); UNUSED(headerValues); UNUSED(headerCount);
+    UNUSED(origin);
     
     function_called();
     check_expected((intptr_t)ctx);
@@ -52,11 +52,10 @@ noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx, noPollConnOpts * options, co
     return (noPollConn *) (intptr_t)mock();
 }
 
-noPollConn * nopoll_conn_new (noPollCtx  * ctx, const char * host_ip, const char * host_port, const char * host_name, const char * get_url, const char * protocols, const char * origin, const char * outbound_interface, const char * headerNames[], const char * headerValues[], const int headerCount)
+noPollConn * nopoll_conn_new (noPollCtx  * ctx, const char * host_ip, const char * host_port, const char * host_name, const char * get_url, const char * protocols, const char * origin)
 {
     UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); UNUSED(origin);
-    UNUSED(outbound_interface); UNUSED(headerNames); UNUSED(headerValues); UNUSED(headerCount);
-
+    
     function_called();
     check_expected((intptr_t)ctx);
     check_expected((intptr_t)host_ip);
