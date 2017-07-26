@@ -112,8 +112,9 @@ int createNopollConnection(noPollCtx *ctx)
 		else 
 		{
 		    ParodusPrint("secure false\n");
-            connection = nopoll_conn_new(ctx, server_Address, port, NULL,
-                       get_parodus_cfg()->webpa_path_url, NULL, NULL);// WEBPA-787
+            noPollConnOpts * opts;
+            opts = createConnOpts();
+            connection = nopoll_conn_new_opts (ctx, opts,server_Address,port,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);// WEBPA-787
 		}
         set_global_conn(connection);
 
@@ -266,8 +267,11 @@ static noPollConnOpts * createConnOpts ()
     char user_agent[512]={'\0'};
     
     opts = nopoll_conn_opts_new ();
-	nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
-	nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
+    if(get_parodus_cfg()->secureFlag) 
+	{
+	    nopoll_conn_opts_ssl_peer_verify (opts, nopoll_true);
+	    nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
+	}
 	nopoll_conn_opts_set_interface (opts,get_parodus_cfg()->webpa_interface_used);	
     snprintf(user_agent, sizeof(user_agent),"%s (%s; %s/%s;)",
          ((0 != strlen(get_parodus_cfg()->webpa_protocol)) ? get_parodus_cfg()->webpa_protocol : "unknown"),
