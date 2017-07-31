@@ -195,9 +195,6 @@ void test_createSecureConnection()
     will_return(nopoll_conn_tls_new6, NULL);
     expect_function_call(nopoll_conn_tls_new6);
     
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
-
 	expect_value(nopoll_conn_tls_new, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_tls_new, (intptr_t)host_ip, "localhost");
     will_return(nopoll_conn_tls_new, (intptr_t)&gNPConn);
@@ -281,9 +278,6 @@ void test_createConnectionConnNull()
     will_return(nopoll_conn_tls_new6, NULL);
     expect_function_call(nopoll_conn_tls_new6);
     
-    will_return(getWebpaConveyHeader, (intptr_t)"");
-    expect_function_call(getWebpaConveyHeader);
-
     expect_value(nopoll_conn_tls_new, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_tls_new, (intptr_t)host_ip, "localhost");
     will_return(nopoll_conn_tls_new, (intptr_t)NULL);
@@ -294,16 +288,11 @@ void test_createConnectionConnNull()
 
     expect_function_call(getCurrentTime);
 
-    will_return(getWebpaConveyHeader, (intptr_t)"");
-    expect_function_call(getWebpaConveyHeader);
-    
 	expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_tls_new6, (intptr_t)host_ip, "localhost");
     will_return(nopoll_conn_tls_new6, NULL);
     expect_function_call(nopoll_conn_tls_new6);
     
-    will_return(getWebpaConveyHeader, (intptr_t)"");
-    expect_function_call(getWebpaConveyHeader);
 
     expect_value(nopoll_conn_tls_new, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_tls_new,(intptr_t)host_ip, "localhost");
@@ -324,16 +313,10 @@ void test_createConnectionConnNull()
     will_return(kill, 1);
     expect_function_call(kill);
 
-    will_return(getWebpaConveyHeader, (intptr_t)"");
-    expect_function_call(getWebpaConveyHeader);
-
     expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_tls_new6, (intptr_t)host_ip, "localhost");
     will_return(nopoll_conn_tls_new6, NULL);
     expect_function_call(nopoll_conn_tls_new6);
-    
-    will_return(getWebpaConveyHeader, (intptr_t)"");
-    expect_function_call(getWebpaConveyHeader);
     
     expect_value(nopoll_conn_tls_new, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_tls_new, (intptr_t)host_ip, "localhost");
@@ -387,9 +370,6 @@ void test_createConnectionConnNotOk()
 
     expect_function_call(nopoll_conn_unref);
 
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
-    
     expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_new_opts, (intptr_t)host_ip, "localhost");
     will_return(nopoll_conn_new_opts, (intptr_t)&gNPConn);
@@ -408,9 +388,6 @@ void test_createConnectionConnNotOk()
 
     will_return(nopoll_conn_ref_count, 0);
     expect_function_call(nopoll_conn_ref_count);
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
     expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_new_opts, (intptr_t)host_ip, "localhost");
@@ -439,9 +416,6 @@ void test_createConnectionConnNotOk()
 
     expect_function_call(nopoll_conn_unref);
     
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
-
     expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_new_opts, (intptr_t)host_ip, "10.0.0.12");
     will_return(nopoll_conn_new_opts, (intptr_t)&gNPConn);
