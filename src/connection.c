@@ -19,7 +19,9 @@
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
-
+#ifdef BUILD_YOCTO
+#define SSL_CERT_FILE                           "/etc/ssl/certs/ca-certificates.crt"
+#endif
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -269,6 +271,9 @@ static noPollConnOpts * createConnOpts ()
     opts = nopoll_conn_opts_new ();
     if(get_parodus_cfg()->secureFlag) 
 	{
+#ifdef BUILD_YOCTO
+	    nopoll_conn_opts_set_ssl_certs(opts, NULL, NULL, NULL, SSL_CERT_FILE);
+#endif
 	    nopoll_conn_opts_ssl_peer_verify (opts, nopoll_true);
 	    nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
 	}
