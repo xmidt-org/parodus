@@ -733,13 +733,15 @@ nopoll_bool __nopoll_conn_set_ssl_client_options (noPollCtx * ctx, noPollConn * 
 		} /* end if */
 		
 	} /* end if */
-
-	/* enable default verification paths */
-	/* printf ("conn = %p, conn->ssl_ctx = %p\n", conn, conn->ssl_ctx); */
-	if (SSL_CTX_set_default_verify_paths (conn->ssl_ctx) != 1) {
-		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Unable to configure default verification paths, SSL_CTX_set_default_verify_paths () failed");
-		return nopoll_false;
-	} /* end if */
+        else /* enable default verification paths only when load verify paths are not available */
+        {
+	        /* enable default verification paths */
+	        /* printf ("conn = %p, conn->ssl_ctx = %p\n", conn, conn->ssl_ctx); */
+	        if (SSL_CTX_set_default_verify_paths (conn->ssl_ctx) != 1) {
+		        nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Unable to configure default verification paths, SSL_CTX_set_default_verify_paths () failed");
+		        return nopoll_false;
+	        } /* end if */
+        }
 
 	if (options && options->chain_certificate) {
 		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Setting chain certificate: %s", options->chain_certificate);
