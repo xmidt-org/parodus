@@ -83,14 +83,7 @@ ExternalProject_Add(nopoll
     PREFIX ${PREFIX_DIR}/nopoll
     GIT_REPOSITORY https://github.com/Comcast/nopoll.git
     GIT_TAG "nopoll_yocto"
-    PATCH_COMMAND ""
-    COMMAND touch NEWS README AUTHORS ChangeLog
-    COMMAND libtoolize --force
-    COMMAND aclocal
-    COMMAND autoheader --warnings=error
-    COMMAND automake --add-missing -Werror
-    COMMAND autoconf --force --warnings=error
-    CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/configure --prefix=${PREFIX}
+    CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/autogen.sh --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}
                                                      ${CUSTOM_HOST}
