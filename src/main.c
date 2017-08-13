@@ -20,7 +20,11 @@
 #include "config.h"
 #include "conn_interface.h"
 #include "parodus_log.h"
+#ifdef INCLUDE_BREAKPAD
+#include "breakpad_wrapper.h"
+#else
 #include "signal.h"
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -40,13 +44,18 @@
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
+#ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig);
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 int main( int argc, char **argv)
 {
+#ifdef INCLUDE_BREAKPAD
+    breakpad_ExceptionHandler();
+#else
     signal(SIGTERM, sig_handler);
 	signal(SIGINT, sig_handler);
 	signal(SIGUSR1, sig_handler);
@@ -59,7 +68,7 @@ int main( int argc, char **argv)
 	signal(SIGQUIT, sig_handler);
 	signal(SIGHUP, sig_handler);
 	signal(SIGALRM, sig_handler);
-	
+#endif	
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
     
@@ -79,6 +88,7 @@ const char *rdk_logger_module_fetch(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
+#ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig)
 {
 
@@ -119,3 +129,4 @@ static void sig_handler(int sig)
 	}
 	
 }
+#endif
