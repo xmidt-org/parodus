@@ -136,11 +136,12 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           {JWT_ALGORITHM,    required_argument, 0, 'a'},
           {JWT_KEY,    required_argument, 0, 'k'},
 #endif
+          {CERT_PATH,    optional_argument, 0, 'c'},
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -244,6 +245,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case 'p':
           parStrncpy(cfg->partner_id, optarg,sizeof(cfg->partner_id));
           ParodusInfo("partner_id is %s\n",cfg->partner_id);
+          break;
+
+        case 'c':
+          parStrncpy(cfg->cert_path, optarg,sizeof(cfg->cert_path));
+          ParodusInfo("cert_path is %s\n",cfg->cert_path);
           break;
 
         case '?':
@@ -403,6 +409,15 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusPrint("jwt_algo is NULL. set to empty\n");
     }
 #endif
+    if(strlen(pConfig->cert_path )!=0)
+    {
+        parStrncpy(cfg->cert_path, pConfig->cert_path,sizeof(cfg->cert_path));
+    }
+    else
+    {
+        parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
+        ParodusPrint("cert_path is NULL. set to empty\n");
+    }
     cfg->boot_time = pConfig->boot_time;
     cfg->secureFlag = 1;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
