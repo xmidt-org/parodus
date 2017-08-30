@@ -19,6 +19,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
+#define SSL_CERT_FILE                           "/etc/ssl/certs/ca-certificates.crt"
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -285,7 +286,8 @@ static noPollConnOpts * createConnOpts (char * extra_headers)
     opts = nopoll_conn_opts_new ();
     if(get_parodus_cfg()->secureFlag) 
 	{
-	    nopoll_conn_opts_ssl_peer_verify (opts, nopoll_false);
+	    nopoll_conn_opts_set_ssl_certs(opts, NULL, NULL, NULL, SSL_CERT_FILE);
+	    nopoll_conn_opts_ssl_peer_verify (opts, nopoll_true);
 	    nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
 	}
 	nopoll_conn_opts_set_interface (opts,get_parodus_cfg()->webpa_interface_used);	
