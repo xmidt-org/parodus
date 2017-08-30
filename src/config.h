@@ -33,6 +33,7 @@ extern "C" {
 #define WEBPA_PING_TIMEOUT                              "webpa-ping-timeout"
 #define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
 #define PARTNER_ID                                      "partner-id"
+#define CERT_PATH                                       "ssl-cert-path"
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                                    "/api/v2/device"
@@ -74,6 +75,7 @@ typedef struct
     char jwt_algo[32];  // bit mask set for each allowed algorithm
     char jwt_key[4096]; // may be read in from a pem file
 #endif
+    char cert_path[64];
 } ParodusCfg;
 
 /*----------------------------------------------------------------------------*/
