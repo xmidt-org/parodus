@@ -777,7 +777,7 @@ nopoll_bool __nopoll_conn_set_ssl_client_options (noPollCtx * ctx, noPollConn * 
 
 	/* if no option and it is not disabled */
 	if (options == NULL || ! options->disable_ssl_verify) {
-		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Enabling certificate peer verification");
+		nopoll_log (ctx, NOPOLL_LEVEL_INFO, "Enabling certificate peer verification");
 		/** really, really ugly hack to let
 		 * __nopoll_conn_ssl_verify_callback to be able to get
 		 * access to the context required to drop some logs */
