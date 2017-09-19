@@ -334,7 +334,7 @@ NOPOLL_SOCKET __nopoll_conn_sock_connect_opts_internal (noPollCtx       * ctx,
 		        shutdown (session, SHUT_RDWR);
                         nopoll_close_socket (session);
 
-			nopoll_log (ctx, NOPOLL_LEVEL_WARNING, "unable to connect to remote host %s:%s errno=%d",
+			nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "unable to connect to remote host %s:%s errno=%d",
 				    host, port, errno);
 
 			/* relase address info */
@@ -3546,7 +3546,8 @@ read_payload:
 
 		/* flag that this message doesn't have FIN = 0 because
 		 * we wasn't able to read it entirely */
-		/* msg->has_fin = 0; */
+		/*set msg->has_fin to 0, as it read only fewer bytes, there will be some remaining fragmented bytes to read*/
+		 msg->has_fin = 0; 
 	} /* end if */
 
 	/* flag the message was being a fragment according to previous flag */
