@@ -52,7 +52,7 @@ target_link_libraries (parodus -llibseshat)
 endif (ENABLE_SESHAT)
 
 if (ENABLE_CJWT)
-target_link_libraries (parodus -lresolv -lcjwt)
+target_link_libraries (parodus -lucresolv -lresolv -lcjwt)
 endif (ENABLE_CJWT)
 
 install (TARGETS parodus DESTINATION bin)

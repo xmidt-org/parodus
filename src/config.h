@@ -17,6 +17,8 @@ extern "C" {
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
+#define ENABLE_CJWT 1
+
 /* WRP CRUD Model Macros */
 #define HW_MODELNAME                                	"hw-model"
 #define HW_SERIALNUMBER                                 "hw-serial-number"
@@ -72,7 +74,7 @@ typedef struct
 #endif
 #ifdef ENABLE_CJWT
     char dns_id[64];
-    char jwt_algo[32];  // bit mask set for each allowed algorithm
+    unsigned int jwt_algo;  // bit mask set for each allowed algorithm
     char jwt_key[4096]; // may be read in from a pem file
 #endif
     char cert_path[64];

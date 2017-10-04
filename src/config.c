@@ -10,6 +10,9 @@
 #include <fcntl.h> 
 #include "config.h"
 #include "ParodusInternal.h"
+#ifdef ENABLE_CJWT
+#include <cjwt/cjwt.h>
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -31,34 +34,46 @@ void set_parodus_cfg(ParodusCfg *cfg)
     parodusCfg = *cfg;
 }
 
+const char *get_tok (const char *src, int delim, char *result, int resultsize)
+{
+	int i;
+	char c;
+	int endx = resultsize-1;
+
+	memset (result, 0, resultsize);
+	for (i=0; (c=src[i]) != 0; i++) {
+		if (c == delim)
+			break;
+ 		if (i < endx)
+			result[i] = c;
+	}
+	if (c == 0)
+		return NULL;
+	return src + i + 1;
+}
+
 // the algorithm mask indicates which algorithms are allowed
-#if 0
 unsigned int get_algo_mask (const char *algo_str)
 {
   unsigned int mask = 0;
-  char *tok;
+#define BUFLEN 16
+  char tok[BUFLEN];
 	int alg_val;
-#define BUFLEN 128
-	char algo_buf[BUFLEN];
 
-	strncpy (algo_buf, algo_str, BUFLEN-1);
-	algo_buf[BUFLEN-1] = 0;
-
-	tok = strtok(algo_buf, ":");
-	while(tok!=NULL)
+	while(NULL != algo_str)
 	{
+		algo_str = get_tok (algo_str, ':', tok, BUFLEN);
 		alg_val = cjwt_alg_str_to_enum (tok);
 		if ((alg_val < 0)  || (alg_val >= num_algorithms)) {
        ParodusError("Invalid jwt algorithm %s\n", tok);
        abort ();
 		}
 		mask |= (1<<alg_val);
-		tok = strtok(NULL,":");
+		
 	}
 	return mask;
 #undef BUFLEN
 }
-#endif
 
 static int open_input_file (const char *fname)
 {
@@ -228,8 +243,10 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 		 
 	case 'a':
-          parStrncpy(cfg->jwt_algo, optarg, sizeof(cfg->jwt_algo));
-          ParodusInfo("jwt_algo is %s\n",cfg->jwt_algo);
+					// the command line argument is a list of allowed algoritms,
+					// separated by colons, like "RS256:RS512:none"
+					cfg->jwt_algo = get_algo_mask (optarg);
+          ParodusInfo("jwt_algo is %u\n",cfg->jwt_algo);
           break;
 	case 'k':
           // if the key argument has a '.' character in it, then it is
@@ -398,16 +415,8 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
         ParodusPrint("jwt_key is NULL. set to empty\n");
     }
-    
-    if(strlen(pConfig->jwt_algo )!=0)
-    {
-        parStrncpy(cfg->jwt_algo, pConfig->jwt_algo,sizeof(cfg->jwt_algo));
-    }
-    else
-    {
-        parStrncpy(cfg->jwt_algo, "\0", sizeof(cfg->jwt_algo));
-        ParodusPrint("jwt_algo is NULL. set to empty\n");
-    }
+
+		cfg->jwt_algo = pConfig->jwt_algo;        
 #endif
     if(strlen(pConfig->cert_path )!=0)
     {

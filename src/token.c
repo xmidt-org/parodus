@@ -69,6 +69,13 @@
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+extern int res_Ninit(res_state statp);
+extern void res_Nclose(res_state statp);
+extern int res_Nquery(res_state statp,
+	   const char *name,	/* domain name */
+	   int class, int type,	/* class and type of query */
+	   u_char *answer,	/* buffer to put answer */
+	   int anslen);		/* size of answer buffer */
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -123,59 +130,18 @@ int analyze_jwt (const cjwt_t *jwt)
 	return (http_match == 0);
 }
 
-const char *get_tok (const char *src, int delim, char *result, int resultsize)
-{
-	int i;
-	char c;
-	int endx = resultsize-1;
-
-	memset (result, 0, resultsize);
-	for (i=0; (c=src[i]) != 0; i++) {
-		if (c == delim)
-			break;
- 		if (i < endx)
-			result[i] = c;
-	}
-	if (c == 0)
-		return NULL;
-	return src + i + 1;
-}
-
-// the algorithm mask indicates which algorithms are allowed
-unsigned int get_algo_mask (const char *algo_str)
-{
-    unsigned int mask = 0;
-#define BUFLEN 16
-    char tok[BUFLEN];
-    int alg_val;
-
-    while(NULL != algo_str)
-    {
-        algo_str = get_tok (algo_str, ':', tok, BUFLEN);
-        alg_val = cjwt_alg_str_to_enum (tok);
-        if ((alg_val < 0)  || (alg_val >= num_algorithms)) 
-        {
-            ParodusError("Invalid jwt algorithm %s\n", tok);
-            abort ();
-        }
-        mask |= (1<<alg_val);
-    }
-    return mask;
-#undef BUFLEN
-}
-
 bool validate_algo(const cjwt_t *jwt)
 {
 	// return true if jwt->header.alg is included in the set
 	// of allowed algorithms specified by cfg->jwt_algo
 	ParodusCfg *cfg = get_parodus_cfg();
-        int alg = jwt->header.alg;
-        int alg_mask;
+  int alg = jwt->header.alg;
+  int alg_mask;
 
 	if ((alg < 0) || (alg >= num_algorithms))
 		return false;
 	alg_mask = 1<<alg;
-	if ((alg_mask & get_algo_mask(cfg->jwt_algo)) == 0) {
+	if ((alg_mask & cfg->jwt_algo) == 0) {
 		ParodusError ("Algorithm %d not allowed (mask %d)\n", alg, alg_mask); 
 		return false;
 	}
@@ -192,24 +158,24 @@ int nquery(const char* dns_txt_record_id,u_char *nsbuf)
     /* Initialize resolver */
 		memset (&statp, 0, sizeof(__res_state));
 		statp.options |= RES_DEBUG;
-    if (res_ninit(&statp) < 0) {
-        ParodusError ("res_ninit error: can't initialize statp.\n");
+    if (res_Ninit(&statp) < 0) {
+        ParodusError ("res_Ninit error: can't initialize statp.\n");
         return (-1);
     }
 
 		ParodusInfo ("Domain : %s\n", dns_txt_record_id);
 		memset (nsbuf, 0, NS_MAXBUF);
-		len = res_nquery(&statp, dns_txt_record_id, ns_c_any, ns_t_txt, nsbuf, NS_MAXBUF);
+		len = res_Nquery(&statp, dns_txt_record_id, ns_c_in, ns_t_txt, nsbuf, NS_MAXBUF);
     if (len < 0) {
 				if (0 != statp.res_h_errno) {
 					const char *msg = hstrerror (statp.res_h_errno);
-        	ParodusError ("Error in res_nquery: %s\n", msg);
+        	ParodusError ("Error in res_Nquery: %s\n", msg);
 				}
         return len;
     }
-    res_nclose (&statp);
+    res_Nclose (&statp);
     if (len >= NS_MAXBUF) {
-        ParodusError ("res_nquery error: ns buffer too small.\n");
+        ParodusError ("res_Nquery error: ns buffer too small.\n");
         return -1;
     }
 

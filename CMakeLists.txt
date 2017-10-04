@@ -22,6 +22,7 @@ include(CTest)
 set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
+set(INCLUDE_UCRESOLV ${PREFIX_DIR}/ucresolv/src/ucresolv/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
 set(COMMON_LIBRARY_DIR ${INSTALL_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE})
@@ -138,7 +139,7 @@ ExternalProject_Add(cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cimplog
     GIT_REPOSITORY https://github.com/Comcast/cimplog.git
     GIT_TAG "master"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcimplog STATIC SHARED IMPORTED)
 add_dependencies(libcimplog cimplog)
@@ -169,7 +170,7 @@ ExternalProject_Add(libparodus
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
     GIT_REPOSITORY https://github.com/Comcast/libparodus.git
     GIT_TAG "master"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     		  -DMAIN_PROJ_BUILD=ON
     		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
     		  -DMAIN_PROJ_LIB64_PATH=${LIBRARY_DIR64}
@@ -186,7 +187,7 @@ ExternalProject_Add(libseshat
     DEPENDS cJSON trower-base64 msgpack wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
     GIT_REPOSITORY https://github.com/comcast/seshat.git
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
     	          -DMAIN_PROJ_LIB64_PATH=${LIBRARY_DIR64}
@@ -216,8 +217,8 @@ if (UCLIBC)
 #-------------------------------------------------------------------------------
 ExternalProject_Add(ucresolv
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
-    GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
-    GIT_TAG "master"
+    GIT_REPOSITORY https://github.com/bill1600/libucresolv.git
+    GIT_TAG "newnames"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libucresolv STATIC SHARED IMPORTED)

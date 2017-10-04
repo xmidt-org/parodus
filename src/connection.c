@@ -19,6 +19,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	4
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -95,7 +96,8 @@ int createNopollConnection(noPollCtx *ctx)
 	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
 	ParodusInfo("server_Address %s\n",server_Address);
 					
-	max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
+	//max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
+	max_retry_sleep = (int) get_parodus_cfg()->webpa_backoff_max;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
 	
     snprintf(user_agent, sizeof(user_agent),"%s (%s; %s/%s;)",
