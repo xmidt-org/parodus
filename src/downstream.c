@@ -42,7 +42,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 
     recivedMsg =  (const char *) msg;
 
-    ParodusInfo("Received msg from server:%s\n", recivedMsg);
+    ParodusInfo("Received msg from server\n");
     if(recivedMsg!=NULL) 
     {
         /*** Decoding downstream recivedMsg to check destination ***/
@@ -75,7 +75,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                     destVal = message->u.req.dest;
                     strtok(destVal , "/");
                     parStrncpy(dest,strtok(NULL , "/"), sizeof(dest));
-                    ParodusInfo("Received downstream dest as :%s\n", dest);
+                    ParodusInfo("Received downstream dest as :%s and transaction_uuid :%s\n", dest, message->u.req.transaction_uuid);
                     temp = get_global_node();
                     //Checking for individual clients & Sending to each client
 
@@ -87,7 +87,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         {
                             ParodusPrint("sending to nanomsg client %s\n", dest);
                             bytes = nn_send(temp->sock, recivedMsg, msgSize, 0);
-                            ParodusInfo("sent downstream message '%s' to reg_client '%s'\n",recivedMsg,temp->url);
+                            ParodusInfo("sent downstream message to reg_client '%s'\n",temp->url);
                             ParodusPrint("downstream bytes sent:%d\n", bytes);
                             destFlag =1;
                             break;
