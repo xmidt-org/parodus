@@ -106,7 +106,7 @@ void *handle_upstream()
                 buf = NULL;
                 ParodusInfo("nanomsg server gone into the listening mode...\n");
                 bytes = nn_recv (sock, &buf, NN_MSG, 0);
-                ParodusInfo ("Upstream message received from nanomsg client: \"%s\"\n", (char*)buf);
+                ParodusInfo ("Upstream message received from nanomsg client\n");
                 message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
 
                 if(message)
@@ -252,7 +252,7 @@ void *processUpstreamMessage()
                 }
                 else if(msgType == WRP_MSG_TYPE__EVENT)
                 {
-                    ParodusInfo(" Received upstream event data\n");
+                    ParodusInfo(" Received upstream event data: dest '%s'\n", msg->u.event.dest);
                     partners_t *partnersList = NULL;
 
                     int ret = validate_partner_id(msg, &partnersList);
@@ -286,7 +286,7 @@ void *processUpstreamMessage()
                 else
                 {
                     //Sending to server for msgTypes 3, 5, 6, 7, 8.
-                    ParodusInfo(" Received upstream data with MsgType: %d\n", msgType);
+                    ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
                     //Appending metadata with packed msg received from client
                     if(metaPackSize > 0)
                     {
