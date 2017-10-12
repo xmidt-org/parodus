@@ -52,6 +52,8 @@
 #if defined(NOPOLL_OS_UNIX)
 # include <netinet/tcp.h>
 #endif
+static pthread_once_t mutex_once = PTHREAD_ONCE_INIT;
+static pthread_mutex_t send_mutex;
 
 
 /** 
@@ -577,6 +579,17 @@ int nopoll_conn_tls_receive (noPollConn * conn, char * buffer, int buffer_size)
 
 	return res;
 }
+/**
+ *  @internal function to init recursive mutex only once
+ */
+static void nopoll_init_recursive_mut_once(void)
+{
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&mutex_once, &attr);
+	pthread_mutexattr_destroy(&attr);
+}
 
 /** 
  * @internal Default connection send until handshake is complete.
@@ -586,9 +599,11 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 	int         res;
 	nopoll_bool needs_retry;
 	int ret = 0;
-	static pthread_mutex_t mut = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-        
-	ret = pthread_mutex_lock (&mut);
+	ret = pthread_once(&mutex_once, nopoll_init_recursive_mut_once);  
+	if ( ret != 0)                                                              
+	nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL,"pthread_once failed ( ret = %d) ( errno = %d)",ret, errno);
+	
+	ret = pthread_mutex_lock (&send_mutex);
 	if(ret != 0)
 	{
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "mutex failed to lock ( ret = %d) ( errno = %d)",ret, errno);
@@ -607,7 +622,7 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 		WSASetLastError(NOPOLL_EWOULDBLOCK);
 #endif
 	}
-	ret = pthread_mutex_unlock (&mut);
+	ret = pthread_mutex_unlock (&send_mutex);
 	if(ret != 0)
 	{
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_CRITICAL, "mutex failed to unlock ( ret = %d) ( errno = %d)",ret, errno);
