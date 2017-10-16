@@ -587,7 +587,7 @@ static void nopoll_init_recursive_mut_once(void)
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-	pthread_mutex_init(&mutex_once, &attr);
+	pthread_mutex_init(&send_mutex, &attr);
 	pthread_mutexattr_destroy(&attr);
 }
 
