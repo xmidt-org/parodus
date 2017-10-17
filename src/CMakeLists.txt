@@ -43,7 +43,7 @@ target_link_libraries (parodus
     )
 
 if (FEATURE_DNS_QUERY)
-target_link_librarues (parodus -lucresolv -lresolv)
+target_link_libraries (parodus -lucresolv -lresolv)
 endif (FEATURE_DNS_QUERY)
 
 if (ENABLE_SESHAT)
