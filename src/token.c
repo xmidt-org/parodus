@@ -503,9 +503,9 @@ int allow_insecure_conn(char *url_buf, int url_buflen)
 end:
 	if (NULL != jwt_token)
 		free (jwt_token);
+#else
+  int insecure = TOKEN_NO_DNS_QUERY;
+#endif
 	ParodusPrint ("Allow Insecure %d\n", insecure);
 	return insecure;
-#else
-  return TOKEN_NO_DNS_QUERY;
-#endif
 }
