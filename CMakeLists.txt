@@ -83,7 +83,8 @@ add_dependencies(libtrower-base64 trower-base64)
 ExternalProject_Add(nopoll
     PREFIX ${PREFIX_DIR}/nopoll
     GIT_REPOSITORY https://github.com/Comcast/nopoll.git
-    GIT_TAG "nopoll_yocto"
+    GIT_TAG "8033547de94c2da1e1948e12e90a5b305af477c2"
+    #GIT_TAG "nopoll_yocto"
     CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/autogen.sh --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}
@@ -200,7 +201,6 @@ include_directories(${INCLUDE_DIR}/libseshat)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_SESHAT ")
 endif (ENABLE_SESHAT)
 
-if (ENABLE_CJWT)
 # libcjwt external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cjwt
@@ -212,13 +212,13 @@ ExternalProject_Add(cjwt
 add_library(libcjwt STATIC SHARED IMPORTED)
 add_dependencies(libcjwt cjwt)
 
-if (UCLIBC)
+if (FEATURE_DNS_QUERY)
 # libucresolv external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(ucresolv
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
-    GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
-    GIT_TAG "master"
+    GIT_REPOSITORY https://github.com/bill1600/libucresolv.git
+    GIT_TAG "newnames"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libucresolv STATIC SHARED IMPORTED)
@@ -227,9 +227,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/ucresolv
 					)		
 
-endif (UCLIBC)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_CJWT ")
-endif (ENABLE_CJWT)
+endif (FEATURE_DNS_QUERY)
 
 if (BUILD_TESTING)
 # cmocka external dependency
@@ -245,7 +243,11 @@ add_dependencies(libcmocka cmocka)
 
 endif (BUILD_TESTING)
 
-endif ()
+endif () # NOT BUILD_YOCTO
+
+if (FEATURE_DNS_QUERY)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DFEATURE_DNS_QUERY ")
+endif (FEATURE_DNS_QUERY)
 
 link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR} ${LIBRARY_DIR64} )
 add_subdirectory(src)

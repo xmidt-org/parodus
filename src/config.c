@@ -10,9 +10,7 @@
 #include <fcntl.h> 
 #include "config.h"
 #include "ParodusInternal.h"
-#ifdef ENABLE_CJWT
 #include <cjwt/cjwt.h>
-#endif
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -146,11 +144,9 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 #ifdef ENABLE_SESHAT
           {"seshat-url", required_argument, 0, 'e'},
 #endif
-#ifdef ENABLE_CJWT
           {"dns-id", required_argument, 0, 'D'},
           {JWT_ALGORITHM,    required_argument, 0, 'a'},
           {JWT_KEY,    required_argument, 0, 'k'},
-#endif
           {CERT_PATH,    optional_argument, 0, 'c'},
           {0, 0, 0, 0}
         };
@@ -233,7 +229,6 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->local_url, optarg,sizeof(cfg->local_url));
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
-#ifdef ENABLE_CJWT
         case 'D':
           // like 'fabric' or 'test'
           // this parameter is used, along with the hw_mac parameter
@@ -242,13 +237,13 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("parodus dns_id is %s\n",cfg->dns_id);
           break;
 		 
-	case 'a':
+				case 'a':
 					// the command line argument is a list of allowed algoritms,
 					// separated by colons, like "RS256:RS512:none"
 					cfg->jwt_algo = get_algo_mask (optarg);
           ParodusInfo("jwt_algo is %u\n",cfg->jwt_algo);
           break;
-	case 'k':
+				case 'k':
           // if the key argument has a '.' character in it, then it is
           // assumed to be a file, and the file is read in.
           if (strchr (optarg, '.') == NULL) {
@@ -258,7 +253,6 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           }
           ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
-#endif
         case 'p':
           parStrncpy(cfg->partner_id, optarg,sizeof(cfg->partner_id));
           ParodusInfo("partner_id is %s\n",cfg->partner_id);
@@ -395,7 +389,6 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusInfo("seshat_url is NULL. Read from tmp file\n");
     }
 #endif
-#ifdef ENABLE_CJWT
      if( strlen(pConfig->dns_id) !=0)
     {
         parStrncpy(cfg->dns_id, pConfig->dns_id,sizeof(cfg->dns_id));
@@ -417,7 +410,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
 
 		cfg->jwt_algo = pConfig->jwt_algo;        
-#endif
+
     if(strlen(pConfig->cert_path )!=0)
     {
         parStrncpy(cfg->cert_path, pConfig->cert_path,sizeof(cfg->cert_path));
