@@ -26,9 +26,9 @@ install:
 script:
     - mkdir build
     - cd build
-    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=true -DENABLE_SESHAT:BOOL=true -DENABLE_CJWT:BOOL=true
+    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=true -DENABLE_SESHAT:BOOL=true -DENABLE_CJWT:BOOL=true -DUCLIBC:BOOL=true -DBUILD_TESTING:BOOL=false
     - make
-    - make test
+    # make test
 
 after_success:
     - codecov

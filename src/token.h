@@ -19,9 +19,44 @@ typedef enum {
 	TOKEN_ERR_JWT_DECODE_FAIL = -102,
 	TOKEN_ERR_ALGO_NOT_ALLOWED = -103,
 	TOKEN_ERR_INVALID_JWT_CONTENT = -104,
-	TOKEN_ERR_JWT_EXPIRED = -105
-
+	TOKEN_ERR_NO_EXPIRATION = -105,
+	TOKEN_ERR_JWT_EXPIRED = -106,
+	TOKEN_ERR_BAD_ENDPOINT = -107,
+	TOKEN_NO_DNS_QUERY = -1
 } token_error_t;
+
+
+/**
+
+Connection Logic:
+
+----- Criteria  -----
+
+Feature					FeatureDnsQuery enabled
+QueryGood				Dns query succeeds, jwt decodes and is valid and unexpired
+Endpt starts		Endpoint specified in the jwt starts with http:// or https://
+Config Secflag	secureFlag in config is set.  Currently always set.
+
+
+----- Actions -----
+
+Default			Securely connect to the default URL, specified
+						in the config
+Secure			Securely connect to the endpoint given in the jwt
+Insecure		Insecurely connect to the endpoint given in the jwt
+
+ 
+----- Logic Table -----
+
+Feature		Query		Endpt		Config			Action
+					Good		Claim		SecFlag
+
+No																		Default
+Yes				No													Default
+Yes				Yes			https								Secure
+Yes				Yes			http		False				Insecure
+Yes				Yes			http		True				Default
+*/
 
 
 /**
@@ -31,7 +66,7 @@ typedef enum {
  * @return 1 if insecure connection is allowed, 0 if not,
 *    or one of the error codes given above. 
 */ 
-int allow_insecure_conn(void);
+int allow_insecure_conn(char *url_buf, int url_buflen);
 
 
 #endif
