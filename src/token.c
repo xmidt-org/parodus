@@ -66,6 +66,8 @@
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+extern int __res_ninit(res_state statp);
+extern void __res_nclose(res_state statp);
 extern int __res_nquery(res_state statp,
 	   const char *name,	/* domain name */
 	   int class, int type,	/* class and type of query */
@@ -168,7 +170,7 @@ int nquery(const char* dns_txt_record_id,u_char *nsbuf)
     /* Initialize resolver */
 		memset (&statp, 0, sizeof(__res_state));
 		statp.options |= RES_DEBUG;
-    if (res_ninit(&statp) < 0) {
+    if (__res_ninit(&statp) < 0) {
         ParodusError ("res_ninit error: can't initialize statp.\n");
         return (-1);
     }
@@ -183,7 +185,7 @@ int nquery(const char* dns_txt_record_id,u_char *nsbuf)
 				}
         return len;
     }
-    res_nclose (&statp);
+    __res_nclose (&statp);
     if (len >= NS_MAXBUF) {
         ParodusError ("res_nquery error: ns buffer too small.\n");
         return -1;
@@ -415,7 +417,7 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 		return l;
 	}
  	
-	ParodusInfo ("initparse\n");
+	ParodusInfo ("ns_initparse\n");
 	ret = ns_initparse(nsbuf, l, &msg_handle);
 	if (ret != 0) {
 		ParodusError ("ns_initparse failed\n");
@@ -423,6 +425,7 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 		return ret;
 	}
 	
+	ParodusInfo ("ns_msg_count\n");
 	l = ns_msg_count(msg_handle, ns_s_an);
 	ParodusInfo ("query_dns: ns_msg_count : %d\n",l);
   jwt_ans[0] = 0;
