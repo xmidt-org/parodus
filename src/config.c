@@ -132,7 +132,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"jwt-algo",                required_argument, 0, 'a'},
         {"jwt-key",                 required_argument, 0, 'k'},
 #endif
-        {"ssl-cert-path",           optional_argument, 0, 'c'},
+        {"ssl-cert-path",           required_argument, 0, 'c'},
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
         {0, 0, 0, 0}
