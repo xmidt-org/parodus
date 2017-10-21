@@ -273,7 +273,6 @@ static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,c
 
         if( FLAGS_IPV4_ONLY == (FLAGS_IPV4_ONLY & flags) ) {
             ParodusInfo("Connecting in Ipv4 mode\n");
-            opts = createConnOpts(extra_headers);
             connection = nopoll_conn_tls_new (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
         } else if( FLAGS_IPV6_ONLY == (FLAGS_IPV6_ONLY & flags) ) {
             ParodusInfo("Connecting in Ipv6 mode\n");
