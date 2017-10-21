@@ -62,7 +62,7 @@ typedef struct
     char webpa_interface_used[16];
     char webpa_protocol[32];
     char webpa_uuid[64];
-    unsigned int secureFlag;
+    unsigned int flags;
     char local_url[124];
     char partner_id[64];
 #ifdef ENABLE_SESHAT
@@ -75,6 +75,8 @@ typedef struct
 #endif
     char cert_path[64];
 } ParodusCfg;
+
+#define FLAGS_SECURE    (1 << 0)
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */

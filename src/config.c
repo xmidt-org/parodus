@@ -420,7 +420,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
     cfg->boot_time = pConfig->boot_time;
-    cfg->secureFlag = 1;
+    cfg->flags = FLAGS_SECURE;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));

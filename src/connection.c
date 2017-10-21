@@ -123,7 +123,7 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
         noPollConn *connection;
-		if(get_parodus_cfg()->secureFlag || (!allow_insecure))
+		if((FLAGS_SECURE == (FLAGS_SECURE & get_parodus_cfg()->flags)) || (!allow_insecure))
 		{                    
 		    ParodusPrint("secure true\n");
             connection = nopoll_tls_common_conn(ctx,server_Address, port, extra_headers);                
@@ -237,7 +237,7 @@ int createNopollConnection(noPollCtx *ctx)
 				
 	}while(initial_retry);
 	
-	if(get_parodus_cfg()->secureFlag) 
+    if( FLAGS_SECURE == (FLAGS_SECURE & get_parodus_cfg()->flags) )
 	{
 		ParodusInfo("Connected to server over SSL\n");
 	}
@@ -283,7 +283,7 @@ static noPollConnOpts * createConnOpts (char * extra_headers)
     noPollConnOpts * opts;
     
     opts = nopoll_conn_opts_new ();
-    if(get_parodus_cfg()->secureFlag) 
+    if( FLAGS_SECURE == (FLAGS_SECURE & get_parodus_cfg()->flags) )
 	{
 	    if(strlen(get_parodus_cfg()->cert_path) > 0)
             {
