@@ -28,7 +28,7 @@ ParodusCfg *get_parodus_cfg(void)
 
 void set_parodus_cfg(ParodusCfg *cfg) 
 {
-    parodusCfg = *cfg;
+    memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
 }
 
 // the algorithm mask indicates which algorithms are allowed
