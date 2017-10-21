@@ -69,13 +69,16 @@ int main( int argc, char **argv)
 	signal(SIGHUP, sig_handler);
 	signal(SIGALRM, sig_handler);
 #endif	
-    ParodusCfg parodusCfg;
-    memset(&parodusCfg,0,sizeof(parodusCfg));
+    ParodusCfg *cfg;
+
+    /* TODO not ideal, but it fixes a more major problem for now. */
+    cfg = get_parodus_cfg();
+    memset(cfg,0,sizeof(ParodusCfg));
     
     ParodusInfo("********** Starting component: Parodus **********\n "); 
-    parseCommandLine(argc,argv,&parodusCfg);
+    parseCommandLine(argc,argv,cfg);
      
-    createSocketConnection(&parodusCfg,NULL);
+    createSocketConnection(cfg,NULL);
     
     return 0;
 }
