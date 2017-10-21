@@ -18,31 +18,29 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 
 /* WRP CRUD Model Macros */
-#define HW_MODELNAME                                	"hw-model"
-#define HW_SERIALNUMBER                                 "hw-serial-number"
-#define HW_MANUFACTURER                                 "hw-manufacturer"
-#define HW_DEVICEMAC                                  	"hw-mac"
-#define HW_LAST_REBOOT_REASON                           "hw-last-reboot-reason"
-#define FIRMWARE_NAME                                  	"fw-name"
-#define BOOT_TIME                                  	"boot-time"
-#define LAST_RECONNECT_REASON                           "webpa-last-reconnect-reason"
-#define WEBPA_PROTOCOL                                  "webpa-protocol"
-#define WEBPA_INTERFACE                                 "webpa-inteface-used"
-#define WEBPA_UUID                                      "webpa-uuid"
-#define WEBPA_URL                                       "webpa-url"
-#define WEBPA_PING_TIMEOUT                              "webpa-ping-timeout"
-#define WEBPA_BACKOFF_MAX                               "webpa-backoff-max"
-#define PARTNER_ID                                      "partner-id"
-#define CERT_PATH                                       "ssl-cert-path"
+#define HW_MODELNAME            "hw-model"
+#define HW_SERIALNUMBER         "hw-serial-number"
+#define HW_MANUFACTURER         "hw-manufacturer"
+#define HW_DEVICEMAC            "hw-mac"
+#define HW_LAST_REBOOT_REASON   "hw-last-reboot-reason"
+#define FIRMWARE_NAME           "fw-name"
+#define BOOT_TIME               "boot-time"
+#define LAST_RECONNECT_REASON   "webpa-last-reconnect-reason"
+#define WEBPA_PROTOCOL          "webpa-protocol"
+#define WEBPA_INTERFACE         "webpa-inteface-used"
+#define WEBPA_UUID              "webpa-uuid"
+#define WEBPA_URL               "webpa-url"
+#define WEBPA_PING_TIMEOUT      "webpa-ping-timeout"
+#define WEBPA_BACKOFF_MAX       "webpa-backoff-max"
+#define PARTNER_ID              "partner-id"
 
-#define PROTOCOL_VALUE 					"PARODUS-2.0"
-#define WEBPA_PATH_URL                                    "/api/v2/device"
+#define PROTOCOL_VALUE          "PARODUS-2.0"
+#define WEBPA_PATH_URL          "/api/v2/device"
+
 #ifdef ENABLE_CJWT
-#define JWT_ALGORITHM					"jwt-algo"
-#define	JWT_KEY						"jwt-key"
-#define DNS_ID	"fabric"
+#   define DNS_ID               "fabric"
 #endif
-#define PARODUS_UPSTREAM                		"tcp://127.0.0.1:6666"
+#define PARODUS_UPSTREAM        "tcp://127.0.0.1:6666"
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */

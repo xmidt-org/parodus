@@ -110,35 +110,36 @@ static int parse_mac_address (char *target, const char *arg)
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
+    static const struct option long_options[] = {
+        {"hw-model",                required_argument, 0, 'm'},
+        {"hw-serial-number",        required_argument, 0, 's'},
+        {"hw-manufacturer",         required_argument, 0, 'f'},
+        {"hw-mac",                  required_argument, 0, 'd'},
+        {"hw-last-reboot-reason",   required_argument, 0, 'r'},
+        {"fw-name",                 required_argument, 0, 'n'},
+        {"boot-time",               required_argument, 0, 'b'},
+        {"webpa-url",               required_argument, 0, 'u'},
+        {"webpa-ping-timeout",      required_argument, 0, 't'},
+        {"webpa-backoff-max",       required_argument, 0, 'o'},
+        {"webpa-inteface-used",     required_argument, 0, 'i'},
+        {"parodus-local-url",       required_argument, 0, 'l'},
+        {"partner-id",              required_argument, 0, 'p'},
+#ifdef ENABLE_SESHAT
+        {"seshat-url",              required_argument, 0, 'e'},
+#endif
+#ifdef ENABLE_CJWT
+        {"dns-id",                  required_argument, 0, 'D'},
+        {"jwt-algo",                required_argument, 0, 'a'},
+        {"jwt-key",                 required_argument, 0, 'k'},
+#endif
+        {"ssl-cert-path",           optional_argument, 0, 'c'},
+        {0, 0, 0, 0}
+    };
     int c;
 
     while (1)
     {
-      static struct option long_options[] = {
-          {"hw-model",     required_argument,   0, 'm'},
-          {"hw-serial-number",  required_argument,  0, 's'},
-          {"hw-manufacturer",  required_argument, 0, 'f'},
-          {"hw-mac",  required_argument, 0, 'd'},
-          {"hw-last-reboot-reason",  required_argument, 0, 'r'},
-          {"fw-name",  required_argument, 0, 'n'},
-          {"boot-time",  required_argument, 0, 'b'},
-          {"webpa-url",  required_argument, 0, 'u'},
-          {"webpa-ping-timeout",    required_argument, 0, 't'},
-          {"webpa-backoff-max",  required_argument, 0, 'o'},
-          {"webpa-inteface-used",    required_argument, 0, 'i'},
-          {"parodus-local-url",  required_argument, 0, 'l'},
-          {"partner-id",  required_argument, 0, 'p'},
-#ifdef ENABLE_SESHAT
-          {"seshat-url", required_argument, 0, 'e'},
-#endif
-#ifdef ENABLE_CJWT
-          {"dns-id", required_argument, 0, 'D'},
-          {JWT_ALGORITHM,    required_argument, 0, 'a'},
-          {JWT_KEY,    required_argument, 0, 'k'},
-#endif
-          {CERT_PATH,    optional_argument, 0, 'c'},
-          {0, 0, 0, 0}
-        };
+
       /* getopt_long stores the option index here. */
       int option_index = 0;
       c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c",
