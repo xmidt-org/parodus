@@ -121,7 +121,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"webpa-url",               required_argument, 0, 'u'},
         {"webpa-ping-timeout",      required_argument, 0, 't'},
         {"webpa-backoff-max",       required_argument, 0, 'o'},
-        {"webpa-inteface-used",     required_argument, 0, 'i'},
+        {"webpa-interface-used",    required_argument, 0, 'i'},
         {"parodus-local-url",       required_argument, 0, 'l'},
         {"partner-id",              required_argument, 0, 'p'},
 #ifdef ENABLE_SESHAT
