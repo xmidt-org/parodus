@@ -133,6 +133,8 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"jwt-key",                 required_argument, 0, 'k'},
 #endif
         {"ssl-cert-path",           optional_argument, 0, 'c'},
+        {"force-ipv4",              no_argument,       0, '4'},
+        {"force-ipv6",              no_argument,       0, '6'},
         {0, 0, 0, 0}
     };
     int c;
@@ -142,7 +144,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c:4:6",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -251,6 +253,16 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case 'c':
           parStrncpy(cfg->cert_path, optarg,sizeof(cfg->cert_path));
           ParodusInfo("cert_path is %s\n",cfg->cert_path);
+          break;
+
+        case '4':
+          ParodusInfo("Force IPv4\n");
+          cfg->flags |= FLAGS_IPV4_ONLY;
+          break;
+
+        case '6':
+          ParodusInfo("Force IPv6\n");
+          cfg->flags |= FLAGS_IPV6_ONLY;
           break;
 
         case '?':
@@ -420,7 +432,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
     cfg->boot_time = pConfig->boot_time;
-    cfg->flags = FLAGS_SECURE;
+    cfg->flags |= FLAGS_SECURE;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));

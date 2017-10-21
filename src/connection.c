@@ -264,16 +264,29 @@ int createNopollConnection(noPollCtx *ctx)
 }
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers)
 {
+        unsigned int flags = 0;
         noPollConnOpts * opts;
         noPollConn *connection = NULL;
         opts = createConnOpts(extra_headers);
-        ParodusInfo("Try connecting with Ipv6 mode\n"); 
-        connection = nopoll_conn_tls_new6 (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
-        if(connection == NULL)
-        {
-            ParodusInfo("Ipv6 connection failed. Try connecting with Ipv4 mode \n");
+
+        flags = get_parodus_cfg()->flags;
+
+        if( FLAGS_IPV4_ONLY == (FLAGS_IPV4_ONLY & flags) ) {
+            ParodusInfo("Connecting in Ipv4 mode\n");
             opts = createConnOpts(extra_headers);
             connection = nopoll_conn_tls_new (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
+        } else if( FLAGS_IPV6_ONLY == (FLAGS_IPV6_ONLY & flags) ) {
+            ParodusInfo("Connecting in Ipv6 mode\n");
+            connection = nopoll_conn_tls_new6 (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
+        } else {
+            ParodusInfo("Try connecting with Ipv6 mode\n");
+            connection = nopoll_conn_tls_new6 (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
+            if(connection == NULL)
+            {
+                ParodusInfo("Ipv6 connection failed. Try connecting with Ipv4 mode \n");
+                opts = createConnOpts(extra_headers);
+                connection = nopoll_conn_tls_new (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
+            }
         }
         return connection;
 }

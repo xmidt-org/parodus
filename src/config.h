@@ -77,6 +77,8 @@ typedef struct
 } ParodusCfg;
 
 #define FLAGS_SECURE    (1 << 0)
+#define FLAGS_IPV6_ONLY (1 << 1)
+#define FLAGS_IPV4_ONLY (1 << 2)
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
