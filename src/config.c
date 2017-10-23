@@ -28,7 +28,7 @@ ParodusCfg *get_parodus_cfg(void)
 
 void set_parodus_cfg(ParodusCfg *cfg) 
 {
-    parodusCfg = *cfg;
+    memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
 }
 
 // the algorithm mask indicates which algorithms are allowed
@@ -110,38 +110,41 @@ static int parse_mac_address (char *target, const char *arg)
 
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
+    static const struct option long_options[] = {
+        {"hw-model",                required_argument, 0, 'm'},
+        {"hw-serial-number",        required_argument, 0, 's'},
+        {"hw-manufacturer",         required_argument, 0, 'f'},
+        {"hw-mac",                  required_argument, 0, 'd'},
+        {"hw-last-reboot-reason",   required_argument, 0, 'r'},
+        {"fw-name",                 required_argument, 0, 'n'},
+        {"boot-time",               required_argument, 0, 'b'},
+        {"webpa-url",               required_argument, 0, 'u'},
+        {"webpa-ping-timeout",      required_argument, 0, 't'},
+        {"webpa-backoff-max",       required_argument, 0, 'o'},
+        {"webpa-interface-used",    required_argument, 0, 'i'},
+        {"parodus-local-url",       required_argument, 0, 'l'},
+        {"partner-id",              required_argument, 0, 'p'},
+#ifdef ENABLE_SESHAT
+        {"seshat-url",              required_argument, 0, 'e'},
+#endif
+#ifdef ENABLE_CJWT
+        {"dns-id",                  required_argument, 0, 'D'},
+        {"jwt-algo",                required_argument, 0, 'a'},
+        {"jwt-key",                 required_argument, 0, 'k'},
+#endif
+        {"ssl-cert-path",           required_argument, 0, 'c'},
+        {"force-ipv4",              no_argument,       0, '4'},
+        {"force-ipv6",              no_argument,       0, '6'},
+        {0, 0, 0, 0}
+    };
     int c;
 
     while (1)
     {
-      static struct option long_options[] = {
-          {"hw-model",     required_argument,   0, 'm'},
-          {"hw-serial-number",  required_argument,  0, 's'},
-          {"hw-manufacturer",  required_argument, 0, 'f'},
-          {"hw-mac",  required_argument, 0, 'd'},
-          {"hw-last-reboot-reason",  required_argument, 0, 'r'},
-          {"fw-name",  required_argument, 0, 'n'},
-          {"boot-time",  required_argument, 0, 'b'},
-          {"webpa-url",  required_argument, 0, 'u'},
-          {"webpa-ping-timeout",    required_argument, 0, 't'},
-          {"webpa-backoff-max",  required_argument, 0, 'o'},
-          {"webpa-inteface-used",    required_argument, 0, 'i'},
-          {"parodus-local-url",  required_argument, 0, 'l'},
-          {"partner-id",  required_argument, 0, 'p'},
-#ifdef ENABLE_SESHAT
-          {"seshat-url", required_argument, 0, 'e'},
-#endif
-#ifdef ENABLE_CJWT
-          {"dns-id", required_argument, 0, 'D'},
-          {JWT_ALGORITHM,    required_argument, 0, 'a'},
-          {JWT_KEY,    required_argument, 0, 'k'},
-#endif
-          {CERT_PATH,    optional_argument, 0, 'c'},
-          {0, 0, 0, 0}
-        };
+
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c:4:6",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -250,6 +253,16 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case 'c':
           parStrncpy(cfg->cert_path, optarg,sizeof(cfg->cert_path));
           ParodusInfo("cert_path is %s\n",cfg->cert_path);
+          break;
+
+        case '4':
+          ParodusInfo("Force IPv4\n");
+          cfg->flags |= FLAGS_IPV4_ONLY;
+          break;
+
+        case '6':
+          ParodusInfo("Force IPv6\n");
+          cfg->flags |= FLAGS_IPV6_ONLY;
           break;
 
         case '?':
@@ -419,7 +432,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
     cfg->boot_time = pConfig->boot_time;
-    cfg->secureFlag = 1;
+    cfg->flags |= FLAGS_SECURE;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));

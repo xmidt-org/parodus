@@ -178,7 +178,7 @@ void test_createSecureConnection()
     ParodusCfg *cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     memset(cfg, 0, sizeof(ParodusCfg));
     
-    cfg->secureFlag = 1;
+    cfg->flags = FLAGS_SECURE;
     parStrncpy(cfg->webpa_url , "localhost", sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
 
@@ -222,7 +222,7 @@ void test_createConnection()
     memset(cfg, 0, sizeof(ParodusCfg));
     assert_non_null(cfg);
     
-    cfg->secureFlag = 0;
+    cfg->flags = 0;
     parStrncpy(cfg->webpa_url , "localhost", sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
@@ -260,7 +260,7 @@ void test_createConnectionConnNull()
     ParodusCfg *cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     memset(cfg, 0, sizeof(ParodusCfg));
     
-    cfg->secureFlag = 1;
+    cfg->flags = FLAGS_SECURE;
     cfg->webpa_backoff_max = 2;
     parStrncpy(cfg->webpa_url , "localhost",sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
@@ -344,7 +344,7 @@ void test_createConnectionConnNotOk()
     memset(cfg, 0, sizeof(ParodusCfg));
     assert_non_null(cfg);
     
-    cfg->secureFlag = 0;
+    cfg->flags = 0;
     parStrncpy(cfg->webpa_url , "localhost", sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
     assert_non_null(ctx);

@@ -26,7 +26,7 @@
 
 #include "../src/config.h"
 #include "../src/ParodusInternal.h"
-#define K_argc 15
+#define K_argc 17
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -56,7 +56,7 @@ void test_setParodusConfig()
 #ifdef ENABLE_SESHAT
     parStrncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", sizeof(cfg.seshat_url));
 #endif
-    cfg.secureFlag = 1;
+    cfg.flags = FLAGS_SECURE;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
     cfg.webpa_backoff_max = 255;
@@ -79,7 +79,7 @@ void test_setParodusConfig()
 #ifdef ENABLE_SESHAT
     assert_string_equal(cfg.seshat_url, temp->seshat_url);
 #endif
-    assert_int_equal((int) cfg.secureFlag, (int) temp->secureFlag);
+    assert_int_equal((int) cfg.flags, (int) temp->flags);
     assert_int_equal((int) cfg.boot_time, (int) temp->boot_time);
     assert_int_equal((int) cfg.webpa_ping_timeout, (int) temp->webpa_ping_timeout);
     assert_int_equal((int) cfg.webpa_backoff_max, (int) temp->webpa_backoff_max);
@@ -115,7 +115,7 @@ void test_parseCommandLine()
     command[i++] = "--hw-last-reboot-reason=unknown";
     command[i++] = "--fw-name=TG1682_DEV_master_2016000000sdy";
     command[i++] = "--webpa-ping-time=180";
-    command[i++] = "--webpa-inteface-used=br0";
+    command[i++] = "--webpa-interface-used=br0";
     command[i++] = "--webpa-url=localhost";
     command[i++] = "--webpa-backoff-max=0";
     command[i++] = "--boot-time=1234";
@@ -124,6 +124,8 @@ void test_parseCommandLine()
 #ifdef ENABLE_SESHAT
     command[i++] = "--seshat-url=ipc://127.0.0.1:7777";
 #endif
+    command[i++] = "--force-ipv4";
+    command[i++] = "--force-ipv6";
     command[i] = '\0';
 
     ParodusCfg parodusCfg;
@@ -147,6 +149,7 @@ void test_parseCommandLine()
 #ifdef ENABLE_SESHAT
     assert_string_equal(  parodusCfg.seshat_url, "ipc://127.0.0.1:7777");
 #endif
+    assert_int_equal( (int) parodusCfg.flags, FLAGS_IPV6_ONLY|FLAGS_IPV4_ONLY);
 
 }
 
@@ -222,7 +225,7 @@ void test_loadParodusCfgNull()
     assert_string_equal(temp.hw_model, "");
     assert_string_equal(temp.hw_serial_number, "");
     assert_string_equal(temp.hw_manufacturer, "");
-    assert_int_equal( (int) temp.secureFlag,1);	
+    assert_int_equal( (int) temp.flags,FLAGS_SECURE);
     assert_string_equal( temp.webpa_path_url, WEBPA_PATH_URL);	
     assert_string_equal( temp.webpa_uuid,"1234567-345456546");
     assert_string_equal( temp.local_url, PARODUS_UPSTREAM);
