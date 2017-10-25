@@ -74,6 +74,7 @@ typedef struct
     char jwt_key[4096]; // may be read in from a pem file
 #endif
     char cert_path[64];
+    char webpa_token[4096];
 } ParodusCfg;
 
 #define FLAGS_SECURE    (1 << 0)

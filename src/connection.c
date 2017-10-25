@@ -18,7 +18,7 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
-#define HTTP_CUSTOM_HEADER_COUNT                    	4
+#define HTTP_CUSTOM_HEADER_COUNT                    	5
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -112,7 +112,8 @@ int createNopollConnection(noPollCtx *ctx)
 	
     extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
 		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
-		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
+		     "\r\nX-WebPA-Token: %s"
+		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(get_parodus_cfg()->webpa_token)) ? get_parodus_cfg()->webpa_token : ""),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
 	
 	do
 	{

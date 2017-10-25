@@ -86,6 +86,16 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
   ParodusInfo ("%d bytes read\n", nbytes);
 }
 
+void get_webpa_token(char *token, char *name, size_t len)
+{
+    char command[128] = {'\0'};
+    char fname[16] = {'\0'};
+    strcpy(fname,"token.txt");
+    sprintf(command,"./%s > %s",name,fname);
+    system(command);
+    read_key_from_file(fname,token,len);
+}
+
 // strips ':' characters
 // verifies that there exactly 12 characters
 static int parse_mac_address (char *target, const char *arg)
@@ -135,6 +145,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"ssl-cert-path",           required_argument, 0, 'c'},
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
+        {"webpa-token",             required_argument, 0, 'T'},
         {0, 0, 0, 0}
     };
     int c;
@@ -263,6 +274,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case '6':
           ParodusInfo("Force IPv6\n");
           cfg->flags |= FLAGS_IPV6_ONLY;
+          break;
+
+        case 'T':
+          get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token));
+          ParodusInfo("webpa_token is %s\n",cfg->webpa_token);
           break;
 
         case '?':
@@ -431,6 +447,16 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
+
+    if( strlen(pConfig->webpa_token) !=0)
+    {
+        parStrncpy(cfg->webpa_token, pConfig->webpa_token,sizeof(cfg->webpa_token));
+    }
+    else
+    {
+        ParodusPrint("webpa_token is NULL. read from tmp file\n");
+    }
+
     cfg->boot_time = pConfig->boot_time;
     cfg->flags |= FLAGS_SECURE;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
