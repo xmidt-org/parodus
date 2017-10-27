@@ -26,12 +26,21 @@
 
 #include "../src/config.h"
 #include "../src/ParodusInternal.h"
-#define K_argc 17
+#define K_argc 18
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-
+void create_token_script(char *fname)
+{
+    char command[128] = {'\0'};
+    FILE *fp = fopen(fname, "w");
+    assert_non_null(fp);
+    fprintf(fp, "%s", "printf secure-token-$1-$2");
+    fclose(fp);
+    sprintf(command, "chmod +x %s",fname);
+    system(command);
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -106,6 +115,7 @@ void test_parseCommandLine()
 #endif
     char * command[argc+1];
     int i = 0;
+    char expectedToken[128] = {'\0'};
 
     command[i++] = "parodus";
     command[i++] = "--hw-model=TG1682";
@@ -126,11 +136,12 @@ void test_parseCommandLine()
 #endif
     command[i++] = "--force-ipv4";
     command[i++] = "--force-ipv6";
+    command[i++] = "--webpa-token=/tmp/token.sh";
     command[i] = '\0';
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
-
+    create_token_script("/tmp/token.sh");
     parseCommandLine(argc,command,&parodusCfg);
 
     assert_string_equal( parodusCfg.hw_model, "TG1682");
@@ -150,6 +161,8 @@ void test_parseCommandLine()
     assert_string_equal(  parodusCfg.seshat_url, "ipc://127.0.0.1:7777");
 #endif
     assert_int_equal( (int) parodusCfg.flags, FLAGS_IPV6_ONLY|FLAGS_IPV4_ONLY);
+    sprintf(expectedToken,"secure-token-%s-%s",parodusCfg.hw_serial_number,parodusCfg.hw_mac);
+    assert_string_equal(  parodusCfg.webpa_token,expectedToken);
 
 }
 

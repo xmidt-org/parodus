@@ -11,6 +11,7 @@
 #include "config.h"
 #include "ParodusInternal.h"
 
+#define MAX_BUF_SIZE            128
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -86,14 +87,29 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
   ParodusInfo ("%d bytes read\n", nbytes);
 }
 
-void get_webpa_token(char *token, char *name, size_t len)
+void get_webpa_token(char *token, char *name, size_t len, char *serNum, char *mac)
 {
-    char command[128] = {'\0'};
-    char fname[16] = {'\0'};
-    strcpy(fname,"token.txt");
-    sprintf(command,"./%s > %s",name,fname);
-    system(command);
-    read_key_from_file(fname,token,len);
+    FILE* out = NULL, *file = NULL;
+    char command[MAX_BUF_SIZE] = {'\0'};
+    if(strlen(name)>0)
+    {
+        file = fopen(name, "r");
+        if(file)
+        {
+            snprintf(command,sizeof(command),"%s %s %s",name,serNum,mac);
+            out = popen(command, "r");
+            if(out)
+            {
+                fgets(token, len, out);
+                fclose(out);
+            }
+            fclose(file);
+        }
+        else
+        {
+            ParodusError ("File %s open error\n", name);
+        }
+    }
 }
 
 // strips ':' characters
@@ -277,7 +293,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'T':
-          get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token));
+          get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token),cfg->hw_serial_number,cfg->hw_mac);
           ParodusInfo("webpa_token is %s\n",cfg->webpa_token);
           break;
 
