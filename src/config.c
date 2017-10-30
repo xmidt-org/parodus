@@ -101,7 +101,7 @@ void get_webpa_token(char *token, char *name, size_t len, char *serNum, char *ma
             if(out)
             {
                 fgets(token, len, out);
-                fclose(out);
+                pclose(out);
             }
             fclose(file);
         }
