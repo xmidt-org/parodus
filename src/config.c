@@ -177,6 +177,8 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
         {"webpa-token",             required_argument, 0, 'T'},
+        {"secure-flag",             required_argument, 0, 'F'},
+        {"port",                    required_argument, 0, 'P'},
         {0, 0, 0, 0}
     };
     int c;
@@ -310,6 +312,23 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case 'T':
           get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token),cfg->hw_serial_number,cfg->hw_mac);
           ParodusInfo("webpa_token is %s\n",cfg->webpa_token);
+          break;
+
+        case 'F':
+          ParodusInfo("secure_flag is %s\n",optarg);
+          if(strcmp(optarg,"http") == 0)
+          {
+            cfg->secure_flag &= FLAGS_SECURE;
+          }
+          else if(strcmp(optarg,"https") == 0)
+          {
+            cfg->secure_flag |= FLAGS_SECURE;
+          }
+          break;
+
+        case 'P':
+          cfg->port = atoi(optarg);
+          ParodusInfo("port is %d\n",cfg->port);
           break;
 
         case '?':
@@ -492,6 +511,9 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->flags |= FLAGS_SECURE;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
+    cfg->secure_flag = pConfig->secure_flag;
+    ParodusPrint("cfg->secure_flag is :%d\n",cfg->secure_flag);
+    cfg->port = pConfig->port;
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
