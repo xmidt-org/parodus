@@ -3507,10 +3507,16 @@ noPollMsg   * nopoll_conn_get_msg (noPollConn * conn)
 
 	/* check payload size */
 	if (msg->payload_size == 0) {
-		nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, "Found incoming frame with payload size 0, shutting down id=%d the connection", conn->id);
-		nopoll_msg_unref (msg);
-		nopoll_conn_shutdown (conn);
-		return NULL; 	
+		/* continue if msg with FIN 1 and payload size 0 is received */
+		if (msg->has_fin == 1 && msg->op_code == NOPOLL_CONTINUATION_FRAME) {
+			nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, "Found incoming continuation frame with FIN 1 and payload size 0 on connection id=%d, continue", conn->id);
+			return msg;
+		} else {
+			nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, "Found incoming frame with payload size 0, shutting down id=%d the connection", conn->id);
+			nopoll_msg_unref (msg);
+			nopoll_conn_shutdown (conn);
+			return NULL;
+		} 	
 	} /* end if */
 
 	nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "Detected incoming websocket frame: fin(%d), op_code(%d), is_masked(%d), payload size(%ld), mask=%d", 
