@@ -183,12 +183,13 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
     };
     int c;
 
+    cfg->secure_flag = -1;
     while (1)
     {
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c:4:6",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c:4:6:T:F:P",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -323,6 +324,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           else if(strcmp(optarg,"https") == 0)
           {
             cfg->secure_flag |= FLAGS_SECURE;
+          }
+          else
+          {
+            ParodusError("Invalid secure flag. Valid values are 'http' and 'https', using default 'https'\n");
+	    cfg->secure_flag |= FLAGS_SECURE;
           }
           break;
 
@@ -511,9 +517,25 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->flags |= FLAGS_SECURE;
     cfg->webpa_ping_timeout = pConfig->webpa_ping_timeout;
     cfg->webpa_backoff_max = pConfig->webpa_backoff_max;
-    cfg->secure_flag = pConfig->secure_flag;
+    if(pConfig->secure_flag == -1)
+    {
+        ParodusInfo("secure_flag is -1. adding default\n");
+        cfg->secure_flag = 1;
+    }
+    else
+    {
+        cfg->secure_flag = pConfig->secure_flag;
+    }
     ParodusPrint("cfg->secure_flag is :%d\n",cfg->secure_flag);
-    cfg->port = pConfig->port;
+    if(pConfig->port == 0)
+    {
+        ParodusInfo("port is 0. adding default\n");
+        cfg->port = 8080;
+    }
+    else
+    {
+        cfg->port = pConfig->port;
+    }
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
