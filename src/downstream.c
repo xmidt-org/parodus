@@ -93,13 +93,15 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         cJSON_AddStringToObject(response, "message", "Invalid partner_id");
                     } 
 
-                    if((message->u.req.dest !=NULL) && (ret >= 0))
+                    destVal = ((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
+                              ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest));
+                    if( (destVal != NULL) && (ret >= 0) )
                     {
-                        destVal = ((WRP_MSG_TYPE__REQ == msgType) ? message->u.req.dest : message->u.crud.dest);
                         strtok(destVal , "/");
                         parStrncpy(dest,strtok(NULL , "/"), sizeof(dest));
                         ParodusInfo("Received downstream dest as :%s and transaction_uuid :%s\n", dest, 
-                            (WRP_MSG_TYPE__REQ == msgType ? message->u.req.transaction_uuid : message->u.crud.transaction_uuid));
+                            ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid : 
+                            ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
                         temp = get_global_node();
                         //Checking for individual clients & Sending to each client
 
@@ -130,7 +132,8 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         }
                     }
 
-                    if(destFlag == 0 || ret < 0)
+                    if( (WRP_MSG_TYPE__EVENT != msgType) &&
+                        ((destFlag == 0) || (ret < 0)) )
                     {
                         resp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
                         memset(resp_msg, 0, sizeof(wrp_msg_t));

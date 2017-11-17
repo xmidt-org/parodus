@@ -205,6 +205,13 @@ add_executable(test_downstream test_downstream.c ../src/downstream.c ../src/stri
 target_link_libraries (test_downstream -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
+#   test_downstream_more
+#-------------------------------------------------------------------------------
+add_test(NAME test_downstream_more COMMAND ${MEMORY_CHECK} ./test_downstream_more)
+add_executable(test_downstream_more test_downstream_more.c ../src/downstream.c ../src/string_helpers.c)
+target_link_libraries (test_downstream_more -lcmocka ${PARODUS_COMMON_LIBS} )
+
+#-------------------------------------------------------------------------------
 #   test_thread_tasks
 #-------------------------------------------------------------------------------
 add_test(NAME test_thread_tasks COMMAND ${MEMORY_CHECK} ./test_thread_tasks)
