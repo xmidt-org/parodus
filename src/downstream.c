@@ -77,10 +77,12 @@ void listenerOnMessage(void * msg, size_t msgSize)
                     break;
                 }
 
+                case WRP_MSG_TYPE__EVENT:
                 case WRP_MSG_TYPE__REQ:
                 case WRP_MSG_TYPE__CREATE:
                 case WRP_MSG_TYPE__UPDATE:
                 case WRP_MSG_TYPE__RETREIVE:
+                case WRP_MSG_TYPE__DELETE:
                 {
                     ParodusPrint("numOfClients registered is %d\n", get_numOfClients());
                     int ret = validate_partner_id(message, NULL);
@@ -183,8 +185,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
                     break;
                 }
 
-                case WRP_MSG_TYPE__EVENT:
-                case WRP_MSG_TYPE__DELETE:
                 case WRP_MSG_TYPE__SVC_REGISTRATION:
                 case WRP_MSG_TYPE__SVC_ALIVE:
                 case WRP_MSG_TYPE__UNKNOWN:
