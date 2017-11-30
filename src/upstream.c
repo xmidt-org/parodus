@@ -172,8 +172,7 @@ void *processUpstreamMessage()
     int rv=-1, rc = -1;	
     int msgType;
     wrp_msg_t *msg;	
-    void *appendData, *bytes;
-    size_t encodedSize;
+    void *bytes;
     reg_list_item_t *temp = NULL;
     int matchFlag = 0;
     int status = -1;
@@ -301,24 +300,14 @@ void *processUpstreamMessage()
                 else
                 {
                     //Sending to server for msgTypes 3, 5, 6, 7, 8.
-                    ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
-                    //Appending metadata with packed msg received from client
-                    if(metaPackSize > 0)
-                    {
-                        ParodusPrint("Appending received msg with metadata\n");
-                        encodedSize = appendEncodedData( &appendData, message->msg, message->len, metadataPack, metaPackSize );
-                        ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
-                        ParodusPrint("metadata appended upstream msg %s\n", (char *)appendData);
-                        ParodusInfo("Sending metadata appended upstream msg to server\n");
-                        sendMessage(get_global_conn(),appendData, encodedSize);
-
-                        free( appendData);
-                        appendData =NULL;
+                    if( WRP_MSG_TYPE__REQ == msgType ) {
+                        ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", 
+                                      msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
+                    } else {
+                        ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s status: %d\n", 
+                                      msgType, msg->u.crud.dest, msg->u.crud.transaction_uuid, msg->u.crud.status );
                     }
-                    else
-                    {		
-                        ParodusError("Failed to send upstream as metadata packing is not successful\n");
-                    }
+                    sendUpstreamMsgToServer(&message->msg, message->len);
                 }
             }
             else
