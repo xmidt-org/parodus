@@ -44,7 +44,7 @@ void StartThread(void *(*start_routine) (void *))
 	}
 	else
 	{
-		ParodusPrint("Thread created Successfully %d\n", (int ) threadId);
+		ParodusPrint("Thread created Successfully %lu\n", (unsigned long) threadId);
 	}    
 }
 
