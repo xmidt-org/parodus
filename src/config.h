@@ -48,14 +48,14 @@ extern "C" {
 #define WEBPA_PING_TIMEOUT      "webpa-ping-timeout"
 #define WEBPA_BACKOFF_MAX       "webpa-backoff-max"
 #define PARTNER_ID              "partner-id"
+#define CERT_PATH               "ssl-cert-path"
 
-#define PROTOCOL_VALUE          "PARODUS-2.0"
-#define WEBPA_PATH_URL          "/api/v2/device"
-
-#ifdef ENABLE_CJWT
-#   define DNS_ID               "fabric"
-#endif
-#define PARODUS_UPSTREAM        "tcp://127.0.0.1:6666"
+#define PROTOCOL_VALUE 					"PARODUS-2.0"
+#define WEBPA_PATH_URL                  "/api/v2/device"
+#define JWT_ALGORITHM					"jwt-algo"
+#define	JWT_KEY						"jwt-key"
+#define DNS_ID	"fabric"
+#define PARODUS_UPSTREAM                "tcp://127.0.0.1:6666"
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -83,18 +83,15 @@ typedef struct
 #ifdef ENABLE_SESHAT
     char seshat_url[128];
 #endif
-#ifdef ENABLE_CJWT
     char dns_id[64];
-    char jwt_algo[32];  // bit mask set for each allowed algorithm
+    unsigned int jwt_algo;  // bit mask set for each allowed algorithm
     char jwt_key[4096]; // may be read in from a pem file
-#endif
     char cert_path[64];
     char webpa_token[4096];
 } ParodusCfg;
 
-#define FLAGS_SECURE    (1 << 0)
-#define FLAGS_IPV6_ONLY (1 << 1)
-#define FLAGS_IPV4_ONLY (1 << 2)
+#define FLAGS_IPV6_ONLY (1 << 0)
+#define FLAGS_IPV4_ONLY (1 << 1)
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */

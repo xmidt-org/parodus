@@ -24,11 +24,10 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <unistd.h>
-#ifdef __UCLIBC__
-#include <ucresolv/ucresolv.h>
-#endif
 #include <netinet/in.h>
-#include <resolv.h>
+#ifdef FEATURE_DNS_QUERY
+#include <ucresolv.h>
+#endif
 //#include <res_update.h>
 #include <netdb.h>
 #include <strings.h>
@@ -84,6 +83,15 @@
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+#ifdef FEATURE_DNS_QUERY
+
+extern int __res_ninit(res_state statp);
+extern void __res_nclose(res_state statp);
+extern int __res_nquery(res_state statp,
+	   const char *name,	/* domain name */
+	   int class, int type,	/* class and type of query */
+	   u_char *answer,	/* buffer to put answer */
+	   int anslen);		/* size of answer buffer */
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -103,10 +111,11 @@ static void show_times (time_t exp_time, time_t cur_time)
 }
 
 // returns 1 if insecure, 0 if secure, < 0 if error
-int analyze_jwt (const cjwt_t *jwt)
+int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen)
 {
 	cJSON *claims = jwt->private_claims;
 	cJSON *endpoint = NULL;
+	const char *endpoint_value;
 	time_t exp_time, cur_time;
 	int http_match;
 
@@ -121,11 +130,22 @@ int analyze_jwt (const cjwt_t *jwt)
 		return TOKEN_ERR_INVALID_JWT_CONTENT;
 	}
 
-	http_match = strncmp(endpoint->valuestring,"http:",5);
-	ParodusInfo ("is_http strncmp: %d\n", http_match);
+	ParodusInfo ("JWT endpoint: %s\n", endpoint->valuestring);
+	if (strncmp(endpoint->valuestring, "https://", 8) == 0) {
+    http_match = 0;
+		endpoint_value = endpoint->valuestring + 8;
+  } else if (strncmp(endpoint->valuestring, "http://", 7) == 0) {
+		http_match = 1;
+		endpoint_value = endpoint->valuestring + 7;
+	} else {
+		ParodusError ("Invalid endpoint claim in JWT\n");
+		return TOKEN_ERR_BAD_ENDPOINT;
+	}
+	ParodusInfo ("JWT is_http strncmp: %d\n", http_match);
 	exp_time = jwt->exp.tv_sec;
 	if (0 == exp_time) {
 		ParodusError ("exp not found in JWT payload\n");
+		return TOKEN_ERR_NO_EXPIRATION;
 	} else {
 		cur_time = time(NULL);
 		show_times (exp_time, cur_time);
@@ -135,48 +155,9 @@ int analyze_jwt (const cjwt_t *jwt)
 		}
 	}
 
-	return (http_match == 0);
-}
-
-const char *get_tok (const char *src, int delim, char *result, int resultsize)
-{
-	int i;
-	char c;
-	int endx = resultsize-1;
-
-	memset (result, 0, resultsize);
-	for (i=0; (c=src[i]) != 0; i++) {
-		if (c == delim)
-			break;
- 		if (i < endx)
-			result[i] = c;
-	}
-	if (c == 0)
-		return NULL;
-	return src + i + 1;
-}
-
-// the algorithm mask indicates which algorithms are allowed
-unsigned int get_algo_mask (const char *algo_str)
-{
-    unsigned int mask = 0;
-#define BUFLEN 16
-    char tok[BUFLEN];
-    int alg_val;
-
-    while(NULL != algo_str)
-    {
-        algo_str = get_tok (algo_str, ':', tok, BUFLEN);
-        alg_val = cjwt_alg_str_to_enum (tok);
-        if ((alg_val < 0)  || (alg_val >= num_algorithms)) 
-        {
-            ParodusError("Invalid jwt algorithm %s\n", tok);
-            abort ();
-        }
-        mask |= (1<<alg_val);
-    }
-    return mask;
-#undef BUFLEN
+	ParodusInfo ("Endpoint copied from JWT\n");
+	parStrncpy (url_buf, endpoint_value, url_buflen);
+	return http_match;
 }
 
 bool validate_algo(const cjwt_t *jwt)
@@ -190,7 +171,7 @@ bool validate_algo(const cjwt_t *jwt)
 	if ((alg < 0) || (alg >= num_algorithms))
 		return false;
 	alg_mask = 1<<alg;
-	if ((alg_mask & get_algo_mask(cfg->jwt_algo)) == 0) {
+	if ((alg_mask & cfg->jwt_algo) == 0) {
 		ParodusError ("Algorithm %d not allowed (mask %d)\n", alg, alg_mask); 
 		return false;
 	}
@@ -198,7 +179,7 @@ bool validate_algo(const cjwt_t *jwt)
 }
 
 
-int nquery(const char* dns_txt_record_id,u_char *nsbuf)
+int nquery(const char* dns_txt_record_id, u_char *nsbuf)
 {
 	
     int len;
@@ -206,15 +187,19 @@ int nquery(const char* dns_txt_record_id,u_char *nsbuf)
 
     /* Initialize resolver */
 		memset (&statp, 0, sizeof(__res_state));
+		if (NULL == nsbuf) {
+			ParodusError ("nquery: nsbuf is NULL\n");
+			return (-1);
+		}
 		statp.options |= RES_DEBUG;
-    if (res_ninit(&statp) < 0) {
+    if (__res_ninit(&statp) < 0) {
         ParodusError ("res_ninit error: can't initialize statp.\n");
         return (-1);
     }
 
-		ParodusInfo ("Domain : %s\n", dns_txt_record_id);
+		ParodusInfo ("nquery: domain : %s\n", dns_txt_record_id);
 		memset (nsbuf, 0, NS_MAXBUF);
-		len = res_nquery(&statp, dns_txt_record_id, ns_c_any, ns_t_txt, nsbuf, NS_MAXBUF);
+		len = __res_nquery(&statp, dns_txt_record_id, ns_c_in, ns_t_txt, nsbuf, NS_MAXBUF);
     if (len < 0) {
 				if (0 != statp.res_h_errno) {
 					const char *msg = hstrerror (statp.res_h_errno);
@@ -222,7 +207,8 @@ int nquery(const char* dns_txt_record_id,u_char *nsbuf)
 				}
         return len;
     }
-    res_nclose (&statp);
+    __res_nclose (&statp);
+	ParodusInfo ("nquery: nsbuf (1) 0x%lx\n", (unsigned long) nsbuf);
     if (len >= NS_MAXBUF) {
         ParodusError ("res_nquery error: ns buffer too small.\n");
         return -1;
@@ -443,7 +429,8 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 	if( !dns_txt_record_id || !jwt_ans )
 		return l;
    
-	nsbuf = malloc (NS_MAXBUF);
+	nsbuf = (u_char *) malloc (NS_MAXBUF);
+	ParodusInfo ("nsbuf (1) 0x%lx\n", (unsigned long) nsbuf);
 	if (NULL == nsbuf) {
 		ParodusError ("Unable to allocate nsbuf in query_dns\n");
 		return TOKEN_ERR_MEMORY_FAIL;
@@ -453,15 +440,23 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 		free (nsbuf);
 		return l;
 	}
- 	
-	ParodusInfo ("initparse\n");
-	ret = ns_initparse(nsbuf, l, &msg_handle);
+	ParodusInfo ("nsbuf (2) 0x%lx\n", (unsigned long) nsbuf);
+
+/*--
+	memset((void *) &msg_handle, 0x5e, sizeof (ns_msg));
+	ParodusInfo ("nsbuf (3) 0x%lx\n", (unsigned long) nsbuf);
+	msg_handle._msg = nsbuf;
+*/
+	ParodusInfo ("ns_initparse, msglen %d, nsbuf 0x%lx\n",
+    l, (unsigned long) nsbuf);
+	ret = ns_initparse((const u_char *) nsbuf, l, &msg_handle);
 	if (ret != 0) {
 		ParodusError ("ns_initparse failed\n");
 		free (nsbuf);
 		return ret;
 	}
 	
+	ParodusInfo ("ns_msg_count\n");
 	l = ns_msg_count(msg_handle, ns_s_an);
 	ParodusInfo ("query_dns: ns_msg_count : %d\n",l);
   jwt_ans[0] = 0;
@@ -481,9 +476,11 @@ static void get_dns_txt_record_id (char *buf)
 	sprintf (buf, "%s.%s.webpa.comcast.net", cfg->hw_mac, cfg->dns_id);
 	ParodusInfo("dns_txt_record_id %s\n", buf);
 }
+#endif
 
-int allow_insecure_conn(void)
-{	
+int allow_insecure_conn(char *url_buf, int url_buflen)
+{
+#ifdef FEATURE_DNS_QUERY	
 	int insecure=0, ret = -1;
 	char *jwt_token, *key;
 	cjwt_t *jwt = NULL;
@@ -498,7 +495,6 @@ int allow_insecure_conn(void)
 
 	get_dns_txt_record_id (dns_txt_record_id);
 	
-	//Querying dns for jwt token
 	ret = query_dns(dns_txt_record_id, jwt_token);
 	if(ret){
 		if (ret == TOKEN_ERR_MEMORY_FAIL) {
@@ -527,16 +523,22 @@ int allow_insecure_conn(void)
 
 	//validate algo from --jwt_algo
 	if( validate_algo(jwt) ) {
-		insecure = analyze_jwt (jwt);
+		insecure = analyze_jwt (jwt, url_buf, url_buflen);
 	} else {
 		insecure = TOKEN_ERR_ALGO_NOT_ALLOWED;
 	}
 
+	if (insecure >= 0) {
+		ParodusInfo ("JWT claims: %s\n", cJSON_Print (jwt->private_claims));
+	}
 	cjwt_destroy(&jwt);
 	
 end:
 	if (NULL != jwt_token)
 		free (jwt_token);
+#else
+  int insecure = TOKEN_NO_DNS_QUERY;
+#endif
 	ParodusPrint ("Allow Insecure %d\n", insecure);
 	return insecure;
 }

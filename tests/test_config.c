@@ -65,7 +65,7 @@ void test_setParodusConfig()
 #ifdef ENABLE_SESHAT
     parStrncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", sizeof(cfg.seshat_url));
 #endif
-    cfg.flags = FLAGS_SECURE;
+    cfg.flags = 0;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
     cfg.webpa_backoff_max = 255;
@@ -238,7 +238,7 @@ void test_loadParodusCfgNull()
     assert_string_equal(temp.hw_model, "");
     assert_string_equal(temp.hw_serial_number, "");
     assert_string_equal(temp.hw_manufacturer, "");
-    assert_int_equal( (int) temp.flags,FLAGS_SECURE);
+    assert_int_equal( (int) temp.flags,0);
     assert_string_equal( temp.webpa_path_url, WEBPA_PATH_URL);	
     assert_string_equal( temp.webpa_uuid,"1234567-345456546");
     assert_string_equal( temp.local_url, PARODUS_UPSTREAM);

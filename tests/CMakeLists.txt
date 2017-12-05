@@ -16,16 +16,16 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g -fprofile-arcs -ftest-coverage 
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTEST ")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
-set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c)
+set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c ../src/token.c)
 set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll -lnanomsg -Wl,--no-as-needed -lcjson -ltrower-base64 -lssl -lcrypto -lrt -lm)
 
 if (ENABLE_SESHAT)
 set (PARODUS_COMMON_LIBS -llibseshat ${PARODUS_COMMON_LIBS})
 endif (ENABLE_SESHAT)
 
-if (ENABLE_CJWT)
-set (PARODUS_COMMON_LIBS ${PARODUS_COMMON_LIBS} -lcjwt -lresolv)
-endif (ENABLE_CJWT)
+if (FEATURE_DNS_QUERY)
+set (PARODUS_COMMON_LIBS ${PARODUS_COMMON_LIBS} -lcjwt -lucresolv -lresolv)
+endif (FEATURE_DNS_QUERY)
 
 if(NOT DISABLE_VALGRIND)
 set (MEMORY_CHECK valgrind --leak-check=full --show-reachable=yes -v)
@@ -116,11 +116,6 @@ add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
 #add_executable(test_connection test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC}) 
 #target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 set(SOURCES test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC})
-if (ENABLE_CJWT)
-set(SOURCES ${SOURCES} ../src/token.c)
-else ()
-set(SOURCES ${SOURCES} ../src/token_stub.c)
-endif (ENABLE_CJWT) 
 add_executable(test_connection ${SOURCES})
 target_link_libraries (test_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka)
 
@@ -151,11 +146,6 @@ else()
 set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
  
-if (ENABLE_CJWT)
-set(SOURCES ${SOURCES} ../src/token.c)
-else ()
-set(SOURCES ${SOURCES} ../src/token_stub.c)
-endif (ENABLE_CJWT)
 add_executable(test_client_list ${SOURCES})
 target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 
@@ -172,11 +162,6 @@ else()
 set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 
-if (ENABLE_CJWT)
-set(SOURCES ${SOURCES} ../src/token.c)
-else ()
-set(SOURCES ${SOURCES} ../src/token_stub.c)
-endif (ENABLE_CJWT)
 add_executable(test_service_alive ${SOURCES})
 target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 
@@ -249,11 +234,6 @@ target_link_libraries (test_partners_check -lcmocka ${PARODUS_COMMON_LIBS} -lwrp
 #   test_token - token.c tests
 #-------------------------------------------------------------------------------
 add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
-if (ENABLE_CJWT)
-set(SOURCES test_token.c ../src/token.c ../src/string_helpers.c ../src/config.c)
-else()
-set(SOURCES test_token_stub.c ../src/token_stub.c)
-endif (ENABLE_CJWT)
 add_executable(test_token ${SOURCES} ) 
 target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
 
