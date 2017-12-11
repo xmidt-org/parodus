@@ -193,7 +193,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
     };
     int c;
 
-		cfg->flags = 0;
+	if (NULL == cfg) {
+		ParodusError ("NULL cfg structure\n");
+		return;
+	} 
+	cfg->flags = 0;
     while (1)
     {
 

@@ -117,7 +117,8 @@ add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
 #target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 set(SOURCES test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC})
 add_executable(test_connection ${SOURCES})
-target_link_libraries (test_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka)
+#target_link_libraries (test_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka)
+target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
@@ -126,7 +127,8 @@ add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnect
 #add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
 #target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
 add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
-target_link_libraries (test_createConnection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka )
+#target_link_libraries (test_createConnection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka )
+target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
 
 #-------------------------------------------------------------------------------
 #   test_client_list
@@ -147,7 +149,8 @@ set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
  
 add_executable(test_client_list ${SOURCES})
-target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
+#target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_service_alive
@@ -163,7 +166,8 @@ set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 
 add_executable(test_service_alive ${SOURCES})
-target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
+#target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_config
@@ -172,7 +176,7 @@ add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
 add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
 target_link_libraries (test_config -lcmocka
  -Wl,--no-as-needed -lcimplog
- -lcjson -ltrower-base64 -lssl -lcrypto -lrt -lm
+ -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm
 )
 
 #-------------------------------------------------------------------------------
@@ -235,7 +239,8 @@ target_link_libraries (test_partners_check -lcmocka ${PARODUS_COMMON_LIBS} -lwrp
 #-------------------------------------------------------------------------------
 add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
 add_executable(test_token ${SOURCES} ) 
-target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
+#target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
+target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
 
 #-------------------------------------------------------------------------------
 #   test_seshat_interface - registerWithSeshat

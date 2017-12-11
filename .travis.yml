@@ -26,9 +26,9 @@ install:
 script:
     - mkdir build
     - cd build
-    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=true -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true -DBUILD_TESTING:BOOL=false
+    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=true -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true -DBUILD_TESTING:BOOL=true
     - make
-    # make test
+    - make test
 
 after_success:
     - codecov
