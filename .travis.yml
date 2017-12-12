@@ -26,7 +26,7 @@ install:
 script:
     - mkdir build
     - cd build
-    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=true -DENABLE_SESHAT:BOOL=true -DENABLE_CJWT:BOOL=true
+    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=true -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true -DBUILD_TESTING:BOOL=true
     - make
     - make test
 

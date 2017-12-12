@@ -68,7 +68,7 @@ void test_getWebpaConveyHeader()
     parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
     parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
-    cfg.flags = FLAGS_SECURE;
+    cfg.flags = 0;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
     cfg.webpa_backoff_max = 255;
