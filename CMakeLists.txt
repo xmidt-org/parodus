@@ -185,7 +185,7 @@ if (ENABLE_SESHAT)
 # libseshat external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libseshat
-    DEPENDS cJSON trower-base64 msgpack wrp-c
+    DEPENDS cJSON trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
     GIT_REPOSITORY https://github.com/comcast/seshat.git
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
