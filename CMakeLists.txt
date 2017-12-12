@@ -234,7 +234,7 @@ if (BUILD_TESTING)
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cmocka
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cmocka
-    GIT_REPOSITORY git://git.cryptomilk.org/projects/cmocka.git
+    GIT_REPOSITORY https://github.com/elventear/cmocka.git
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )

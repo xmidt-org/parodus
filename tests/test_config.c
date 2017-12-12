@@ -270,6 +270,8 @@ void test_parodusGitVersion()
    }
    pclose(fp);
    
+   printf ("version: %s\n", version);
+   printf ("GIT_COMMIT_TAG: %s\n", GIT_COMMIT_TAG);
    n = strcmp( version, GIT_COMMIT_TAG);
    assert_int_equal(n, 0);
 }
