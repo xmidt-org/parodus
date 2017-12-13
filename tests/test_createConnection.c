@@ -37,7 +37,7 @@ bool close_retry;
 bool LastReasonStatus;
 volatile unsigned int heartBeatTimer;
 pthread_mutex_t close_mut;
-
+int g_status;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -82,10 +82,21 @@ nopoll_bool nopoll_conn_is_ok (noPollConn * conn)
     return (nopoll_bool) mock();
 }
 
-nopoll_bool nopoll_conn_wait_until_connection_ready (noPollConn * conn, int timeout, char * message)
+int getGlobalHttpStatus()
+{
+	return g_status;
+}
+
+void setGlobalHttpStatus(int status)
+{
+	g_status=status;
+}
+
+nopoll_bool nopoll_conn_wait_until_connection_ready (noPollConn * conn, int timeout, int *status, char * message)
 {
     UNUSED(timeout); UNUSED(message);
     UNUSED(conn);
+    *status = getGlobalHttpStatus();
     function_called();
     return (nopoll_bool) mock();
 }
@@ -377,12 +388,10 @@ void test_createConnectionConnNotOk()
 
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
+	setGlobalHttpStatus(0);
 
     will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
     expect_function_call(nopoll_conn_wait_until_connection_ready);
-
-    will_return(strncmp, 12);
-    expect_function_call(strncmp);
 
     expect_function_call(nopoll_conn_close);
 
@@ -396,13 +405,65 @@ void test_createConnectionConnNotOk()
 
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
-
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
+	
+    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
     expect_function_call(nopoll_conn_wait_until_connection_ready);
 
-    will_return(strncmp, 0);
-    expect_function_call(strncmp);
+    expect_function_call(setMessageHandlers);
 
+    int ret = createNopollConnection(ctx);
+    assert_int_equal(ret, nopoll_true);
+    free(cfg);
+    nopoll_ctx_unref (ctx);
+}
+
+
+void test_createConnectionConnRedirect()
+{
+    noPollConn *gNPConn;
+    noPollCtx *ctx = nopoll_ctx_new();
+    ParodusCfg *cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
+    memset(cfg, 0, sizeof(ParodusCfg));
+    assert_non_null(cfg);
+    
+    cfg->flags = 0;
+    parStrncpy(cfg->webpa_url , "localhost", sizeof(cfg->webpa_url));
+    set_parodus_cfg(cfg);
+    assert_non_null(ctx);
+
+		will_return (allow_insecure_conn, 1);
+		expect_function_call (allow_insecure_conn);
+
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
+    expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
+    expect_string(nopoll_conn_new_opts, (intptr_t)host_ip, "localhost");
+    will_return(nopoll_conn_new_opts, (intptr_t)&gNPConn);
+    expect_function_call(nopoll_conn_new_opts);
+
+    will_return(nopoll_conn_is_ok, nopoll_false);
+    expect_function_call(nopoll_conn_is_ok);
+
+    expect_function_call(nopoll_conn_close);
+
+    will_return(nopoll_conn_ref_count, 1);
+    expect_function_call(nopoll_conn_ref_count);
+
+    expect_function_call(nopoll_conn_unref);
+	
+    expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
+    expect_string(nopoll_conn_new_opts, (intptr_t)host_ip, "localhost");
+    will_return(nopoll_conn_new_opts, (intptr_t)&gNPConn);
+    expect_function_call(nopoll_conn_new_opts);
+
+    will_return(nopoll_conn_is_ok, nopoll_true);
+    expect_function_call(nopoll_conn_is_ok);
+	setGlobalHttpStatus(307);
+    
+	
+    will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
+    expect_function_call(nopoll_conn_wait_until_connection_ready);
     will_return(strtok, (intptr_t)"");
     will_return(strtok, (intptr_t)"");
     will_return(strtok, (intptr_t)"p.10.0.0.12");
@@ -454,6 +515,7 @@ int main(void)
         cmocka_unit_test(test_createConnection),
         cmocka_unit_test(test_createConnectionConnNull),
         cmocka_unit_test(test_createConnectionConnNotOk),
+        cmocka_unit_test(test_createConnectionConnRedirect),
         cmocka_unit_test(err_createConnectionCtxNull),
     };
 

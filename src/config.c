@@ -32,6 +32,7 @@
 /*----------------------------------------------------------------------------*/
 
 static ParodusCfg parodusCfg;
+static char token_application[64] = {'\0'};
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -45,6 +46,11 @@ ParodusCfg *get_parodus_cfg(void)
 void set_parodus_cfg(ParodusCfg *cfg) 
 {
     memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
+}
+
+char *get_token_application(void)
+{
+    return token_application;
 }
 
 // the algorithm mask indicates which algorithms are allowed
@@ -308,6 +314,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'T':
+          strcpy(token_application, optarg);
           get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token),cfg->hw_serial_number,cfg->hw_mac);
           ParodusInfo("webpa_token is %s\n",cfg->webpa_token);
           break;
