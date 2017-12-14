@@ -1615,8 +1615,9 @@ nopoll_bool    nopoll_conn_is_ready (noPollConn * conn)
 	if (conn->session == NOPOLL_INVALID_SOCKET)
 		return nopoll_false;
 
-	/* conn->handshake->received_307 will always be false other than http redirect */
-	if (! conn->handshake_ok && !conn->handshake->received_307) {
+	/* conn->handshake->received_non_101 will always be false other than error cases */
+	
+	if (! conn->handshake_ok && !conn->handshake->received_non_101) {
 		/* acquire here handshake mutex */
 		nopoll_mutex_lock (conn->ref_mutex);
 
@@ -1627,10 +1628,11 @@ nopoll_bool    nopoll_conn_is_ready (noPollConn * conn)
 		nopoll_mutex_unlock (conn->ref_mutex);
 	}
 	
-	if(conn->handshake->received_307)
+	if(conn->handshake->received_non_101)
 	{
-		return nopoll_true; /* in case of http redirection, conn->handshake_ok will never be true as the response buffer from the server will never have "Sec-Websocket-Accept". Consequently, we have to return true to break the loop inside nopoll_conn_wait_until_connection_ready() */
+		return nopoll_true; /* in case of error codes (other than 101) , conn->handshake_ok will never be true as the response buffer from the server will never have "Sec-Websocket-Accept". Consequently, we have to return true to break the loop inside nopoll_conn_wait_until_connection_ready() */
 	}
+	
 	return conn->handshake_ok;
 }
 
@@ -2942,6 +2944,7 @@ int nopoll_conn_complete_handshake_client (noPollCtx * ctx, noPollConn * conn, c
 	char * header;
 	char * value;
 	int    iterator;
+	char statuscode[4]={'\0'};
 
 	/* handle content */
 	if (! conn->handshake->received_101 && nopoll_ncmp (buffer, "HTTP/1.1 ", 9)) {
@@ -2950,13 +2953,18 @@ int nopoll_conn_complete_handshake_client (noPollCtx * ctx, noPollConn * conn, c
 			iterator++;
 		if (! nopoll_ncmp (buffer + iterator, "101", 3)) {
 			nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "websocket server denied connection with: %s", buffer + iterator);
-			if(nopoll_ncmp (buffer + iterator, "307", 3)|| nopoll_ncmp (buffer + iterator, "302", 3) || nopoll_ncmp (buffer + iterator, "303", 3) )
-			{
-				nopoll_log (ctx, NOPOLL_LEVEL_INFO, "Received HTTP 30x response from server");
-                /* Mark 307 flag as true */
-                conn->handshake->received_307 = nopoll_true;
-				return 1; /* continue to read next lines for redirect Location */
-			}
+			
+                        strncpy(statuscode, buffer + iterator, 3);
+            		/* flag that we have received HTTP/1.1 statuscode indication */
+            		conn->handshake->received_non_101 = nopoll_true;
+            		if(statuscode !=NULL)
+            		{
+				nopoll_log (ctx, NOPOLL_LEVEL_INFO, "Received HTTP %d response from server", atoi(statuscode));
+                       		conn->handshake->httpStatus = atoi(statuscode);
+                       		nopoll_log (ctx, NOPOLL_LEVEL_INFO, "conn->handshake->httpStatus: %d\n", conn->handshake->httpStatus);
+                		return 1; /* continue to read next lines for error case */
+                   	}
+			
 			return 0; /* do not continue */
 		} /* end if */
 
@@ -2995,7 +3003,7 @@ int nopoll_conn_complete_handshake_client (noPollCtx * ctx, noPollConn * conn, c
 		conn->handshake->connection_upgrade = 1;
 		nopoll_free (value);
 	} else if (strcasecmp (header, "Location") == 0) {
-		if(conn->handshake->received_307)
+		if(conn->handshake->received_non_101 && conn->handshake->httpStatus == 307)
 		{
 			conn->handshake->redirectURL = value;
 			nopoll_log (ctx, NOPOLL_LEVEL_INFO, "nopoll_conn_complete_handshake_client: conn->handshake->redirectURL: %s",conn->handshake->redirectURL);
@@ -4973,6 +4981,9 @@ nopoll_bool nopoll_conn_accept_complete (noPollCtx * ctx, noPollConn * listener,
  * @param timeout The timeout operation to limit the wait
  * operation. Timeout is provided in seconds.
  *
+ * *@param status in-out parameter of integer value. The response http status code indicating 
+ * success with 101 and failure with non 101 code. e.g. 307 redirect, 403 unauthorized etc.
+ 
  * @param message in-out parameter of 64 byte. The response message string description indicating 
  * "Success", "Failure" or "Redirect: Redirect_URL". Caller needs to allocate memory for this. 
  *
@@ -4981,7 +4992,7 @@ nopoll_bool nopoll_conn_accept_complete (noPollCtx * ctx, noPollConn * listener,
  * function finished nopoll_true is returned, otherwise nopoll_false.
  */
 nopoll_bool      nopoll_conn_wait_until_connection_ready (noPollConn * conn,
-							  int          timeout, char * message)
+							  int          timeout, int *status, char * message)
 {
 	long int total_timeout = timeout * 1000000;
 	nopoll_bool result = nopoll_false;
@@ -5003,16 +5014,24 @@ nopoll_bool      nopoll_conn_wait_until_connection_ready (noPollConn * conn,
 
 	result = nopoll_conn_is_ok (conn) && nopoll_conn_is_ready (conn);
 	
-	if(conn->handshake->received_307 == nopoll_true && (conn->handshake->redirectURL != NULL))
+	if(conn->handshake->received_non_101 == nopoll_true && conn->handshake->httpStatus == 307 &&(conn->handshake->redirectURL != NULL))
 	{
 		if(message != NULL)
 		{
 			snprintf(message, strlen(conn->handshake->redirectURL) + 10, "Redirect:%s", conn->handshake->redirectURL);
+			*status = conn->handshake->httpStatus;
 			nopoll_free (conn->handshake->redirectURL);
 		}
-		conn->handshake->received_307 = nopoll_false;
+		conn->handshake->received_non_101 = nopoll_false;
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_INFO, "nopoll_conn_wait_until_connection_ready() response: message: %s" ,message );		
 		return nopoll_false; /* retry with redirection URLs */
+	}
+	else if(conn->handshake->received_non_101 == nopoll_true && conn->handshake->httpStatus !=0) 
+	{
+		*status = conn->handshake->httpStatus;
+		conn->handshake->received_non_101 = nopoll_false;
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_INFO, "nopoll_conn_wait_until_connection_ready() response: status: %d" ,*status );		
+		return nopoll_false; /* retry as server returns error http code */
 	}
 	else if(result && message != NULL)
 	{

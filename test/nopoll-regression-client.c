@@ -785,7 +785,7 @@ nopoll_bool test_04b (void) {
 	}
 
 	printf ("Test 04-b: waiting until connection is ok\n");
-	nopoll_conn_wait_until_connection_ready (conn, 5, NULL);
+	nopoll_conn_wait_until_connection_ready (conn, 5, 0, NULL);
 
 	printf ("Test 04-b: sending was quick as possible to flood local buffers..\n");
 	
@@ -857,7 +857,7 @@ nopoll_bool test_04b (void) {
 	}
 
 	printf ("Test 04-b: waiting until connection is ok\n");
-	nopoll_conn_wait_until_connection_ready (conn, 5, NULL);
+	nopoll_conn_wait_until_connection_ready (conn, 5, 0, NULL);
 
 	/* send a cleanup message */
 	bytes_written = nopoll_conn_send_text (conn, "release-message", 15);
@@ -905,7 +905,7 @@ nopoll_bool test_04c (void) {
 	}
 
 	printf ("Test 04-c: waiting until connection is ok\n");
-	nopoll_conn_wait_until_connection_ready (conn, 5, NULL);
+	nopoll_conn_wait_until_connection_ready (conn, 5,0,  NULL);
 
 	/* remove local file */
 	if (stat ("copy-test-04c.txt", &file_info) == 0) {
@@ -1388,7 +1388,7 @@ nopoll_bool test_11 (void) {
 	/* create a working connection */
 	conn = nopoll_conn_new (ctx, "localhost", "1234", NULL, NULL, NULL, NULL);
 
-	if (! nopoll_conn_wait_until_connection_ready (conn, 5, NULL)) {
+	if (! nopoll_conn_wait_until_connection_ready (conn, 5, 0, NULL)) {
 		printf ("ERROR: Expected a FAILING connection status due to origing denied, but it working..\n");
 		return nopoll_false;
 	} /* end if */
@@ -1430,7 +1430,7 @@ nopoll_bool test_12 (void) {
 		/* create a working connection */
 		conn = nopoll_conn_new (ctx, "localhost", "1234", NULL, NULL, NULL, NULL);
 		
-		if (! nopoll_conn_wait_until_connection_ready (conn, 5, NULL)) {
+		if (! nopoll_conn_wait_until_connection_ready (conn, 5, 0, NULL)) {
 			printf ("ERROR: Expected NOT to find a FAILING connection status, errno is=%d..\n", errno);
 			return nopoll_false;
 		} /* end if */
@@ -2680,7 +2680,7 @@ nopoll_bool test_28 (void) {
 	} /* end if */
 
 	/* wait until it is connected */
-	nopoll_conn_wait_until_connection_ready (conn, 5, NULL);
+	nopoll_conn_wait_until_connection_ready (conn, 5, 0, NULL);
 
 	/* send a message to request connection close with a particular message */
 	if (nopoll_conn_send_text (conn, "close with message", 18) != 18) {
@@ -2742,7 +2742,7 @@ nopoll_bool test_29 (void) {
 	} /* end if */
 
 	/* wait until it is connected */
-	nopoll_conn_wait_until_connection_ready (conn, 5,NULL);
+	nopoll_conn_wait_until_connection_ready (conn, 5,0, NULL);
 
 	/* close connection */
 	nopoll_conn_close (conn);
@@ -2780,7 +2780,7 @@ nopoll_bool test_30_common_header_stop (const char * label, int bytes_to_send_be
 
 	printf ("Test %s: waiting until connection is ready..\n", label);
 	/* wait until it is connected */
-	nopoll_conn_wait_until_connection_ready (conn, 5,NULL);
+	nopoll_conn_wait_until_connection_ready (conn, 5,0, NULL);
 	printf ("Test %s: ok..\n", label);
 
 	/* send a message to request connection close with a particular message */
