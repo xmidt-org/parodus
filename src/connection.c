@@ -79,6 +79,7 @@ int createNopollConnection(noPollCtx *ctx)
     char port[8];
     char server_Address[256];
     char redirectURL[128]={'\0'};
+    int status=0;
 	int allow_insecure;
     char *temp_ptr;
     int connErr=0;
@@ -91,6 +92,7 @@ int createNopollConnection(noPollCtx *ctx)
     char device_id[32]={'\0'};
     char user_agent[512]={'\0'};
     char * extra_headers = NULL;
+    char new_token[4096] ;
     
     if(ctx == NULL) {
         return nopoll_false;
@@ -178,10 +180,10 @@ int createNopollConnection(noPollCtx *ctx)
 				backoffRetryTime = (int) pow(2, c) -1;
 			}
 
-			if(!nopoll_conn_wait_until_connection_ready(get_global_conn(), 10, redirectURL)) 
+			if(!nopoll_conn_wait_until_connection_ready(get_global_conn(), 10, &status, redirectURL)) 
 			{
 				
-				if (strncmp(redirectURL, "Redirect:", 9) == 0) // only when there is a http redirect
+				if(status == 307 || status == 302 || status == 303)    // only when there is a http redirect
 				{
 					ParodusError("Received temporary redirection response message %s\n", redirectURL);
 					// Extract server Address and port from the redirectURL
@@ -194,6 +196,22 @@ int createNopollConnection(noPollCtx *ctx)
 					//reset c=2 to start backoffRetryTime as retrying using new redirect server
 					c = 2;
 				}
+				else if(status == 403) 
+				{
+					ParodusError("Received Unauthorized response with status: %d\n", status);
+			
+					//Get new token and update auth header 
+					get_webpa_token(new_token,get_token_application(),sizeof(new_token),get_parodus_cfg()->hw_serial_number, get_parodus_cfg()->hw_mac);
+					
+					extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
+		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+		     "\r\nX-WebPA-Token: %s"
+		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(new_token)) ? new_token : ""),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
+					
+					//reset c=2 to start backoffRetryTime as retrying 
+					c = 2;
+				}
+				
 				else
 				{
 					ParodusError("Client connection timeout\n");	
@@ -204,6 +222,9 @@ int createNopollConnection(noPollCtx *ctx)
 					sleep(backoffRetryTime);
 					c++;
 				}
+				//reset httpStatus before next retry
+				ParodusPrint("reset httpStatus from server before next retry\n");
+				status = 0;
 				close_and_unref_connection(get_global_conn());
 				set_global_conn(NULL);
 				initial_retry = true;
