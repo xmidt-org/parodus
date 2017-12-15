@@ -2957,7 +2957,7 @@ int nopoll_conn_complete_handshake_client (noPollCtx * ctx, noPollConn * conn, c
                         strncpy(statuscode, buffer + iterator, 3);
             		/* flag that we have received HTTP/1.1 statuscode indication */
             		conn->handshake->received_non_101 = nopoll_true;
-            		if(statuscode !=NULL)
+			if(strlen(statuscode) > 0)
             		{
 				nopoll_log (ctx, NOPOLL_LEVEL_INFO, "Received HTTP %d response from server", atoi(statuscode));
                        		conn->handshake->httpStatus = atoi(statuscode);
