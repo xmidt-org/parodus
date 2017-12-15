@@ -314,8 +314,8 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'T':
-          strcpy(token_application, optarg);
-          get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token),cfg->hw_serial_number,cfg->hw_mac);
+          parStrncpy(token_application, optarg, sizeof(token_application));
+	  get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token),cfg->hw_serial_number,cfg->hw_mac);
           ParodusInfo("webpa_token is %s\n",cfg->webpa_token);
           break;
 
