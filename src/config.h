@@ -90,6 +90,8 @@ typedef struct
 #endif
     char cert_path[64];
     char webpa_token[4096];
+    unsigned int secure_flag;
+    unsigned int port;
 } ParodusCfg;
 
 #define FLAGS_SECURE    (1 << 0)
