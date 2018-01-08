@@ -108,7 +108,7 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
-	snprintf(port,sizeof(port),"%d",8080);
+	snprintf(port,sizeof(port),"%d",get_parodus_cfg()->port);
 	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
 	ParodusInfo("server_Address %s\n",server_Address);
 					
@@ -141,7 +141,7 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
         noPollConn *connection;
-		if((FLAGS_SECURE == (FLAGS_SECURE & get_parodus_cfg()->flags)) || (!allow_insecure))
+		if((FLAGS_SECURE == (get_parodus_cfg()->secure_flag & get_parodus_cfg()->flags)) || (!allow_insecure))
 		{                    
 		    ParodusPrint("secure true\n");
             connection = nopoll_tls_common_conn(ctx,server_Address, port, extra_headers);                
@@ -274,7 +274,7 @@ int createNopollConnection(noPollCtx *ctx)
 				
 	}while(initial_retry);
 	
-    if( FLAGS_SECURE == (FLAGS_SECURE & get_parodus_cfg()->flags) )
+    if( FLAGS_SECURE == (get_parodus_cfg()->secure_flag & get_parodus_cfg()->flags) )
 	{
 		ParodusInfo("Connected to server over SSL\n");
 	}
