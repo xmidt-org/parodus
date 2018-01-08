@@ -60,11 +60,11 @@ pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 void createSocketConnection(void *config_in, void (* initKeypress)())
 {
     int intTimer=0;	
-    ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
+    //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
     bool seshat_registered = false;
     
-    loadParodusCfg(tmpCfg,get_parodus_cfg());
+    //loadParodusCfg(tmpCfg,get_parodus_cfg());
     ParodusPrint("Configure nopoll thread handlers in Parodus\n");
     nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
     ctx = nopoll_ctx_new();

@@ -188,14 +188,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {0, 0, 0, 0}
     };
     int c;
+    ParodusInfo("Parsing parodus command line arguments..\n");
 
     if (cfg == NULL)
 	return;
-	
-     // Setting default
-      cfg->secure_flag = FLAGS_SECURE;
-      cfg->port = 8080;
-      
+
     while (1)
     {
 
@@ -271,7 +268,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
         case 'i':
           parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
-          ParodusInfo("webpa_inteface_used is %s\n",cfg->webpa_interface_used);
+          ParodusInfo("webpa_interface_used is %s\n",cfg->webpa_interface_used);
           break;
           
         case 'l':
@@ -341,6 +338,8 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           {
             ParodusError("Invalid secure flag. Valid values are 'http' and 'https', using default 'https'\n");
           }
+          ParodusInfo("cfg->secure_flag is %d\n",cfg->secure_flag);
+    	  ParodusInfo("cfg->port is %d\n",cfg->port);
           break;
 
         case 'P':
@@ -368,6 +367,42 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         ParodusPrint ("%s ", argv[optind++]);
       putchar ('\n');
     }
+}
+
+void setDefaultValuesToCfg(ParodusCfg *cfg)
+{
+    if(cfg == NULL)
+    {
+        ParodusError("cfg is NULL\n");
+        return;
+    }
+    
+    ParodusInfo("Setting default values to parodusCfg\n");
+    parStrncpy(cfg->local_url, PARODUS_UPSTREAM, sizeof(cfg->local_url));
+
+#ifdef ENABLE_CJWT
+   
+    parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
+
+    parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
+    
+    parStrncpy(cfg->jwt_algo, "\0", sizeof(cfg->jwt_algo));
+#endif
+   
+    parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
+
+    cfg->flags |= FLAGS_SECURE;
+    cfg->secure_flag = FLAGS_SECURE;
+    cfg->port = 8080;
+    
+    parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
+    
+    snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
+    ParodusInfo(" cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
+    
+    parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
+    ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
+    
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
@@ -527,10 +562,10 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->webpa_backoff_max = config->webpa_backoff_max;
     
     cfg->secure_flag = config->secure_flag;
-    ParodusInfo("cfg->secure_flag is :%d\n",cfg->secure_flag);
+    ParodusPrint("cfg->secure_flag is :%d\n",cfg->secure_flag);
     
     cfg->port = config->port;
-    ParodusInfo("cfg->port is :%d\n",cfg->port);
+    ParodusPrint("cfg->port is :%d\n",cfg->port);
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
@@ -538,3 +573,5 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
 }
+
+

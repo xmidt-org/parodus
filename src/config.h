@@ -102,10 +102,10 @@ typedef struct
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
+//void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 void get_webpa_token(char *token, char *name, size_t len,char *serNum, char *mac);
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
-
+void setDefaultValuesToCfg(ParodusCfg *cfg); 
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);

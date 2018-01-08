@@ -76,6 +76,7 @@ int main( int argc, char **argv)
     memset(cfg,0,sizeof(ParodusCfg));
     
     ParodusInfo("********** Starting component: Parodus **********\n "); 
+    setDefaultValuesToCfg(cfg);
     parseCommandLine(argc,argv,cfg);
      
     createSocketConnection(cfg,NULL);
