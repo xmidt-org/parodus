@@ -190,7 +190,7 @@ void test_createSocketConnection()
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(&cfg,initKeypress);
+    createSocketConnection(initKeypress);
 }
 
 void test_createSocketConnection1()
@@ -225,7 +225,7 @@ void test_createSocketConnection1()
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(&cfg,NULL);
+    createSocketConnection(NULL);
     
 }
 
@@ -246,6 +246,7 @@ void test_createSocketConnection2()
     parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
     cfg.webpa_ping_timeout = 1;
+    set_parodus_cfg(&cfg);
     
     pthread_mutex_lock (&close_mut);
     close_retry = false;
@@ -281,7 +282,7 @@ void test_createSocketConnection2()
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(&cfg,NULL);
+    createSocketConnection(NULL);
 }
 
 void err_createSocketConnection()
@@ -314,7 +315,7 @@ void err_createSocketConnection()
     expect_function_call(close_and_unref_connection);
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
-    createSocketConnection(NULL,NULL);
+    createSocketConnection(NULL);
 }
 
 /*----------------------------------------------------------------------------*/
