@@ -33,6 +33,9 @@
 #include "spin_thread.h"
 #include "service_alive.h"
 #include "seshat_interface.h"
+#ifdef FEATURE_DNS_QUERY
+#include <ucresolv_log.h>
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -65,6 +68,9 @@ void createSocketConnection(void *config_in, void (* initKeypress)())
     bool seshat_registered = false;
     
     loadParodusCfg(tmpCfg,get_parodus_cfg());
+#ifdef FEATURE_DNS_QUERY
+	register_ucresolv_logger (__cimplog);
+#endif
     ParodusPrint("Configure nopoll thread handlers in Parodus\n");
     nopoll_thread_handlers(&createMutex, &destroyMutex, &lockMutex, &unlockMutex);
     ctx = nopoll_ctx_new();
