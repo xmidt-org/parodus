@@ -90,6 +90,8 @@ typedef struct
 #endif
     char cert_path[64];
     char webpa_token[4096];
+    unsigned int secure_flag;
+    unsigned int port;
 } ParodusCfg;
 
 #define FLAGS_SECURE    (1 << 0)
@@ -103,7 +105,7 @@ typedef struct
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 void get_webpa_token(char *token, char *name, size_t len,char *serNum, char *mac);
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
-
+void setDefaultValuesToCfg(ParodusCfg *cfg); 
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);
