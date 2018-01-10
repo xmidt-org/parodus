@@ -26,7 +26,7 @@
 
 #include "../src/config.h"
 #include "../src/ParodusInternal.h"
-#define K_argc 18
+#define K_argc 21
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -69,7 +69,11 @@ void test_setParodusConfig()
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
     cfg.webpa_backoff_max = 255;
-    
+#ifdef ENABLE_CJWT
+    parStrncpy(cfg.dns_id, "test",sizeof(cfg.dns_id));
+    parStrncpy(cfg.jwt_algo, "none", sizeof(cfg.jwt_algo));
+    parStrncpy(cfg.jwt_key, "key.txt",sizeof(cfg.jwt_key));
+#endif
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
@@ -92,6 +96,11 @@ void test_setParodusConfig()
     assert_int_equal((int) cfg.boot_time, (int) temp->boot_time);
     assert_int_equal((int) cfg.webpa_ping_timeout, (int) temp->webpa_ping_timeout);
     assert_int_equal((int) cfg.webpa_backoff_max, (int) temp->webpa_backoff_max);
+#ifdef ENABLE_CJWT
+    assert_string_equal(cfg.dns_id, "test");
+    assert_string_equal(cfg.jwt_algo, "none");
+    assert_string_equal(cfg.jwt_key, "key.txt");
+#endif
 }
 
 void test_getParodusConfig()
@@ -109,9 +118,13 @@ void test_getParodusConfig()
 
 void test_parseCommandLine()
 {
-    int argc =K_argc;
+    int argc =K_argc+3;
 #ifndef ENABLE_SESHAT
     argc = argc - 1;
+#endif
+
+#ifdef ENABLE_CJWT
+    argc = argc+3;
 #endif
     char * command[argc+1];
     int i = 0;
@@ -137,6 +150,17 @@ void test_parseCommandLine()
     command[i++] = "--force-ipv4";
     command[i++] = "--force-ipv6";
     command[i++] = "--webpa-token=/tmp/token.sh";
+    command[i++] = "--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt";
+    command[i++] = "--secure-flag=http";
+    command[i++] = "--secure-flag=";
+    command[i++] = "--secure-flag=https";
+    command[i++] = "--port=9000";
+#ifdef ENABLE_CJWT
+    command[i++] = "--dns-id=fabric";
+    command[i++] = "--jwt-key=../../tests/webpa-rs256.pem";
+    command[i++] = "--jwt-key=AGdyuwyhwl2ow2ydsoioiygkshwdthuwd";
+    command[i++] = "--jwt-algo=none:RS256";
+#endif
     command[i] = '\0';
 
     ParodusCfg parodusCfg;
@@ -163,7 +187,14 @@ void test_parseCommandLine()
     assert_int_equal( (int) parodusCfg.flags, FLAGS_IPV6_ONLY|FLAGS_IPV4_ONLY);
     sprintf(expectedToken,"secure-token-%s-%s",parodusCfg.hw_serial_number,parodusCfg.hw_mac);
     assert_string_equal(  parodusCfg.webpa_token,expectedToken);
-
+    assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
+    assert_int_equal( (int) parodusCfg.secure_flag,FLAGS_SECURE);
+    assert_int_equal( (int) parodusCfg.port,9000);
+#ifdef ENABLE_CJWT
+    assert_string_equal(parodusCfg.dns_id, "fabric");
+    assert_string_equal(parodusCfg.jwt_algo, "none:RS256");
+    assert_string_equal(parodusCfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
+#endif
 }
 
 void test_parseCommandLineNull()
@@ -173,11 +204,15 @@ void test_parseCommandLineNull()
 
 void err_parseCommandLine()
 {
-    int argc =K_argc;
+    int argc =K_argc+3;
 #ifndef ENABLE_SESHAT
     argc = argc - 1;
 #endif
-    char * command[20]={'\0'};
+
+#ifdef ENABLE_CJWT
+    argc = argc+3;
+#endif
+    char * command[argc+1];
 
     command[0] = "parodus";
     command[1] = "--hw-model=TG1682";
@@ -194,7 +229,7 @@ void err_parseCommandLine()
 void test_loadParodusCfg()
 {
     ParodusCfg  tmpcfg;
-    ParodusCfg *Cfg;
+    ParodusCfg *Cfg = NULL;
     Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     char protocol[32] = {'\0'};
 
@@ -211,7 +246,16 @@ void test_loadParodusCfg()
     parStrncpy(Cfg->webpa_protocol , protocol, sizeof(Cfg->webpa_protocol));
     parStrncpy(Cfg->local_url , "tcp://10.0.0.1:6000", sizeof(Cfg->local_url));
     parStrncpy(Cfg->partner_id , "shaw", sizeof(Cfg->partner_id));
-
+#ifdef ENABLE_CJWT
+    parStrncpy(Cfg->dns_id, "fabric",sizeof(Cfg->dns_id));
+    parStrncpy(Cfg->jwt_algo, "none:RS256", sizeof(Cfg->jwt_algo));
+    parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
+#endif
+    parStrncpy(Cfg->webpa_token , "/tmp/token.sh", sizeof(Cfg->webpa_token));
+    parStrncpy(Cfg->cert_path, "/etc/ssl.crt",sizeof(Cfg->cert_path));
+#ifdef ENABLE_SESHAT
+    parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
+#endif
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
 
@@ -222,6 +266,16 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.local_url, "tcp://10.0.0.1:6000");
     assert_string_equal( tmpcfg.partner_id, "shaw");
     assert_string_equal( tmpcfg.webpa_protocol, protocol);
+#ifdef ENABLE_CJWT
+    assert_string_equal(tmpcfg.dns_id, "fabric");
+    assert_string_equal(tmpcfg.jwt_algo, "none:RS256");
+    assert_string_equal(tmpcfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
+#endif
+    assert_string_equal(tmpcfg.webpa_token, "/tmp/token.sh");
+    assert_string_equal(tmpcfg.cert_path, "/etc/ssl.crt");
+#ifdef ENABLE_SESHAT
+    assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
+#endif
     free(Cfg);
 }
 
@@ -274,6 +328,30 @@ void test_parodusGitVersion()
    assert_int_equal(n, 0);
 }
 
+void test_setDefaultValuesToCfg()
+{
+    ParodusCfg *cfg = (ParodusCfg *) malloc(sizeof(ParodusCfg));
+    memset(cfg,0,sizeof(ParodusCfg));
+    setDefaultValuesToCfg(cfg);
+    assert_string_equal( cfg->local_url, PARODUS_UPSTREAM);
+#ifdef ENABLE_CJWT
+    assert_string_equal(cfg->dns_id, DNS_ID);
+    assert_string_equal(cfg->jwt_key, "\0");
+    assert_string_equal(cfg->jwt_algo, "\0");
+#endif
+    assert_string_equal(cfg->cert_path, "\0");
+    assert_int_equal((int)cfg->flags, FLAGS_SECURE);
+    assert_int_equal((int)cfg->secure_flag, FLAGS_SECURE);
+    assert_int_equal((int)cfg->port,8080);
+    assert_string_equal(cfg->webpa_path_url, WEBPA_PATH_URL);
+    assert_string_equal(cfg->webpa_uuid, "1234567-345456546");
+}
+
+void err_setDefaultValuesToCfg()
+{
+    setDefaultValuesToCfg(NULL);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -289,7 +367,9 @@ int main(void)
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
-        cmocka_unit_test(test_parodusGitVersion)
+        cmocka_unit_test(test_parodusGitVersion),
+        cmocka_unit_test(test_setDefaultValuesToCfg),
+        cmocka_unit_test(err_setDefaultValuesToCfg),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
