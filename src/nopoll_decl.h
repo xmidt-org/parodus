@@ -145,6 +145,7 @@
  * @brief Portable definition for EWOULDBLOCK errno code.
  */
 #define NOPOLL_EWOULDBLOCK     EWOULDBLOCK
+#define NOPOLL_ETIMEDOUT       ETIMEDOUT
 #define NOPOLL_EINPROGRESS     EINPROGRESS
 #define NOPOLL_ENOTCONN        ENOTCONN
 #define NOPOLL_EAGAIN          EAGAIN
@@ -315,7 +316,12 @@ typedef enum {
 	 * @brief Debug level. Only used to report common
 	 * circumstances that represent the proper functionality.
 	 */
-	NOPOLL_LEVEL_DEBUG, 
+	NOPOLL_LEVEL_DEBUG,
+	/** 
+	 * @brief Info level. Only used to report information for debugging, common
+	 * circumstances that represent the proper functionality.
+	 */
+	NOPOLL_LEVEL_INFO,  
 	/** 
 	 * @brief Warning level. Only used to report that an internal
 	 * issue have happend that could be interesting while

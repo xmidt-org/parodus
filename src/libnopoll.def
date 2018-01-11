@@ -19,6 +19,7 @@ __nopoll_listener_new_opts_internal
 __nopoll_listener_sock_listen_internal
 __nopoll_listener_tls_new_opts_internal
 __nopoll_log
+__nopoll_msg_join
 __nopoll_mutex_create
 __nopoll_mutex_destroy
 __nopoll_mutex_lock
@@ -29,6 +30,7 @@ __nopoll_tls_was_init
 nopoll_base64_decode
 nopoll_base64_encode
 nopoll_calloc
+nopoll_cert_hostcheck
 nopoll_cleanup_library
 nopoll_cmp
 nopoll_conn_accept
@@ -84,6 +86,7 @@ nopoll_conn_opts_set_reuse
 nopoll_conn_opts_set_ssl_certs
 nopoll_conn_opts_set_ssl_protocol
 nopoll_conn_opts_skip_origin_check
+nopoll_conn_opts_ssl_host_verify
 nopoll_conn_opts_ssl_peer_verify
 nopoll_conn_opts_unref
 nopoll_conn_pending_write_bytes
@@ -107,6 +110,7 @@ nopoll_conn_set_bind_interface
 nopoll_conn_set_hook
 nopoll_conn_set_on_close
 nopoll_conn_set_on_msg
+nopoll_conn_set_on_ping_msg
 nopoll_conn_set_on_ready
 nopoll_conn_set_sock_block
 nopoll_conn_set_sock_tcp_nodelay
@@ -133,6 +137,7 @@ nopoll_ctx_set_certificate
 nopoll_ctx_set_on_accept
 nopoll_ctx_set_on_msg
 nopoll_ctx_set_on_open
+nopoll_ctx_set_on_ping_msg
 nopoll_ctx_set_on_ready
 nopoll_ctx_set_post_ssl_check
 nopoll_ctx_set_protocol_version
@@ -144,6 +149,7 @@ nopoll_get_16bit
 nopoll_get_32bit
 nopoll_get_8bit
 nopoll_get_bit
+nopoll_inet_pton
 nopoll_int2bin
 nopoll_int2bin_print
 nopoll_io_get_engine
@@ -172,6 +178,7 @@ nopoll_log_color_is_enabled
 nopoll_log_enable
 nopoll_log_is_enabled
 nopoll_log_set_handler
+nopoll_loop_ended
 nopoll_loop_init
 nopoll_loop_process
 nopoll_loop_process_data
@@ -194,16 +201,20 @@ nopoll_mutex_lock
 nopoll_mutex_unlock
 nopoll_ncmp
 nopoll_nonce
+nopoll_raw_toupper
 nopoll_realloc
 nopoll_set_16bit
 nopoll_set_32bit
 nopoll_set_bit
 nopoll_show_byte
 nopoll_sleep
+nopoll_strcasecompare
 nopoll_strdup
 nopoll_strdup_printf
 nopoll_strdup_printfv
+nopoll_strncasecompare
 nopoll_thread_handlers
 nopoll_timeval_substract
 nopoll_trim
+nopoll_validate_hostname
 nopoll_vprintf_len
