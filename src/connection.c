@@ -102,12 +102,15 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
-	snprintf(port,sizeof(port),"%d",8080);
+	snprintf(port,sizeof(port),"%d",get_parodus_cfg()->port);
 	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
 	//query dns and validate JWT
-	allow_insecure = allow_insecure_conn(server_Address, (int) sizeof(server_Address));
+	allow_insecure = allow_insecure_conn(
+		server_Address, (int) sizeof(server_Address),
+		port, (int) sizeof(port));
 	ParodusInfo("server_Address %s\n",server_Address);
-					
+	ParodusInfo("port %s\n", port);
+	
 	max_retry_sleep = (int) get_parodus_cfg()->webpa_backoff_max;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
 	
@@ -212,8 +215,9 @@ int createNopollConnection(noPollCtx *ctx)
 				{
 					ParodusError("Client connection timeout\n");	
 					ParodusError("RDK-10037 - WebPA Connection Lost\n");
-					// Copy the server address from config to avoid retrying to the same failing talaria redirected node
+					// Copy the server address and port from config to avoid retrying to the same failing talaria redirected node
 					parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
+					snprintf(port,sizeof(port),"%d",get_parodus_cfg()->port);
 					ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 					sleep(backoffRetryTime);
 					c++;
@@ -264,8 +268,9 @@ int createNopollConnection(noPollCtx *ctx)
 			ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 			sleep(backoffRetryTime);
 			c++;
-			// Copy the server address from config to avoid retrying to the same failing talaria redirected node
+			// Copy the server address and port from config to avoid retrying to the same failing talaria redirected node
 			parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
+			snprintf(port,sizeof(port),"%d",get_parodus_cfg()->port);
 		}
 				
 	}while(initial_retry);

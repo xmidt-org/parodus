@@ -60,14 +60,14 @@ pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 
-void createSocketConnection(void *config_in, void (* initKeypress)())
+void createSocketConnection(void (* initKeypress)())
 {
     int intTimer=0;	
-    ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
+    //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
     bool seshat_registered = false;
     
-    loadParodusCfg(tmpCfg,get_parodus_cfg());
+    //loadParodusCfg(tmpCfg,get_parodus_cfg());
 #ifdef FEATURE_DNS_QUERY
 	register_ucresolv_logger (__cimplog);
 #endif

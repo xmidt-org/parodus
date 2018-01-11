@@ -111,11 +111,14 @@ static void show_times (time_t exp_time, time_t cur_time)
 }
 
 // returns 1 if insecure, 0 if secure, < 0 if error
-int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen)
+int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
+	char *port_buf, int port_buflen)
 {
 	cJSON *claims = jwt->private_claims;
 	cJSON *endpoint = NULL;
 	const char *endpoint_value;
+	char *port_val;
+	size_t url_len;
 	time_t exp_time, cur_time;
 	int http_match;
 
@@ -157,6 +160,16 @@ int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen)
 
 	ParodusInfo ("Endpoint copied from JWT\n");
 	parStrncpy (url_buf, endpoint_value, url_buflen);
+	url_len = strlen(url_buf);
+	// If there's a '/' on end, null it out
+	if ((url_len>0) && (url_buf[url_len-1] == '/'))
+		url_buf[url_len-1] = '\0';
+	// Look for ':'
+	port_val = strchr (url_buf, ':');
+	if (NULL != port_val) {
+		*port_val = '\0'; // terminate server address with null
+		parStrncpy (port_buf, port_val+1, port_buflen);
+	}
 	return http_match;
 }
 
@@ -482,7 +495,8 @@ static void get_dns_txt_record_id (char *buf)
 }
 #endif
 
-int allow_insecure_conn(char *url_buf, int url_buflen)
+int allow_insecure_conn(char *url_buf, int url_buflen,
+	char *port_buf, int port_buflen)
 {
 #ifdef FEATURE_DNS_QUERY	
 	int insecure=0, ret = -1;
@@ -527,7 +541,7 @@ int allow_insecure_conn(char *url_buf, int url_buflen)
 
 	//validate algo from --jwt_algo
 	if( validate_algo(jwt) ) {
-		insecure = analyze_jwt (jwt, url_buf, url_buflen);
+		insecure = analyze_jwt (jwt, url_buf, url_buflen, port_buf, port_buflen);
 	} else {
 		insecure = TOKEN_ERR_ALGO_NOT_ALLOWED;
 	}
