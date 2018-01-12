@@ -123,7 +123,9 @@ struct _noPollCtx {
 	 */
 	noPollOnMessageHandler on_msg;
 	noPollPtr              on_msg_data;
-
+	
+	noPollOnMessageHandler on_ping_msg;
+	noPollPtr              on_ping_msg_data;
 	/** 
 	 * @internal Basic fake support for protocol version, by
 	 * default: 13, due to RFC6455 standard
@@ -232,7 +234,9 @@ struct _noPollConn {
 	 */
 	noPollOnMessageHandler on_msg;
 	noPollPtr              on_msg_data;
-
+	
+	noPollOnMessageHandler on_ping_msg;
+	noPollPtr              on_ping_msg_data;
 	/** 
 	 * @internal Reference to defined on ready handling.
 	 */
@@ -371,6 +375,8 @@ struct _noPollHandshake {
 	nopoll_bool     upgrade_websocket;
 	nopoll_bool     connection_upgrade;
 	nopoll_bool     received_101; 
+	nopoll_bool     received_non_101;
+	int             httpStatus;
 	char          * websocket_key;
 	char          * websocket_version;
 	char          * websocket_accept;
@@ -378,6 +384,8 @@ struct _noPollHandshake {
 
 	/* reference to cookie header */
 	char          * cookie;
+	/* redirect Location URL */
+	char * redirectURL;
 };
 
 struct _noPollConnOpts {
@@ -398,6 +406,7 @@ struct _noPollConnOpts {
 	char * ca_certificate;
 
 	nopoll_bool  disable_ssl_verify;
+	nopoll_bool host_verify;
 
 	/* cookie support */
 	char * cookie;
