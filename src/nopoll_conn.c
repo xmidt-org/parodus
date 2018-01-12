@@ -4663,7 +4663,7 @@ int nopoll_conn_send_frame (noPollConn * conn, nopoll_bool fin, nopoll_bool mask
 	conn->pending_write_bytes = length + header_size - desp;
 
 	/* record the header to be accurate when reporting the amount
-	   of bytes written: we have to avoid confusming two things:
+	   of bytes written: we have to avoid confusing two things:
 
 	   - Bytes written by the protocol (length + headers)
 	   - Bytes requested by the upper level application to be written (just length)
