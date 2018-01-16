@@ -462,6 +462,8 @@ char * __nopoll_conn_get_client_init (noPollConn * conn, noPollConnOpts * opts)
 
 /**
  * @internal Function that dumps all errors found on current ssl context.
+ *
+ * @return Always returns 0
  */
 int nopoll_conn_log_ssl (noPollConn * conn)
 {
@@ -474,8 +476,18 @@ int nopoll_conn_log_ssl (noPollConn * conn)
 	int              aux_position;
 	
 	while ((err = ERR_get_error()) != 0) {
+		/* clear buffer */
+		memset (log_buffer, 0, 512);
+
+		/* dump error */
 		ERR_error_string_n (err, log_buffer, sizeof (log_buffer));
-		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "tls stack: %s (find reason(code) at openssl/ssl.h)", log_buffer); 
+		nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "tls stack: err=%d, %s (find reason(code) at openssl/ssl.h)", err, log_buffer);
+
+		/* Check for recoverable errors:
+		 * - openssl errstr 1409442E :: error:1409442E:SSL routines:SSL3_READ_BYTES:tlsv1 alert protocol version
+		 */
+		if (strstr (log_buffer, "1409442E")) 
+			nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "tls stack: err=%d, %s :: found TLS mismatch (peers running different TLS versions)", err, log_buffer);
 
 		/* find error code position */
 		error_position = 0;
@@ -496,8 +508,7 @@ int nopoll_conn_log_ssl (noPollConn * conn)
 	recv (conn->session, log_buffer, 1, MSG_PEEK);
 	nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "    noPoll id=%d, socket: %d (after testing errno: %d)",
 		    conn->id, conn->session, errno);
-	
-	
+
 	return (0);
 }
 
@@ -633,29 +644,41 @@ int nopoll_conn_tls_send (noPollConn * conn, char * buffer, int buffer_size)
 
 SSL_CTX * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noPollConnOpts * opts, nopoll_bool is_client)
 {
+
 	/* call to user defined function if the context creator is defined */
 	if (ctx && ctx->context_creator) 
 		return ctx->context_creator (ctx, conn, opts, is_client, ctx->context_creator_data);
 
 	if (opts == NULL) {
+
 		/* select a default mechanism according to what's
-		 * available, starting from the most common accepted
-		 * solution, which is TLSv1.0 */
-#if defined(NOPOLL_HAVE_TLSv10_ENABLED)
-		/* by default use TLSv1.0 */
-		return SSL_CTX_new (is_client ? TLSv1_client_method () : TLSv1_server_method ());
-#elif defined(NOPOLL_HAVE_TLSv11_ENABLED)
-		/* if not use TLSv1.1 */
-		return SSL_CTX_new (is_client ? TLSv1_1_client_method () : TLSv1_1_server_method ());
-#elif defined(NOPOLL_HAVE_TLSv12_ENABLED)
+		 * available: ORDER IS IMPORTANT: make it select first
+		 * strong methods over weak/old methods */
+		
+#if defined(NOPOLL_HAVE_TLS_FLEXIBLE_ENABLED)
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing default tls-method=flexible conn-id=%d", conn->id);
+		/* flexible method */
+		return SSL_CTX_new (is_client ? TLS_client_method () : TLS_server_method ());
+#elif defined(NOPOLL_HAVE_TLSv12_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing default tls-method=tlsv1.2 conn-id=%d", conn->id);
 		/* if not use TLSv1.2 */
 		return SSL_CTX_new (is_client ? TLSv1_2_client_method () : TLSv1_2_server_method ());
-#elif defined(NOPOLL_HAVE_SSLv23_ENABLED)
+#elif defined(NOPOLL_HAVE_TLSv11_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing default tls-method=tlsv1.1 conn-id=%d", conn->id);
+		/* if not use TLSv1.1 */
+		return SSL_CTX_new (is_client ? TLSv1_1_client_method () : TLSv1_1_server_method ());
+#elif defined(NOPOLL_HAVE_TLSv10_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing default tls-method=tlsv1.0 conn-id=%d", conn->id);
+		/* by default use TLSv1.0 */
+		return SSL_CTX_new (is_client ? TLSv1_client_method () : TLSv1_server_method ());
+#elif defined(NOPOLL_HAVE_SSLv3_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing default tls-method=sslv3 conn-id=%d", conn->id);
+		/* if not use SSLv3 */
+		return SSL_CTX_new (is_client ? SSLv3_client_method () : SSLv3_server_method ());
+#elif defined(NOPOLL_HAVE_SSLv23_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing default tls-method=sslv23 conn-id=%d", conn->id);
 		/* if not use SSLv23 */
 		return SSL_CTX_new (is_client ? SSLv23_client_method () : SSLv23_server_method ()); 
-#elif defined(NOPOLL_HAVE_SSLv3_ENABLED)
-		/* if not use SSLv3 */
-		return SSL_CTX_new (is_client ? SSLv3_client_method () : SSLv3_server_method ()); 
 #else
 		/* no default method found */
 		return NULL;
@@ -667,37 +690,49 @@ SSL_CTX * __nopoll_conn_get_ssl_context (noPollCtx * ctx, noPollConn * conn, noP
 
 #if defined(NOPOLL_HAVE_TLS_FLEXIBLE_ENABLED)
 	case NOPOLL_METHOD_TLS_FLEXIBLE:
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing tls-method=flexible conn-id=%d", conn->id);
 		return SSL_CTX_new (is_client ? TLS_client_method () : TLS_server_method ());
 #endif		
 		
-#if defined(NOPOLL_HAVE_TLSv10_ENABLED)
+#if defined(NOPOLL_HAVE_TLSv10_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
 	case NOPOLL_METHOD_TLSV1:
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing tls-method=tlsv1.0 conn-id=%d", conn->id);
 		return SSL_CTX_new (is_client ? TLSv1_client_method () : TLSv1_server_method ());
 #endif
 		
-#if defined(NOPOLL_HAVE_TLSv11_ENABLED)
+#if defined(NOPOLL_HAVE_TLSv11_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
 	case NOPOLL_METHOD_TLSV1_1:
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing tls-method=tlsv1.1 conn-id=%d", conn->id);
 		return SSL_CTX_new (is_client ? TLSv1_1_client_method () : TLSv1_1_server_method ()); 
 #endif
 		
-#if defined(NOPOLL_HAVE_TLSv12_ENABLED)
+#if defined(NOPOLL_HAVE_TLSv12_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
 	case NOPOLL_METHOD_TLSV1_2:
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing tls-method=tlsv1.2 conn-id=%d", conn->id);
 		return SSL_CTX_new (is_client ? TLSv1_2_client_method () : TLSv1_2_server_method ()); 
 #endif
 		
-#if defined(NOPOLL_HAVE_SSLv3_ENABLED)
+#if defined(NOPOLL_HAVE_SSLv3_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
 	case NOPOLL_METHOD_SSLV3:
-		/* printf ("**** REPORTING SSLv3 ****\n"); */
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing tls-method=sslv3 conn-id=%d", conn->id);
 		return SSL_CTX_new (is_client ? SSLv3_client_method () : SSLv3_server_method ()); 
 #endif
-#if defined(NOPOLL_HAVE_SSLv23_ENABLED)
+#if defined(NOPOLL_HAVE_SSLv23_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
 	case NOPOLL_METHOD_SSLV23:
-		/* printf ("**** REPORTING SSLv23 ****\n"); */
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing tls-method=sslv23 conn-id=%d", conn->id);
 		return SSL_CTX_new (is_client ? SSLv23_client_method () : SSLv23_server_method ());
+#endif
+	default:
+	        /* default case */
+#if defined(NOPOLL_HAVE_TLS_FLEXIBLE_ENABLED)
+		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "choosing default tls-method=flexible conn-id=%d", conn->id);
+		return SSL_CTX_new (is_client ? TLS_client_method () : TLS_server_method ());
+#else
+		return NULL;
 #endif		
 	}
 
-#if defined(NOPOLL_HAVE_TLSv10_ENABLED)
+#if defined(NOPOLL_HAVE_TLSv10_ENABLED) && OPENSSL_VERSION_NUMBER < 0x10100000L
 	/* reached this point, report default TLSv1 method */
 	return SSL_CTX_new (is_client ? TLSv1_client_method () : TLSv1_server_method ());
 #else
@@ -999,7 +1034,10 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 			default:
 				nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "there was an error with the TLS negotiation, ssl error (code:%d) : %s",
 					    ssl_error, ERR_error_string (ssl_error, NULL));
+				/* show log stack */
 				nopoll_conn_log_ssl (conn);
+					
+				/* call to release connection */
 				nopoll_conn_shutdown (conn);
 				nopoll_free (content);
 
@@ -2618,7 +2656,11 @@ char * nopoll_conn_produce_accept_key (noPollCtx * ctx, const char * websocket_k
 	int             accept_key_size;
 	int             key_length;
 	unsigned char   buffer[EVP_MAX_MD_SIZE];
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	EVP_MD_CTX      mdctx;
+#else
+	EVP_MD_CTX    * mdctx;
+#endif
 	const EVP_MD  * md = NULL;
 	unsigned int    md_len = EVP_MAX_MD_SIZE;
 
@@ -2637,9 +2679,17 @@ char * nopoll_conn_produce_accept_key (noPollCtx * ctx, const char * websocket_k
 
 	/* now sha-1 */
 	md = EVP_sha1 ();
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	EVP_DigestInit (&mdctx, md);
 	EVP_DigestUpdate (&mdctx, accept_key, strlen (accept_key));
 	EVP_DigestFinal (&mdctx, buffer, &md_len);
+#else
+	mdctx = EVP_MD_CTX_create();
+	EVP_DigestInit (mdctx, md);
+	EVP_DigestUpdate (mdctx, accept_key, strlen (accept_key));
+	EVP_DigestFinal (mdctx, buffer, &md_len);
+	EVP_MD_CTX_destroy(mdctx);
+#endif
 
 	nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Sha-1 length is: %u", md_len);
 	/* now convert into base64 */
@@ -3513,22 +3563,38 @@ noPollMsg   * nopoll_conn_get_msg (noPollConn * conn)
 		nopoll_show_byte (conn->ctx, msg->mask[3], "mask[3]");
 	} /* end if */
 
+	nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "Detected incoming websocket frame: fin(%d), op_code(%d), is_masked(%d), payload size(%ld), mask=%d", 
+		    msg->has_fin, msg->op_code, msg->is_masked, msg->payload_size, nopoll_get_32bit (msg->mask));
+
 	/* check payload size */
 	if (msg->payload_size == 0) {
+
 		/* continue if msg with FIN 1 and payload size 0 is received */
 		if (msg->has_fin == 1 && msg->op_code == NOPOLL_CONTINUATION_FRAME) {
 			nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, "Found incoming continuation frame with FIN 1 and payload size 0 on connection id=%d, continue", conn->id);
 			return msg;
 		} else {
+
+		/* check for empty PING frames (RFC6455 5.5.2. Ping
+		   frame may include 'Application data'. Fixes
+		   https://github.com/ASPLes/nopoll/issues/31 */
+			if (msg->op_code == NOPOLL_PING_FRAME) {
+
+				nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "PING received over connection id=%d, replying PONG", conn->id);
+				/* call to send pong */
+				nopoll_conn_send_pong (conn, nopoll_msg_get_payload_size (msg), (noPollPtr)nopoll_msg_get_payload (msg));
+				nopoll_msg_unref (msg);
+
+				/* reporting no message (but no error) */
+				return NULL;
+			} /* end if */
+
 			nopoll_log (conn->ctx, NOPOLL_LEVEL_WARNING, "Found incoming frame with payload size 0, shutting down id=%d the connection", conn->id);
 			nopoll_msg_unref (msg);
 			nopoll_conn_shutdown (conn);
-			return NULL;
-		} 	
+			return NULL; 
+		}	
 	} /* end if */
-
-	nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "Detected incoming websocket frame: fin(%d), op_code(%d), is_masked(%d), payload size(%ld), mask=%d", 
-		    msg->has_fin, msg->op_code, msg->is_masked, msg->payload_size, nopoll_get_32bit (msg->mask));
 
 	/* check here for the limit of message we are willing to accept */
 	/* FIX SECURITY ISSUE */
@@ -3996,14 +4062,6 @@ int           nopoll_conn_read (noPollConn * conn, char * buffer, int bytes, nop
 
 		/* get the message content into the buffer */
 		if (msg) {
-			if (msg->op_code == NOPOLL_PING_FRAME) {
-				nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "PING received over connection id=%d, replying PONG", conn->id);
-				/* call to send pong */
-				nopoll_conn_send_pong (conn, nopoll_msg_get_payload_size (msg), (noPollPtr)nopoll_msg_get_payload (msg));
-				nopoll_msg_unref (msg);
-				continue;
-			} /* end if */
-
 			/* get the amount of bytes we can read */
 			amount = nopoll_msg_get_payload_size (msg);
 			total_pending = bytes - total_read;
@@ -4098,7 +4156,11 @@ int nopoll_conn_read_pending (noPollConn * conn) {
  */
 nopoll_bool      nopoll_conn_send_ping (noPollConn * conn)
 {
-	return nopoll_conn_send_frame (conn, nopoll_true, nopoll_false, NOPOLL_PING_FRAME, 0, NULL, 0) > 0;
+	/* check input parameter to allow role check */
+	if (conn == NULL)
+		return nopoll_false;
+	
+	return nopoll_conn_send_frame (conn, nopoll_true, conn->role == NOPOLL_ROLE_CLIENT, NOPOLL_PING_FRAME, 0, NULL, 0) >= 0;
 }
 
 /** 
@@ -4319,7 +4381,7 @@ int           nopoll_conn_pending_write_bytes (noPollConn * conn)
  *
  * @param conn The connection where pending bytes must be written. 
  *
- * @param timeout Timeout in milliseconds to limit the flush operation.
+ * @param timeout Timeout in microseconds to limit the flush operation.
  *
  * @param previous_result Optional parameter that can receive the
  * number of bytes optionally read before this call. The value
@@ -4328,7 +4390,9 @@ int           nopoll_conn_pending_write_bytes (noPollConn * conn)
  * clarify the interface. If you don't have the value to be passed to
  * this function at the time needed, just pass 0.
  *
- * @return Bytes that were written. If no pending bytes must be written, the function returns 0.
+ * @return Bytes that were written. If no pending bytes must be
+ * written, the function returns 0. The function returns bytes written
+ * or bytes written plus @previous_result if previous_result is > 0.
  */
 int nopoll_conn_flush_writes (noPollConn * conn, long timeout, int previous_result)
 {
@@ -4339,16 +4403,16 @@ int nopoll_conn_flush_writes (noPollConn * conn, long timeout, int previous_resu
 	long wait_implemented = 0;
 
 	/* check for errno and pending write operations */
-	if (errno != NOPOLL_EWOULDBLOCK || nopoll_conn_pending_write_bytes (conn) == 0) {
+	if ((errno != NOPOLL_EWOULDBLOCK && errno != NOPOLL_EINPROGRESS) && (nopoll_conn_pending_write_bytes (conn) == 0)) {
 	        nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "called flush but nothing is pending=%d or errno=%d isn't %d",
 		            nopoll_conn_pending_write_bytes (conn), errno, NOPOLL_EWOULDBLOCK);
 		return previous_result > 0 ? previous_result : 0;
-	}
+	} 
 		
 	while (iterator < 100 && nopoll_conn_pending_write_bytes (conn) > 0) {
 
 		/* stop operation if timeout reached */
-		if (wait_implemented >= timeout)
+		if (wait_implemented >= timeout) 
 			break;
 
 		nopoll_sleep (100000 * multiplier);
@@ -4357,7 +4421,7 @@ int nopoll_conn_flush_writes (noPollConn * conn, long timeout, int previous_resu
 		/* write content pending */
 		bytes_written = nopoll_conn_complete_pending_write (conn);
 
-		if (bytes_written > 0)
+		if (bytes_written > 0) 
 			total += bytes_written;
 
 		/* next position */
@@ -4365,8 +4429,8 @@ int nopoll_conn_flush_writes (noPollConn * conn, long timeout, int previous_resu
 		multiplier++;
 	} /* end while */
 
-	nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "finishing flush operation, total written=%d, added to previous result=%d",
-		    total, previous_result);
+	nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "finishing flush operation, total written=%d, added to previous result=%d, errno=%d",
+		    total, previous_result, errno); 
 
 	/* add value received */
 	if (previous_result > 0) 
@@ -4599,7 +4663,7 @@ int nopoll_conn_send_frame (noPollConn * conn, nopoll_bool fin, nopoll_bool mask
 	conn->pending_write_bytes = length + header_size - desp;
 
 	/* record the header to be accurate when reporting the amount
-	   of bytes written: we have to avoid confusming two things:
+	   of bytes written: we have to avoid confusing two things:
 
 	   - Bytes written by the protocol (length + headers)
 	   - Bytes requested by the upper level application to be written (just length)
@@ -4614,8 +4678,13 @@ int nopoll_conn_send_frame (noPollConn * conn, nopoll_bool fin, nopoll_bool mask
 
 	/* record and report useful userland payload's bytes sent  */
 	bytes_sent = 0;
-	if ((desp - header_size) > 0)
+	if ((desp - header_size) > 0) {
 	        bytes_sent = (desp - header_size);
+
+		/* make conn->pending_write_added_header 0 because it
+		   have written enought bytes including the header */
+		conn->pending_write_added_header = 0;
+	} /* end if */
 	
 #if defined(SHOW_DEBUG_LOG)
 	level = NOPOLL_LEVEL_DEBUG;
@@ -4625,7 +4694,7 @@ int nopoll_conn_send_frame (noPollConn * conn, nopoll_bool fin, nopoll_bool mask
 		level = NOPOLL_LEVEL_WARNING;
 
 	nopoll_log (conn->ctx, level, 
-		    "Write operation finished with with last result=%d (bytes_written), bytes-sent=%d, desp=%d, header_size=%d, requested=%d (length), remaining=%d (conn->pending_write_bytes), errno=%d (conn-id=%d)",
+		    "Write operation finished with last result=%d (bytes_written), bytes-sent=%d, desp=%d, header_size=%d, requested=%d (length), remaining=%d (conn->pending_write_bytes), errno=%d (conn-id=%d)",
 		    /* report want we are going to report: result */
 		    bytes_written,
 		    /* bytes sent */
@@ -4827,6 +4896,10 @@ nopoll_bool __nopoll_conn_accept_complete_common (noPollCtx * ctx, noPollConnOpt
 
 		/* create ssl context */
 		conn->ssl_ctx  = __nopoll_conn_get_ssl_context (ctx, conn, listener->opts, nopoll_false);
+		if (conn->ssl_ctx == NULL) {
+		        nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "Failed to get Ssl Context (conn->ssl_ctx = __nopoll_conn_get_ssl_context), function returned NULL");
+			return nopoll_false;
+		} /* end if */
 
 		/* Configure ca certificate in the case it is defined */
 		if (options && options->ca_certificate) {

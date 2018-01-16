@@ -44,6 +44,7 @@
 #include <openssl/x509v3.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/opensslv.h>
 
 #include <nopoll_handlers.h>
 
@@ -344,8 +345,8 @@ struct _noPollIoEngine {
 	noPollIoMechDestroy    destroy;
 	noPollIoMechClear      clear;
 	noPollIoMechWait       wait;
-	noPollIoMechAddTo      addto;
-	noPollIoMechIsSet      isset;
+	noPollIoMechAddTo      add_to;
+	noPollIoMechIsSet      is_set;
 };
 
 struct _noPollMsg {
