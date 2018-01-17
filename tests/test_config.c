@@ -118,13 +118,14 @@ void test_getParodusConfig()
 
 void test_parseCommandLine()
 {
+//If new arguments are added, update argc accordingly.
     int argc =K_argc+3;
 #ifndef ENABLE_SESHAT
     argc = argc - 1;
 #endif
 
 #ifdef ENABLE_CJWT
-    argc = argc+3;
+    argc = argc+4;
 #endif
     char * command[argc+1];
     int i = 0;
@@ -149,7 +150,8 @@ void test_parseCommandLine()
 #endif
     command[i++] = "--force-ipv4";
     command[i++] = "--force-ipv6";
-    command[i++] = "--webpa-token=/tmp/token.sh";
+    command[i++] = "--token-read-script=/tmp/token.sh";
+    command[i++] = "--token-acquisition-script=/tmp/token.sh";
     command[i++] = "--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt";
     command[i++] = "--secure-flag=http";
     command[i++] = "--secure-flag=";
@@ -186,7 +188,10 @@ void test_parseCommandLine()
 #endif
     assert_int_equal( (int) parodusCfg.flags, FLAGS_IPV6_ONLY|FLAGS_IPV4_ONLY);
     sprintf(expectedToken,"secure-token-%s-%s",parodusCfg.hw_serial_number,parodusCfg.hw_mac);
-    assert_string_equal(  parodusCfg.webpa_token,expectedToken);
+    getAuthToken(&parodusCfg);
+    set_parodus_cfg(&parodusCfg);
+    
+    assert_string_equal(  get_parodus_cfg()->webpa_auth_token,expectedToken);
     assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
     assert_int_equal( (int) parodusCfg.secure_flag,FLAGS_SECURE);
     assert_int_equal( (int) parodusCfg.port,9000);
@@ -210,7 +215,7 @@ void err_parseCommandLine()
 #endif
 
 #ifdef ENABLE_CJWT
-    argc = argc+3;
+    argc = argc+4;
 #endif
     char * command[argc+1];
 
@@ -251,7 +256,8 @@ void test_loadParodusCfg()
     parStrncpy(Cfg->jwt_algo, "none:RS256", sizeof(Cfg->jwt_algo));
     parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
 #endif
-    parStrncpy(Cfg->webpa_token , "/tmp/token.sh", sizeof(Cfg->webpa_token));
+    parStrncpy(Cfg->token_acquisition_script , "/tmp/token.sh", sizeof(Cfg->token_acquisition_script));
+    parStrncpy(Cfg->token_read_script , "/tmp/token.sh", sizeof(Cfg->token_read_script));
     parStrncpy(Cfg->cert_path, "/etc/ssl.crt",sizeof(Cfg->cert_path));
 #ifdef ENABLE_SESHAT
     parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
@@ -271,7 +277,8 @@ void test_loadParodusCfg()
     assert_string_equal(tmpcfg.jwt_algo, "none:RS256");
     assert_string_equal(tmpcfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
 #endif
-    assert_string_equal(tmpcfg.webpa_token, "/tmp/token.sh");
+    assert_string_equal(  tmpcfg.token_acquisition_script,"/tmp/token.sh");
+    assert_string_equal(  tmpcfg.token_read_script,"/tmp/token.sh");
     assert_string_equal(tmpcfg.cert_path, "/etc/ssl.crt");
 #ifdef ENABLE_SESHAT
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");

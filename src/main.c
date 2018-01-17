@@ -78,6 +78,7 @@ int main( int argc, char **argv)
     ParodusInfo("********** Starting component: Parodus **********\n "); 
     setDefaultValuesToCfg(cfg);
     parseCommandLine(argc,argv,cfg);
+    getAuthToken(cfg);
      
     createSocketConnection( NULL);
     

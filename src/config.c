@@ -32,7 +32,6 @@
 /*----------------------------------------------------------------------------*/
 
 static ParodusCfg parodusCfg;
-static char token_application[64] = {'\0'};
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -48,10 +47,8 @@ void set_parodus_cfg(ParodusCfg *cfg)
     memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
 }
 
-char *get_token_application(void)
-{
-    return token_application;
-}
+static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
+
 
 // the algorithm mask indicates which algorithms are allowed
 #if 0
@@ -108,7 +105,7 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
   ParodusInfo ("%d bytes read\n", nbytes);
 }
 
-void get_webpa_token(char *token, char *name, size_t len, char *serNum, char *mac)
+static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
 {
     FILE* out = NULL, *file = NULL;
     char command[MAX_BUF_SIZE] = {'\0'};
@@ -182,7 +179,8 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"ssl-cert-path",           required_argument, 0, 'c'},
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
-        {"webpa-token",             required_argument, 0, 'T'},
+        {"token-read-script",       required_argument, 0, 'T'},
+	{"token-acquisition-script",     required_argument, 0, 'J'},
         {"secure-flag",             required_argument, 0, 'F'},
         {"port",                    required_argument, 0, 'P'},
         {0, 0, 0, 0}
@@ -198,7 +196,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c:4:6:T:F:P",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c:4:6:T:F:P:j",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -319,12 +317,14 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           cfg->flags |= FLAGS_IPV6_ONLY;
           break;
 
-        case 'T':
-          parStrncpy(token_application, optarg, sizeof(token_application));
-	  get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token),cfg->hw_serial_number,cfg->hw_mac);
-          ParodusInfo("webpa_token is %s\n",cfg->webpa_token);
+        case 'J':
+          parStrncpy(cfg->token_acquisition_script, optarg,sizeof(cfg->token_acquisition_script));
           break;
-
+        
+        case 'T':
+          parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
+          break;
+          
         case 'F':
           if(strcmp(optarg,"http") == 0)
           {
@@ -339,11 +339,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
             ParodusError("Invalid secure flag. Valid values are 'http' and 'https', using default 'https'\n");
           }
           ParodusInfo("cfg->secure_flag is %d\n",cfg->secure_flag);
-    	  ParodusInfo("cfg->port is %d\n",cfg->port);
           break;
 
         case 'P':
           cfg->port = atoi(optarg);
+		  ParodusInfo("cfg->port is %d\n",cfg->port);
           break;
 
         case '?':
@@ -367,6 +367,63 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         ParodusPrint ("%s ", argv[optind++]);
       putchar ('\n');
     }
+}
+
+/*
+* call parodus create/acquisition script to create new auth token, if success then calls 
+* execute_token_script func with args as parodus read script.
+*/
+
+void createNewAuthToken(char *newToken, size_t len)
+{
+	//Call create script
+	char output[12] = {'\0'};
+	execute_token_script(output,get_parodus_cfg()->token_acquisition_script,sizeof(output),get_parodus_cfg()->hw_mac,get_parodus_cfg()->hw_serial_number);
+  	if (strlen(output)>0  && strcmp(output,"SUCCESS")==0)
+	{
+		//Call read script 
+		execute_token_script(newToken,get_parodus_cfg()->token_read_script,len,get_parodus_cfg()->hw_mac,get_parodus_cfg()->hw_serial_number);
+	}	
+	else 
+	{
+		ParodusError("Failed to create new token\n");
+	}
+}
+
+/*
+* Fetches authorization token from the output of read script. If read script returns "ERROR"
+* it will call createNewAuthToken to create and read new token 
+*/
+
+void getAuthToken(ParodusCfg *cfg)
+{
+	//local var to update cfg->webpa_auth_token only in success case
+	char output[4069] = {'\0'} ;
+	
+	if( strlen(cfg->token_read_script) !=0 && strlen(cfg->token_acquisition_script) !=0)
+    	{
+		execute_token_script(output,cfg->token_read_script,sizeof(output),cfg->hw_mac,cfg->hw_serial_number);
+		
+	    	if ((strlen(output) == 0))
+	    	{
+			ParodusError("Unable to get auth token\n");
+		}
+		else if(strcmp(output,"ERROR")==0)
+		{
+			ParodusInfo("Failed to read token from %s. Proceeding to create new token.\n",cfg->token_read_script);
+			//Call create/acquisition script
+			createNewAuthToken(cfg->webpa_auth_token, sizeof(cfg->webpa_auth_token));	
+		}
+		else
+		{
+			ParodusInfo("update cfg->webpa_auth_token in success case\n");
+			parStrncpy(cfg->webpa_auth_token, output, sizeof(cfg->webpa_auth_token));
+		}
+	}
+	else
+	{
+        	ParodusInfo("Both read and write file are NULL \n");
+	}
 }
 
 void setDefaultValuesToCfg(ParodusCfg *cfg)
@@ -547,13 +604,22 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
 
-    if( strlen(config->webpa_token) !=0)
+    if(strlen(config->token_acquisition_script )!=0)
     {
-        parStrncpy(cfg->webpa_token, config->webpa_token,sizeof(cfg->webpa_token));
+          parStrncpy(cfg->token_acquisition_script, config->token_acquisition_script,sizeof(cfg->token_acquisition_script));
     }
     else
     {
-        ParodusPrint("webpa_token is NULL. read from tmp file\n");
+          ParodusPrint("token_acquisition_script is NULL. read from tmp file\n");
+    }
+        
+    if(strlen(config->token_read_script )!=0)
+    {
+          parStrncpy(cfg->token_read_script, config->token_read_script,sizeof(cfg->token_read_script));
+    }
+    else
+    {
+          ParodusPrint("token_read_script is NULL. read from tmp file\n");
     }
 
     cfg->boot_time = config->boot_time;
