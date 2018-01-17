@@ -129,7 +129,7 @@ void test_parseCommandLine()
 #endif
     char * command[argc+1];
     int i = 0;
-    char expectedToken[128] = {'\0'};
+    char expectedToken[1280] = {'\0'};
 
     command[i++] = "parodus";
     command[i++] = "--hw-model=TG1682";
