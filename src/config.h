@@ -89,9 +89,11 @@ typedef struct
     char jwt_key[4096]; // may be read in from a pem file
 #endif
     char cert_path[64];
-    char webpa_token[4096];
+    char webpa_new_header[4096];
     unsigned int secure_flag;
     unsigned int port;
+	char header_create_filename[64];
+    char header_read_filename[64];
 } ParodusCfg;
 
 #define FLAGS_SECURE    (1 << 0)
@@ -103,13 +105,13 @@ typedef struct
 /*----------------------------------------------------------------------------*/
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
-void get_webpa_token(char *token, char *name, size_t len,char *serNum, char *mac);
+void create_header_from_file(char *newHeader, size_t len);
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 void setDefaultValuesToCfg(ParodusCfg *cfg); 
+void read_header_value(ParodusCfg *cfg);
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);
-char *get_token_application(void) ;
 #ifdef __cplusplus
 }
 #endif
