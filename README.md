@@ -50,7 +50,9 @@ make test
 
 - /force-ipv6 -Forcefully connect parodus to ipv6 address (optional argument)
 
-- /webpa-token -Application to get webpa token (absolute path where that application is present) -optional argument 
+- /token-read-script -Script to get webpa auth token for establishing secure connection (absolute path where that script is present) -optional argument 
+
+- /token-acquisition-script -Script to create new auth token for establishing secure connection (absolute path where that script is present) -optional argument 
 
 - /secure-flag - secure flag to switch between http or https (optional argument)
 
@@ -75,15 +77,15 @@ make test
 ```
 # Seshat & CJWT Enabled
 
-sudo ./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-time=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --dns-id=fabric --jwt-key=webpa-rs256.pem --jwt-algo=none:RS256 --seshat-url=tcp://127.0.0.1:7777 --webpa-token=/usr/ccsp/parodus/parodus_token.sh --force-ipv4 --secure-flag=https --port=8080
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-time=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --dns-id=fabric --jwt-key=webpa-rs256.pem --jwt-algo=none:RS256 --seshat-url=tcp://127.0.0.1:7777 --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4 --secure-flag=https --port=8080
 
 # Seshat is not enabled
 
-sudo ./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-time=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --dns-id=fabric --jwt-key=webpa-rs256.pem --jwt-algo=none:RS256 --webpa-token=/usr/ccsp/parodus/parodus_token.sh --force-ipv4 --secure-flag=https --port=8080
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-time=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --dns-id=fabric --jwt-key=webpa-rs256.pem --jwt-algo=none:RS256 --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4 --secure-flag=https --port=8080
 
 # When both Seshat & CJWT not Enabled
 
-sudo ./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-time=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --webpa-token=/usr/ccsp/parodus/parodus_token.sh --force-ipv4 --secure-flag=https --port=8080
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-time=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4 --secure-flag=https --port=8080
 
 ```
 

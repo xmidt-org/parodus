@@ -92,7 +92,7 @@ int createNopollConnection(noPollCtx *ctx)
     char device_id[32]={'\0'};
     char user_agent[512]={'\0'};
     char * extra_headers = NULL;
-    char new_token[4096] ;
+    char header_string[4096] ={'\0'};
     
     if(ctx == NULL) {
         return nopoll_false;
@@ -127,10 +127,16 @@ int createNopollConnection(noPollCtx *ctx)
 	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
 	ParodusInfo("Device_id %s\n",device_id);
 	
-    extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
+	if(0 != strlen(get_parodus_cfg()->webpa_auth_token)){
+	snprintf(header_string, sizeof(get_parodus_cfg()->webpa_auth_token)+20, "Authorization:Bearer %s", get_parodus_cfg()->webpa_auth_token);
+	}
+	
+	extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
 		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
-		     "\r\nX-WebPA-Token: %s"
-		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(get_parodus_cfg()->webpa_token)) ? get_parodus_cfg()->webpa_token : ""),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
+		     "\r\n%s"
+		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(get_parodus_cfg()->webpa_auth_token)) ? header_string : "X-WebPA-Token:"),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
+		     
+
 	
 	do
 	{
@@ -199,13 +205,13 @@ int createNopollConnection(noPollCtx *ctx)
 				else if(status == 403) 
 				{
 					ParodusError("Received Unauthorized response with status: %d\n", status);
-			
-					//Get new token and update auth header 
-					get_webpa_token(new_token,get_token_application(),sizeof(new_token),get_parodus_cfg()->hw_serial_number, get_parodus_cfg()->hw_mac);
-					
+					//Get new token and update auth header
+					char new_token[4096] ={'\0'};
+					if (strlen(get_parodus_cfg()->token_acquisition_script) >0)
+						createNewAuthToken(new_token,sizeof(new_token));
 					extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
 		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
-		     "\r\nX-WebPA-Token: %s"
+		     "\r\nAuthorization:Bearer %s"
 		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(new_token)) ? new_token : ""),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
 					
 					//reset c=2 to start backoffRetryTime as retrying 
