@@ -57,8 +57,14 @@ static HostnameValidationResult matches_common_name(const char *hostname, const 
 	common_name_asn1 = X509_NAME_ENTRY_get_data(common_name_entry);
 	if (common_name_asn1 == NULL) {
 		return Error;
-	}			
-	common_name_str = (char *) ASN1_STRING_get0_data(common_name_asn1);
+	}
+
+#if OPENSSL_VERSION_NUMBER >= 0x010100000L
+ 				common_name_str = (char *)ASN1_STRING_get0_data(common_name_asn1);
+ 				
+#else
+				common_name_str = (char *)ASN1_STRING_data(common_name_asn1);
+#endif			
 
 	/* Make sure there isn't an embedded NUL character in the CN*/
 	if (ASN1_STRING_length(common_name_asn1) != strlen(common_name_str)) {
@@ -102,9 +108,13 @@ static HostnameValidationResult matches_subject_alternative_name(const char *hos
 
                 if (current_name->type == GEN_DNS) {
                         /* Current name is a DNS name, let's check it*/
+#if OPENSSL_VERSION_NUMBER >= 0x010100000L
                         char *dns_name = (char *) ASN1_STRING_get0_data(current_name->d.dNSName);
+#else
+			char *dns_name = (char *) ASN1_STRING_data(current_name->d.dNSName);
+#endif
 
-                        /* Make sure there isn't an embedded NUL character in the DNS name*/
+			/* Make sure there isn't an embedded NUL character in the DNS name*/
                         if ((size_t)ASN1_STRING_length(current_name->d.dNSName) != strlen(dns_name)) {
                                 result = MalformedCertificate;
                                 break;
