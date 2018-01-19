@@ -34,7 +34,6 @@
 /*----------------------------------------------------------------------------*/
 
 static ParodusCfg parodusCfg;
-static char token_application[64] = {'\0'};
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -50,10 +49,7 @@ void set_parodus_cfg(ParodusCfg *cfg)
     memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
 }
 
-char *get_token_application(void)
-{
-    return token_application;
-}
+static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
 
 const char *get_tok (const char *src, int delim, char *result, int resultsize)
 {
@@ -122,7 +118,7 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
   ParodusInfo ("%d bytes read\n", nbytes);
 }
 
-void get_webpa_token(char *token, char *name, size_t len, char *serNum, char *mac)
+static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
 {
     FILE* out = NULL, *file = NULL;
     char command[MAX_BUF_SIZE] = {'\0'};
@@ -169,6 +165,68 @@ static int parse_mac_address (char *target, const char *arg)
 	return 0;
 }
 
+static int server_is_http (const char *full_url,
+	const char **server_ptr)
+{
+	int http_match;
+	const char *ptr;
+	
+	if (strncmp(full_url, "https://", 8) == 0) {
+		http_match = 0;
+		ptr = full_url + 8;
+	} else if (strncmp(full_url, "http://", 7) == 0) {
+		http_match = 1;
+		ptr = full_url + 7;	
+	} else {
+		ParodusError ("Invalid url %s\n", full_url);
+		return -1;
+	}
+	if (NULL != server_ptr)
+		*server_ptr = ptr;
+	return http_match;
+}
+	
+	
+int parse_webpa_url(const char *full_url, 
+	char *server_addr, int server_addr_buflen,
+	char *port_buf, int port_buflen)
+{
+	const char *server_ptr;
+	char *port_val;
+	char *end_port;
+	size_t server_len;
+	int http_match;
+
+	ParodusInfo ("full url: %s\n", full_url);
+	http_match = server_is_http (full_url, &server_ptr);
+	if (http_match < 0)
+		return http_match;
+
+	ParodusInfo ("server address copied from url\n");
+	parStrncpy (server_addr, server_ptr, server_addr_buflen);
+	server_len = strlen(server_addr);
+	// If there's a '/' on end, null it out
+	if ((server_len>0) && (server_addr[server_len-1] == '/'))
+		server_addr[server_len-1] = '\0';
+	// Look for ':'
+	port_val = strchr (server_addr, ':');
+
+	if (NULL == port_val) {
+		parStrncpy (port_buf, "8080", port_buflen);
+	} else {
+		*port_val = '\0'; // terminate server address with null
+		port_val++;
+		end_port = strchr (port_val, '/');
+		if (NULL != end_port)
+			*end_port = '\0'; // terminate port with null
+		parStrncpy (port_buf, port_val, port_buflen);
+	}
+	ParodusInfo ("server %s, port %s, http_match %d\n", 
+		server_addr, port_buf, http_match);
+	return http_match;
+
+}
+
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     static const struct option long_options[] = {
@@ -189,13 +247,14 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"seshat-url",              required_argument, 0, 'e'},
 #endif
         {"dns-id",                  required_argument, 0, 'D'},
+        {"acquire-jwt",				required_argument, 0, 'j'},
         {"jwt-algo",                required_argument, 0, 'a'},
         {"jwt-key",                 required_argument, 0, 'k'},
         {"ssl-cert-path",           required_argument, 0, 'c'},
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
-        {"webpa-token",             required_argument, 0, 'T'},
-        {"port",                    required_argument, 0, 'P'},
+        {"token-read-script",       required_argument, 0, 'T'},
+	{"token-acquisition-script",     required_argument, 0, 'J'},
         {0, 0, 0, 0}
     };
     int c;
@@ -211,7 +270,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c:4:6:T:P",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:4:6:T:J",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -265,7 +324,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
        
          case 'u':
-          parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
+			parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
+			if (server_is_http (cfg->webpa_url, NULL) < 0) {
+				ParodusError ("Bad webpa url %s\n", optarg);
+				abort ();
+			}
           ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
           break;
         
@@ -296,6 +359,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("parodus dns_id is %s\n",cfg->dns_id);
           break;
 		 
+        case 'j':
+          cfg->acquire_jwt = atoi(optarg);
+          ParodusInfo("acquire jwt option is %d\n",cfg->acquire_jwt);
+          break;
+
 		case 'a':
 			// the command line argument is a list of allowed algoritms,
 			// separated by colons, like "RS256:RS512:none"
@@ -332,15 +400,12 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           cfg->flags |= FLAGS_IPV6_ONLY;
           break;
 
-        case 'T':
-          parStrncpy(token_application, optarg, sizeof(token_application));
-	  get_webpa_token(cfg->webpa_token,optarg,sizeof(cfg->webpa_token),cfg->hw_serial_number,cfg->hw_mac);
-          ParodusInfo("webpa_token is %s\n",cfg->webpa_token);
+        case 'J':
+          parStrncpy(cfg->token_acquisition_script, optarg,sizeof(cfg->token_acquisition_script));
           break;
-
-
-        case 'P':
-          cfg->port = atoi(optarg);
+        
+        case 'T':
+          parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
           break;
 
         case '?':
@@ -366,6 +431,63 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
     }
 }
 
+/*
+* call parodus create/acquisition script to create new auth token, if success then calls 
+* execute_token_script func with args as parodus read script.
+*/
+
+void createNewAuthToken(char *newToken, size_t len)
+{
+	//Call create script
+	char output[12] = {'\0'};
+	execute_token_script(output,get_parodus_cfg()->token_acquisition_script,sizeof(output),get_parodus_cfg()->hw_mac,get_parodus_cfg()->hw_serial_number);
+  	if (strlen(output)>0  && strcmp(output,"SUCCESS")==0)
+	{
+		//Call read script 
+		execute_token_script(newToken,get_parodus_cfg()->token_read_script,len,get_parodus_cfg()->hw_mac,get_parodus_cfg()->hw_serial_number);
+	}	
+	else 
+	{
+		ParodusError("Failed to create new token\n");
+	}
+}
+
+/*
+* Fetches authorization token from the output of read script. If read script returns "ERROR"
+* it will call createNewAuthToken to create and read new token 
+*/
+
+void getAuthToken(ParodusCfg *cfg)
+{
+	//local var to update cfg->webpa_auth_token only in success case
+	char output[4069] = {'\0'} ;
+	
+	if( strlen(cfg->token_read_script) !=0 && strlen(cfg->token_acquisition_script) !=0)
+    	{
+		execute_token_script(output,cfg->token_read_script,sizeof(output),cfg->hw_mac,cfg->hw_serial_number);
+		
+	    	if ((strlen(output) == 0))
+	    	{
+			ParodusError("Unable to get auth token\n");
+		}
+		else if(strcmp(output,"ERROR")==0)
+		{
+			ParodusInfo("Failed to read token from %s. Proceeding to create new token.\n",cfg->token_read_script);
+			//Call create/acquisition script
+			createNewAuthToken(cfg->webpa_auth_token, sizeof(cfg->webpa_auth_token));	
+		}
+		else
+		{
+			ParodusInfo("update cfg->webpa_auth_token in success case\n");
+			parStrncpy(cfg->webpa_auth_token, output, sizeof(cfg->webpa_auth_token));
+		}
+	}
+	else
+	{
+        	ParodusInfo("Both read and write file are NULL \n");
+	}
+}
+
 void setDefaultValuesToCfg(ParodusCfg *cfg)
 {
     if(cfg == NULL)
@@ -377,7 +499,8 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     ParodusInfo("Setting default values to parodusCfg\n");
     parStrncpy(cfg->local_url, PARODUS_UPSTREAM, sizeof(cfg->local_url));
 
-  
+	cfg->acquire_jwt = 0;
+	
     parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
 
     parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
@@ -387,7 +510,6 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
 
     cfg->flags = 0;
-    cfg->port = 8080;
     
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     
@@ -500,6 +622,8 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusInfo("seshat_url is NULL. Read from tmp file\n");
     }
 #endif
+	cfg->acquire_jwt = config->acquire_jwt;
+	
      if( strlen(config->dns_id) !=0)
     {
         parStrncpy(cfg->dns_id, config->dns_id,sizeof(cfg->dns_id));
@@ -532,20 +656,27 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
 
-    if( strlen(config->webpa_token) !=0)
+    if(strlen(config->token_acquisition_script )!=0)
     {
-        parStrncpy(cfg->webpa_token, config->webpa_token,sizeof(cfg->webpa_token));
+          parStrncpy(cfg->token_acquisition_script, config->token_acquisition_script,sizeof(cfg->token_acquisition_script));
     }
     else
     {
-        ParodusPrint("webpa_token is NULL. read from tmp file\n");
+          ParodusPrint("token_acquisition_script is NULL. read from tmp file\n");
+    }
+        
+    if(strlen(config->token_read_script )!=0)
+    {
+          parStrncpy(cfg->token_read_script, config->token_read_script,sizeof(cfg->token_read_script));
+    }
+    else
+    {
+          ParodusPrint("token_read_script is NULL. read from tmp file\n");
     }
 
     cfg->boot_time = config->boot_time;
     cfg->webpa_ping_timeout = config->webpa_ping_timeout;
     cfg->webpa_backoff_max = config->webpa_backoff_max;
-    cfg->port = config->port;
-    ParodusPrint("cfg->port is :%d\n",cfg->port);
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);

@@ -208,6 +208,7 @@ ExternalProject_Add(cjwt
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cjwt
     GIT_REPOSITORY https://github.com/Comcast/cjwt.git
     GIT_TAG "master"
+    #GIT_TAG "abd4376ff56212d16f69e850a64f6e095857ca39"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcjwt STATIC SHARED IMPORTED)

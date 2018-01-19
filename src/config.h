@@ -84,11 +84,13 @@ typedef struct
     char seshat_url[128];
 #endif
     char dns_id[64];
+    unsigned int acquire_jwt;
     unsigned int jwt_algo;  // bit mask set for each allowed algorithm
     char jwt_key[4096]; // may be read in from a pem file
     char cert_path[64];
-    char webpa_token[4096];
-	unsigned int port;
+    char webpa_auth_token[4096];
+    char token_acquisition_script[64];
+    char token_read_script[64];
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
@@ -99,13 +101,31 @@ typedef struct
 /*----------------------------------------------------------------------------*/
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
-void get_webpa_token(char *token, char *name, size_t len,char *serNum, char *mac);
+void createNewAuthToken(char *newToken, size_t len);
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 void setDefaultValuesToCfg(ParodusCfg *cfg); 
+void getAuthToken(ParodusCfg *cfg);
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
+
+/**
+ * parse a webpa url. Extract the server address, the port
+ * and return whether it's secure or not
+ *
+ * @param full_url		full url
+ * @param server_addr	 buffer containing server address found in url
+ * @param server_addr_buflen len of the server addr buffer provided by caller
+ * @param port_buf 		buffer containing port value found in url
+ * @param port_buflen	len of the port buffer provided by caller
+ * @return 1 if insecure connection is allowed, 0 if not,
+*    or -1 if error
+*/ 
+int parse_webpa_url(const char *full_url, 
+	char *server_addr, int server_addr_buflen,
+	char *port_buf, int port_buflen);
+
 #ifdef __cplusplus
 }
 #endif

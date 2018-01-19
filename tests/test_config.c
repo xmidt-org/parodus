@@ -26,7 +26,6 @@
 
 #include "../src/config.h"
 #include "../src/ParodusInternal.h"
-#define K_argc 18
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -57,7 +56,7 @@ void test_setParodusConfig()
     parStrncpy(cfg.hw_last_reboot_reason , "unknown", sizeof(cfg.hw_last_reboot_reason));
     parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
     parStrncpy(cfg.webpa_path_url , "/v1", sizeof(cfg.webpa_path_url));
-    parStrncpy(cfg.webpa_url , "localhost", sizeof(cfg.webpa_url));
+    parStrncpy(cfg.webpa_url , "http://127.0.0.1", sizeof(cfg.webpa_url));
     parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
     parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
@@ -69,7 +68,12 @@ void test_setParodusConfig()
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
     cfg.webpa_backoff_max = 255;
-    
+#ifdef FEATURE_DNS_QUERY
+    cfg.acquire_jwt = 1;
+    parStrncpy(cfg.dns_id, "test",sizeof(cfg.dns_id));
+    cfg.jwt_algo = 1025;
+    parStrncpy(cfg.jwt_key, "key.txt",sizeof(cfg.jwt_key));
+#endif    
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
@@ -92,6 +96,12 @@ void test_setParodusConfig()
     assert_int_equal((int) cfg.boot_time, (int) temp->boot_time);
     assert_int_equal((int) cfg.webpa_ping_timeout, (int) temp->webpa_ping_timeout);
     assert_int_equal((int) cfg.webpa_backoff_max, (int) temp->webpa_backoff_max);
+#ifdef FEATURE_DNS_QUERY
+    assert_int_equal( (int) cfg.acquire_jwt, (int) temp->acquire_jwt);
+    assert_string_equal(cfg.dns_id, temp->dns_id);
+    assert_int_equal( (int) cfg.jwt_algo, (int) temp->jwt_algo);
+    assert_string_equal(cfg.jwt_key, temp->jwt_key);
+#endif
 }
 
 void test_getParodusConfig()
@@ -109,35 +119,40 @@ void test_getParodusConfig()
 
 void test_parseCommandLine()
 {
-    int argc =K_argc;
-#ifndef ENABLE_SESHAT
-    argc = argc - 1;
-#endif
-    char * command[argc+1];
-    int i = 0;
-    char expectedToken[128] = {'\0'};
+    char expectedToken[1280] = {'\0'};
 
-    command[i++] = "parodus";
-    command[i++] = "--hw-model=TG1682";
-    command[i++] = "--hw-serial-number=Fer23u948590";
-    command[i++] = "--hw-manufacturer=ARRISGroup,Inc.";
-    command[i++] = "--hw-mac=123567892366";
-    command[i++] = "--hw-last-reboot-reason=unknown";
-    command[i++] = "--fw-name=TG1682_DEV_master_2016000000sdy";
-    command[i++] = "--webpa-ping-time=180";
-    command[i++] = "--webpa-interface-used=br0";
-    command[i++] = "--webpa-url=localhost";
-    command[i++] = "--webpa-backoff-max=0";
-    command[i++] = "--boot-time=1234";
-    command[i++] = "--parodus-local-url=tcp://127.0.0.1:6666";
-    command[i++] = "--partner-id=cox";
+    char *command[] = {"parodus",
+		"--hw-model=TG1682",
+		"--hw-serial-number=Fer23u948590",
+		"--hw-manufacturer=ARRISGroup,Inc.",
+		"--hw-mac=123567892366",
+		"--hw-last-reboot-reason=unknown",
+		"--fw-name=TG1682_DEV_master_2016000000sdy",
+		"--webpa-ping-time=180",
+		"--webpa-interface-used=br0",
+		"--webpa-url=http://127.0.0.1",
+		"--webpa-backoff-max=0",
+		"--boot-time=1234",
+		"--parodus-local-url=tcp://127.0.0.1:6666",
+		"--partner-id=cox",
 #ifdef ENABLE_SESHAT
-    command[i++] = "--seshat-url=ipc://127.0.0.1:7777";
+		"--seshat-url=ipc://127.0.0.1:7777",
 #endif
-    command[i++] = "--force-ipv4";
-    command[i++] = "--force-ipv6";
-    command[i++] = "--webpa-token=/tmp/token.sh";
-    command[i] = '\0';
+		"--force-ipv4",
+		"--force-ipv6",
+		"--token-read-script=/tmp/token.sh",
+		"--token-acquisition-script=/tmp/token.sh",
+		"--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt",
+#ifdef FEATURE_DNS_QUERY
+		"--acquire-jwt=1",
+		"--dns-id=fabric",
+		"--jwt-key=../../tests/webpa-rs256.pem",
+		"--jwt-key=AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",
+		"--jwt-algo=none:RS256",
+#endif
+		NULL
+	};
+	int argc = (sizeof (command) / sizeof (char *)) - 1;
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
@@ -152,7 +167,7 @@ void test_parseCommandLine()
     assert_string_equal( parodusCfg.fw_name, "TG1682_DEV_master_2016000000sdy");	
     assert_int_equal( (int) parodusCfg.webpa_ping_timeout,180);	
     assert_string_equal( parodusCfg.webpa_interface_used, "br0");	
-    assert_string_equal( parodusCfg.webpa_url, "localhost");
+    assert_string_equal( parodusCfg.webpa_url, "http://127.0.0.1");
     assert_int_equal( (int) parodusCfg.webpa_backoff_max,0);
     assert_int_equal( (int) parodusCfg.boot_time,1234);
     assert_string_equal(  parodusCfg.local_url,"tcp://127.0.0.1:6666");
@@ -162,7 +177,18 @@ void test_parseCommandLine()
 #endif
     assert_int_equal( (int) parodusCfg.flags, FLAGS_IPV6_ONLY|FLAGS_IPV4_ONLY);
     sprintf(expectedToken,"secure-token-%s-%s",parodusCfg.hw_serial_number,parodusCfg.hw_mac);
-    assert_string_equal(  parodusCfg.webpa_token,expectedToken);
+
+    getAuthToken(&parodusCfg);
+    set_parodus_cfg(&parodusCfg);
+    
+    assert_string_equal(  get_parodus_cfg()->webpa_auth_token,expectedToken);
+    assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
+#ifdef FEATURE_DNS_QUERY
+	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
+    assert_string_equal(parodusCfg.dns_id, "fabric");
+    assert_int_equal( (int) parodusCfg.jwt_algo, 1025);
+    assert_string_equal(parodusCfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
+#endif
 
 }
 
@@ -173,10 +199,7 @@ void test_parseCommandLineNull()
 
 void err_parseCommandLine()
 {
-    int argc =K_argc;
-#ifndef ENABLE_SESHAT
-    argc = argc - 1;
-#endif
+	int argc = 19;
     char * command[20]={'\0'};
 
     command[0] = "parodus";
@@ -205,12 +228,24 @@ void test_loadParodusCfg()
     parStrncpy(Cfg->hw_last_reboot_reason , "unknown", sizeof(Cfg->hw_last_reboot_reason));
     parStrncpy(Cfg->fw_name , "2.364s2", sizeof(Cfg->fw_name));
     parStrncpy(Cfg->webpa_path_url , "/v1", sizeof(Cfg->webpa_path_url));
-    parStrncpy(Cfg->webpa_url , "localhost", sizeof(Cfg->webpa_url));
+    parStrncpy(Cfg->webpa_url , "http://127.0.0.1", sizeof(Cfg->webpa_url));
     parStrncpy(Cfg->webpa_interface_used , "eth0", sizeof(Cfg->webpa_interface_used));
     snprintf(protocol, sizeof(protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     parStrncpy(Cfg->webpa_protocol , protocol, sizeof(Cfg->webpa_protocol));
     parStrncpy(Cfg->local_url , "tcp://10.0.0.1:6000", sizeof(Cfg->local_url));
     parStrncpy(Cfg->partner_id , "shaw", sizeof(Cfg->partner_id));
+#ifdef FEATURE_DNS_QUERY
+	Cfg->acquire_jwt = 1;
+    parStrncpy(Cfg->dns_id, "fabric",sizeof(Cfg->dns_id));
+    Cfg->jwt_algo = 1025;
+    parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
+#endif
+    parStrncpy(Cfg->token_acquisition_script , "/tmp/token.sh", sizeof(Cfg->token_acquisition_script));
+    parStrncpy(Cfg->token_read_script , "/tmp/token.sh", sizeof(Cfg->token_read_script));
+    parStrncpy(Cfg->cert_path, "/etc/ssl.crt",sizeof(Cfg->cert_path));
+#ifdef ENABLE_SESHAT
+    parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
+#endif
 
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
@@ -222,6 +257,18 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.local_url, "tcp://10.0.0.1:6000");
     assert_string_equal( tmpcfg.partner_id, "shaw");
     assert_string_equal( tmpcfg.webpa_protocol, protocol);
+#ifdef FEATURE_DNS_QUERY
+	assert_int_equal( (int) tmpcfg.acquire_jwt, 1);
+    assert_string_equal(tmpcfg.dns_id, "fabric");
+    assert_int_equal( (int) tmpcfg.jwt_algo, 1025);
+    assert_string_equal(tmpcfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
+#endif
+    assert_string_equal(  tmpcfg.token_acquisition_script,"/tmp/token.sh");
+    assert_string_equal(  tmpcfg.token_read_script,"/tmp/token.sh");
+    assert_string_equal(tmpcfg.cert_path, "/etc/ssl.crt");
+#ifdef ENABLE_SESHAT
+    assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
+#endif
     free(Cfg);
 }
 
@@ -276,6 +323,29 @@ void test_parodusGitVersion()
    assert_int_equal(n, 0);
 }
 
+void test_setDefaultValuesToCfg()
+{
+    ParodusCfg *cfg = (ParodusCfg *) malloc(sizeof(ParodusCfg));
+    memset(cfg,0,sizeof(ParodusCfg));
+    setDefaultValuesToCfg(cfg);
+    assert_string_equal( cfg->local_url, PARODUS_UPSTREAM);
+#ifdef FEATURE_DNS_QUERY
+	assert_int_equal(cfg->acquire_jwt, 0);
+    assert_string_equal(cfg->dns_id, DNS_ID);
+    assert_string_equal(cfg->jwt_key, "\0");
+    assert_int_equal( (int)cfg->jwt_algo, 0);
+#endif
+    assert_string_equal(cfg->cert_path, "\0");
+    assert_int_equal((int)cfg->flags, 0);
+    assert_string_equal(cfg->webpa_path_url, WEBPA_PATH_URL);
+    assert_string_equal(cfg->webpa_uuid, "1234567-345456546");
+}
+
+void err_setDefaultValuesToCfg()
+{
+    setDefaultValuesToCfg(NULL);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -290,8 +360,10 @@ int main(void)
         cmocka_unit_test(err_loadParodusCfg),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
-        cmocka_unit_test(err_parseCommandLine),
-        cmocka_unit_test(test_parodusGitVersion)
+        //cmocka_unit_test(err_parseCommandLine),
+        cmocka_unit_test(test_parodusGitVersion),
+        cmocka_unit_test(test_setDefaultValuesToCfg),
+        cmocka_unit_test(err_setDefaultValuesToCfg),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

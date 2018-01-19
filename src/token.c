@@ -116,9 +116,6 @@ int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
 {
 	cJSON *claims = jwt->private_claims;
 	cJSON *endpoint = NULL;
-	const char *endpoint_value;
-	char *port_val;
-	size_t url_len;
 	time_t exp_time, cur_time;
 	int http_match;
 
@@ -134,17 +131,6 @@ int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
 	}
 
 	ParodusInfo ("JWT endpoint: %s\n", endpoint->valuestring);
-	if (strncmp(endpoint->valuestring, "https://", 8) == 0) {
-    http_match = 0;
-		endpoint_value = endpoint->valuestring + 8;
-  } else if (strncmp(endpoint->valuestring, "http://", 7) == 0) {
-		http_match = 1;
-		endpoint_value = endpoint->valuestring + 7;
-	} else {
-		ParodusError ("Invalid endpoint claim in JWT\n");
-		return TOKEN_ERR_BAD_ENDPOINT;
-	}
-	ParodusInfo ("JWT is_http strncmp: %d\n", http_match);
 	exp_time = jwt->exp.tv_sec;
 	if (0 == exp_time) {
 		ParodusError ("exp not found in JWT payload\n");
@@ -157,19 +143,14 @@ int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
 			return TOKEN_ERR_JWT_EXPIRED;
 		}
 	}
-
-	ParodusInfo ("Endpoint copied from JWT\n");
-	parStrncpy (url_buf, endpoint_value, url_buflen);
-	url_len = strlen(url_buf);
-	// If there's a '/' on end, null it out
-	if ((url_len>0) && (url_buf[url_len-1] == '/'))
-		url_buf[url_len-1] = '\0';
-	// Look for ':'
-	port_val = strchr (url_buf, ':');
-	if (NULL != port_val) {
-		*port_val = '\0'; // terminate server address with null
-		parStrncpy (port_buf, port_val+1, port_buflen);
+	http_match = parse_webpa_url (endpoint->valuestring,
+		url_buf, url_buflen, port_buf, port_buflen);
+	if (http_match < 0) {
+		ParodusError ("Invalid endpoint claim in JWT\n");
+		return TOKEN_ERR_BAD_ENDPOINT;
 	}
+	ParodusInfo ("JWT is_http strncmp: %d\n", http_match);
+
 	return http_match;
 }
 
@@ -555,6 +536,10 @@ end:
 	if (NULL != jwt_token)
 		free (jwt_token);
 #else
+  (void) url_buf;
+  (void) url_buflen;
+  (void) port_buf;
+  (void) port_buflen;
   int insecure = TOKEN_NO_DNS_QUERY;
 #endif
 	ParodusPrint ("Allow Insecure %d\n", insecure);
