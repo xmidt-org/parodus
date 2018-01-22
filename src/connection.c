@@ -204,12 +204,11 @@ int createNopollConnection(noPollCtx *ctx)
 				{
 					ParodusError("Received Unauthorized response with status: %d\n", status);
 					//Get new token and update auth header
-					char new_token[4096] ={'\0'};
 					if (strlen(get_parodus_cfg()->token_acquisition_script) >0) {
-						createNewAuthToken(new_token,sizeof(new_token));
+						createNewAuthToken(get_parodus_cfg()->webpa_auth_token,sizeof(get_parodus_cfg()->webpa_auth_token));
 					}
 
-					extra_headers = build_extra_headers( (0 < strlen(new_token) ? new_token : NULL),
+					extra_headers = build_extra_headers( (0 < strlen(get_parodus_cfg()->webpa_auth_token) ? get_parodus_cfg()->webpa_auth_token : NULL),
 														device_id, user_agent, conveyHeader );
 					
 					//reset c=2 to start backoffRetryTime as retrying 
@@ -311,7 +310,6 @@ static char* build_extra_headers( const char *auth, const char *device_id,
             "%s%s"
             "\r\nX-WebPA-Device-Name: %s"
             "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
-            "\r\n%s"
             "\r\nUser-Agent: %s"
             "%s%s",
 
