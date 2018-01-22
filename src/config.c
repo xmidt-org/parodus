@@ -212,7 +212,10 @@ int parse_webpa_url(const char *full_url,
 	port_val = strchr (server_addr, ':');
 
 	if (NULL == port_val) {
-		parStrncpy (port_buf, "8080", port_buflen);
+		if (http_match)
+			parStrncpy (port_buf, "80", port_buflen);
+		else
+			parStrncpy (port_buf, "443", port_buflen);
 	} else {
 		*port_val = '\0'; // terminate server address with null
 		port_val++;
