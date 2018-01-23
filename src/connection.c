@@ -233,7 +233,6 @@ int createNopollConnection(noPollCtx *ctx)
 					//reset c=2 to start backoffRetryTime as retrying 
 					c = 2;
 				}
-				
 				else
 				{
 					ParodusError("Client connection timeout\n");	
@@ -325,6 +324,27 @@ int createNopollConnection(noPollCtx *ctx)
 
 	return nopoll_true;
 }
+
+/* Build the extra headers string with any/all conditional logic in one place. */
+static char* build_extra_headers( const char *auth, const char *device_id,
+                                  const char *user_agent, const char *convey )
+{
+    return nopoll_strdup_printf(
+            "%s%s"
+            "\r\nX-WebPA-Device-Name: %s"
+            "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+            "\r\n%s"
+            "\r\nUser-Agent: %s"
+            "%s%s",
+
+            (NULL != auth) ? "\r\nAuthorization: Bearer " : "",
+            (NULL != auth) ? auth: "",
+            device_id,
+            user_agent,
+            (NULL != convey) ? "\r\nX-WebPA-Convey: " : "",
+            (NULL != convey) ? convey : "" );
+}
+
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers)
 {
         unsigned int flags = 0;

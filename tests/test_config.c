@@ -26,7 +26,7 @@
 
 #include "../src/config.h"
 #include "../src/ParodusInternal.h"
-
+\
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -217,7 +217,7 @@ void err_parseCommandLine()
 void test_loadParodusCfg()
 {
     ParodusCfg  tmpcfg;
-    ParodusCfg *Cfg;
+    ParodusCfg *Cfg = NULL;
     Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     char protocol[32] = {'\0'};
 
@@ -246,7 +246,6 @@ void test_loadParodusCfg()
 #ifdef ENABLE_SESHAT
     parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
 #endif
-
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
 
