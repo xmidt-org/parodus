@@ -22,6 +22,7 @@ include(CTest)
 set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
+set(INCLUDE_UCRESOLV ${PREFIX_DIR}/ucresolv/src/ucresolv/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
 set(COMMON_LIBRARY_DIR ${INSTALL_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE})
@@ -138,7 +139,7 @@ ExternalProject_Add(cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cimplog
     GIT_REPOSITORY https://github.com/Comcast/cimplog.git
     GIT_TAG "master"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcimplog STATIC SHARED IMPORTED)
 add_dependencies(libcimplog cimplog)
@@ -169,7 +170,7 @@ ExternalProject_Add(libparodus
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
     GIT_REPOSITORY https://github.com/Comcast/libparodus.git
     GIT_TAG "master"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     		  -DMAIN_PROJ_BUILD=ON
     		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
     		  -DMAIN_PROJ_LIB64_PATH=${LIBRARY_DIR64}
@@ -183,10 +184,10 @@ if (ENABLE_SESHAT)
 # libseshat external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libseshat
-    DEPENDS cJSON trower-base64 msgpack wrp-c
+    DEPENDS cJSON trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
     GIT_REPOSITORY https://github.com/comcast/seshat.git
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
     	          -DMAIN_PROJ_LIB64_PATH=${LIBRARY_DIR64}
@@ -199,19 +200,19 @@ include_directories(${INCLUDE_DIR}/libseshat)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_SESHAT ")
 endif (ENABLE_SESHAT)
 
-if (ENABLE_CJWT)
 # libcjwt external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cjwt
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cjwt
     GIT_REPOSITORY https://github.com/Comcast/cjwt.git
     GIT_TAG "master"
+    #GIT_TAG "abd4376ff56212d16f69e850a64f6e095857ca39"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcjwt STATIC SHARED IMPORTED)
 add_dependencies(libcjwt cjwt)
 
-if (UCLIBC)
+if (FEATURE_DNS_QUERY)
 # libucresolv external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(ucresolv
@@ -226,16 +227,14 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/ucresolv
 					)		
 
-endif (UCLIBC)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_CJWT ")
-endif (ENABLE_CJWT)
+endif (FEATURE_DNS_QUERY)
 
 if (BUILD_TESTING)
 # cmocka external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cmocka
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cmocka
-    GIT_REPOSITORY https://git.cryptomilk.org/projects/cmocka.git
+    GIT_REPOSITORY https://github.com/elventear/cmocka.git
     GIT_TAG "master"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
@@ -244,7 +243,15 @@ add_dependencies(libcmocka cmocka)
 
 endif (BUILD_TESTING)
 
-endif ()
+endif () # NOT BUILD_YOCTO
+
+if (BUILD_YOCTO)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DBUILD_YOCTO ")
+endif (BUILD_YOCTO)
+
+if (FEATURE_DNS_QUERY)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DFEATURE_DNS_QUERY ")
+endif (FEATURE_DNS_QUERY)
 
 link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR} ${LIBRARY_DIR64} )
 add_subdirectory(src)

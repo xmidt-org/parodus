@@ -41,9 +41,7 @@
 char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
 static noPollConn *g_conn = NULL;
-static noPollConnOpts * createConnOpts (char * extra_headers);
-static char* build_extra_headers( const char *auth, const char *device_id,
-                                  const char *user_agent, const char *convey );
+static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers);
 
 /*----------------------------------------------------------------------------*/
@@ -83,7 +81,6 @@ int createNopollConnection(noPollCtx *ctx)
     char redirectURL[128]={'\0'};
     int status=0;
 	int allow_insecure;
-    char *temp_ptr;
     int connErr=0;
     struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
     connErr_startPtr = &connErr_start;
@@ -94,27 +91,35 @@ int createNopollConnection(noPollCtx *ctx)
     char device_id[32]={'\0'};
     char user_agent[512]={'\0'};
     char * extra_headers = NULL;
-    char *auth_token = NULL;
+    char header_string[4096] ={'\0'};
     
     if(ctx == NULL) {
         return nopoll_false;
     }
 
-	//query dns and validate JWT
-	allow_insecure = allow_insecure_conn();
-	ParodusPrint("allow: %d\n", allow_insecure);
-	if (allow_insecure < 0) {
-		return nopoll_false;
-	}
 
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
-	snprintf(port,sizeof(port),"%d",get_parodus_cfg()->port);
-	parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
+	allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+		server_Address, (int) sizeof(server_Address),
+		port, (int) sizeof(port));
+	if (allow_insecure < 0)
+		return nopoll_false;	// must have valid default url
+#ifdef FEATURE_DNS_QUERY
+	if (get_parodus_cfg()->acquire_jwt) {
+		//query dns and validate JWT
+		int jwt_insecure = allow_insecure_conn(
+			server_Address, (int) sizeof(server_Address),
+			port, (int) sizeof(port));
+		if (jwt_insecure >= 0)
+			allow_insecure = jwt_insecure;
+	}
+#endif
 	ParodusInfo("server_Address %s\n",server_Address);
-					
-	max_retry_sleep = (int) pow(2, get_parodus_cfg()->webpa_backoff_max) -1;
+	ParodusInfo("port %s\n", port);
+	
+	max_retry_sleep = (int) get_parodus_cfg()->webpa_backoff_max;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
 	
     snprintf(user_agent, sizeof(user_agent),"%s (%s; %s/%s;)",
@@ -128,13 +133,17 @@ int createNopollConnection(noPollCtx *ctx)
 	parStrncpy(deviceMAC, get_parodus_cfg()->hw_mac,sizeof(deviceMAC));
 	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
 	ParodusInfo("Device_id %s\n",device_id);
-
+	
 	if(0 != strlen(get_parodus_cfg()->webpa_auth_token)){
-        auth_token = get_parodus_cfg()->webpa_auth_token;
+	snprintf(header_string, sizeof(get_parodus_cfg()->webpa_auth_token)+20, "Authorization:Bearer %s", get_parodus_cfg()->webpa_auth_token);
 	}
+	
+	extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
+		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+		     "\r\n%s"
+		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(get_parodus_cfg()->webpa_auth_token)) ? header_string : "X-WebPA-Token:"),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
+		     
 
-
-    extra_headers = build_extra_headers( auth_token, device_id, user_agent, conveyHeader );
 	
 	do
 	{
@@ -145,7 +154,7 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
         noPollConn *connection;
-		if((FLAGS_SECURE == (get_parodus_cfg()->secure_flag & get_parodus_cfg()->flags)) || (!allow_insecure))
+		if(allow_insecure <= 0)
 		{                    
 		    ParodusPrint("secure true\n");
             connection = nopoll_tls_common_conn(ctx,server_Address, port, extra_headers);                
@@ -154,7 +163,7 @@ int createNopollConnection(noPollCtx *ctx)
 		{
 		    ParodusPrint("secure false\n");
             noPollConnOpts * opts;
-            opts = createConnOpts(extra_headers);
+            opts = createConnOpts(extra_headers, false);
             connection = nopoll_conn_new_opts (ctx, opts,server_Address,port,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);// WEBPA-787
 		}
         set_global_conn(connection);
@@ -166,7 +175,9 @@ int createNopollConnection(noPollCtx *ctx)
 				ParodusError("Error connecting to server\n");
 				ParodusError("RDK-10037 - WebPA Connection Lost\n");
 				// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-				parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
+				allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+					server_Address, (int) sizeof(server_Address),
+					port, (int) sizeof(port));
 				close_and_unref_connection(get_global_conn());
 				set_global_conn(NULL);
 				initial_retry = true;
@@ -189,14 +200,21 @@ int createNopollConnection(noPollCtx *ctx)
 				
 				if(status == 307 || status == 302 || status == 303)    // only when there is a http redirect
 				{
+					char *redirect_ptr = redirectURL;
 					ParodusError("Received temporary redirection response message %s\n", redirectURL);
 					// Extract server Address and port from the redirectURL
-					temp_ptr = strtok(redirectURL , ":"); //skip Redirect 
-					temp_ptr = strtok(NULL , ":"); // skip https
-					temp_ptr = strtok(NULL , ":");
-					parStrncpy(server_Address, temp_ptr+2, sizeof(server_Address));
-					parStrncpy(port, strtok(NULL , "/"), sizeof(port));
-					ParodusInfo("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
+					if (strncmp (redirect_ptr, "Redirect:", 9) == 0)
+						redirect_ptr += 9;
+					allow_insecure = parse_webpa_url (redirect_ptr,
+						server_Address, (int) sizeof(server_Address),
+						port, (int) sizeof(port));
+					if (allow_insecure < 0) {
+						ParodusError ("Invalid redirectURL\n");
+						allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+							server_Address, (int) sizeof(server_Address),
+							port, (int) sizeof(port));
+					} else
+						ParodusInfo("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
 					//reset c=2 to start backoffRetryTime as retrying using new redirect server
 					c = 2;
 				}
@@ -205,12 +223,12 @@ int createNopollConnection(noPollCtx *ctx)
 					ParodusError("Received Unauthorized response with status: %d\n", status);
 					//Get new token and update auth header
 					char new_token[4096] ={'\0'};
-					if (strlen(get_parodus_cfg()->token_acquisition_script) >0) {
+					if (strlen(get_parodus_cfg()->token_acquisition_script) >0)
 						createNewAuthToken(new_token,sizeof(new_token));
-					}
-
-					extra_headers = build_extra_headers( (0 < strlen(new_token) ? new_token : NULL),
-														device_id, user_agent, conveyHeader );
+					extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
+		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+		     "\r\nAuthorization:Bearer %s"
+		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(new_token)) ? new_token : ""),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
 					
 					//reset c=2 to start backoffRetryTime as retrying 
 					c = 2;
@@ -219,8 +237,10 @@ int createNopollConnection(noPollCtx *ctx)
 				{
 					ParodusError("Client connection timeout\n");	
 					ParodusError("RDK-10037 - WebPA Connection Lost\n");
-					// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-					parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
+					// Copy the server address and port from config to avoid retrying to the same failing talaria redirected node
+					allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+						server_Address, (int) sizeof(server_Address),
+						port, (int) sizeof(port));
 					ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 					sleep(backoffRetryTime);
 					c++;
@@ -271,13 +291,15 @@ int createNopollConnection(noPollCtx *ctx)
 			ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 			sleep(backoffRetryTime);
 			c++;
-			// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-			parStrncpy(server_Address, get_parodus_cfg()->webpa_url, sizeof(server_Address));
+			// Copy the server address and port from config to avoid retrying to the same failing talaria redirected node
+			allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+				server_Address, (int) sizeof(server_Address),
+				port, (int) sizeof(port));
 		}
 				
 	}while(initial_retry);
 	
-    if( FLAGS_SECURE == (get_parodus_cfg()->secure_flag & get_parodus_cfg()->flags) )
+	if(allow_insecure <= 0)
 	{
 		ParodusInfo("Connected to server over SSL\n");
 	}
@@ -328,7 +350,7 @@ static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,c
         unsigned int flags = 0;
         noPollConnOpts * opts;
         noPollConn *connection = NULL;
-        opts = createConnOpts(extra_headers);
+        opts = createConnOpts(extra_headers, true);
 
         flags = get_parodus_cfg()->flags;
 
@@ -344,19 +366,19 @@ static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,c
             if(connection == NULL)
             {
                 ParodusInfo("Ipv6 connection failed. Try connecting with Ipv4 mode \n");
-                opts = createConnOpts(extra_headers);
+                opts = createConnOpts(extra_headers, true);
                 connection = nopoll_conn_tls_new (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
             }
         }
         return connection;
 }
 
-static noPollConnOpts * createConnOpts (char * extra_headers)
+static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 {
     noPollConnOpts * opts;
     
     opts = nopoll_conn_opts_new ();
-    if( FLAGS_SECURE == (FLAGS_SECURE & get_parodus_cfg()->flags) )
+    if(secure) 
 	{
 	    if(strlen(get_parodus_cfg()->cert_path) > 0)
             {
