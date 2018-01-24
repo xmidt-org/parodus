@@ -114,5 +114,10 @@ char* getWebpaConveyHeader()
     }
     free(buffer);
     cJSON_Delete(response);
-    return encodedData;
+
+    if( 0 < strlen(encodedData) ) {
+        return encodedData;
+    }
+
+    return NULL;
 }

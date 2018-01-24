@@ -143,7 +143,6 @@ int createNopollConnection(noPollCtx *ctx)
 		     "\r\n%s"
 		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(get_parodus_cfg()->webpa_auth_token)) ? header_string : "X-WebPA-Token:"),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
 		     
-
 	
 	do
 	{
@@ -233,7 +232,6 @@ int createNopollConnection(noPollCtx *ctx)
 					//reset c=2 to start backoffRetryTime as retrying 
 					c = 2;
 				}
-				
 				else
 				{
 					ParodusError("Client connection timeout\n");	
@@ -325,6 +323,7 @@ int createNopollConnection(noPollCtx *ctx)
 
 	return nopoll_true;
 }
+
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers)
 {
         unsigned int flags = 0;

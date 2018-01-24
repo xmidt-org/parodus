@@ -177,7 +177,6 @@ void test_parseCommandLine()
 #endif
     assert_int_equal( (int) parodusCfg.flags, FLAGS_IPV6_ONLY|FLAGS_IPV4_ONLY);
     sprintf(expectedToken,"secure-token-%s-%s",parodusCfg.hw_serial_number,parodusCfg.hw_mac);
-
     getAuthToken(&parodusCfg);
     set_parodus_cfg(&parodusCfg);
     
@@ -217,7 +216,7 @@ void err_parseCommandLine()
 void test_loadParodusCfg()
 {
     ParodusCfg  tmpcfg;
-    ParodusCfg *Cfg;
+    ParodusCfg *Cfg = NULL;
     Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     char protocol[32] = {'\0'};
 
@@ -246,7 +245,6 @@ void test_loadParodusCfg()
 #ifdef ENABLE_SESHAT
     parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
 #endif
-
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
 

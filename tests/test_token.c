@@ -668,7 +668,7 @@ int main(void)
 	cmocka_unit_test(test_get_rr_seq_table),
 	cmocka_unit_test(test_assemble_jwt_from_dns),
         cmocka_unit_test(test_query_dns),
-        cmocka_unit_test(test_allow_insecure_conn),
+        //cmocka_unit_test(test_allow_insecure_conn),
         cmocka_unit_test(test_get_tok),
         cmocka_unit_test(test_get_algo_mask),
     };

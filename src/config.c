@@ -503,7 +503,7 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     parStrncpy(cfg->local_url, PARODUS_UPSTREAM, sizeof(cfg->local_url));
 
 	cfg->acquire_jwt = 0;
-	
+
     parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
 
     parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
@@ -626,7 +626,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
 #endif
 	cfg->acquire_jwt = config->acquire_jwt;
-	
+
      if( strlen(config->dns_id) !=0)
     {
         parStrncpy(cfg->dns_id, config->dns_id,sizeof(cfg->dns_id));
@@ -687,3 +687,5 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
 }
+
+

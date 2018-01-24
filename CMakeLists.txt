@@ -124,7 +124,7 @@ add_dependencies(libcJSON cJSON)
 ExternalProject_Add(msgpack
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/msgpack
     GIT_REPOSITORY https://github.com/msgpack/msgpack-c.git
-    GIT_TAG "c6e6dbc608366090c12b142b3832604e6aa12f54"
+    GIT_TAG "7a98138f27f27290e680bf8fbf1f8d1b089bf138"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF
