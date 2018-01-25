@@ -135,7 +135,7 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusInfo("Device_id %s\n",device_id);
 	
 	if(0 != strlen(get_parodus_cfg()->webpa_auth_token)){
-	snprintf(header_string, sizeof(get_parodus_cfg()->webpa_auth_token)+20, "Authorization:Bearer %s", get_parodus_cfg()->webpa_auth_token);
+	snprintf(header_string, sizeof(header_string), "Authorization:Bearer %s", get_parodus_cfg()->webpa_auth_token);
 	}
 	
 	extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
