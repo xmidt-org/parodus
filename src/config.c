@@ -230,7 +230,7 @@ int parse_webpa_url(const char *full_url,
 
 }
 
-void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
+int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     static const struct option long_options[] = {
         {"hw-model",                required_argument, 0, 'm'},
@@ -265,7 +265,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
 	if (NULL == cfg) {
 		ParodusError ("NULL cfg structure\n");
-		return;
+		return -1;
 	} 
 	cfg->flags = 0;
     while (1)
@@ -417,7 +417,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
         default:
            ParodusError("Enter Valid commands..\n");
-          abort ();
+		   return -1;
         }
     }
 
@@ -432,6 +432,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         ParodusPrint ("%s ", argv[optind++]);
       putchar ('\n');
     }
+    return 0;
 }
 
 /*
