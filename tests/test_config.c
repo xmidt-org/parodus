@@ -157,7 +157,7 @@ void test_parseCommandLine()
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
     create_token_script("/tmp/token.sh");
-    parseCommandLine(argc,command,&parodusCfg);
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), 0);
 
     assert_string_equal( parodusCfg.hw_model, "TG1682");
     assert_string_equal( parodusCfg.hw_serial_number, "Fer23u948590");
@@ -193,24 +193,23 @@ void test_parseCommandLine()
 
 void test_parseCommandLineNull()
 {
-    parseCommandLine(0,NULL,NULL);
+    assert_int_equal (parseCommandLine(0,NULL,NULL), -1);
 }
 
 void err_parseCommandLine()
 {
-	int argc = 19;
+	int argc = 3;
     char * command[20]={'\0'};
 
     command[0] = "parodus";
     command[1] = "--hw-model=TG1682";
-    command[12] = "webpa";
+    command[2] = "--nosuch=0";
+    command[3] = NULL;
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
 
-    parseCommandLine(argc,command,&parodusCfg);
-    assert_string_equal( parodusCfg.hw_model, "");
-    assert_string_equal( parodusCfg.hw_serial_number, "");
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
 }
 
 void test_loadParodusCfg()
@@ -358,7 +357,7 @@ int main(void)
         cmocka_unit_test(err_loadParodusCfg),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
-        //cmocka_unit_test(err_parseCommandLine),
+        cmocka_unit_test(err_parseCommandLine),
         cmocka_unit_test(test_parodusGitVersion),
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),
