@@ -43,6 +43,8 @@ static char *reconnect_reason = "webpa_process_starts";
 static noPollConn *g_conn = NULL;
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers);
+static char* build_extra_headers( const char *auth, const char *device_id,
+                                  const char *user_agent, const char *convey );
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -133,7 +135,7 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusInfo("Device_id %s\n",device_id);
 	
 	extra_headers = build_extra_headers( 
-    (0 < strlen(get_parodus_cfg()->webpa_auth_token) ? get_parodus_cfg()->webpa_auth_token : NULL), 
+    ((0 < strlen(get_parodus_cfg()->webpa_auth_token)) ? get_parodus_cfg()->webpa_auth_token : NULL), 
     device_id, user_agent, conveyHeader );	     
 	
 	do
