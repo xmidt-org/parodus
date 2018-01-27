@@ -208,7 +208,8 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length, const enum wrp_fo
 
 ssize_t wrp_struct_to( const wrp_msg_t *msg, const enum wrp_format fmt, void **bytes )
 {
-    (void) fmt; (void) bytes;
+    (void) fmt; 
+    *bytes = malloc(1);
     CU_ASSERT(WRP_MSG_TYPE__EVENT != msg->msg_type);
     CU_ASSERT(tests[i].r.msg_type == msg->msg_type);
     CU_ASSERT_STRING_EQUAL(tests[i].r.u.crud.transaction_uuid, msg->u.crud.transaction_uuid);

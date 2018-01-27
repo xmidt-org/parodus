@@ -48,14 +48,14 @@ extern "C" {
 #define WEBPA_PING_TIMEOUT      "webpa-ping-timeout"
 #define WEBPA_BACKOFF_MAX       "webpa-backoff-max"
 #define PARTNER_ID              "partner-id"
+#define CERT_PATH               "ssl-cert-path"
 
-#define PROTOCOL_VALUE          "PARODUS-2.0"
-#define WEBPA_PATH_URL          "/api/v2/device"
-
-#ifdef ENABLE_CJWT
-#   define DNS_ID               "fabric"
-#endif
-#define PARODUS_UPSTREAM        "tcp://127.0.0.1:6666"
+#define PROTOCOL_VALUE 					"PARODUS-2.0"
+#define WEBPA_PATH_URL                  "/api/v2/device"
+#define JWT_ALGORITHM					"jwt-algo"
+#define	JWT_KEY						"jwt-key"
+#define DNS_ID	"fabric"
+#define PARODUS_UPSTREAM                "tcp://127.0.0.1:6666"
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -83,22 +83,18 @@ typedef struct
 #ifdef ENABLE_SESHAT
     char seshat_url[128];
 #endif
-#ifdef ENABLE_CJWT
     char dns_id[64];
-    char jwt_algo[32];  // bit mask set for each allowed algorithm
+    unsigned int acquire_jwt;
+    unsigned int jwt_algo;  // bit mask set for each allowed algorithm
     char jwt_key[4096]; // may be read in from a pem file
-#endif
     char cert_path[64];
     char webpa_auth_token[4096];
-    unsigned int secure_flag;
-    unsigned int port;
     char token_acquisition_script[64];
     char token_read_script[64];
 } ParodusCfg;
 
-#define FLAGS_SECURE    (1 << 0)
-#define FLAGS_IPV6_ONLY (1 << 1)
-#define FLAGS_IPV4_ONLY (1 << 2)
+#define FLAGS_IPV6_ONLY (1 << 0)
+#define FLAGS_IPV4_ONLY (1 << 1)
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -112,6 +108,24 @@ void getAuthToken(ParodusCfg *cfg);
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);
+char *get_token_application(void) ;
+
+/**
+ * parse a webpa url. Extract the server address, the port
+ * and return whether it's secure or not
+ *
+ * @param full_url		full url
+ * @param server_addr	 buffer containing server address found in url
+ * @param server_addr_buflen len of the server addr buffer provided by caller
+ * @param port_buf 		buffer containing port value found in url
+ * @param port_buflen	len of the port buffer provided by caller
+ * @return 1 if insecure connection is allowed, 0 if not,
+*    or -1 if error
+*/ 
+int parse_webpa_url(const char *full_url, 
+	char *server_addr, int server_addr_buflen,
+	char *port_buf, int port_buflen);
+
 #ifdef __cplusplus
 }
 #endif

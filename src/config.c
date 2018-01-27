@@ -25,8 +25,10 @@
 #include <fcntl.h> 
 #include "config.h"
 #include "ParodusInternal.h"
+#include <cjwt/cjwt.h>
 
-#define MAX_BUF_SIZE            128
+#define MAX_BUF_SIZE	128
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -49,35 +51,46 @@ void set_parodus_cfg(ParodusCfg *cfg)
 
 static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
 
+const char *get_tok (const char *src, int delim, char *result, int resultsize)
+{
+	int i;
+	char c;
+	int endx = resultsize-1;
+
+	memset (result, 0, resultsize);
+	for (i=0; (c=src[i]) != 0; i++) {
+		if (c == delim)
+			break;
+ 		if (i < endx)
+			result[i] = c;
+	}
+	if (c == 0)
+		return NULL;
+	return src + i + 1;
+}
 
 // the algorithm mask indicates which algorithms are allowed
-#if 0
 unsigned int get_algo_mask (const char *algo_str)
 {
   unsigned int mask = 0;
-  char *tok;
+#define BUFLEN 16
+  char tok[BUFLEN];
 	int alg_val;
-#define BUFLEN 128
-	char algo_buf[BUFLEN];
 
-	strncpy (algo_buf, algo_str, BUFLEN-1);
-	algo_buf[BUFLEN-1] = 0;
-
-	tok = strtok(algo_buf, ":");
-	while(tok!=NULL)
+	while(NULL != algo_str)
 	{
+		algo_str = get_tok (algo_str, ':', tok, BUFLEN);
 		alg_val = cjwt_alg_str_to_enum (tok);
 		if ((alg_val < 0)  || (alg_val >= num_algorithms)) {
        ParodusError("Invalid jwt algorithm %s\n", tok);
        abort ();
 		}
 		mask |= (1<<alg_val);
-		tok = strtok(NULL,":");
+		
 	}
 	return mask;
 #undef BUFLEN
 }
-#endif
 
 static int open_input_file (const char *fname)
 {
@@ -152,6 +165,71 @@ static int parse_mac_address (char *target, const char *arg)
 	return 0;
 }
 
+static int server_is_http (const char *full_url,
+	const char **server_ptr)
+{
+	int http_match;
+	const char *ptr;
+	
+	if (strncmp(full_url, "https://", 8) == 0) {
+		http_match = 0;
+		ptr = full_url + 8;
+	} else if (strncmp(full_url, "http://", 7) == 0) {
+		http_match = 1;
+		ptr = full_url + 7;	
+	} else {
+		ParodusError ("Invalid url %s\n", full_url);
+		return -1;
+	}
+	if (NULL != server_ptr)
+		*server_ptr = ptr;
+	return http_match;
+}
+	
+	
+int parse_webpa_url(const char *full_url, 
+	char *server_addr, int server_addr_buflen,
+	char *port_buf, int port_buflen)
+{
+	const char *server_ptr;
+	char *port_val;
+	char *end_port;
+	size_t server_len;
+	int http_match;
+
+	ParodusInfo ("full url: %s\n", full_url);
+	http_match = server_is_http (full_url, &server_ptr);
+	if (http_match < 0)
+		return http_match;
+
+	ParodusInfo ("server address copied from url\n");
+	parStrncpy (server_addr, server_ptr, server_addr_buflen);
+	server_len = strlen(server_addr);
+	// If there's a '/' on end, null it out
+	if ((server_len>0) && (server_addr[server_len-1] == '/'))
+		server_addr[server_len-1] = '\0';
+	// Look for ':'
+	port_val = strchr (server_addr, ':');
+
+	if (NULL == port_val) {
+		if (http_match)
+			parStrncpy (port_buf, "80", port_buflen);
+		else
+			parStrncpy (port_buf, "443", port_buflen);
+	} else {
+		*port_val = '\0'; // terminate server address with null
+		port_val++;
+		end_port = strchr (port_val, '/');
+		if (NULL != end_port)
+			*end_port = '\0'; // terminate port with null
+		parStrncpy (port_buf, port_val, port_buflen);
+	}
+	ParodusInfo ("server %s, port %s, http_match %d\n", 
+		server_addr, port_buf, http_match);
+	return http_match;
+
+}
+
 void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     static const struct option long_options[] = {
@@ -171,32 +249,31 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 #ifdef ENABLE_SESHAT
         {"seshat-url",              required_argument, 0, 'e'},
 #endif
-#ifdef ENABLE_CJWT
         {"dns-id",                  required_argument, 0, 'D'},
+        {"acquire-jwt",				required_argument, 0, 'j'},
         {"jwt-algo",                required_argument, 0, 'a'},
         {"jwt-key",                 required_argument, 0, 'k'},
-#endif
         {"ssl-cert-path",           required_argument, 0, 'c'},
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
         {"token-read-script",       required_argument, 0, 'T'},
 	{"token-acquisition-script",     required_argument, 0, 'J'},
-        {"secure-flag",             required_argument, 0, 'F'},
-        {"port",                    required_argument, 0, 'P'},
         {0, 0, 0, 0}
     };
     int c;
     ParodusInfo("Parsing parodus command line arguments..\n");
 
-    if (cfg == NULL)
-	return;
-
+	if (NULL == cfg) {
+		ParodusError ("NULL cfg structure\n");
+		return;
+	} 
+	cfg->flags = 0;
     while (1)
     {
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:a:k:c:4:6:T:F:P:j",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:4:6:T:J",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -250,7 +327,11 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
        
          case 'u':
-          parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
+			parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
+			if (server_is_http (cfg->webpa_url, NULL) < 0) {
+				ParodusError ("Bad webpa url %s\n", optarg);
+				abort ();
+			}
           ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
           break;
         
@@ -273,7 +354,6 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->local_url, optarg,sizeof(cfg->local_url));
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
-#ifdef ENABLE_CJWT
         case 'D':
           // like 'fabric' or 'test'
           // this parameter is used, along with the hw_mac parameter
@@ -282,11 +362,18 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("parodus dns_id is %s\n",cfg->dns_id);
           break;
 		 
-	case 'a':
-          parStrncpy(cfg->jwt_algo, optarg, sizeof(cfg->jwt_algo));
-          ParodusInfo("jwt_algo is %s\n",cfg->jwt_algo);
+        case 'j':
+          cfg->acquire_jwt = atoi(optarg);
+          ParodusInfo("acquire jwt option is %d\n",cfg->acquire_jwt);
           break;
-	case 'k':
+
+		case 'a':
+			// the command line argument is a list of allowed algoritms,
+			// separated by colons, like "RS256:RS512:none"
+			cfg->jwt_algo = get_algo_mask (optarg);
+          ParodusInfo("jwt_algo is %u\n",cfg->jwt_algo);
+          break;
+		case 'k':
           // if the key argument has a '.' character in it, then it is
           // assumed to be a file, and the file is read in.
           if (strchr (optarg, '.') == NULL) {
@@ -296,7 +383,6 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           }
           ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
-#endif
         case 'p':
           parStrncpy(cfg->partner_id, optarg,sizeof(cfg->partner_id));
           ParodusInfo("partner_id is %s\n",cfg->partner_id);
@@ -323,27 +409,6 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         
         case 'T':
           parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
-          break;
-          
-        case 'F':
-          if(strcmp(optarg,"http") == 0)
-          {
-            cfg->secure_flag = 0;
-          }
-          else if(strcmp(optarg,"https") == 0)
-          {
-            cfg->secure_flag = FLAGS_SECURE;
-          }
-          else
-          {
-            ParodusError("Invalid secure flag. Valid values are 'http' and 'https', using default 'https'\n");
-          }
-          ParodusInfo("cfg->secure_flag is %d\n",cfg->secure_flag);
-          break;
-
-        case 'P':
-          cfg->port = atoi(optarg);
-		  ParodusInfo("cfg->port is %d\n",cfg->port);
           break;
 
         case '?':
@@ -437,20 +502,17 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     ParodusInfo("Setting default values to parodusCfg\n");
     parStrncpy(cfg->local_url, PARODUS_UPSTREAM, sizeof(cfg->local_url));
 
-#ifdef ENABLE_CJWT
-   
+	cfg->acquire_jwt = 0;
+
     parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
 
     parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
     
-    parStrncpy(cfg->jwt_algo, "\0", sizeof(cfg->jwt_algo));
-#endif
+    cfg->jwt_algo = 0;
    
     parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
 
-    cfg->flags |= FLAGS_SECURE;
-    cfg->secure_flag = FLAGS_SECURE;
-    cfg->port = 8080;
+    cfg->flags = 0;
     
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     
@@ -563,7 +625,8 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         ParodusInfo("seshat_url is NULL. Read from tmp file\n");
     }
 #endif
-#ifdef ENABLE_CJWT
+	cfg->acquire_jwt = config->acquire_jwt;
+
      if( strlen(config->dns_id) !=0)
     {
         parStrncpy(cfg->dns_id, config->dns_id,sizeof(cfg->dns_id));
@@ -583,17 +646,9 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
         ParodusPrint("jwt_key is NULL. set to empty\n");
     }
-    
-    if(strlen(config->jwt_algo )!=0)
-    {
-        parStrncpy(cfg->jwt_algo, config->jwt_algo,sizeof(cfg->jwt_algo));
-    }
-    else
-    {
-        parStrncpy(cfg->jwt_algo, "\0", sizeof(cfg->jwt_algo));
-        ParodusPrint("jwt_algo is NULL. set to empty\n");
-    }
-#endif
+
+	cfg->jwt_algo = config->jwt_algo;        
+
     if(strlen(config->cert_path )!=0)
     {
         parStrncpy(cfg->cert_path, config->cert_path,sizeof(cfg->cert_path));
@@ -623,15 +678,8 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
 
     cfg->boot_time = config->boot_time;
-    cfg->flags |= FLAGS_SECURE;
     cfg->webpa_ping_timeout = config->webpa_ping_timeout;
     cfg->webpa_backoff_max = config->webpa_backoff_max;
-    
-    cfg->secure_flag = config->secure_flag;
-    ParodusPrint("cfg->secure_flag is :%d\n",cfg->secure_flag);
-    
-    cfg->port = config->port;
-    ParodusPrint("cfg->port is :%d\n",cfg->port);
     parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
