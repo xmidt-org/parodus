@@ -43,6 +43,8 @@ static char *reconnect_reason = "webpa_process_starts";
 static noPollConn *g_conn = NULL;
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers);
+static char* build_extra_headers( const char *auth, const char *device_id,
+                                  const char *user_agent, const char *convey );
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -91,12 +93,10 @@ int createNopollConnection(noPollCtx *ctx)
     char device_id[32]={'\0'};
     char user_agent[512]={'\0'};
     char * extra_headers = NULL;
-    char header_string[4096] ={'\0'};
     
     if(ctx == NULL) {
         return nopoll_false;
     }
-
 
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
@@ -134,15 +134,9 @@ int createNopollConnection(noPollCtx *ctx)
 	snprintf(device_id, sizeof(device_id), "mac:%s", deviceMAC);
 	ParodusInfo("Device_id %s\n",device_id);
 	
-	if(0 != strlen(get_parodus_cfg()->webpa_auth_token)){
-	snprintf(header_string, sizeof(header_string), "Authorization:Bearer %s", get_parodus_cfg()->webpa_auth_token);
-	}
-	
-	extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
-		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
-		     "\r\n%s"
-		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(get_parodus_cfg()->webpa_auth_token)) ? header_string : "X-WebPA-Token:"),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
-		     
+	extra_headers = build_extra_headers( 
+    ((0 < strlen(get_parodus_cfg()->webpa_auth_token)) ? get_parodus_cfg()->webpa_auth_token : NULL), 
+    device_id, user_agent, conveyHeader );	     
 	
 	do
 	{
@@ -221,13 +215,13 @@ int createNopollConnection(noPollCtx *ctx)
 				{
 					ParodusError("Received Unauthorized response with status: %d\n", status);
 					//Get new token and update auth header
-					char new_token[4096] ={'\0'};
-					if (strlen(get_parodus_cfg()->token_acquisition_script) >0)
-						createNewAuthToken(new_token,sizeof(new_token));
-					extra_headers = nopoll_strdup_printf("\r\nX-WebPA-Device-Name: %s"
-		     "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
-		     "\r\nAuthorization:Bearer %s"
-		     "\r\nUser-Agent: %s" "\r\nX-WebPA-Convey: %s",device_id,((0 != strlen(new_token)) ? new_token : ""),user_agent,(strlen(conveyHeader) > 0)? conveyHeader :"");
+
+					if (strlen(get_parodus_cfg()->token_acquisition_script) >0) {
+						createNewAuthToken(get_parodus_cfg()->webpa_auth_token,sizeof(get_parodus_cfg()->webpa_auth_token));
+					}
+
+					extra_headers = build_extra_headers( (0 < strlen(get_parodus_cfg()->webpa_auth_token) ? get_parodus_cfg()->webpa_auth_token : NULL),
+														device_id, user_agent, conveyHeader );
 					
 					//reset c=2 to start backoffRetryTime as retrying 
 					c = 2;
@@ -322,6 +316,25 @@ int createNopollConnection(noPollCtx *ctx)
 	setMessageHandlers();
 
 	return nopoll_true;
+}
+
+/* Build the extra headers string with any/all conditional logic in one place. */
+static char* build_extra_headers( const char *auth, const char *device_id,
+                                  const char *user_agent, const char *convey )
+{
+    return nopoll_strdup_printf(
+            "%s%s"
+            "\r\nX-WebPA-Device-Name: %s"
+            "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+            "\r\nUser-Agent: %s"
+            "%s%s",
+
+            (NULL != auth) ? "\r\nAuthorization: Bearer " : "",
+            (NULL != auth) ? auth: "",
+            device_id,
+            user_agent,
+            (NULL != convey) ? "\r\nX-WebPA-Convey: " : "",
+            (NULL != convey) ? convey : "" );
 }
 
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers)
