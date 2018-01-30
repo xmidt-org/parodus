@@ -230,7 +230,7 @@ int parse_webpa_url(const char *full_url,
 
 }
 
-void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
+int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     static const struct option long_options[] = {
         {"hw-model",                required_argument, 0, 'm'},
@@ -265,7 +265,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
 	if (NULL == cfg) {
 		ParodusError ("NULL cfg structure\n");
-		return;
+		return -1;
 	} 
 	cfg->flags = 0;
     while (1)
@@ -273,8 +273,10 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:4:6:T:J",
+      ParodusInfo ("getlong_opt to parse arguments\n");
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46",
 				long_options, &option_index);
+      ParodusInfo ("getlong_opt succeeded\n");
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -417,7 +419,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
         default:
            ParodusError("Enter Valid commands..\n");
-          abort ();
+		   return -1;
         }
     }
 
@@ -432,6 +434,7 @@ void parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         ParodusPrint ("%s ", argv[optind++]);
       putchar ('\n');
     }
+    return 0;
 }
 
 /*

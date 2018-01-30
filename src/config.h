@@ -102,7 +102,18 @@ typedef struct
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 void createNewAuthToken(char *newToken, size_t len);
-void parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
+
+/**
+ * parse command line arguments and create config structure
+ * and return whether args are valid or not
+ *
+ * @param argc	number of command line arguments
+ * @param argv	command line argument lis
+ * @return 0 if OK
+*    or -1 if error
+*/ 
+int parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
+
 void setDefaultValuesToCfg(ParodusCfg *cfg); 
 void getAuthToken(ParodusCfg *cfg);
 // Accessor for the global config structure.
