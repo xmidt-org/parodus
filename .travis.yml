@@ -28,6 +28,7 @@ script:
     - cd build
     - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=true -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true
     - make
+    - export ARGS="-V"
     - make test
 
 after_success:
