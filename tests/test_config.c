@@ -199,21 +199,12 @@ void test_parseCommandLineNull()
 void err_parseCommandLine()
 {
 	int argc;
-    //char * command[]={"parodus", "--hw-model=TG1682", NULL};
     char *command[] = {"parodus",
 		"--hw-model=TG1682",
 		"--hw-serial-number=Fer23u948590",
-		"--hw-manufacturer=ARRISGroup,Inc.",
+		"-Z",
+		"--nosuch",
 		"--hw-mac=123567892366",
-		"--hw-last-reboot-reason=unknown",
-		"--fw-name=TG1682_DEV_master_2016000000sdy",
-		"--webpa-ping-timeout=180",
-		"--webpa-interface-used=br0",
-		"--webpa-url=http://127.0.0.1",
-		"--webpa-backoff-max=0",
-		"--boot-time=1234",
-		"--parodus-local-url=tcp://127.0.0.1:6666",
-		"--partner-id=cox",
 		"webpa",
 		NULL
 	};
@@ -222,6 +213,13 @@ void err_parseCommandLine()
     memset(&parodusCfg,0,sizeof(parodusCfg));
 
 	argc = (sizeof (command) / sizeof (char *)) - 1;
+	// Missing webpa_url
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	// Bad webpa_url
+	command[5] = "--webpa-url=127.0.0.1";
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	// Bad mac address
+	command[5] = "--hw-mac=1235678923";
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
 }
 

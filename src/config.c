@@ -268,15 +268,15 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 		return -1;
 	} 
 	cfg->flags = 0;
+	parStrncpy (cfg->webpa_url, "", sizeof(cfg->webpa_url));
+	optind = 1;  /* We need this if parseCommandLine is called again */
     while (1)
     {
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      ParodusInfo ("getlong_opt to parse arguments\n");
       c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46",
 				long_options, &option_index);
-      ParodusInfo ("getlong_opt succeeded\n");
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -304,7 +304,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
             ParodusInfo ("hw_mac is %s\n",cfg->hw_mac);
 					} else {
 						ParodusError ("Bad mac address %s\n", optarg);
-						abort ();
+						return -1;
 					}
           break;
 #ifdef ENABLE_SESHAT
@@ -332,7 +332,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 			parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
 			if (server_is_http (cfg->webpa_url, NULL) < 0) {
 				ParodusError ("Bad webpa url %s\n", optarg);
-				abort ();
+				return -1;
 			}
           ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
           break;
@@ -423,6 +423,11 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         }
     }
 
+	if (0 == strlen (cfg->webpa_url)) {
+		ParodusError ("Missing webpa url argument\n");
+		return -1;
+	}
+		
     ParodusPrint("argc is :%d\n", argc);
     ParodusPrint("optind is :%d\n", optind);
 
