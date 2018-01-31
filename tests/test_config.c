@@ -128,7 +128,7 @@ void test_parseCommandLine()
 		"--hw-mac=123567892366",
 		"--hw-last-reboot-reason=unknown",
 		"--fw-name=TG1682_DEV_master_2016000000sdy",
-		"--webpa-ping-time=180",
+		"--webpa-ping-timeout=180",
 		"--webpa-interface-used=br0",
 		"--webpa-url=http://127.0.0.1",
 		"--webpa-backoff-max=0",
@@ -157,7 +157,7 @@ void test_parseCommandLine()
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
     create_token_script("/tmp/token.sh");
-    parseCommandLine(argc,command,&parodusCfg);
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), 0);
 
     assert_string_equal( parodusCfg.hw_model, "TG1682");
     assert_string_equal( parodusCfg.hw_serial_number, "Fer23u948590");
@@ -193,24 +193,34 @@ void test_parseCommandLine()
 
 void test_parseCommandLineNull()
 {
-    parseCommandLine(0,NULL,NULL);
+    assert_int_equal (parseCommandLine(0,NULL,NULL), -1);
 }
 
 void err_parseCommandLine()
 {
-	int argc = 19;
-    char * command[20]={'\0'};
-
-    command[0] = "parodus";
-    command[1] = "--hw-model=TG1682";
-    command[12] = "webpa";
-
+	int argc;
+    char *command[] = {"parodus",
+		"--hw-model=TG1682",
+		"--hw-serial-number=Fer23u948590",
+		"-Z",
+		"--nosuch",
+		"--hw-mac=123567892366",
+		"webpa",
+		NULL
+	};
     ParodusCfg parodusCfg;
+
     memset(&parodusCfg,0,sizeof(parodusCfg));
 
-    parseCommandLine(argc,command,&parodusCfg);
-    assert_string_equal( parodusCfg.hw_model, "");
-    assert_string_equal( parodusCfg.hw_serial_number, "");
+	argc = (sizeof (command) / sizeof (char *)) - 1;
+	// Missing webpa_url
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	// Bad webpa_url
+	command[5] = "--webpa-url=127.0.0.1";
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	// Bad mac address
+	command[5] = "--hw-mac=1235678923";
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
 }
 
 void test_loadParodusCfg()
@@ -358,7 +368,7 @@ int main(void)
         cmocka_unit_test(err_loadParodusCfg),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
-        //cmocka_unit_test(err_parseCommandLine),
+        cmocka_unit_test(err_parseCommandLine),
         cmocka_unit_test(test_parodusGitVersion),
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),

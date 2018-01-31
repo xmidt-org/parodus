@@ -50,21 +50,6 @@ ParodusCfg *get_parodus_cfg(void)
     return &g_config;
 }
 
-void loadParodusCfg(ParodusCfg *config, ParodusCfg *cfg)
-{
-    UNUSED(config); UNUSED(cfg);
-}
-
-void parseCommandLine(int argc,char **argv, ParodusCfg *cfg)
-{
-    UNUSED(argc); UNUSED(argv); UNUSED(cfg);
-}
-
-void set_parodus_cfg(ParodusCfg *cfg)
-{
-    UNUSED(cfg);
-}
-
 int init_lib_seshat (const char *url)
 {
     UNUSED(url);
