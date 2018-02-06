@@ -145,7 +145,7 @@ void test_parseCommandLine()
 		"--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt",
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
-		"--dns-id=fabric",
+		"--dns-id=fabric.comcast.net",
 		"--jwt-public-key-file=../../tests/webpa-rs256.pem",
 		"--jwt-algo=RS256",
 #endif
@@ -183,7 +183,7 @@ void test_parseCommandLine()
     assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
-    assert_string_equal(parodusCfg.dns_id, "fabric");
+    assert_string_equal(parodusCfg.dns_id, "fabric.comcast.net");
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 #endif
 
@@ -219,6 +219,20 @@ void err_parseCommandLine()
 	// Bad mac address
 	command[5] = "--hw-mac=1235678923";
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+#ifdef FEATURE_DNS_QUERY
+	command[5] = "--webpa-url=https://127.0.0.1";
+	command[3] = "--acquire-jwt=1";
+	command[4] = "--dns-id=fabric.comcast.net";
+	// missing algo
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	command[4] = "--jwt-algo=none:RS256";
+	// disallowed alogrithm none
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	command[4] = "--jwt-algo=RS256";
+	// missing jwt public key file
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	
+#endif    
 }
 
 void test_loadParodusCfg()
