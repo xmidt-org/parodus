@@ -62,11 +62,11 @@ make test
 
 - /acquire-jwt - this parameter (0 or 1) specifies whether there will be a dns lookup. If not, or if any problem occurs with the dns lookup, then webpa-url will be the target. 
 
-- /dns-id  - this parameter is used along with the hw_mac parameter to create the dns txt record id (i.e. 'fabric' or 'test')
+- /dns-id  - this parameter is used along with the hw_mac parameter to create the dns txt record id
 
 - /jwt-algo -Allowed algorithm used for communication
 
-- /jwt-key -JWT token validation key
+- /jwt-public-key-file -JWT token validation key
 
 ```
 
@@ -75,17 +75,17 @@ make test
 ```
 # Seshat & FEATURE_DNS_QUERY Enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-id=fabric.xmidt --jwt-key=webpa-rs256.pem --jwt-algo=none:RS256 --seshat-url=tcp://127.0.0.1:7777 --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-id=fabric.xmidt.comcast.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --seshat-url=tcp://127.0.0.1:7777 --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4
 
 
 # Seshat is not enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-id=fabric.xmidt --jwt-key=webpa-rs256.pem --jwt-algo=none:RS256 --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-id=fabric.xmidt.comcast.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4
 
 
 # When both Seshat & FEATURE_DNS_QUERY not Enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=fabric.webpa.comcast.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4
 
 ```
 

@@ -146,9 +146,8 @@ void test_parseCommandLine()
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
 		"--dns-id=fabric",
-		"--jwt-key=../../tests/webpa-rs256.pem",
-		"--jwt-key=AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",
-		"--jwt-algo=none:RS256",
+		"--jwt-public-key-file=../../tests/webpa-rs256.pem",
+		"--jwt-algo=RS256",
 #endif
 		NULL
 	};
@@ -185,8 +184,7 @@ void test_parseCommandLine()
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
     assert_string_equal(parodusCfg.dns_id, "fabric");
-    assert_int_equal( (int) parodusCfg.jwt_algo, 1025);
-    assert_string_equal(parodusCfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
+    assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 #endif
 
 }

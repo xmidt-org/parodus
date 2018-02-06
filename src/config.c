@@ -15,7 +15,7 @@
  *
  */
 /**
- * @file config.h
+ * @file config.c
  *
  * @description This file contains configuration details of parodus
  *
@@ -28,12 +28,15 @@
 #include <cjwt/cjwt.h>
 
 #define MAX_BUF_SIZE	128
+#define ALLOW_NON_RSA_ALG	false
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
 static ParodusCfg parodusCfg;
+static unsigned int rsa_algorithms = 
+	(1<<alg_rs256) | (1<<alg_rs384) | (1<<alg_rs512);
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -73,6 +76,7 @@ const char *get_tok (const char *src, int delim, char *result, int resultsize)
 unsigned int get_algo_mask (const char *algo_str)
 {
   unsigned int mask = 0;
+  unsigned int mask_val;
 #define BUFLEN 16
   char tok[BUFLEN];
 	int alg_val;
@@ -83,9 +87,20 @@ unsigned int get_algo_mask (const char *algo_str)
 		alg_val = cjwt_alg_str_to_enum (tok);
 		if ((alg_val < 0)  || (alg_val >= num_algorithms)) {
        ParodusError("Invalid jwt algorithm %s\n", tok);
-       abort ();
+       return (unsigned int) (-1);
 		}
-		mask |= (1<<alg_val);
+		if (alg_val == alg_none) {
+       ParodusError("Disallowed jwt algorithm none\n");
+       return (unsigned int) (-1);
+		}
+		mask_val = (1<<alg_val);
+#if !ALLOW_NON_RSA_ALG
+		if (0 == (mask_val & rsa_algorithms)) {
+       ParodusError("Disallowed non-rsa jwt algorithm %s\n", tok);
+       return (unsigned int) (-1);
+		}
+#endif
+		mask |= mask_val;
 		
 	}
 	return mask;
@@ -252,7 +267,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"dns-id",                  required_argument, 0, 'D'},
         {"acquire-jwt",				required_argument, 0, 'j'},
         {"jwt-algo",                required_argument, 0, 'a'},
-        {"jwt-key",                 required_argument, 0, 'k'},
+        {"jwt-public-key-file",     required_argument, 0, 'k'},
         {"ssl-cert-path",           required_argument, 0, 'c'},
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
@@ -269,6 +284,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	} 
 	cfg->flags = 0;
 	parStrncpy (cfg->webpa_url, "", sizeof(cfg->webpa_url));
+	cfg->acquire_jwt = 0;
+	cfg->jwt_algo = 0;
+	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	optind = 1;  /* We need this if parseCommandLine is called again */
     while (1)
     {
@@ -373,16 +391,13 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 			// the command line argument is a list of allowed algoritms,
 			// separated by colons, like "RS256:RS512:none"
 			cfg->jwt_algo = get_algo_mask (optarg);
+			if (cfg->jwt_algo == (unsigned int) -1) {
+			  return -1;
+			}
           ParodusInfo("jwt_algo is %u\n",cfg->jwt_algo);
           break;
 		case 'k':
-          // if the key argument has a '.' character in it, then it is
-          // assumed to be a file, and the file is read in.
-          if (strchr (optarg, '.') == NULL) {
-             parStrncpy(cfg->jwt_key, optarg,sizeof(cfg->jwt_key));
-          } else {
-             read_key_from_file (optarg, cfg->jwt_key, sizeof(cfg->jwt_key));
-          }
+          read_key_from_file (optarg, cfg->jwt_key, sizeof(cfg->jwt_key));
           ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
         case 'p':
@@ -427,7 +442,20 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 		ParodusError ("Missing webpa url argument\n");
 		return -1;
 	}
-		
+
+    if (cfg->acquire_jwt) {
+		if (0 == cfg->jwt_algo) {
+			ParodusError ("Missing jwt algorithm argument\n");
+			return -1;
+		}
+		if ((0 != (cfg->jwt_algo & rsa_algorithms)) &&
+		    (0 == strlen (cfg->jwt_key)) ) {
+			ParodusError ("Missing jwt public key file argument\n");
+			return -1;
+		}
+		    
+	}
+	
     ParodusPrint("argc is :%d\n", argc);
     ParodusPrint("optind is :%d\n", optind);
 
