@@ -117,9 +117,39 @@ void test_getParodusConfig()
     assert_string_equal(cfg.hw_model, temp->hw_model);
 }
 
+static int open_output_file (const char *fname)
+{
+  int fd = open(fname, O_WRONLY | O_CREAT, 0666);
+  if (fd<0)
+  {
+    ParodusError ("File %s open error\n", fname);
+    abort ();
+  }
+  return fd;
+} 
+
+void write_key_to_file (const char *fname, const char *buf)
+{
+  ssize_t nbytes;
+  ssize_t buflen = strlen (buf);
+  int fd = open_output_file(fname);
+  nbytes = write(fd, buf, buflen);
+  if (nbytes < 0)
+  {
+    ParodusError ("Write file %s error\n", fname);
+    close(fd);
+    abort ();
+  }
+  close(fd);
+  ParodusInfo ("%d bytes written\n", nbytes);
+}
+
 void test_parseCommandLine()
 {
     char expectedToken[1280] = {'\0'};
+#ifdef FEATURE_DNS_QUERY    
+	const char *jwt_key =	"AGdyuwyhwl2ow2ydsoioiygkshwdthuwd";
+#endif
 
     char *command[] = {"parodus",
 		"--hw-model=TG1682",
@@ -146,7 +176,7 @@ void test_parseCommandLine()
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
 		"--dns-id=fabric.comcast.net",
-		"--jwt-public-key-file=../../tests/webpa-rs256.pem",
+		"--jwt-public-key-file=../../tests/jwt_key.tst",
 		"--jwt-algo=RS256",
 #endif
 		NULL
@@ -155,6 +185,10 @@ void test_parseCommandLine()
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
+
+#ifdef FEATURE_DNS_QUERY
+	write_key_to_file ("../../tests/jwt_key.tst", jwt_key);
+#endif
     create_token_script("/tmp/token.sh");
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), 0);
 
@@ -185,6 +219,7 @@ void test_parseCommandLine()
 	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
     assert_string_equal(parodusCfg.dns_id, "fabric.comcast.net");
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
+	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
 #endif
 
 }
