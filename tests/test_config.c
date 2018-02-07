@@ -27,6 +27,8 @@
 #include "../src/config.h"
 #include "../src/ParodusInternal.h"
 
+extern int parse_mac_address (char *target, const char *arg);
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -401,6 +403,18 @@ void err_setDefaultValuesToCfg()
     setDefaultValuesToCfg(NULL);
 }
 
+void test_parse_mac_address ()
+{
+	char result[14];
+	assert_int_equal (parse_mac_address (result, "aabbccddeeff"), 0);
+	assert_string_equal (result, "aabbccddeeff");
+	assert_int_equal (parse_mac_address (result, "aa:bb:cc:dd:ee:ff"), 0);
+	assert_string_equal (result, "aabbccddeeff");
+	assert_int_equal (parse_mac_address (result, "aabbccddeeff0"), -1);
+	assert_int_equal (parse_mac_address (result, "aa:bb:c:dd:ee:ff:00"), -1);
+	assert_int_equal (parse_mac_address (result, ""), -1);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -413,6 +427,7 @@ int main(void)
         cmocka_unit_test(test_loadParodusCfg),
         cmocka_unit_test(test_loadParodusCfgNull),
         cmocka_unit_test(err_loadParodusCfg),
+        cmocka_unit_test(test_parse_mac_address),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),

@@ -160,7 +160,7 @@ static void execute_token_script(char *token, char *name, size_t len, char *mac,
 
 // strips ':' characters
 // verifies that there exactly 12 characters
-static int parse_mac_address (char *target, const char *arg)
+int parse_mac_address (char *target, const char *arg)
 {
 	int count = 0;
 	int i;
