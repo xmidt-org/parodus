@@ -28,6 +28,12 @@
 #include "../src/ParodusInternal.h"
 
 extern int parse_mac_address (char *target, const char *arg);
+extern int server_is_http (const char *full_url,
+	const char **server_ptr);
+extern int parse_webpa_url(const char *full_url, 
+	char *server_addr, int server_addr_buflen,
+	char *port_buf, int port_buflen);
+extern unsigned int get_algo_mask (const char *algo_str);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -415,6 +421,55 @@ void test_parse_mac_address ()
 	assert_int_equal (parse_mac_address (result, ""), -1);
 }
 
+void test_server_is_http ()
+{
+	const char *server_ptr;
+	assert_int_equal (server_is_http ("https://127.0.0.1", &server_ptr), 0);
+	assert_string_equal (server_ptr, "127.0.0.1");
+	assert_int_equal (server_is_http ("http://127.0.0.1", &server_ptr), 1);
+	assert_string_equal (server_ptr, "127.0.0.1");
+	assert_int_equal (server_is_http ("127.0.0.1", &server_ptr), -1);
+	
+}
+
+void test_parse_webpa_url ()
+{
+	char addr_buf[80];
+	char port_buf[8];
+	assert_int_equal (parse_webpa_url ("fabric.webpa.comcast.net:8080",
+		addr_buf, 80, port_buf, 8), -1);
+	assert_int_equal (parse_webpa_url ("https://fabric.webpa.comcast.net:8080",
+		addr_buf, 80, port_buf, 8), 0);
+	assert_string_equal (addr_buf, "fabric.webpa.comcast.net");
+	assert_string_equal (port_buf, "8080");
+	assert_int_equal (parse_webpa_url ("https://fabric.webpa.comcast.net/",
+		addr_buf, 80, port_buf, 8), 0);
+	assert_string_equal (addr_buf, "fabric.webpa.comcast.net");
+	assert_string_equal (port_buf, "443");
+	assert_int_equal (parse_webpa_url ("http://fabric.webpa.comcast.net:8080",
+		addr_buf, 80, port_buf, 8), 1);
+	assert_string_equal (addr_buf, "fabric.webpa.comcast.net");
+	assert_string_equal (port_buf, "8080");
+	assert_int_equal (parse_webpa_url ("http://fabric.webpa.comcast.net",
+		addr_buf, 80, port_buf, 8), 1);
+	assert_string_equal (addr_buf, "fabric.webpa.comcast.net");
+	assert_string_equal (port_buf, "80");
+		
+}
+
+void test_get_algo_mask ()
+{
+	assert_true (get_algo_mask ("RS256:RS512") == 5120);
+	assert_true (get_algo_mask ("none:RS256") == (unsigned int) -1);
+	assert_true (get_algo_mask ("nosuch") == (unsigned int) -1);
+#if ALLOW_NON_RSA_ALG
+	assert_true (get_algo_mask ("ES256:RS256") == 1026);
+#else
+	assert_true (get_algo_mask ("ES256:RS256") == (unsigned int) -1);
+#endif	
+}
+
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -428,6 +483,9 @@ int main(void)
         cmocka_unit_test(test_loadParodusCfgNull),
         cmocka_unit_test(err_loadParodusCfg),
         cmocka_unit_test(test_parse_mac_address),
+        cmocka_unit_test(test_get_algo_mask),
+        cmocka_unit_test(test_server_is_http),
+        cmocka_unit_test(test_parse_webpa_url),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),

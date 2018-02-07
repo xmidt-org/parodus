@@ -28,7 +28,6 @@
 #include <cjwt/cjwt.h>
 
 #define MAX_BUF_SIZE	128
-#define ALLOW_NON_RSA_ALG	false
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -180,7 +179,7 @@ int parse_mac_address (char *target, const char *arg)
 	return 0;
 }
 
-static int server_is_http (const char *full_url,
+int server_is_http (const char *full_url,
 	const char **server_ptr)
 {
 	int http_match;
