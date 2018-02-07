@@ -555,6 +555,16 @@ void err_createConnectionCtxNull()
     assert_int_equal(ret, nopoll_false);
 }
 
+void test_standard_strncmp ()
+{
+	assert_int_equal (standard_strncmp ("abcde", "abcde", 100), 0);
+	assert_true (standard_strncmp ("abcde", "abcdf", 100) < 0);
+	assert_true (standard_strncmp ("abcd", "abcdf", 100) < 0);
+	assert_true (standard_strncmp ("abcdf", "abcde", 100) > 0);
+	assert_true (standard_strncmp ("abcde", "abcd", 100) > 0);
+	assert_int_equal (standard_strncmp ("abcde", "abcff", 3), 0);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -562,6 +572,7 @@ void err_createConnectionCtxNull()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_standard_strncmp),
         cmocka_unit_test(test_createSecureConnection),
         cmocka_unit_test(test_createConnection),
         cmocka_unit_test(test_createConnectionConnNull),
