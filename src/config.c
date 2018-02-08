@@ -244,6 +244,27 @@ int parse_webpa_url(const char *full_url,
 
 }
 
+unsigned int parse_num_arg (const char *arg, const char *arg_name)
+{
+	unsigned int result = 0;
+	int i;
+	char c;
+	
+	if (arg[0] == '\0') {
+		ParodusError ("Empty %s argument\n", arg_name);
+		return (unsigned int) -1;
+	}
+	for (i=0; '\0' != (c=arg[i]); i++)
+	{
+		if ((c<'0') || (c>'9')) {
+			ParodusError ("Non-numeric %s argument\n", arg_name);
+			return (unsigned int) -1;
+		}
+		result = (result*10) + c - '0';
+	}
+	return result;
+}
+
 int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     static const struct option long_options[] = {
@@ -341,7 +362,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'b':
-          cfg->boot_time = atoi(optarg);
+          cfg->boot_time = parse_num_arg (optarg, "boot-time");
+          if (cfg->boot_time == (unsigned int) -1)
+			return -1;
           ParodusInfo("boot_time is %d\n",cfg->boot_time);
           break;
        
@@ -355,12 +378,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
         
         case 't':
-          cfg->webpa_ping_timeout = atoi(optarg);
+          cfg->webpa_ping_timeout = parse_num_arg (optarg, "webpa-ping-timeout");
+          if (cfg->webpa_ping_timeout == (unsigned int) -1)
+			return -1;
           ParodusInfo("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
           break;
 
         case 'o':
-          cfg->webpa_backoff_max = atoi(optarg);
+          cfg->webpa_backoff_max = parse_num_arg (optarg, "webpa-backoff-max");
+          if (cfg->webpa_backoff_max == (unsigned int) -1)
+			return -1;
           ParodusInfo("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
           break;
 
@@ -382,7 +409,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 		 
         case 'j':
-          cfg->acquire_jwt = atoi(optarg);
+          cfg->acquire_jwt = parse_num_arg (optarg, "acquire-jwt");
+          if (cfg->acquire_jwt == (unsigned int) -1)
+			return -1;
           ParodusInfo("acquire jwt option is %d\n",cfg->acquire_jwt);
           break;
 

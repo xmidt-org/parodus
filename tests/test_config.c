@@ -34,6 +34,7 @@ extern int parse_webpa_url(const char *full_url,
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
 extern unsigned int get_algo_mask (const char *algo_str);
+extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -262,6 +263,12 @@ void err_parseCommandLine()
 	// Bad mac address
 	command[5] = "--hw-mac=1235678923";
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	command[5] = "--webpa-ping-timeout=123x";
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	command[5] = "--webpa-backoff-max=";
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
+	command[5] = "--boot-time=12x";
+    assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
 #ifdef FEATURE_DNS_QUERY
 	command[5] = "--webpa-url=https://127.0.0.1";
 	command[3] = "--acquire-jwt=1";
@@ -409,6 +416,16 @@ void err_setDefaultValuesToCfg()
     setDefaultValuesToCfg(NULL);
 }
 
+void test_parse_num_arg ()
+{
+	assert_int_equal (parse_num_arg ("1234", "1234"), 1234);
+	assert_int_equal (parse_num_arg ("1", "1"), 1);
+	assert_int_equal (parse_num_arg ("0", "0"), 0);
+	assert_true (parse_num_arg ("", "empty arg") == (unsigned int) -1);
+	assert_true (parse_num_arg ("0x", "non-num arg") == (unsigned int) -1);
+	
+}
+
 void test_parse_mac_address ()
 {
 	char result[14];
@@ -482,6 +499,7 @@ int main(void)
         cmocka_unit_test(test_loadParodusCfg),
         cmocka_unit_test(test_loadParodusCfgNull),
         cmocka_unit_test(err_loadParodusCfg),
+        cmocka_unit_test(test_parse_num_arg),
         cmocka_unit_test(test_parse_mac_address),
         cmocka_unit_test(test_get_algo_mask),
         cmocka_unit_test(test_server_is_http),
