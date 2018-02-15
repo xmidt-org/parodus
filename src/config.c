@@ -15,7 +15,7 @@
  *
  */
 /**
- * @file config.h
+ * @file config.c
  *
  * @description This file contains configuration details of parodus
  *
@@ -34,6 +34,8 @@
 /*----------------------------------------------------------------------------*/
 
 static ParodusCfg parodusCfg;
+static unsigned int rsa_algorithms = 
+	(1<<alg_rs256) | (1<<alg_rs384) | (1<<alg_rs512);
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -73,6 +75,7 @@ const char *get_tok (const char *src, int delim, char *result, int resultsize)
 unsigned int get_algo_mask (const char *algo_str)
 {
   unsigned int mask = 0;
+  unsigned int mask_val;
 #define BUFLEN 16
   char tok[BUFLEN];
 	int alg_val;
@@ -83,9 +86,20 @@ unsigned int get_algo_mask (const char *algo_str)
 		alg_val = cjwt_alg_str_to_enum (tok);
 		if ((alg_val < 0)  || (alg_val >= num_algorithms)) {
        ParodusError("Invalid jwt algorithm %s\n", tok);
-       abort ();
+       return (unsigned int) (-1);
 		}
-		mask |= (1<<alg_val);
+		if (alg_val == alg_none) {
+       ParodusError("Disallowed jwt algorithm none\n");
+       return (unsigned int) (-1);
+		}
+		mask_val = (1<<alg_val);
+#if !ALLOW_NON_RSA_ALG
+		if (0 == (mask_val & rsa_algorithms)) {
+       ParodusError("Disallowed non-rsa jwt algorithm %s\n", tok);
+       return (unsigned int) (-1);
+		}
+#endif
+		mask |= mask_val;
 		
 	}
 	return mask;
@@ -145,7 +159,7 @@ static void execute_token_script(char *token, char *name, size_t len, char *mac,
 
 // strips ':' characters
 // verifies that there exactly 12 characters
-static int parse_mac_address (char *target, const char *arg)
+int parse_mac_address (char *target, const char *arg)
 {
 	int count = 0;
 	int i;
@@ -165,7 +179,7 @@ static int parse_mac_address (char *target, const char *arg)
 	return 0;
 }
 
-static int server_is_http (const char *full_url,
+int server_is_http (const char *full_url,
 	const char **server_ptr)
 {
 	int http_match;
@@ -230,6 +244,27 @@ int parse_webpa_url(const char *full_url,
 
 }
 
+unsigned int parse_num_arg (const char *arg, const char *arg_name)
+{
+	unsigned int result = 0;
+	int i;
+	char c;
+	
+	if (arg[0] == '\0') {
+		ParodusError ("Empty %s argument\n", arg_name);
+		return (unsigned int) -1;
+	}
+	for (i=0; '\0' != (c=arg[i]); i++)
+	{
+		if ((c<'0') || (c>'9')) {
+			ParodusError ("Non-numeric %s argument\n", arg_name);
+			return (unsigned int) -1;
+		}
+		result = (result*10) + c - '0';
+	}
+	return result;
+}
+
 int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     static const struct option long_options[] = {
@@ -252,7 +287,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"dns-id",                  required_argument, 0, 'D'},
         {"acquire-jwt",				required_argument, 0, 'j'},
         {"jwt-algo",                required_argument, 0, 'a'},
-        {"jwt-key",                 required_argument, 0, 'k'},
+        {"jwt-public-key-file",     required_argument, 0, 'k'},
         {"ssl-cert-path",           required_argument, 0, 'c'},
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
@@ -269,6 +304,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	} 
 	cfg->flags = 0;
 	parStrncpy (cfg->webpa_url, "", sizeof(cfg->webpa_url));
+	cfg->acquire_jwt = 0;
+	cfg->jwt_algo = 0;
+	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	optind = 1;  /* We need this if parseCommandLine is called again */
     while (1)
     {
@@ -324,7 +362,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'b':
-          cfg->boot_time = atoi(optarg);
+          cfg->boot_time = parse_num_arg (optarg, "boot-time");
+          if (cfg->boot_time == (unsigned int) -1)
+			return -1;
           ParodusInfo("boot_time is %d\n",cfg->boot_time);
           break;
        
@@ -338,12 +378,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
         
         case 't':
-          cfg->webpa_ping_timeout = atoi(optarg);
+          cfg->webpa_ping_timeout = parse_num_arg (optarg, "webpa-ping-timeout");
+          if (cfg->webpa_ping_timeout == (unsigned int) -1)
+			return -1;
           ParodusInfo("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
           break;
 
         case 'o':
-          cfg->webpa_backoff_max = atoi(optarg);
+          cfg->webpa_backoff_max = parse_num_arg (optarg, "webpa-backoff-max");
+          if (cfg->webpa_backoff_max == (unsigned int) -1)
+			return -1;
           ParodusInfo("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
           break;
 
@@ -365,7 +409,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 		 
         case 'j':
-          cfg->acquire_jwt = atoi(optarg);
+          cfg->acquire_jwt = parse_num_arg (optarg, "acquire-jwt");
+          if (cfg->acquire_jwt == (unsigned int) -1)
+			return -1;
           ParodusInfo("acquire jwt option is %d\n",cfg->acquire_jwt);
           break;
 
@@ -373,16 +419,13 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 			// the command line argument is a list of allowed algoritms,
 			// separated by colons, like "RS256:RS512:none"
 			cfg->jwt_algo = get_algo_mask (optarg);
+			if (cfg->jwt_algo == (unsigned int) -1) {
+			  return -1;
+			}
           ParodusInfo("jwt_algo is %u\n",cfg->jwt_algo);
           break;
 		case 'k':
-          // if the key argument has a '.' character in it, then it is
-          // assumed to be a file, and the file is read in.
-          if (strchr (optarg, '.') == NULL) {
-             parStrncpy(cfg->jwt_key, optarg,sizeof(cfg->jwt_key));
-          } else {
-             read_key_from_file (optarg, cfg->jwt_key, sizeof(cfg->jwt_key));
-          }
+          read_key_from_file (optarg, cfg->jwt_key, sizeof(cfg->jwt_key));
           ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
         case 'p':
@@ -427,7 +470,20 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 		ParodusError ("Missing webpa url argument\n");
 		return -1;
 	}
-		
+
+    if (cfg->acquire_jwt) {
+		if (0 == cfg->jwt_algo) {
+			ParodusError ("Missing jwt algorithm argument\n");
+			return -1;
+		}
+		if ((0 != (cfg->jwt_algo & rsa_algorithms)) &&
+		    (0 == strlen (cfg->jwt_key)) ) {
+			ParodusError ("Missing jwt public key file argument\n");
+			return -1;
+		}
+		    
+	}
+	
     ParodusPrint("argc is :%d\n", argc);
     ParodusPrint("optind is :%d\n", optind);
 

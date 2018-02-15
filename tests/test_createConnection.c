@@ -42,6 +42,7 @@ volatile unsigned int heartBeatTimer;
 pthread_mutex_t close_mut;
 int g_status;
 char *g_redirect_url;
+int mock_strncmp = true;
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -171,9 +172,22 @@ void nopoll_conn_unref(	noPollConn * conn)
     function_called();
 }
 
+int standard_strncmp(const char *s1, const char *s2, size_t n)
+{
+	size_t i;
+	for (i=0; i<n; i++) {
+		if (s1[i] != s2[i])
+			return s1[i] - s2[i];
+		if (0 == s1[i])
+			return 0;
+	}
+	return 0;
+}
+
 int strncmp(const char *s1, const char *s2, size_t n)
 {
-    UNUSED(s1); UNUSED(s2); UNUSED(n);
+    if (!mock_strncmp)
+		return standard_strncmp (s1, s2, n);
     function_called();
     return (int) mock();
 }
@@ -201,14 +215,20 @@ void test_createSecureConnection()
     ParodusCfg *cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     memset(cfg, 0, sizeof(ParodusCfg));
     
+    mock_strncmp = false;
     cfg->flags = 0;
+#ifdef FEATURE_DNS_QUERY
+	cfg->acquire_jwt = 1;
+#endif
     parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL, sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
 
     assert_non_null(ctx);
 
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
+#ifdef FEATURE_DNS_QUERY
+	will_return (allow_insecure_conn, 0);
+	expect_function_call (allow_insecure_conn);
+#endif
 
     will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
     expect_function_call(getWebpaConveyHeader);
@@ -245,15 +265,19 @@ void test_createConnection()
     memset(cfg, 0, sizeof(ParodusCfg));
     assert_non_null(cfg);
     
+    mock_strncmp = false;
     cfg->flags = 0;
+#ifdef FEATURE_DNS_QUERY
+	cfg->acquire_jwt = 1;
+#endif
     parStrncpy(cfg->webpa_url , UNSECURE_WEBPA_URL, sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
-		will_return (strncmp, -1);
-		expect_function_call (strncmp);
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
+#ifdef FEATURE_DNS_QUERY
+	will_return (allow_insecure_conn, 1);
+	expect_function_call (allow_insecure_conn);
+#endif
 
     will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
     expect_function_call(getWebpaConveyHeader);
@@ -285,15 +309,21 @@ void test_createConnectionConnNull()
     ParodusCfg *cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     memset(cfg, 0, sizeof(ParodusCfg));
     
+    mock_strncmp = false;
     cfg->flags = 0;
     cfg->webpa_backoff_max = 2;
+#ifdef FEATURE_DNS_QUERY
+	cfg->acquire_jwt = 1;
+#endif
     parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL,sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
     
     assert_non_null(ctx);
 
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
+#ifdef FEATURE_DNS_QUERY
+	will_return (allow_insecure_conn, 0);
+	expect_function_call (allow_insecure_conn);
+#endif
 
     will_return(getWebpaConveyHeader, (intptr_t)"");
     expect_function_call(getWebpaConveyHeader);
@@ -312,9 +342,6 @@ void test_createConnectionConnNull()
     expect_function_call(checkHostIp);
 
     expect_function_call(getCurrentTime);
-
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
 
 	expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_tls_new6, (intptr_t)host_ip, HOST_IP);
@@ -340,9 +367,6 @@ void test_createConnectionConnNull()
 
     will_return(kill, 1);
     expect_function_call(kill);
-
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
 
     expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
     expect_string(nopoll_conn_tls_new6, (intptr_t)host_ip, HOST_IP);
@@ -375,15 +399,19 @@ void test_createConnectionConnNotOk()
     memset(cfg, 0, sizeof(ParodusCfg));
     assert_non_null(cfg);
     
+    mock_strncmp = false;
     cfg->flags = 0;
+#ifdef FEATURE_DNS_QUERY
+	cfg->acquire_jwt = 1;
+#endif
     parStrncpy(cfg->webpa_url , UNSECURE_WEBPA_URL, sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
-		will_return (strncmp, 1);
-		expect_function_call (strncmp);
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
+#ifdef FEATURE_DNS_QUERY
+	will_return (allow_insecure_conn, 1);
+	expect_function_call (allow_insecure_conn);
+#endif
 
     will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
     expect_function_call(getWebpaConveyHeader);
@@ -395,11 +423,6 @@ void test_createConnectionConnNotOk()
 
     will_return(nopoll_conn_is_ok, nopoll_false);
     expect_function_call(nopoll_conn_is_ok);
-
-		will_return (strncmp, 1);
-		expect_function_call (strncmp);
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
 
     expect_function_call(nopoll_conn_close);
 
@@ -419,11 +442,6 @@ void test_createConnectionConnNotOk()
 
     will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
     expect_function_call(nopoll_conn_wait_until_connection_ready);
-
-		will_return (strncmp, 1);
-		expect_function_call (strncmp);
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
 
     expect_function_call(nopoll_conn_close);
 
@@ -458,15 +476,19 @@ void test_createConnectionConnRedirect()
     memset(cfg, 0, sizeof(ParodusCfg));
     assert_non_null(cfg);
     
+    mock_strncmp = false;
     cfg->flags = 0;
+#ifdef FEATURE_DNS_QUERY
+	cfg->acquire_jwt = 1;
+#endif
     parStrncpy(cfg->webpa_url , UNSECURE_WEBPA_URL, sizeof(cfg->webpa_url));
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
-		will_return (strncmp, 1);
-		expect_function_call (strncmp);
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
+#ifdef FEATURE_DNS_QUERY
+	will_return (allow_insecure_conn, 1);
+	expect_function_call (allow_insecure_conn);
+#endif
 
     will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
     expect_function_call(getWebpaConveyHeader);
@@ -478,11 +500,6 @@ void test_createConnectionConnRedirect()
 
     will_return(nopoll_conn_is_ok, nopoll_false);
     expect_function_call(nopoll_conn_is_ok);
-
-		will_return (strncmp, 1);
-		expect_function_call (strncmp);
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
 
     expect_function_call(nopoll_conn_close);
 
@@ -503,14 +520,6 @@ void test_createConnectionConnRedirect()
 	
     will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
     expect_function_call(nopoll_conn_wait_until_connection_ready);
-
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
-		will_return (strncmp, -1);
-		expect_function_call (strncmp);
-		will_return (strncmp, 0);
-		expect_function_call (strncmp);
-    
 
     expect_function_call(nopoll_conn_close);
 
@@ -546,6 +555,16 @@ void err_createConnectionCtxNull()
     assert_int_equal(ret, nopoll_false);
 }
 
+void test_standard_strncmp ()
+{
+	assert_int_equal (standard_strncmp ("abcde", "abcde", 100), 0);
+	assert_true (standard_strncmp ("abcde", "abcdf", 100) < 0);
+	assert_true (standard_strncmp ("abcd", "abcdf", 100) < 0);
+	assert_true (standard_strncmp ("abcdf", "abcde", 100) > 0);
+	assert_true (standard_strncmp ("abcde", "abcd", 100) > 0);
+	assert_int_equal (standard_strncmp ("abcde", "abcff", 3), 0);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -553,6 +572,7 @@ void err_createConnectionCtxNull()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_standard_strncmp),
         cmocka_unit_test(test_createSecureConnection),
         cmocka_unit_test(test_createConnection),
         cmocka_unit_test(test_createConnectionConnNull),
