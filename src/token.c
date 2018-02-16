@@ -467,7 +467,7 @@ static void get_dns_txt_record_id (char *buf)
 	ParodusCfg *cfg = get_parodus_cfg();
 	buf[0] = 0;
 
-	sprintf (buf, "%s.%s", cfg->hw_mac, cfg->dns_id);
+	sprintf (buf, "%s.%s", cfg->hw_mac, cfg->dns_txt_url);
 	ParodusInfo("dns_txt_record_id %s\n", buf);
 }
 #endif

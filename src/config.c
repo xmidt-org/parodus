@@ -284,7 +284,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 #ifdef ENABLE_SESHAT
         {"seshat-url",              required_argument, 0, 'e'},
 #endif
-        {"dns-id",                  required_argument, 0, 'D'},
+        {"dns-txt-url",             required_argument, 0, 'D'},
         {"acquire-jwt",				required_argument, 0, 'j'},
         {"jwt-algo",                required_argument, 0, 'a'},
         {"jwt-public-key-file",     required_argument, 0, 'k'},
@@ -404,8 +404,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           // like 'fabric' or 'test'
           // this parameter is used, along with the hw_mac parameter
           // to create the dns txt record id
-          parStrncpy(cfg->dns_id, optarg,sizeof(cfg->dns_id));
-          ParodusInfo("parodus dns_id is %s\n",cfg->dns_id);
+          parStrncpy(cfg->dns_txt_url, optarg,sizeof(cfg->dns_txt_url));
+          ParodusInfo("parodus dns-txt-url is %s\n",cfg->dns_txt_url);
           break;
 		 
         case 'j':
@@ -568,7 +568,7 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
 
 	cfg->acquire_jwt = 0;
 
-    parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
+    parStrncpy(cfg->dns_txt_url, DNS_TXT_URL, sizeof(cfg->dns_txt_url));
 
     parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
     
@@ -691,14 +691,14 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 #endif
 	cfg->acquire_jwt = config->acquire_jwt;
 
-     if( strlen(config->dns_id) !=0)
+     if( strlen(config->dns_txt_url) !=0)
     {
-        parStrncpy(cfg->dns_id, config->dns_id,sizeof(cfg->dns_id));
+        parStrncpy(cfg->dns_txt_url, config->dns_txt_url, sizeof(cfg->dns_txt_url));
     }
     else
     {
-	ParodusInfo("parodus dns-id is NULL. adding default\n");
-	parStrncpy(cfg->dns_id, DNS_ID,sizeof(cfg->dns_id));
+	ParodusInfo("parodus dns-txt-url is NULL. adding default\n");
+	parStrncpy(cfg->dns_txt_url, DNS_TXT_URL, sizeof(cfg->dns_txt_url));
     }
 
     if(strlen(config->jwt_key )!=0)
