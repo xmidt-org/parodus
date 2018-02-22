@@ -79,7 +79,7 @@ void test_setParodusConfig()
     cfg.webpa_backoff_max = 255;
 #ifdef FEATURE_DNS_QUERY
     cfg.acquire_jwt = 1;
-    parStrncpy(cfg.dns_id, "test",sizeof(cfg.dns_id));
+    parStrncpy(cfg.dns_txt_url, "test",sizeof(cfg.dns_txt_url));
     cfg.jwt_algo = 1025;
     parStrncpy(cfg.jwt_key, "key.txt",sizeof(cfg.jwt_key));
 #endif    
@@ -107,7 +107,7 @@ void test_setParodusConfig()
     assert_int_equal((int) cfg.webpa_backoff_max, (int) temp->webpa_backoff_max);
 #ifdef FEATURE_DNS_QUERY
     assert_int_equal( (int) cfg.acquire_jwt, (int) temp->acquire_jwt);
-    assert_string_equal(cfg.dns_id, temp->dns_id);
+    assert_string_equal(cfg.dns_txt_url, temp->dns_txt_url);
     assert_int_equal( (int) cfg.jwt_algo, (int) temp->jwt_algo);
     assert_string_equal(cfg.jwt_key, temp->jwt_key);
 #endif
@@ -184,7 +184,7 @@ void test_parseCommandLine()
 		"--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt",
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
-		"--dns-id=fabric.comcast.net",
+		"--dns-txt-url=fabric.comcast.net",
 		"--jwt-public-key-file=../../tests/jwt_key.tst",
 		"--jwt-algo=RS256",
 #endif
@@ -226,7 +226,7 @@ void test_parseCommandLine()
     assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
-    assert_string_equal(parodusCfg.dns_id, "fabric.comcast.net");
+    assert_string_equal(parodusCfg.dns_txt_url, "fabric.comcast.net");
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
 #endif
@@ -272,7 +272,7 @@ void err_parseCommandLine()
 #ifdef FEATURE_DNS_QUERY
 	command[5] = "--webpa-url=https://127.0.0.1";
 	command[3] = "--acquire-jwt=1";
-	command[4] = "--dns-id=fabric.comcast.net";
+	command[4] = "--dns-txt-url=fabric.comcast.net";
 	// missing algo
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
 	command[4] = "--jwt-algo=none:RS256";
@@ -307,7 +307,7 @@ void test_loadParodusCfg()
     parStrncpy(Cfg->partner_id , "shaw", sizeof(Cfg->partner_id));
 #ifdef FEATURE_DNS_QUERY
 	Cfg->acquire_jwt = 1;
-    parStrncpy(Cfg->dns_id, "fabric",sizeof(Cfg->dns_id));
+    parStrncpy(Cfg->dns_txt_url, "fabric",sizeof(Cfg->dns_txt_url));
     Cfg->jwt_algo = 1025;
     parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
 #endif
@@ -329,7 +329,7 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.webpa_protocol, protocol);
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) tmpcfg.acquire_jwt, 1);
-    assert_string_equal(tmpcfg.dns_id, "fabric");
+    assert_string_equal(tmpcfg.dns_txt_url, "fabric");
     assert_int_equal( (int) tmpcfg.jwt_algo, 1025);
     assert_string_equal(tmpcfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
 #endif
@@ -401,7 +401,7 @@ void test_setDefaultValuesToCfg()
     assert_string_equal( cfg->local_url, PARODUS_UPSTREAM);
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal(cfg->acquire_jwt, 0);
-    assert_string_equal(cfg->dns_id, DNS_ID);
+    assert_string_equal(cfg->dns_txt_url, DNS_TXT_URL);
     assert_string_equal(cfg->jwt_key, "\0");
     assert_int_equal( (int)cfg->jwt_algo, 0);
 #endif
