@@ -93,7 +93,9 @@ void createSocketConnection(void (* initKeypress)())
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask);
     StartThread(serviceAliveTask);
+    #ifdef EVENT_HANDLER
     ConnFlushHandler();
+    #endif
     if (NULL != initKeypress) 
     {
         (* initKeypress) ();
@@ -141,7 +143,6 @@ void createSocketConnection(void (* initKeypress)())
             close_and_unref_connection(get_global_conn());
             set_global_conn(NULL);
             createNopollConnection(ctx);
-            ConnFlushHandler();
         }		
     } while(!close_retry);
 

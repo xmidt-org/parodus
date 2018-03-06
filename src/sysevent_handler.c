@@ -14,7 +14,7 @@ static token_t sysevent_token;
 
 static void *parodus_sysevent_handler (void *data)
 {
-	ParodusInfo("parodus_sysevent_handler thread\n");
+	ParodusInfo("parodus_sysevent_handler thread started\n");
 	async_id_t conn_flush;
 	sysevent_setnotification(sysevent_fd, sysevent_token, "firewall_flush_conntrack", &conn_flush);
 	time_t time_now = { 0 }, time_before = { 0 };
@@ -45,7 +45,7 @@ static void *parodus_sysevent_handler (void *data)
 			
 			if(LOGGING_INTERVAL_SECS <= ((unsigned int)difftime(time_now, time_before)))
 			{
-				ParodusInfo("%s-**********ERR: %d\n", __func__, err);
+				ParodusError("%s-**********ERR: %d\n", __func__, err);
 				time(&time_before);
 			}
 
@@ -56,7 +56,7 @@ static void *parodus_sysevent_handler (void *data)
 			if (strcmp(name, "firewall_flush_conntrack")==0)
 		    {
 			  int onFlush = atoi(val);
-			  ParodusInfo("firewall_flush_conntrack %d \n",onFlush);
+			  ParodusInfo("firewall_flush_conntrack value is %d \n",onFlush);
 			  if(!onFlush) {
 			  	ParodusInfo("Received firewall_flush_conntrack event, Close the connection and retry again \n");
 				pthread_mutex_lock (&close_mut);
