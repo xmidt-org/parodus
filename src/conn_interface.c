@@ -33,6 +33,7 @@
 #include "spin_thread.h"
 #include "service_alive.h"
 #include "seshat_interface.h"
+#include "sysevent_handler.h"
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
@@ -92,7 +93,9 @@ void createSocketConnection(void (* initKeypress)())
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask);
     StartThread(serviceAliveTask);
-
+    #ifdef EVENT_HANDLER
+    ConnFlushHandler();
+    #endif
     if (NULL != initKeypress) 
     {
         (* initKeypress) ();
