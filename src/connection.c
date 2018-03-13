@@ -45,6 +45,7 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers);
 static char* build_extra_headers( const char *auth, const char *device_id,
                                   const char *user_agent, const char *convey );
+static noPollSslProtocol get_nopoll_tls_protocol(void);
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -368,8 +369,10 @@ static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,c
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 {
     noPollConnOpts * opts;
+    noPollSslProtocol protocol = NOPOLL_METHOD_TLSV1;
     
     opts = nopoll_conn_opts_new ();
+    protocol = get_nopoll_tls_protocol();
     if(secure) 
 	{
 	    if(strlen(get_parodus_cfg()->cert_path) > 0)
@@ -377,7 +380,7 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
                 nopoll_conn_opts_set_ssl_certs(opts, NULL, NULL, NULL, get_parodus_cfg()->cert_path);
             }
 	    nopoll_conn_opts_ssl_peer_verify (opts, nopoll_true);
-	    nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
+	    nopoll_conn_opts_set_ssl_protocol (opts, protocol);
 	}
 	nopoll_conn_opts_set_interface (opts,get_parodus_cfg()->webpa_interface_used);	
 	nopoll_conn_opts_set_extra_headers (opts,extra_headers); 
@@ -393,5 +396,18 @@ void close_and_unref_connection(noPollConn *conn)
             nopoll_conn_unref(conn);
         }
     }
+}
+
+static noPollSslProtocol get_nopoll_tls_protocol( void )
+{
+    noPollSslProtocol _protocol;
+#if defined(NOPOLL_HAVE_TLSv12_ENABLED)
+    _protocol = NOPOLL_METHOD_TLSV1_2;
+#elif defined(NOPOLL_HAVE_TLSv11_ENABLED)
+    _protocol = NOPOLL_METHOD_TLSV1_1;
+#elif defined(NOPOLL_HAVE_TLSv10_ENABLED)
+    _protocol = NOPOLL_METHOD_TLSV1;
+#endif
+    return _protocol;
 }
 
