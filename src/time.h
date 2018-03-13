@@ -18,8 +18,8 @@
 #include <stdint.h>
 #include <time.h>
 
-#ifndef _TIME_H_ 
-#define _TIME_H_
+#ifndef __TIME_H__ 
+#define __TIME_H__
 
 #ifdef __cplusplus
 extern "C" {
