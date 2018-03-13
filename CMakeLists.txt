@@ -114,6 +114,9 @@ ExternalProject_Add(cJSON
     GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
     GIT_TAG "aafb64a1c549b7b927e339df6d35b1d5059dc235"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    CMAKE_ARGS += -DCMAKE_MACOSX_RPATH=true
+endif()
 )
 add_library(libcJSON STATIC SHARED IMPORTED)
 add_dependencies(libcJSON cJSON)
