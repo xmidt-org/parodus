@@ -30,7 +30,6 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <sys/sysinfo.h>
 #include <pthread.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -100,7 +99,7 @@ char* getWebpaConveyHeader();
 #ifdef __cplusplus
 }
 #endif
-    
+
 
 #endif
 
