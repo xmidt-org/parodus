@@ -218,7 +218,7 @@ if (FEATURE_DNS_QUERY)
 ExternalProject_Add(ucresolv
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
     GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
-    GIT_TAG "master"
+    GIT_TAG "04ab7563b7b714713ffe16a2d4c5fad789611298"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libucresolv STATIC SHARED IMPORTED)
