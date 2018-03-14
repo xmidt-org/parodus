@@ -28,7 +28,7 @@
 /*----------------------------------------------------------------------------*/
 #define MOCK_RETURN_SEC 1
 
-int clock_gettime(int ID, struct timespec *timer)
+int clock_gettime(clockid_t ID, struct timespec *timer)
 {
     (void) ID;
     timer->tv_sec = MOCK_RETURN_SEC;
