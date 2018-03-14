@@ -16,7 +16,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
