@@ -171,7 +171,7 @@ static test_t tests[] = {
             .s.u.event.payload = NULL,
             .s.u.event.payload_size = 0,
 
-            .r = {0},
+            .r.u = {{0}},
         },
     };
 
