@@ -244,13 +244,19 @@ void delay_ms(unsigned int secs, unsigned int msecs)
 
 void dbg_log_err (const char *fmt, ...)
 {
-		char errbuf[100];
+    char errbuf[100];
 
     va_list arg_ptr;
+
     va_start(arg_ptr, fmt);
     vprintf(fmt, arg_ptr);
     va_end(arg_ptr);
-		printf ("LIBPD_TEST: %s\n", strerror_r (errno, errbuf, 100));
+
+    if( 0 == strerror_r (errno, errbuf, 100) ) {   
+        printf("LIBPD_TEST: %s\n", errbuf);
+    } else {   
+        printf("LIBPD_TEST: strerror_r returned failure!\n");
+    }
 }
 
 void wait_auth_received (void)
