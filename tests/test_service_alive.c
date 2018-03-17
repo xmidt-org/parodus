@@ -144,7 +144,7 @@ void test_keep_alive()
 	}
 	else
 	{
-		ParodusPrint("Thread created Successfully %d\n", (int ) threadId);
+		ParodusPrint("Thread created Successfully %p\n", (int ) threadId);
 	}    
 	sleep(3);
 	
@@ -158,7 +158,7 @@ void test_keep_alive()
 			ParodusInfo("Received keep alive msg!!! : %s \n", (char * )buf);
 			kill(threadId, SIGKILL);
 			
-			ParodusInfo("keep_alive_thread with tid %d is stopped\n", threadId);
+			ParodusInfo("keep_alive_thread with tid %p is stopped\n", threadId);
 			break;
 		}
 		else
