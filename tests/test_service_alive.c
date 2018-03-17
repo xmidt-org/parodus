@@ -144,7 +144,7 @@ void test_keep_alive()
 	}
 	else
 	{
-		ParodusPrint("Thread created Successfully %p\n", (int ) threadId);
+		ParodusPrint("Thread created Successfully %p\n", threadId);
 	}    
 	sleep(3);
 	
