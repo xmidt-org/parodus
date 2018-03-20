@@ -97,6 +97,7 @@ typedef struct
 
 #define FLAGS_IPV6_ONLY (1 << 0)
 #define FLAGS_IPV4_ONLY (1 << 1)
+#define FLAGS_IPV6_IPV4 (FLAGS_IPV6_ONLY | FLAGS_IPV4_ONLY)
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
