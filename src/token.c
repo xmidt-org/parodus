@@ -185,7 +185,7 @@ int nquery(const char* dns_txt_record_id, u_char *nsbuf)
 			ParodusError ("nquery: nsbuf is NULL\n");
 			return (-1);
 		}
-		statp.options |= RES_DEBUG;
+		statp.options = RES_DEBUG;
     if (__res_ninit(&statp) < 0) {
         ParodusError ("res_ninit error: can't initialize statp.\n");
         return (-1);
