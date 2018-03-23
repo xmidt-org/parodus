@@ -91,6 +91,7 @@ int createNopollConnection(noPollCtx *ctx)
     int max_retry_sleep;
     char port[8];
     char server_Address[256];
+    char *jwt_server_url= NULL;
     char redirectURL[128]={'\0'};
     int status=0;
 	int allow_insecure;
@@ -124,6 +125,12 @@ int createNopollConnection(noPollCtx *ctx)
 		int jwt_insecure = allow_insecure_conn(
 			server_Address, (int) sizeof(server_Address),
 			port, (int) sizeof(port));
+
+		//store server_Address as jwt_server_url to use it for JWT retry scenarios
+		jwt_server_url = strdup(server_Address);
+		if (jwt_server_url !=NULL)
+			ParodusInfo("JWT ON: jwt_server_url stored as %s\n", jwt_server_url);
+
 		if (jwt_insecure >= 0)
 			allow_insecure = jwt_insecure;
 	}
@@ -180,9 +187,28 @@ int createNopollConnection(noPollCtx *ctx)
 				ParodusError("Error connecting to server\n");
 				ParodusError("RDK-10037 - WebPA Connection Lost\n");
 				// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-				allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+				if (get_parodus_cfg()->acquire_jwt == 0)
+				{
+					ParodusInfo("acquire_jwt is 0, retrying with config server address\n");
+					allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
 					server_Address, (int) sizeof(server_Address),
 					port, (int) sizeof(port));
+				}
+				else
+				{
+					if( (jwt_server_url != NULL) && strlen(jwt_server_url) != 0 )
+					{
+						ParodusInfo("acquire_jwt is 1, retrying with jwt_server_url\n");
+						parStrncpy(server_Address, jwt_server_url, sizeof(server_Address));
+					}
+					else
+					{
+						ParodusError("acquire_jwt is 1 & unable to get jwt_server_url, retrying with config server address\n");
+						allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+
+					}
+				}
+
 				close_and_unref_connection(get_global_conn());
 				set_global_conn(NULL);
 				initial_retry = true;
@@ -215,9 +241,27 @@ int createNopollConnection(noPollCtx *ctx)
 						port, (int) sizeof(port));
 					if (allow_insecure < 0) {
 						ParodusError ("Invalid redirectURL\n");
-						allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
-							server_Address, (int) sizeof(server_Address),
-							port, (int) sizeof(port));
+
+						if (get_parodus_cfg()->acquire_jwt == 0)
+						{
+							ParodusInfo("acquire_jwt is 0, retrying with config server address\n");
+							allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+						}
+						else
+						{
+							if( (jwt_server_url != NULL) && strlen(jwt_server_url) != 0 )
+							{
+								ParodusInfo("acquire_jwt is 1, retrying with jwt_server_url\n");
+								parStrncpy(server_Address, jwt_server_url, sizeof(server_Address));
+							}
+							else
+							{
+								ParodusError("acquire_jwt is 1 & unable to get jwt_server_url, retrying with config server address\n");
+								allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+
+							}
+						}
+
 					} else
 						ParodusInfo("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
 					//reset c=2 to start backoffRetryTime as retrying using new redirect server
@@ -243,9 +287,27 @@ int createNopollConnection(noPollCtx *ctx)
 					ParodusError("Client connection timeout\n");	
 					ParodusError("RDK-10037 - WebPA Connection Lost\n");
 					// Copy the server address and port from config to avoid retrying to the same failing talaria redirected node
-					allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
-						server_Address, (int) sizeof(server_Address),
-						port, (int) sizeof(port));
+
+					if (get_parodus_cfg()->acquire_jwt == 0)
+					{
+						ParodusInfo("acquire_jwt is 0, retrying with config server address\n");
+						allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+					}
+					else
+					{
+						if( (jwt_server_url != NULL) && strlen(jwt_server_url) != 0 )
+						{
+							ParodusInfo("acquire_jwt is 1, retrying with jwt_server_url\n");
+							parStrncpy(server_Address, jwt_server_url, sizeof(server_Address));
+						}
+						else
+						{
+							ParodusError("acquire_jwt is 1 & unable to get jwt_server_url, retrying with config server address\n");
+							allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+
+						}
+					}
+
 					ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 					sleep(backoffRetryTime);
 					toggleIPFlag(&fallback);
@@ -257,7 +319,7 @@ int createNopollConnection(noPollCtx *ctx)
 				close_and_unref_connection(get_global_conn());
 				set_global_conn(NULL);
 				initial_retry = true;
-				
+
 			}
 			else 
 			{
@@ -267,7 +329,7 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		else
 		{
-			
+
 			/* If the connect error is due to DNS resolving to 10.0.0.1 then start timer.
 			 * Timeout after 15 minutes if the error repeats continuously and kill itself. 
 			 */
@@ -288,7 +350,7 @@ int createNopollConnection(noPollCtx *ctx)
 						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
 						reconnect_reason = "Dns_Res_webpa_reconnect";
 						LastReasonStatus = true;
-						
+
 						kill(getpid(),SIGTERM);						
 					}
 				}			
@@ -299,9 +361,26 @@ int createNopollConnection(noPollCtx *ctx)
 			sleep(backoffRetryTime);
 			c++;
 			// Copy the server address and port from config to avoid retrying to the same failing talaria redirected node
-			allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
-				server_Address, (int) sizeof(server_Address),
-				port, (int) sizeof(port));
+
+			if (get_parodus_cfg()->acquire_jwt == 0)
+			{
+				ParodusInfo("acquire_jwt is 0, retrying with config server address\n");
+				allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+			}
+			else
+			{
+				if( (jwt_server_url != NULL) && strlen(jwt_server_url) != 0 )
+				{
+					ParodusInfo("acquire_jwt is 1, retrying with jwt_server_url\n");
+					parStrncpy(server_Address, jwt_server_url, sizeof(server_Address));
+				}
+				else
+				{
+					ParodusError("acquire_jwt is 1 & unable to get jwt_server_url, retrying with config server address\n");
+					allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+
+				}
+			}
 		}
 				
 	}while(initial_retry);
@@ -314,7 +393,12 @@ int createNopollConnection(noPollCtx *ctx)
 	{
 		ParodusInfo("Connected to server\n");
 	}
-	
+
+
+	if (NULL != jwt_server_url)
+	{
+		free (jwt_server_url);
+	}
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): close_mut lock\n");
 	pthread_mutex_lock (&close_mut);
