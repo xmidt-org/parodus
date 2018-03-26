@@ -114,6 +114,11 @@ static void *client_rcv_task()
 	return 0;	
 }
 
+static void handler(int signum)
+{
+	UNUSED(signum);
+	pthread_exit(NULL);
+}
 
 static void *keep_alive_thread()
 {
@@ -147,6 +152,7 @@ void test_keep_alive()
 		ParodusPrint("Thread created Successfully %p\n", threadId);
 	}    
 	sleep(3);
+	signal(SIGUSR1, handler);
 	
 	while( 1 ) 
 	{
@@ -156,7 +162,7 @@ void test_keep_alive()
 		if(byte >0)
 		{
 			ParodusInfo("Received keep alive msg!!! : %s \n", (char * )buf);
-            pthread_kill(threadId, SIGKILL);
+            pthread_kill(threadId, SIGUSR1);
 			
 			ParodusInfo("keep_alive_thread with tid %p is stopped\n", threadId);
 			break;
@@ -186,10 +192,7 @@ void add_suites( CU_pSuite *suite )
 {
     ParodusInfo("--------Start of Test Cases Execution ---------\n");
     *suite = CU_add_suite( "tests", NULL, NULL );
-// Disabling the test to avoid pthread_kill error
-#if 0
     CU_add_test( *suite, "Test 1", test_keep_alive );
-#endif 
 }
 
 /*----------------------------------------------------------------------------*/
