@@ -71,7 +71,7 @@ if (NOT BUILD_YOCTO)
 ExternalProject_Add(trower-base64
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/trower-base64
     GIT_REPOSITORY https://github.com/Comcast/trower-base64.git
-    GIT_TAG "master"
+    GIT_TAG "fbb9440ae2bc1118866baefcea7ff814f16613dd"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libtrower-base64 STATIC SHARED IMPORTED)
@@ -83,7 +83,7 @@ add_dependencies(libtrower-base64 trower-base64)
 ExternalProject_Add(nopoll
     PREFIX ${PREFIX_DIR}/nopoll
     GIT_REPOSITORY https://github.com/Comcast/nopoll.git
-    GIT_TAG "nopoll_yocto"
+    GIT_TAG "96569f13d3fd69bc4157ac7951d93e2dc544f9cd"
     CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/autogen.sh --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}
@@ -99,7 +99,7 @@ add_dependencies(libnopoll nopoll)
 ExternalProject_Add(nanomsg
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
     GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
-    #GIT_TAG "096998834451219ee7813d8977f6a4027b0ccb43"
+    GIT_TAG "0c1aa2b288f6b167dbafe7e29c20e6fc7e71c000"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libnanomsg STATIC SHARED IMPORTED)
@@ -138,7 +138,7 @@ add_dependencies(libmsgpack msgpack)
 ExternalProject_Add(cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cimplog
     GIT_REPOSITORY https://github.com/Comcast/cimplog.git
-    GIT_TAG "master"
+    GIT_TAG "8a5fb3c2f182241d17f5342bea5b7688c28cd1fd"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcimplog STATIC SHARED IMPORTED)
@@ -151,7 +151,7 @@ ExternalProject_Add(wrp-c
 	DEPENDS trower-base64 msgpack cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
     GIT_REPOSITORY https://github.com/Comcast/wrp-c.git
-    GIT_TAG "master"
+    GIT_TAG "d42ac3a63b8d6e723995b63e23aa1969e622faa5"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF
@@ -169,7 +169,7 @@ ExternalProject_Add(libparodus
     DEPENDS trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
     GIT_REPOSITORY https://github.com/Comcast/libparodus.git
-    GIT_TAG "master"
+    GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     		  -DMAIN_PROJ_BUILD=ON
     		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
@@ -187,6 +187,7 @@ ExternalProject_Add(libseshat
     DEPENDS cJSON trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
     GIT_REPOSITORY https://github.com/comcast/seshat.git
+    GIT_TAG "470f8d5e9457755028aae6da65d3df9b62a53942"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
@@ -205,8 +206,7 @@ endif (ENABLE_SESHAT)
 ExternalProject_Add(cjwt
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cjwt
     GIT_REPOSITORY https://github.com/Comcast/cjwt.git
-    GIT_TAG "master"
-    #GIT_TAG "abd4376ff56212d16f69e850a64f6e095857ca39"
+    GIT_TAG "ddd077f0f00407f9657934492b252ee5cfcde535"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcjwt STATIC SHARED IMPORTED)
@@ -218,8 +218,7 @@ if (FEATURE_DNS_QUERY)
 ExternalProject_Add(ucresolv
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
     GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
-    GIT_TAG "master"
-    #GIT_TAG "04ab7563b7b714713ffe16a2d4c5fad789611298"
+    GIT_TAG "b58d49e165208791f84b44e3c079b1b4ef6d5c9d"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libucresolv STATIC SHARED IMPORTED)
@@ -236,7 +235,7 @@ if (BUILD_TESTING)
 ExternalProject_Add(cmocka
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cmocka
     GIT_REPOSITORY https://github.com/elventear/cmocka.git
-    GIT_TAG "master"
+    GIT_TAG "b71a3060699bc1a5b00e958be353772f42545ac2"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libcmocka STATIC SHARED IMPORTED)
