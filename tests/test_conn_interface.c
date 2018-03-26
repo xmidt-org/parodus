@@ -107,6 +107,12 @@ void set_global_reconnect_reason(char *reason)
     function_called();
 }
 
+void set_global_reconnect_status(bool status)
+{
+    (void)status;
+    function_called();
+}
+
 void close_and_unref_connection(noPollConn *conn)
 {
     UNUSED(conn);
@@ -180,6 +186,7 @@ void test_createSocketConnection()
     
     expect_function_call(set_global_reconnect_reason);
     will_return(get_global_conn, (intptr_t)NULL);
+    expect_function_call(set_global_reconnect_status);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(set_global_conn);
@@ -272,6 +279,7 @@ void test_createSocketConnection2()
     
     expect_function_call(set_global_reconnect_reason);
     will_return(get_global_conn, (intptr_t)NULL);
+    expect_function_call(set_global_reconnect_status);
     expect_function_call(get_global_conn);
     expect_function_call(close_and_unref_connection);
     expect_function_call(set_global_conn);

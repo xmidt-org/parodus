@@ -41,6 +41,7 @@
 char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
 static noPollConn *g_conn = NULL;
+static bool LastReasonStatus = false;
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers);
 static char* build_extra_headers( const char *auth, const char *device_id,
@@ -67,6 +68,16 @@ char *get_global_reconnect_reason()
 void set_global_reconnect_reason(char *reason)
 {
     reconnect_reason = reason;
+}
+
+bool get_global_reconnect_status()
+{
+    return LastReasonStatus;
+}
+
+void set_global_reconnect_status(bool status)
+{
+    LastReasonStatus = status;
 }
 
 /**
@@ -336,7 +347,7 @@ int createNopollConnection(noPollCtx *ctx)
 					{
 						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
 						reconnect_reason = "Dns_Res_webpa_reconnect";
-						LastReasonStatus = true;
+						set_global_reconnect_status(true);
 						
 						kill(getpid(),SIGTERM);						
 					}
@@ -395,7 +406,7 @@ int createNopollConnection(noPollCtx *ctx)
 	// Reset connErr flag on successful connection
 	connErr = 0;
 	reconnect_reason = "webpa_process_starts";
-	LastReasonStatus =false;
+	set_global_reconnect_status(false);
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
 

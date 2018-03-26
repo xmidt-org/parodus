@@ -55,6 +55,9 @@ void set_global_conn(noPollConn *);
 char *get_global_reconnect_reason();
 void set_global_reconnect_reason(char *reason);
 
+bool get_global_reconnect_status();
+void set_global_reconnect_status(bool status);
+
 #ifdef __cplusplus
 }
 #endif
