@@ -359,7 +359,7 @@ int createNopollConnection(noPollCtx *ctx)
 					if(timeValDiff(connErr_startPtr, connErr_endPtr) >= (15*60*1000))
 					{
 						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
-						reconnect_reason = "Dns_Res_webpa_reconnect";
+						set_global_reconnect_reason("Dns_Res_webpa_reconnect");
 						set_global_reconnect_status(true);
 						
 						kill(getpid(),SIGTERM);						
@@ -419,7 +419,7 @@ int createNopollConnection(noPollCtx *ctx)
 	heartBeatTimer = 0;
 	// Reset connErr flag on successful connection
 	connErr = 0;
-	reconnect_reason = "webpa_process_starts";
+	set_global_reconnect_reason("webpa_process_starts");
 	set_global_reconnect_status(false);
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
