@@ -64,6 +64,7 @@
 
 #define MAX_RR_RECS 10
 #define SEQ_TABLE_SIZE (MAX_RR_RECS + 1)
+#define MAX_QUERY_DNS_RETRY_INTERVAL 10
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -202,7 +203,7 @@ int nquery(const char* dns_txt_record_id, u_char *nsbuf)
         return len;
     }
     __res_nclose (&statp);
-	ParodusInfo ("nquery: nsbuf (1) 0x%lx\n", (unsigned long) nsbuf);
+	ParodusPrint ("nquery: nsbuf (1) 0x%lx\n", (unsigned long) nsbuf);
     if (len >= NS_MAXBUF) {
         ParodusError ("res_nquery error: ns buffer too small.\n");
         return -1;
@@ -424,7 +425,7 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 		return l;
    
 	nsbuf = (u_char *) malloc (NS_MAXBUF);
-	ParodusInfo ("nsbuf (1) 0x%lx\n", (unsigned long) nsbuf);
+	ParodusPrint ("nsbuf (1) 0x%lx\n", (unsigned long) nsbuf);
 	if (NULL == nsbuf) {
 		ParodusError ("Unable to allocate nsbuf in query_dns\n");
 		return TOKEN_ERR_MEMORY_FAIL;
@@ -436,14 +437,14 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 		free (nsbuf);
 		return l;
 	}
-	ParodusInfo ("nsbuf (2) 0x%lx\n", (unsigned long) nsbuf);
+	ParodusPrint ("nsbuf (2) 0x%lx\n", (unsigned long) nsbuf);
 
 /*--
 	memset((void *) &msg_handle, 0x5e, sizeof (ns_msg));
 	ParodusInfo ("nsbuf (3) 0x%lx\n", (unsigned long) nsbuf);
 	msg_handle._msg = nsbuf;
 */
-	ParodusInfo ("ns_initparse, msglen %d, nsbuf 0x%lx\n",
+	ParodusPrint ("ns_initparse, msglen %d, nsbuf 0x%lx\n",
     l, (unsigned long) nsbuf);
 	ret = ns_initparse((const u_char *) nsbuf, l, &msg_handle);
 	if (ret != 0) {
@@ -452,9 +453,9 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 		return ret;
 	}
 	
-	ParodusInfo ("ns_msg_count\n");
+	ParodusPrint ("ns_msg_count\n");
 	l = ns_msg_count(msg_handle, ns_s_an);
-	ParodusInfo ("query_dns: ns_msg_count : %d\n",l);
+	ParodusPrint ("query_dns: ns_msg_count : %d\n",l);
   jwt_ans[0] = 0;
 	
 	ret = assemble_jwt_from_dns (&msg_handle, l, jwt_ans);
@@ -482,8 +483,6 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 	char *jwt_token, *key;
 	cjwt_t *jwt = NULL;
 	char dns_txt_record_id[TXT_REC_ID_MAXSIZE];
-	int backoffRetryTime = 0;  
-	int c=2;
 	int retry_count = 0;
 	
 	jwt_token = malloc (NS_MAXBUF);
@@ -495,32 +494,29 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 
 	get_dns_txt_record_id (dns_txt_record_id);
 	
-	/* Backoff retry when query_dns failure (pattern 3,7,15,31,63 .) */
+	/* retry for 12*MAX_QUERY_DNS_RETRY_INTERVAL sec when query_dns failure */
 	
-	while(retry_count<=5)
+	while(retry_count<=12)
 	{
-		backoffRetryTime = (int) pow(2, c) -1;
-		
 		ret = query_dns(dns_txt_record_id, jwt_token);
 		ParodusPrint("query_dns returns %d\n", ret);
 		
 		if(ret == 0)
 		{
 			retry_count = 0;
-			ParodusInfo("query_dns is success ..\n");
+			ParodusInfo("DNS query is success\n");
 			break;
 		}
 		else
-		{ 
-			ParodusInfo("query_dns backoffRetryTime %d seconds\n", backoffRetryTime);
-			sleep(backoffRetryTime);
-                        c++;
+		{
+		    ParodusInfo("Retry DNS query after %d sec\n",MAX_QUERY_DNS_RETRY_INTERVAL);
+			sleep(MAX_QUERY_DNS_RETRY_INTERVAL);
 			retry_count++;
 		}
 	}
 	
 	if(ret){
-		ParodusError("query_dns: failure ..\n");
+		ParodusError("DNS query failed. Hence proceeding without JWT validation.\n");
 		if (ret == TOKEN_ERR_MEMORY_FAIL){
 			insecure = ret;
 		} 
@@ -543,7 +539,7 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 		goto end;
 	}
 
-	ParodusPrint("Decoded CJWT successfully\n");
+	ParodusInfo("Decoded CJWT successfully\n");
 
 	//validate algo from --jwt_algo
 	if( validate_algo(jwt) ) {
