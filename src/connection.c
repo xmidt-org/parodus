@@ -34,6 +34,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
+#define INITIAL_CJWT_RETRY                    	-2
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -105,7 +106,8 @@ int createNopollConnection(noPollCtx *ctx)
     char *jwt_server_url= NULL;
     char redirectURL[128]={'\0'};
     int status=0;
-	int allow_insecure;
+	int allow_insecure = -1;
+	int jwt_status = INITIAL_CJWT_RETRY;
     int connErr=0;
     struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
     connErr_startPtr = &connErr_start;
@@ -125,29 +127,6 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
-	allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
-		server_Address, (int) sizeof(server_Address),
-		port, (int) sizeof(port));
-	if (allow_insecure < 0)
-		return nopoll_false;	// must have valid default url
-#ifdef FEATURE_DNS_QUERY
-	if (get_parodus_cfg()->acquire_jwt) {
-		//query dns and validate JWT
-		int jwt_insecure = allow_insecure_conn(
-			server_Address, (int) sizeof(server_Address),
-			port, (int) sizeof(port));
-			
-		//store server_Address as jwt_server_url to use it for JWT retry scenarios
-		jwt_server_url = strdup(server_Address);
-		if (jwt_server_url !=NULL)
-			ParodusInfo("JWT ON: jwt_server_url stored as %s\n", jwt_server_url);
-		
-		if (jwt_insecure >= 0)
-			allow_insecure = jwt_insecure;
-	}
-#endif
-	ParodusInfo("server_Address %s\n",server_Address);
-	ParodusInfo("port %s\n", port);
 	
 	max_retry_sleep = (int) get_parodus_cfg()->webpa_backoff_max;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
@@ -177,6 +156,33 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
         noPollConn *connection;
+        //retry jwt validation on query dns failure
+        if((jwt_status == INITIAL_CJWT_RETRY) || (jwt_status == TOKEN_ERR_QUERY_DNS_FAIL))
+        {
+            allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+            server_Address, (int) sizeof(server_Address),
+            port, (int) sizeof(port));
+            if (allow_insecure < 0)
+                return nopoll_false;	// must have valid default url
+#ifdef FEATURE_DNS_QUERY
+            if (get_parodus_cfg()->acquire_jwt) {
+                //query dns and validate JWT
+                jwt_status = allow_insecure_conn(
+                server_Address, (int) sizeof(server_Address),
+                port, (int) sizeof(port));
+
+                //store server_Address as jwt_server_url to use it for JWT retry scenarios
+                jwt_server_url = strdup(server_Address);
+                if (jwt_server_url !=NULL)
+                ParodusInfo("JWT ON: jwt_server_url stored as %s\n", jwt_server_url);
+
+                if (jwt_status >= 0)
+                    allow_insecure = jwt_status;
+            }
+#endif
+            ParodusInfo("server_Address %s\n",server_Address);
+            ParodusInfo("port %s\n", port);
+        }
 		if(allow_insecure <= 0)
 		{                    
 		    ParodusPrint("secure true\n");

@@ -482,9 +482,6 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 	char *jwt_token, *key;
 	cjwt_t *jwt = NULL;
 	char dns_txt_record_id[TXT_REC_ID_MAXSIZE];
-	int backoffRetryTime = 0;  
-	int c=2;
-	int retry_count = 0;
 	
 	jwt_token = malloc (NS_MAXBUF);
 	if (NULL == jwt_token) {
@@ -495,32 +492,11 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 
 	get_dns_txt_record_id (dns_txt_record_id);
 	
-	/* Backoff retry when query_dns failure (pattern 3,7,15,31,63 .) */
-	
-	while(retry_count<=5)
-	{
-		backoffRetryTime = (int) pow(2, c) -1;
+	ret = query_dns(dns_txt_record_id, jwt_token);
+	ParodusPrint("query_dns returns %d\n", ret);
 		
-		ret = query_dns(dns_txt_record_id, jwt_token);
-		ParodusPrint("query_dns returns %d\n", ret);
-		
-		if(ret == 0)
-		{
-			retry_count = 0;
-			ParodusInfo("query_dns is success ..\n");
-			break;
-		}
-		else
-		{ 
-			ParodusInfo("query_dns backoffRetryTime %d seconds\n", backoffRetryTime);
-			sleep(backoffRetryTime);
-                        c++;
-			retry_count++;
-		}
-	}
-	
 	if(ret){
-		ParodusError("query_dns: failure ..\n");
+		ParodusError("Failed in DNS query\n");
 		if (ret == TOKEN_ERR_MEMORY_FAIL){
 			insecure = ret;
 		} 
