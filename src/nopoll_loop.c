@@ -47,12 +47,6 @@
  * @{
  */
 
-/*----------------------------------------------------------------------------*/
-/*                            File Scoped Variables                           */
-/*----------------------------------------------------------------------------*/
-noPollMsg * fragMsg;
-int isPreviousMsgFragment = 0;
-
 /** 
  * @internal Function used by nopoll_loop_wait to register all
  * connections into the io waiting object.
@@ -81,15 +75,6 @@ nopoll_bool nopoll_loop_register (noPollCtx * ctx, noPollConn * conn, noPollPtr 
 	return nopoll_false; /* keep foreach, don't stop */
 }
 
-noPollMsg * __nopoll_msg_join(noPollMsg *fragMsg, noPollMsg *msg)
-{
-	noPollMsg *tempMsg = nopoll_msg_join(fragMsg,msg);					
-	nopoll_msg_unref (fragMsg);
-	nopoll_msg_unref (msg);
-	
-	return tempMsg;
-}
-
 /** 
  * @internal Function used to handle incoming data from from the
  * connection and to notify this data on the connection.
@@ -113,53 +98,10 @@ void nopoll_loop_process_data (noPollCtx * ctx, noPollConn * conn)
 	}
 	else {
 		/* found message, notify it */
-		/* Initialized msg handler */
-		
-		if(msg->has_fin == 0)
-		{
-			nopoll_log(ctx, NOPOLL_LEVEL_INFO, "Received Fragment - FIN: %d, Opcode: %d, payload size: %d, Remaining bytes: %d",msg->has_fin,msg->op_code,nopoll_msg_get_payload_size(msg),msg->remain_bytes);
-			isPreviousMsgFragment = 1;
-			if(fragMsg == NULL)
-			{
-				fragMsg = msg;
-				nopoll_log(ctx, NOPOLL_LEVEL_INFO, "Received fragment, joined the message, waiting for last fragment");
-				return;
-			}
-			else
-			{
-				if(nopoll_msg_get_payload_size(msg) == msg->remain_bytes)			
-				{
-					nopoll_log(ctx, NOPOLL_LEVEL_DEBUG,"nopoll_msg_ref_count(fragMsg) %d, nopoll_msg_ref_count(msg) %d\n",nopoll_msg_ref_count(fragMsg),nopoll_msg_ref_count(msg));
-					msg = __nopoll_msg_join(fragMsg,msg);
-					nopoll_log(ctx, NOPOLL_LEVEL_INFO,"Received all the pending bytes, hence which means the complete message is received");
-					fragMsg = NULL;
-					isPreviousMsgFragment = 0;
-					nopoll_log(ctx, NOPOLL_LEVEL_INFO,"Received last fragment payload size %d, joined the old fragment messages",msg->payload_size);
-				}
-				else
-				{
-					nopoll_log(ctx, NOPOLL_LEVEL_DEBUG,"nopoll_msg_ref_count(fragMsg) %d, nopoll_msg_ref_count(msg) %d\n",nopoll_msg_ref_count(fragMsg),nopoll_msg_ref_count(msg));
-					fragMsg = __nopoll_msg_join(fragMsg,msg);	
-					nopoll_log(ctx, NOPOLL_LEVEL_INFO, "Received fragment, joined the message, waiting for last fragment");
-					return;
-				}
-			
-			}
-		}
-		else if(msg->has_fin == 1 && isPreviousMsgFragment && msg->op_code == NOPOLL_CONTINUATION_FRAME)
-		{
-			nopoll_log(ctx, NOPOLL_LEVEL_INFO, "Received Fragment - FIN: %d, Opcode: %d, payload size: %d, Remaining bytes: %d",msg->has_fin,msg->op_code,nopoll_msg_get_payload_size(msg),msg->remain_bytes);
-			nopoll_log(ctx, NOPOLL_LEVEL_DEBUG,"nopoll_msg_ref_count(fragMsg) %d, nopoll_msg_ref_count(msg) %d\n",nopoll_msg_ref_count(fragMsg),nopoll_msg_ref_count(msg));
-			msg = __nopoll_msg_join(fragMsg,msg);
-			fragMsg = NULL;
-			isPreviousMsgFragment = 0;
-			nopoll_log(ctx, NOPOLL_LEVEL_INFO,"Received last fragment payload size %d, joined the old fragment messages",msg->payload_size);					
-		}
-
-		if (conn->on_msg)
-			conn->on_msg (ctx, conn, msg, conn->on_msg_data);
-		else if (ctx->on_msg)
-			ctx->on_msg (ctx, conn, msg, ctx->on_msg_data);
+	if (conn->on_msg)
+		conn->on_msg (ctx, conn, msg, conn->on_msg_data);
+	else if (ctx->on_msg)
+		ctx->on_msg (ctx, conn, msg, ctx->on_msg_data);
 	}
 
 	/* release message */
