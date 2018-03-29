@@ -40,6 +40,16 @@ void set_global_reconnect_reason(char *reason)
     (void) reason;
 }
 
+bool get_global_reconnect_status()
+{
+    return LastReasonStatus;
+}
+
+void set_global_reconnect_status(bool status)
+{
+    (void) status ;
+}
+
 const unsigned char *nopoll_msg_get_payload(noPollMsg *msg)
 {
     if( NULL != msg ) {
@@ -116,16 +126,16 @@ void *a1(void *in)
     char str[] = "SSL_Socket_Close";
     (void) in;
 
-    LastReasonStatus = false;
+    set_global_reconnect_status(false);
     listenerOnCloseMessage(NULL, NULL, NULL);
     
-    LastReasonStatus = false;
+    set_global_reconnect_status(false);
     listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
 
-    LastReasonStatus = true;
+    set_global_reconnect_status(true);
     listenerOnCloseMessage(NULL, NULL, NULL);
 
-    LastReasonStatus = true;
+    set_global_reconnect_status(true);
     listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
 
     pthread_exit(0);

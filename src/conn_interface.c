@@ -48,7 +48,6 @@
 /*----------------------------------------------------------------------------*/
 
 bool close_retry = false;
-bool LastReasonStatus = false;
 volatile unsigned int heartBeatTimer = 0;
 pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 
@@ -112,7 +111,7 @@ void createSocketConnection(void (* initKeypress)())
                 ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
                 ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
                 set_global_reconnect_reason("Ping_Miss");
-                LastReasonStatus = true;
+                set_global_reconnect_status(true);
                 pthread_mutex_lock (&close_mut);
                 close_retry = true;
                 pthread_mutex_unlock (&close_mut);
