@@ -27,6 +27,7 @@
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
 #include "../src/config.h"
+#include "../src/token.h"
 
 #define SECURE_WEBPA_URL	"https://127.0.0.1"
 #define UNSECURE_WEBPA_URL	"http://127.0.0.1"
@@ -239,15 +240,14 @@ void test_createSecureConnection()
 
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 0);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
-
     expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
     
 #ifdef FEATURE_DNS_QUERY
@@ -309,15 +309,14 @@ void test_createConnection()
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 1);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
-
 
     expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
     
@@ -367,14 +366,14 @@ void test_createConnectionConnNull()
     
     assert_non_null(ctx);
 
-#ifdef FEATURE_DNS_QUERY
-        setGlobalJWTUrl ("127.0.0.2");
-	will_return (allow_insecure_conn, 0);
-	expect_function_call (allow_insecure_conn);
-#endif
-
     will_return(getWebpaConveyHeader, (intptr_t)"");
     expect_function_call(getWebpaConveyHeader);
+
+#ifdef FEATURE_DNS_QUERY
+        setGlobalJWTUrl ("127.0.0.2");
+	will_return (allow_insecure_conn, -2);
+	expect_function_call (allow_insecure_conn);
+#endif
 
     expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
 
@@ -399,7 +398,7 @@ void test_createConnectionConnNull()
 #else
     expect_string(nopoll_conn_tls_new, (intptr_t)host_ip, HOST_IP);
 #endif    
-    
+
     will_return(nopoll_conn_tls_new, (intptr_t)NULL);
     expect_function_call(nopoll_conn_tls_new);
 
@@ -407,6 +406,12 @@ void test_createConnectionConnNull()
     expect_function_call(checkHostIp);
 
     expect_function_call(getCurrentTime);
+
+#ifdef FEATURE_DNS_QUERY
+        setGlobalJWTUrl ("127.0.0.2");
+	will_return (allow_insecure_conn, TOKEN_ERR_QUERY_DNS_FAIL);
+	expect_function_call (allow_insecure_conn);
+#endif
 
 	expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
 #ifdef FEATURE_DNS_QUERY
@@ -447,6 +452,12 @@ void test_createConnectionConnNull()
 
     will_return(kill, 1);
     expect_function_call(kill);
+
+#ifdef FEATURE_DNS_QUERY
+        setGlobalJWTUrl ("127.0.0.2");
+	will_return (allow_insecure_conn, 0);
+	expect_function_call (allow_insecure_conn);
+#endif
 
     expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
     
@@ -509,14 +520,14 @@ void test_createConnNull_JWT_NULL()
     
     assert_non_null(ctx);
 
-#ifdef FEATURE_DNS_QUERY
-        setGlobalJWTUrl ("");
-	will_return (allow_insecure_conn, 0);
-	expect_function_call (allow_insecure_conn);
-#endif
-
     will_return(getWebpaConveyHeader, (intptr_t)"");
     expect_function_call(getWebpaConveyHeader);
+
+#ifdef FEATURE_DNS_QUERY
+        setGlobalJWTUrl ("");
+	will_return (allow_insecure_conn, TOKEN_ERR_MEMORY_FAIL);
+	expect_function_call (allow_insecure_conn);
+#endif
 
     expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
 
@@ -647,14 +658,14 @@ void test_createConnectionConnNotOk()
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 1);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
     expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
 
@@ -744,14 +755,14 @@ void test_createConnNotOk_JWT_NULL()
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("");
 	will_return (allow_insecure_conn, 1);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
     expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
 
@@ -841,14 +852,14 @@ void test_createConnectionConnRedirect()
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
         setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 1);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
     expect_value(nopoll_conn_new_opts, (intptr_t)ctx, (intptr_t)ctx);
 #ifdef FEATURE_DNS_QUERY
@@ -935,14 +946,14 @@ void test_createIPv4Connection()
 
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 0);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
 	expect_value(nopoll_conn_tls_new, (intptr_t)ctx, (intptr_t)ctx);
 #ifdef FEATURE_DNS_QUERY
@@ -984,14 +995,14 @@ void test_createIPv6Connection()
 
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 0);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
 	expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
 #ifdef FEATURE_DNS_QUERY
@@ -1035,14 +1046,14 @@ void test_createIPv6toIPv4Connection()
 
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 0);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
 	expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
 #ifdef FEATURE_DNS_QUERY
@@ -1111,14 +1122,14 @@ void test_createFallbackRedirectionConn()
 
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 0);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
 	expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
 #ifdef FEATURE_DNS_QUERY
@@ -1212,14 +1223,14 @@ void test_createIPv6FallbackRedirectConn()
 
     assert_non_null(ctx);
 
+    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
+    expect_function_call(getWebpaConveyHeader);
+
 #ifdef FEATURE_DNS_QUERY
 	setGlobalJWTUrl ("127.0.0.2");
 	will_return (allow_insecure_conn, 0);
 	expect_function_call (allow_insecure_conn);
 #endif
-
-    will_return(getWebpaConveyHeader, (intptr_t)"WebPA-1.6 (TG1682)");
-    expect_function_call(getWebpaConveyHeader);
 
 	expect_value(nopoll_conn_tls_new6, (intptr_t)ctx, (intptr_t)ctx);
 #ifdef FEATURE_DNS_QUERY
