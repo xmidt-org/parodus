@@ -69,7 +69,7 @@ void test_setParodusConfig()
     parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
     parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
-    parStrncpy(cfg.partner_id , "comcast", sizeof(cfg.partner_id));
+    parStrncpy(cfg.partner_id , "mycom", sizeof(cfg.partner_id));
 #ifdef ENABLE_SESHAT
     parStrncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", sizeof(cfg.seshat_url));
 #endif
@@ -184,7 +184,7 @@ void test_parseCommandLine()
 		"--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt",
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
-		"--dns-txt-url=fabric.comcast.net",
+		"--dns-txt-url=mydns.mycom.net",
 		"--jwt-public-key-file=../../tests/jwt_key.tst",
 		"--jwt-algo=RS256",
 #endif
@@ -226,7 +226,7 @@ void test_parseCommandLine()
     assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
-    assert_string_equal(parodusCfg.dns_txt_url, "fabric.comcast.net");
+    assert_string_equal(parodusCfg.dns_txt_url, "mydns.mycom.net");
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
 #endif
@@ -272,7 +272,7 @@ void err_parseCommandLine()
 #ifdef FEATURE_DNS_QUERY
 	command[5] = "--webpa-url=https://127.0.0.1";
 	command[3] = "--acquire-jwt=1";
-	command[4] = "--dns-txt-url=fabric.comcast.net";
+	command[4] = "--dns-txt-url=mydns.mycom.net";
 	// missing algo
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), -1);
 	command[4] = "--jwt-algo=none:RS256";
@@ -307,7 +307,7 @@ void test_loadParodusCfg()
     parStrncpy(Cfg->partner_id , "shaw", sizeof(Cfg->partner_id));
 #ifdef FEATURE_DNS_QUERY
 	Cfg->acquire_jwt = 1;
-    parStrncpy(Cfg->dns_txt_url, "fabric",sizeof(Cfg->dns_txt_url));
+    parStrncpy(Cfg->dns_txt_url, "mydns",sizeof(Cfg->dns_txt_url));
     Cfg->jwt_algo = 1025;
     parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
 #endif
@@ -329,7 +329,7 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.webpa_protocol, protocol);
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) tmpcfg.acquire_jwt, 1);
-    assert_string_equal(tmpcfg.dns_txt_url, "fabric");
+    assert_string_equal(tmpcfg.dns_txt_url, "mydns");
     assert_int_equal( (int) tmpcfg.jwt_algo, 1025);
     assert_string_equal(tmpcfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
 #endif
@@ -453,23 +453,23 @@ void test_parse_webpa_url ()
 {
 	char addr_buf[80];
 	char port_buf[8];
-	assert_int_equal (parse_webpa_url ("fabric.webpa.comcast.net:8080",
+	assert_int_equal (parse_webpa_url ("mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), -1);
-	assert_int_equal (parse_webpa_url ("https://fabric.webpa.comcast.net:8080",
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 0);
-	assert_string_equal (addr_buf, "fabric.webpa.comcast.net");
+	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "8080");
-	assert_int_equal (parse_webpa_url ("https://fabric.webpa.comcast.net/",
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/",
 		addr_buf, 80, port_buf, 8), 0);
-	assert_string_equal (addr_buf, "fabric.webpa.comcast.net");
+	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "443");
-	assert_int_equal (parse_webpa_url ("http://fabric.webpa.comcast.net:8080",
+	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 1);
-	assert_string_equal (addr_buf, "fabric.webpa.comcast.net");
+	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "8080");
-	assert_int_equal (parse_webpa_url ("http://fabric.webpa.comcast.net",
+	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net",
 		addr_buf, 80, port_buf, 8), 1);
-	assert_string_equal (addr_buf, "fabric.webpa.comcast.net");
+	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "80");
 		
 }
