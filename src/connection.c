@@ -47,6 +47,7 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
 static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers,unsigned int *fallback);
 static char* build_extra_headers( const char *auth, const char *device_id,
                                   const char *user_agent, const char *convey );
+static noPollSslProtocol get_nopoll_tls_protocol(void);
 static void toggleIPFlag (unsigned int *ptrFallback);
 static noPollConn * __internal_fallbackConn(noPollCtx  * ctx,noPollConnOpts * opts,char * serverAddr,char *serverPort,char * extra_headers,unsigned int *fallback);
 
@@ -501,7 +502,7 @@ static noPollConn * __internal_fallbackConn(noPollCtx  * ctx,noPollConnOpts * op
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 {
     noPollConnOpts * opts;
-    noPollSslProtocol protocol = NOPOLL_METHOD_TLSV1;
+    noPollSslProtocol protocol = NOPOLL_METHOD_TLSV1_2;
     
     opts = nopoll_conn_opts_new ();
     protocol = get_nopoll_tls_protocol();
