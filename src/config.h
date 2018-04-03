@@ -54,7 +54,7 @@ extern "C" {
 #define WEBPA_PATH_URL                  "/api/v2/device"
 #define JWT_ALGORITHM					"jwt-algo"
 #define	JWT_KEY						"jwt-key"
-#define DNS_ID	"fabric"
+#define DNS_TXT_URL	"fabric"
 #define PARODUS_UPSTREAM                "tcp://127.0.0.1:6666"
 
 #define ALLOW_NON_RSA_ALG	false
@@ -85,7 +85,7 @@ typedef struct
 #ifdef ENABLE_SESHAT
     char seshat_url[128];
 #endif
-    char dns_id[64];
+    char dns_txt_url[64];
     unsigned int acquire_jwt;
     unsigned int jwt_algo;  // bit mask set for each allowed algorithm
     char jwt_key[4096]; // may be read in from a pem file
@@ -97,6 +97,7 @@ typedef struct
 
 #define FLAGS_IPV6_ONLY (1 << 0)
 #define FLAGS_IPV4_ONLY (1 << 1)
+#define FLAGS_IPV6_IPV4 (FLAGS_IPV6_ONLY | FLAGS_IPV4_ONLY)
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */

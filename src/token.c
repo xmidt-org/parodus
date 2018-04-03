@@ -185,7 +185,7 @@ int nquery(const char* dns_txt_record_id, u_char *nsbuf)
 			ParodusError ("nquery: nsbuf is NULL\n");
 			return (-1);
 		}
-		statp.options |= RES_DEBUG;
+		statp.options = RES_DEBUG;
     if (__res_ninit(&statp) < 0) {
         ParodusError ("res_ninit error: can't initialize statp.\n");
         return (-1);
@@ -429,8 +429,10 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 		ParodusError ("Unable to allocate nsbuf in query_dns\n");
 		return TOKEN_ERR_MEMORY_FAIL;
 	}
+	
 	l = nquery(dns_txt_record_id,nsbuf);
 	if (l < 0) {
+		ParodusError("nquery returns error: l value is %d\n", l);
 		free (nsbuf);
 		return l;
 	}
@@ -467,7 +469,7 @@ static void get_dns_txt_record_id (char *buf)
 	ParodusCfg *cfg = get_parodus_cfg();
 	buf[0] = 0;
 
-	sprintf (buf, "%s.%s", cfg->hw_mac, cfg->dns_id);
+	sprintf (buf, "%s.%s", cfg->hw_mac, cfg->dns_txt_url);
 	ParodusInfo("dns_txt_record_id %s\n", buf);
 }
 #endif
@@ -491,15 +493,18 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 	get_dns_txt_record_id (dns_txt_record_id);
 	
 	ret = query_dns(dns_txt_record_id, jwt_token);
+	ParodusPrint("query_dns returns %d\n", ret);
+		
 	if(ret){
-		if (ret == TOKEN_ERR_MEMORY_FAIL) {
+		ParodusError("Failed in DNS query\n");
+		if (ret == TOKEN_ERR_MEMORY_FAIL){
 			insecure = ret;
-		} else {
+		} 
+		else{
 			insecure = TOKEN_ERR_QUERY_DNS_FAIL;
 		}
 		goto end;
 	}
-	
 	//Decoding the jwt token
 	key = get_parodus_cfg()->jwt_key;
 	ret = cjwt_decode( jwt_token, 0, &jwt, ( const uint8_t * )key,strlen(key) );

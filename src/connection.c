@@ -34,6 +34,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
+#define INITIAL_CJWT_RETRY                    	-2
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -41,11 +42,13 @@
 char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
 static noPollConn *g_conn = NULL;
+static bool LastReasonStatus = false;
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
-static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers);
+static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers,unsigned int *fallback);
 static char* build_extra_headers( const char *auth, const char *device_id,
                                   const char *user_agent, const char *convey );
-static noPollSslProtocol get_nopoll_tls_protocol(void);
+static void toggleIPFlag (unsigned int *ptrFallback);
+static noPollConn * __internal_fallbackConn(noPollCtx  * ctx,noPollConnOpts * opts,char * serverAddr,char *serverPort,char * extra_headers,unsigned int *fallback);
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -70,6 +73,25 @@ void set_global_reconnect_reason(char *reason)
     reconnect_reason = reason;
 }
 
+bool get_global_reconnect_status()
+{
+    return LastReasonStatus;
+}
+
+void set_global_reconnect_status(bool status)
+{
+    LastReasonStatus = status;
+}
+
+// If IPv6 conn failed to connect then fallback to IPv4 conn or vice-versa
+static void toggleIPFlag (unsigned int *ptrFallback)
+{
+	if(FLAGS_IPV6_ONLY == (FLAGS_IPV6_IPV4 & *ptrFallback))
+		*ptrFallback = FLAGS_IPV4_ONLY;
+	else
+		*ptrFallback = FLAGS_IPV6_ONLY;
+}
+
 /**
  * @brief createNopollConnection interface to create WebSocket client connections.
  *Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
@@ -81,9 +103,11 @@ int createNopollConnection(noPollCtx *ctx)
     int max_retry_sleep;
     char port[8];
     char server_Address[256];
+    char *jwt_server_url= NULL;
     char redirectURL[128]={'\0'};
     int status=0;
-	int allow_insecure;
+	int allow_insecure = -1;
+	int jwt_status = INITIAL_CJWT_RETRY;
     int connErr=0;
     struct timespec connErr_start,connErr_end,*connErr_startPtr,*connErr_endPtr;
     connErr_startPtr = &connErr_start;
@@ -94,6 +118,7 @@ int createNopollConnection(noPollCtx *ctx)
     char device_id[32]={'\0'};
     char user_agent[512]={'\0'};
     char * extra_headers = NULL;
+    unsigned int fallback = FLAGS_IPV6_ONLY;
     
     if(ctx == NULL) {
         return nopoll_false;
@@ -102,23 +127,6 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
-	allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
-		server_Address, (int) sizeof(server_Address),
-		port, (int) sizeof(port));
-	if (allow_insecure < 0)
-		return nopoll_false;	// must have valid default url
-#ifdef FEATURE_DNS_QUERY
-	if (get_parodus_cfg()->acquire_jwt) {
-		//query dns and validate JWT
-		int jwt_insecure = allow_insecure_conn(
-			server_Address, (int) sizeof(server_Address),
-			port, (int) sizeof(port));
-		if (jwt_insecure >= 0)
-			allow_insecure = jwt_insecure;
-	}
-#endif
-	ParodusInfo("server_Address %s\n",server_Address);
-	ParodusInfo("port %s\n", port);
 	
 	max_retry_sleep = (int) get_parodus_cfg()->webpa_backoff_max;
 	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
@@ -148,10 +156,37 @@ int createNopollConnection(noPollCtx *ctx)
 		}
 		ParodusPrint("New backoffRetryTime value calculated as %d seconds\n", backoffRetryTime);
         noPollConn *connection;
+        //retry jwt validation on query dns failure
+        if((jwt_status == INITIAL_CJWT_RETRY) || (jwt_status == TOKEN_ERR_QUERY_DNS_FAIL))
+        {
+            allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+            server_Address, (int) sizeof(server_Address),
+            port, (int) sizeof(port));
+            if (allow_insecure < 0)
+                return nopoll_false;	// must have valid default url
+#ifdef FEATURE_DNS_QUERY
+            if (get_parodus_cfg()->acquire_jwt) {
+                //query dns and validate JWT
+                jwt_status = allow_insecure_conn(
+                server_Address, (int) sizeof(server_Address),
+                port, (int) sizeof(port));
+
+                //store server_Address as jwt_server_url to use it for JWT retry scenarios
+                jwt_server_url = strdup(server_Address);
+                if (jwt_server_url !=NULL)
+                ParodusInfo("JWT ON: jwt_server_url stored as %s\n", jwt_server_url);
+
+                if (jwt_status >= 0)
+                    allow_insecure = jwt_status;
+            }
+#endif
+            ParodusInfo("server_Address %s\n",server_Address);
+            ParodusInfo("port %s\n", port);
+        }
 		if(allow_insecure <= 0)
 		{                    
 		    ParodusPrint("secure true\n");
-            connection = nopoll_tls_common_conn(ctx,server_Address, port, extra_headers);                
+            connection = nopoll_tls_common_conn(ctx,server_Address, port, extra_headers,&fallback);
 		}
 		else 
 		{
@@ -169,13 +204,32 @@ int createNopollConnection(noPollCtx *ctx)
 				ParodusError("Error connecting to server\n");
 				ParodusError("RDK-10037 - WebPA Connection Lost\n");
 				// Copy the server address from config to avoid retrying to the same failing talaria redirected node
-				allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
+				if (get_parodus_cfg()->acquire_jwt == 0)
+				{
+					ParodusInfo("acquire_jwt is 0, retrying with config server address\n");
+					allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
 					server_Address, (int) sizeof(server_Address),
 					port, (int) sizeof(port));
+				}
+				else
+				{
+					if( (jwt_server_url != NULL) && strlen(jwt_server_url) != 0 )
+					{
+						ParodusInfo("acquire_jwt is 1, retrying with jwt_server_url\n");
+						parStrncpy(server_Address, jwt_server_url, sizeof(server_Address));
+					}
+					else
+					{
+						ParodusError("acquire_jwt is 1 & unable to get jwt_server_url, retrying with config server address\n");
+						allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+					
+					}
+				}
+				
 				close_and_unref_connection(get_global_conn());
 				set_global_conn(NULL);
 				initial_retry = true;
-				
+				toggleIPFlag(&fallback);
 				ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 				sleep(backoffRetryTime);
 				continue;
@@ -204,9 +258,27 @@ int createNopollConnection(noPollCtx *ctx)
 						port, (int) sizeof(port));
 					if (allow_insecure < 0) {
 						ParodusError ("Invalid redirectURL\n");
-						allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
-							server_Address, (int) sizeof(server_Address),
-							port, (int) sizeof(port));
+						
+						if (get_parodus_cfg()->acquire_jwt == 0)
+						{
+							ParodusInfo("acquire_jwt is 0, retrying with config server address\n");
+							allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+						}
+						else
+						{
+							if( (jwt_server_url != NULL) && strlen(jwt_server_url) != 0 )
+							{
+								ParodusInfo("acquire_jwt is 1, retrying with jwt_server_url\n");
+								parStrncpy(server_Address, jwt_server_url, sizeof(server_Address));
+							}
+							else
+							{
+								ParodusError("acquire_jwt is 1 & unable to get jwt_server_url, retrying with config server address\n");
+								allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+							
+							}
+						}
+						
 					} else
 						ParodusInfo("Trying to Connect to new Redirected server : %s with port : %s\n", server_Address, port);
 					//reset c=2 to start backoffRetryTime as retrying using new redirect server
@@ -232,11 +304,30 @@ int createNopollConnection(noPollCtx *ctx)
 					ParodusError("Client connection timeout\n");	
 					ParodusError("RDK-10037 - WebPA Connection Lost\n");
 					// Copy the server address and port from config to avoid retrying to the same failing talaria redirected node
-					allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
-						server_Address, (int) sizeof(server_Address),
-						port, (int) sizeof(port));
+					
+					if (get_parodus_cfg()->acquire_jwt == 0)
+					{
+						ParodusInfo("acquire_jwt is 0, retrying with config server address\n");
+						allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+					}
+					else
+					{
+						if( (jwt_server_url != NULL) && strlen(jwt_server_url) != 0 )
+						{
+							ParodusInfo("acquire_jwt is 1, retrying with jwt_server_url\n");
+							parStrncpy(server_Address, jwt_server_url, sizeof(server_Address));
+						}
+						else
+						{
+							ParodusError("acquire_jwt is 1 & unable to get jwt_server_url, retrying with config server address\n");
+							allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+						
+						}
+					}
+						
 					ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 					sleep(backoffRetryTime);
+					toggleIPFlag(&fallback);
 					c++;
 				}
 				//reset httpStatus before next retry
@@ -274,21 +365,39 @@ int createNopollConnection(noPollCtx *ctx)
 					if(timeValDiff(connErr_startPtr, connErr_endPtr) >= (15*60*1000))
 					{
 						ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
-						reconnect_reason = "Dns_Res_webpa_reconnect";
-						LastReasonStatus = true;
+						set_global_reconnect_reason("Dns_Res_webpa_reconnect");
+						set_global_reconnect_status(true);
 						
 						kill(getpid(),SIGTERM);						
 					}
 				}			
 			}
 			initial_retry = true;
+			toggleIPFlag(&fallback);
 			ParodusInfo("Waiting with backoffRetryTime %d seconds\n", backoffRetryTime);
 			sleep(backoffRetryTime);
 			c++;
 			// Copy the server address and port from config to avoid retrying to the same failing talaria redirected node
-			allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url,
-				server_Address, (int) sizeof(server_Address),
-				port, (int) sizeof(port));
+			
+			if (get_parodus_cfg()->acquire_jwt == 0)
+			{
+				ParodusInfo("acquire_jwt is 0, retrying with config server address\n");
+				allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+			}
+			else
+			{
+				if( (jwt_server_url != NULL) && strlen(jwt_server_url) != 0 )
+				{
+					ParodusInfo("acquire_jwt is 1, retrying with jwt_server_url\n");
+					parStrncpy(server_Address, jwt_server_url, sizeof(server_Address));
+				}
+				else
+				{
+					ParodusError("acquire_jwt is 1 & unable to get jwt_server_url, retrying with config server address\n");
+					allow_insecure = parse_webpa_url (get_parodus_cfg()->webpa_url, server_Address, (int) sizeof(server_Address), port, (int) sizeof(port));
+				
+				}
+			}
 		}
 				
 	}while(initial_retry);
@@ -302,6 +411,11 @@ int createNopollConnection(noPollCtx *ctx)
 		ParodusInfo("Connected to server\n");
 	}
 	
+	
+	if (NULL != jwt_server_url)
+	{
+		free (jwt_server_url);
+	}	
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): close_mut lock\n");
 	pthread_mutex_lock (&close_mut);
@@ -311,8 +425,8 @@ int createNopollConnection(noPollCtx *ctx)
 	heartBeatTimer = 0;
 	// Reset connErr flag on successful connection
 	connErr = 0;
-	reconnect_reason = "webpa_process_starts";
-	LastReasonStatus =false;
+	set_global_reconnect_reason("webpa_process_starts");
+	set_global_reconnect_status(false);
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
 
@@ -338,7 +452,7 @@ static char* build_extra_headers( const char *auth, const char *device_id,
             (NULL != convey) ? convey : "" );
 }
 
-static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers)
+static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,char *serverPort,char * extra_headers,unsigned int *fallback)
 {
         unsigned int flags = 0;
         noPollConnOpts * opts;
@@ -354,16 +468,34 @@ static noPollConn * nopoll_tls_common_conn (noPollCtx  * ctx,char * serverAddr,c
             ParodusInfo("Connecting in Ipv6 mode\n");
             connection = nopoll_conn_tls_new6 (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
         } else {
-            ParodusInfo("Try connecting with Ipv6 mode\n");
-            connection = nopoll_conn_tls_new6 (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
-            if(connection == NULL)
-            {
-                ParodusInfo("Ipv6 connection failed. Try connecting with Ipv4 mode \n");
-                opts = createConnOpts(extra_headers, true);
-                connection = nopoll_conn_tls_new (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
-            }
+
+			connection = __internal_fallbackConn(ctx,opts,serverAddr,serverPort,extra_headers,fallback);
         }
         return connection;
+}
+
+static noPollConn * __internal_fallbackConn(noPollCtx  * ctx,noPollConnOpts * opts,char * serverAddr,char *serverPort,char * extra_headers,unsigned int *fallback)
+{
+	noPollConn *connection = NULL;
+
+	if(FLAGS_IPV6_ONLY == (FLAGS_IPV6_IPV4 & *fallback))
+	{
+		ParodusInfo("Try connecting with Ipv6 mode\n");
+		connection = nopoll_conn_tls_new6 (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
+	}
+	if(FLAGS_IPV4_ONLY == (FLAGS_IPV6_IPV4 & *fallback) || !nopoll_conn_is_ok (connection) )
+	{
+		ParodusInfo("Ipv6 connection failed. Try connecting with Ipv4 mode \n");
+
+		// fallback is to detect the current connection mode either IPv6/IPv4. if the fallback flag is true for IPv6 connection, then change it here to IPv4. or if the fallback flag is already in IPv4 mode, then skip it.
+		if(!nopoll_conn_is_ok (connection) && FLAGS_IPV6_ONLY == (FLAGS_IPV6_IPV4 & *fallback))
+			toggleIPFlag(fallback);
+
+		opts = createConnOpts(extra_headers, true);
+		connection = nopoll_conn_tls_new (ctx, opts,serverAddr,serverPort,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);
+	}
+
+	return connection;
 }
 
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
