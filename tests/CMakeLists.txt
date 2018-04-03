@@ -89,12 +89,12 @@ target_link_libraries (libpd_test
                        -lcimplog 
                        -lm
                        -lpthread)
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-target_link_libraries (libpd_test ${PARODUS_LINUX_ONLY_LIBS})
-endif()
 if (ENABLE_SESHAT)
 target_link_libraries (libpd_test -llibseshat)
 endif (ENABLE_SESHAT)
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+target_link_libraries (libpd_test ${PARODUS_LINUX_ONLY_LIBS})
+endif()
 #-------------------------------------------------------------------------------
 #   test_time
 #-------------------------------------------------------------------------------
