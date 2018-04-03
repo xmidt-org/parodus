@@ -569,7 +569,7 @@ void test_allow_insecure_conn ()
 	ParodusCfg *cfg = get_parodus_cfg();
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
-	parStrncpy (cfg->dns_id, "test", sizeof(cfg->dns_id));
+	parStrncpy (cfg->dns_txt_url, "test", sizeof(cfg->dns_txt_url));
 	parStrncpy (cfg->jwt_algo, "none:RS256", sizeof(cfg->jwt_algo));
 
 	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
@@ -582,7 +582,7 @@ void test_allow_insecure_conn ()
 	assert_int_equal (insecure, 0);
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
-	parStrncpy (cfg->dns_id, "err5", sizeof(cfg->dns_id));
+	parStrncpy (cfg->dns_txt_url, "err5", sizeof(cfg->dns_txt_url));
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
@@ -592,7 +592,7 @@ void test_allow_insecure_conn ()
 	assert_int_equal (insecure, TOKEN_ERR_QUERY_DNS_FAIL);
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
-	parStrncpy (cfg->dns_id, "test", sizeof(cfg->dns_id));
+	parStrncpy (cfg->dns_txt_url, "test", sizeof(cfg->dns_txt_url));
 	parStrncpy (cfg->jwt_algo, "none:RS256", sizeof(cfg->jwt_algo));
 	parStrncpy (cfg->jwt_key, "xxxxxxxxxx", sizeof(cfg->jwt_key));
 
@@ -604,7 +604,7 @@ void test_allow_insecure_conn ()
 	assert_int_equal (insecure, TOKEN_ERR_JWT_DECODE_FAIL);
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
-	parStrncpy (cfg->dns_id, "test", sizeof(cfg->dns_id));
+	parStrncpy (cfg->dns_txt_url, "test", sizeof(cfg->dns_txt_url));
 	parStrncpy (cfg->jwt_algo, "none:RS512", sizeof(cfg->jwt_algo));
 	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
 

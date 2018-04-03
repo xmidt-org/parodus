@@ -132,13 +132,13 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
 
     ParodusPrint("listenerOnCloseMessage(): mutex lock in producer thread\n");
 
-    if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !LastReasonStatus)
+    if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !get_global_reconnect_status())
     {
     	ParodusInfo("Reconnect detected, setting Reconnect reason as Server close\n");
         set_global_reconnect_reason("Server_closed_connection");
-        LastReasonStatus = true;
+        set_global_reconnect_status(true);
     }
-    else if ((user_data == NULL) && !LastReasonStatus)
+    else if ((user_data == NULL) && !get_global_reconnect_status())
     {
     	ParodusInfo("Reconnect detected, setting Reconnect reason as Unknown\n");
         set_global_reconnect_reason("Unknown");
