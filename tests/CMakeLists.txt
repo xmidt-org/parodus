@@ -226,7 +226,7 @@ target_link_libraries (test_config -lcmocka -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lm
 )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-target_link_libraries (test_mutex ${PARODUS_LINUX_ONLY_LIBS})
+target_link_libraries (test_config ${PARODUS_LINUX_ONLY_LIBS})
 endif()
 
 #-------------------------------------------------------------------------------
