@@ -21,8 +21,8 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-cove
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
 set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c ../src/token.c)
 set (PARODUS_COMMON_LIBS -lcunit -lcimplog -lwrp-c
- -lmsgpackc -lnopoll -lnanomsg -lcjwt -lssl -lcrypto
- -lpthread -lcjson -ltrower-base64 -lm)
+ -lmsgpackc -lnopoll -lnanomsg -lcjwt -lssl -lpthread
+ -lcjson -ltrower-base64 -lm)
 set (PARODUS_LINUX_ONLY_LIBS gcov -luuid -lrt -Wl,--no-as-needed)
 
 if (ENABLE_SESHAT)
@@ -277,10 +277,10 @@ else()
 set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(test_conn_interface ${SOURCES})
+target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_conn_interface ${PARODUS_LINUX_ONLY_LIBS})
 endif()
-target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   test_ParodusInternal
