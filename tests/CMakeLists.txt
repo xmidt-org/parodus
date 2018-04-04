@@ -277,10 +277,10 @@ else()
 set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(test_conn_interface ${SOURCES})
-target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_conn_interface ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   test_ParodusInternal
