@@ -179,6 +179,13 @@ int createNopollConnection(noPollCtx *ctx)
                 if (jwt_status >= 0)
                     allow_insecure = jwt_status;
             }
+            else
+            {
+                ParodusInfo("JWT validation is disabled\n");
+                jwt_status = 1;
+            }
+#else
+            jwt_status = 1;
 #endif
             ParodusInfo("server_Address %s\n",server_Address);
             ParodusInfo("port %s\n", port);
