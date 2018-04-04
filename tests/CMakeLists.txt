@@ -25,10 +25,6 @@ set (PARODUS_COMMON_LIBS -lcunit -lcimplog -lwrp-c
  -lcjson -ltrower-base64 -lm)
 set (PARODUS_LINUX_ONLY_LIBS gcov -luuid -lrt -Wl,--no-as-needed)
 
-if (ENABLE_SESHAT)
-set (PARODUS_COMMON_LIBS -llibseshat ${PARODUS_COMMON_LIBS})
-endif (ENABLE_SESHAT)
-
 if (FEATURE_DNS_QUERY)
 set (PARODUS_COMMON_LIBS ${PARODUS_COMMON_LIBS} -lucresolv -lresolv)
 endif (FEATURE_DNS_QUERY)
@@ -190,10 +186,13 @@ set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
  
 add_executable(test_client_list ${SOURCES})
-target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
+if (ENABLE_SESHAT)
+target_link_libraries (test_client_list -llibseshat)
+endif (ENABLE_SESHAT)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_client_list ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_service_alive
@@ -206,15 +205,18 @@ endif()
 set(SOURCES test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 if (ENABLE_SESHAT)
 set(SOURCES ${SOURCES} ../src/seshat_interface.c)
-else()
+else(ENABLE_SESHAT)
 set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 
 add_executable(test_service_alive ${SOURCES})
-target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
+if (ENABLE_SESHAT)
+target_link_libraries (test_service_alive -llibseshat)
+endif (ENABLE_SESHAT)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_service_alive ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_config
@@ -224,7 +226,7 @@ add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_config ${PARODUS_LINUX_ONLY_LIBS})
 endif()
-target_link_libraries (test_config -lcmocka -lcimplog -lcjwt -lcjson -ltrower-base64 -lssl)
+target_link_libraries (test_config -lcmocka  ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_upstream
@@ -273,14 +275,17 @@ add_test(NAME test_conn_interface COMMAND ${MEMORY_CHECK} ./test_conn_interface)
 set(SOURCES test_conn_interface.c ../src/conn_interface.c ../src/config.c ../src/string_helpers.c ../src/mutex.c)
 if (ENABLE_SESHAT)
 set(SOURCES ${SOURCES} ../src/seshat_interface.c)
-else()
+else(ENABLE_SESHAT)
 set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(test_conn_interface ${SOURCES})
-target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
+if (ENABLE_SESHAT)
+target_link_libraries (test_conn_interface -llibseshat)
+endif(ENABLE_SESHAT)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_conn_interface ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   test_ParodusInternal
@@ -307,10 +312,13 @@ endif()
 #-------------------------------------------------------------------------------
 add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
 add_executable(test_token ${SOURCES} ) 
-target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
+if (ENABLE_SESHAT)
+target_link_libraries (test_token -llibseshat )
+endif (ENABLE_SESHAT)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_token ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
 
 #-------------------------------------------------------------------------------
 #   test_seshat_interface - registerWithSeshat
@@ -322,10 +330,13 @@ else()
 set(SOURCES test_seshat_interface_stub.c ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(test_seshat_interface ${SOURCES})
-target_link_libraries (test_seshat_interface -lcmocka ${PARODUS_COMMON_LIBS} -lwrp-c)
+if (ENABLE_SESHAT)
+target_link_libraries (test_seshat_interface -llibseshat)
+endif (ENABLE_SESHAT)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_seshat_interface ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (test_seshat_interface -lcmocka ${PARODUS_COMMON_LIBS} -lwrp-c)
 
 if (INTEGRATION_TESTING)
 #-------------------------------------------------------------------------------
@@ -340,10 +351,13 @@ else()
 set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(simple_connection ${SOURCES}) 
-target_link_libraries (simple_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} )
+if (ENABLE_SESHAT)
+target_link_libraries (simple_connection -llibseshat)
+endif (ENABLE_SESHAT)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (simple_connection ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (simple_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   simple test
@@ -358,9 +372,11 @@ set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(simple ${SOURCES}) 
 
-target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  -lnopoll -lnanomsg )
+if (ENABLE_SESHAT)
+target_link_libraries (simple -llibseshat)
+endif (ENABLE_SESHAT)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (simple ${PARODUS_LINUX_ONLY_LIBS})
 endif()
-
+target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  -lnopoll -lnanomsg )
 endif (INTEGRATION_TESTING)
