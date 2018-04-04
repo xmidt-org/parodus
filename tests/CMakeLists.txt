@@ -221,7 +221,7 @@ endif()
 #-------------------------------------------------------------------------------
 add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
 add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
-target_link_libraries (test_config -lcmocka -lcimplog -lcjwt -lcjson -ltrower-base64 -lssl -lcrypto )
+target_link_libraries (test_config -lcmocka -lcimplog -lcjwt -lcjson -ltrower-base64 )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_config ${PARODUS_LINUX_ONLY_LIBS})
 endif()
