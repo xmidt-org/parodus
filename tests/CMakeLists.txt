@@ -292,20 +292,20 @@ target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_ParodusInternal COMMAND ${MEMORY_CHECK} ./test_ParodusInternal)
 add_executable(test_ParodusInternal test_ParodusInternal.c ../src/ParodusInternal.c ../src/config.c ../src/string_helpers.c)
-target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} )
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_ParodusInternal ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   test_partners_check
 #-------------------------------------------------------------------------------
 add_test(NAME test_partners_check COMMAND ${MEMORY_CHECK} ./test_partners_check)
 add_executable(test_partners_check test_partners_check.c ../src/partners_check.c ../src/string_helpers.c)
-target_link_libraries (test_partners_check -lcmocka ${PARODUS_COMMON_LIBS} -lwrp-c)
 if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 target_link_libraries (test_partners_check ${PARODUS_LINUX_ONLY_LIBS})
 endif()
+target_link_libraries (test_partners_check -lcmocka ${PARODUS_COMMON_LIBS} -lwrp-c)
 
 #-------------------------------------------------------------------------------
 #   test_token - token.c tests
