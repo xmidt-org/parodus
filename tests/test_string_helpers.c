@@ -14,24 +14,12 @@
  *  limitations under the License.
  */
 #include <assert.h>
-#include <errno.h>
-#include <pthread.h>
-#include <stdarg.h>
 
 #include <CUnit/Basic.h>
 
 #include "../src/ParodusInternal.h"
 
 #define STRING_LENGTH 21
-
-/*----------------------------------------------------------------------------*/
-/*                                   Mocks                                    */
-/*----------------------------------------------------------------------------*/
-char *strncpy(char *destStr, const char *srcStr, size_t destSize)
-{
-    (void) destStr; (void) srcStr; (void) destSize;
-    return NULL;
-}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */

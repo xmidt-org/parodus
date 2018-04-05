@@ -162,7 +162,7 @@ void test_keep_alive()
 		if(byte >0)
 		{
 			ParodusInfo("Received keep alive msg!!! : %s \n", (char * )buf);
-            pthread_kill(threadId, SIGUSR1);
+                        pthread_kill(threadId, SIGUSR1);
 			
 			ParodusInfo("keep_alive_thread with tid %p is stopped\n", threadId);
 			break;

@@ -31,7 +31,6 @@ target_link_libraries (parodus
     -lmsgpackc
     -ltrower-base64
     -lnopoll
-    -luuid
     -lm
     -lcimplog
     -lssl
@@ -40,8 +39,12 @@ target_link_libraries (parodus
     -lcjson
     -lcjwt
     -lpthread
-    -lrt
     )
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+target_link_libraries (parodus -luuid)
+target_link_libraries (parodus rt)
+endif()
 
 if (FEATURE_DNS_QUERY)
 target_link_libraries (parodus -lucresolv -lresolv)

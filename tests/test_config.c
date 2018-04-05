@@ -16,7 +16,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
@@ -507,7 +507,9 @@ int main(void)
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
+#ifndef __MACH__
         cmocka_unit_test(test_parodusGitVersion),
+#endif //__MACH__
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),
     };

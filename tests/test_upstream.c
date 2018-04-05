@@ -16,7 +16,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
@@ -589,12 +589,16 @@ int main(void)
         cmocka_unit_test(err_handleUpstreamSockFailure),
         cmocka_unit_test(test_processUpstreamMessage),
         cmocka_unit_test(test_processUpstreamMessageInvalidPartner),
+#ifndef __MACH__
         cmocka_unit_test(test_processUpstreamMessageRegMsg),
+#endif
         cmocka_unit_test(test_processUpstreamMessageRegMsgNoClients),
         cmocka_unit_test(err_processUpstreamMessage),
         cmocka_unit_test(err_processUpstreamMessageDecodeErr),
         cmocka_unit_test(err_processUpstreamMessageMetapackFailure),
+#ifndef __MACH__
         cmocka_unit_test(err_processUpstreamMessageRegMsg),
+#endif
         cmocka_unit_test(test_sendUpstreamMsgToServer),
         cmocka_unit_test(err_sendUpstreamMsgToServer),
     };
