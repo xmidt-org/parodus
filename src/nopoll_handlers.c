@@ -36,6 +36,7 @@
 pthread_mutex_t g_mutex=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t g_cond=PTHREAD_COND_INITIALIZER;
 ParodusMsg *ParodusMsgQ = NULL;
+noPollMsg * previous_msg = NULL;
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -54,18 +55,43 @@ void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg
     UNUSED(ctx);
     UNUSED(conn);
     UNUSED(user_data);
+    noPollMsg  * aux;
+
+	if (nopoll_msg_is_fragment (msg))
+	{
+		ParodusInfo("Found fragment, FIN = %d \n", nopoll_msg_is_final (msg));
+		aux          = previous_msg;
+		previous_msg = nopoll_msg_join (previous_msg, msg);
+		nopoll_msg_unref (aux);
+
+		if (! nopoll_msg_is_final (msg)) {
+			ParodusInfo ("Found fragment that is not final..\n");
+			return;
+		}
+		ParodusInfo("Found final fragment *** \n");
+	}
 
     ParodusMsg *message;
     message = (ParodusMsg *)malloc(sizeof(ParodusMsg));
 
     if(message)
     {
-        message->msg = msg;
-        message->payload = (void *)nopoll_msg_get_payload (msg);
-        message->len = nopoll_msg_get_payload_size (msg);
-        message->next = NULL;
+        if(previous_msg)
+        {
+			message->msg = previous_msg;
+		    message->payload = (void *)nopoll_msg_get_payload (previous_msg);
+		    message->len = nopoll_msg_get_payload_size (previous_msg);
+		    message->next = NULL;
+        }
+        else
+        {
+			message->msg = msg;
+			message->payload = (void *)nopoll_msg_get_payload (msg);
+			message->len = nopoll_msg_get_payload_size (msg);
+			message->next = NULL;
 
         nopoll_msg_ref(msg);
+		}
 
         pthread_mutex_lock (&g_mutex);		
         ParodusPrint("mutex lock in producer thread\n");
@@ -94,6 +120,7 @@ void listenerOnMessage_queue(noPollCtx * ctx, noPollConn * conn, noPollMsg * msg
         //Memory allocation failed
         ParodusError("Memory allocation is failed\n");
     }
+	previous_msg = NULL;
     ParodusPrint("*****Returned from listenerOnMessage_queue*****\n");
 }
 

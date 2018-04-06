@@ -422,7 +422,14 @@ int createNopollConnection(noPollCtx *ctx)
 	if (NULL != jwt_server_url)
 	{
 		free (jwt_server_url);
-	}	
+	}
+
+	if (NULL != extra_headers)
+        {
+                free (extra_headers);
+		extra_headers = NULL;
+        }
+
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): close_mut lock\n");
 	pthread_mutex_lock (&close_mut);
