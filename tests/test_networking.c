@@ -44,7 +44,7 @@
 /*----------------------------------------------------------------------------*/
 void test_checkHostIp()
 {
-    CU_ASSERT_EQUAL(0, checkHostIp("fabric.webpa.comcast.net"))
+    CU_ASSERT_EQUAL(0, checkHostIp("www.python.org"))
 }
 
 void add_suites( CU_pSuite *suite )

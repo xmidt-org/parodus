@@ -38,11 +38,11 @@ time_t exp_time_bad  = 1463955372;		// 5/22/2016
 
 const char *payload_good  = "{" \
 	"\"iss\":	\"SHA256:jdcRysFunWUAT852huQoIM9GN6k2s5c7iTMTMgujPAk\"," \
-	"\"endpoint\":	\"https://fabric.webpa.comcast.net:8080/\"}";
+	"\"endpoint\":	\"https://mydns.mycom.net:8080/\"}";
 
 const char *payload_insec  = "{" \
 	"\"iss\":	\"SHA256:jdcRysFunWUAT852huQoIM9GN6k2s5c7iTMTMgujPAk\"," \
-	"\"endpoint\":	\"http://fabric.webpa.comcast.net:8080/\"}";
+	"\"endpoint\":	\"http://mydns.mycom.net:8080/\"}";
 
 // missing endpoint
 const char *payload_no_end  = "{" \
@@ -52,69 +52,89 @@ const char *txt_record_id = "aabbccddeeff.test.webpa.comcast.net";
 
 #define MAX_RR_RECS 10
 
+/*
+expiration = 2147483647 #1/18/2038
+endpoint = "https://mydns.mycom.net:8080/"
+
+dns_rec_claims = {
+	'iss': u'SHA256:jdcRysFunWUAT852huQoIM9GN6k2s5c7iTMTMgujPAk', 
+	'endpoint': endpoint, 
+	'exp': expiration
+	}
+*/
 const char *dns_recs_test =
-	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
-	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
-	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+	"\"03:iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ\"\n"
+	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTSEEyNTY6amRjUnlzRnVuV1VBVDg1Mmh1UW9JTTlHTjZrMnM1YzdpVE1UTWd1alBBayIsImVuZHBvaW50IjoiaHR0cHM6Ly9teWRucy5teWNvbS5uZXQ6ODA4MC8iLCJleHAiOjIxNDc0ODM2NDd9.VjG2PzPws2J707PiEaUGOTXD9NWnrGyfAUvvfyXFw-Px3gx5wg1\"\n"
+	"\"02:EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX\"\n"
 ;
 
 const char *dns_recs_extra =
-	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
-	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
+	"\"03:iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ\"\n"
+	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTSEEyNTY6amRjUnlzRnVuV1VBVDg1Mmh1UW9JTTlHTjZrMnM1YzdpVE1UTWd1alBBayIsImVuZHBvaW50IjoiaHR0cHM6Ly9teWRucy5teWNvbS5uZXQ6ODA4MC8iLCJleHAiOjIxNDc0ODM2NDd9.VjG2PzPws2J707PiEaUGOTXD9NWnrGyfAUvvfyXFw-Px3gx5wg1\"\n"
 	"\n" // non-txt record type
-	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+	"\"02:EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX\"\n"
 ;
 
 char *rr_recs_test[] = {
-	"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm",
-	"X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-",
-	"ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA"
+	"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTSEEyNTY6amRjUnlzRnVuV1VBVDg1Mmh1UW9JTTlHTjZrMnM1YzdpVE1UTWd1alBBayIsImVuZHBvaW50IjoiaHR0cHM6Ly9teWRucy5teWNvbS5uZXQ6ODA4MC8iLCJleHAiOjIxNDc0ODM2NDd9.VjG2PzPws2J707PiEaUGOTXD9NWnrGyfAUvvfyXFw-Px3gx5wg1",
+	"EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX",
+	"iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ"
 };
 
 char *dns_jwt_test = 
-	"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm"
-	"X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-"
-	"ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA"
+	"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTSEEyNTY6amRjUnlzRnVuV1VBVDg1Mmh1UW9JTTlHTjZrMnM1YzdpVE1UTWd1alBBayIsImVuZHBvaW50IjoiaHR0cHM6Ly9teWRucy5teWNvbS5uZXQ6ODA4MC8iLCJleHAiOjIxNDc0ODM2NDd9.VjG2PzPws2J707PiEaUGOTXD9NWnrGyfAUvvfyXFw-Px3gx5wg1"
+	"EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX"
+	"iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ"
 ;
 
 
-const char *dns_recs_fabric =
-	"\"eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJlbmRwb2ludCI6Imh0dHBzOi8vZmFicmljLndlYnBhLmNvbWNhc3QubmV0OjgwODAvIn0.24cvUmCGYqqXuSsgC7nNnle2JH-uy6Jwp5BKXADhXpc\""
+/*
+expiration = 2147483647 #1/18/2038
+endpoint = "https://mydns.mycom.net:8080/"
+
+dns_rec2_claims = {
+	'endpoint': endpoint
+	}
+*/
+// no exp in it
+const char *dns_recs2_test =
+	"\"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbmRwb2ludCI6Imh0dHBzOi8vbXlkbnMubXljb20ubmV0OjgwODAvIn0.YkudDhp7Ifr6wTsCfrYUUeRf1CMKannC6Bx994OrcBVwqNQ1G5uBXEgsslUnbqV_7FTGPp1Vs058qncmIXtEYxVlHt-mn1UEm6hyC_QGi9FfMHYBS7QHwcCIs467XUFMZayQ3upzZNXObhzJNF0-RR72S61cjSGqf1z5KgyBtoANtW6xCdWB5VV6CqCxlmJNj6d4N8vKiUvN346-UgB_H4AuaXCNdXJ2NP2DxRec-oNTCjhNzRn-6MaB-UwW_gD9CYfQ0vrw2Nv8dO1Sk5Ku94cdIfvUEft-kyqPGKmK8soIggjvmvW0JEPYwrWYY9Ry5SQf80-dLOPXCQSQ3Rzy7Q\""
 ;
 
-char *rr_recs_fabric[] = {
-	"eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJlbmRwb2ludCI6Imh0dHBzOi8vZmFicmljLndlYnBhLmNvbWNhc3QubmV0OjgwODAvIn0.24cvUmCGYqqXuSsgC7nNnle2JH-uy6Jwp5BKXADhXpc"
+// no exp in it
+char *rr_recs2_test[] = {
+	"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbmRwb2ludCI6Imh0dHBzOi8vbXlkbnMubXljb20ubmV0OjgwODAvIn0.YkudDhp7Ifr6wTsCfrYUUeRf1CMKannC6Bx994OrcBVwqNQ1G5uBXEgsslUnbqV_7FTGPp1Vs058qncmIXtEYxVlHt-mn1UEm6hyC_QGi9FfMHYBS7QHwcCIs467XUFMZayQ3upzZNXObhzJNF0-RR72S61cjSGqf1z5KgyBtoANtW6xCdWB5VV6CqCxlmJNj6d4N8vKiUvN346-UgB_H4AuaXCNdXJ2NP2DxRec-oNTCjhNzRn-6MaB-UwW_gD9CYfQ0vrw2Nv8dO1Sk5Ku94cdIfvUEft-kyqPGKmK8soIggjvmvW0JEPYwrWYY9Ry5SQf80-dLOPXCQSQ3Rzy7Q"
 };
 
 const char *dns_recs_err1 = // missing seq
-	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
-	"\"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
-	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+	"\"03:iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ\"\n"
+	"\"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTSEEyNTY6amRjUnlzRnVuV1VBVDg1Mmh1UW9JTTlHTjZrMnM1YzdpVE1UTWd1alBBayIsImVuZHBvaW50IjoiaHR0cHM6Ly9teWRucy5teWNvbS5uZXQ6ODA4MC8iLCJleHAiOjIxNDc0ODM2NDd9.VjG2PzPws2J707PiEaUGOTXD9NWnrGyfAUvvfyXFw-Px3gx5wg1\"\n"
+	"\"02:EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX\"\n"
 ;
 
 const char *dns_recs_err2 = // invalid seq
-	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
-	"\"0:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
-	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+	"\"03:iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ\"\n"
+	"\"0:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTSEEyNTY6amRjUnlzRnVuV1VBVDg1Mmh1UW9JTTlHTjZrMnM1YzdpVE1UTWd1alBBayIsImVuZHBvaW50IjoiaHR0cHM6Ly9teWRucy5teWNvbS5uZXQ6ODA4MC8iLCJleHAiOjIxNDc0ODM2NDd9.VjG2PzPws2J707PiEaUGOTXD9NWnrGyfAUvvfyXFw-Px3gx5wg1\"\n"
+	"\"02:EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX\"\n"
 ;
 
 const char *dns_recs_err3 = // invalid seq too high
-	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
-	"\"99:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
-	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+	"\"03:iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ\"\n"
+	"\"99:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTSEEyNTY6amRjUnlzRnVuV1VBVDg1Mmh1UW9JTTlHTjZrMnM1YzdpVE1UTWd1alBBayIsImVuZHBvaW50IjoiaHR0cHM6Ly9teWRucy5teWNvbS5uZXQ6ODA4MC8iLCJleHAiOjIxNDc0ODM2NDd9.VjG2PzPws2J707PiEaUGOTXD9NWnrGyfAUvvfyXFw-Px3gx5wg1\"\n"
+	"\"02:EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX\"\n"
 ;
 
 const char *dns_recs_err4 = // duplicate seq number
-	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
-	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
-	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MTQ3NjQ3OTksImlzcyI6IlNIQTI1NjpqZGNSeXNGdW5XVUFUODUyaHVRb0lNOUdONmsyczVjN2lUTVRNZ3VqUEFrIiwiZW5kcG9pbnQiOiJodHRwczovL2ZhYnJpYy53ZWJwYS5jb21jYXN0Lm5ldDo4MDgwLyJ9.ahYvcvZxKfKt-enfMZOT9JwCr7eGECv2fUYEDbVdm\"\n"
-	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+	"\"03:iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ\"\n"
+	"\"03:iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ\"\n"
+	"\"01:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJTSEEyNTY6amRjUnlzRnVuV1VBVDg1Mmh1UW9JTTlHTjZrMnM1YzdpVE1UTWd1alBBayIsImVuZHBvaW50IjoiaHR0cHM6Ly9teWRucy5teWNvbS5uZXQ6ODA4MC8iLCJleHAiOjIxNDc0ODM2NDd9.VjG2PzPws2J707PiEaUGOTXD9NWnrGyfAUvvfyXFw-Px3gx5wg1\"\n"
+	"\"02:EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX\"\n"
 ;
 
 const char *dns_recs_err5 = // missing rec 1
-	"\"03:ji81f9B4vnaENEZJgPzYiYdVLvbkgg9rbI7RVcEjutIszb7XZA\"\n"
+	"\"03:iJmBr4pGROCCbRlbL3GpGDcSFJcaqBQFOriTRk0xKQ\"\n"
 	"\n" // non-txt record type
-	"\"02:X1Jq1iPnD8MqkSOyHUQ8a17DOFQSmv8C3ZTKkjtFHEUR8l-KYhaA8bmU7Fzo8m0f4Ub411p4r4VE3KOdv8TWbKgKKIElONJmimpCDvHaUG6SZTaGB_proHyw5Vy5RzK4EAUc0C36hPBF6pIQfl5DgT1I66MHDcklMx2af2_F26Wv4rRX3pU_Q6fvustJhRTBcCJa7S6NZrm_Ca9rkRk5v2dyXkzrrB0_PCIoHITom8DPF8N56EDGzLyY25-\"\n"
+	"\"02:EXGyJQXrxMYuepAiFPT0sWxvydHvZKxcx7S5MCmlOhRpWZRrzgFceNWMwFcRPAPxovOoc4aYvx2DqGMdckmAD1q3y3Gjjw1qyxd4503jmrXKfjrdW3eFZD_Q454iRVf4c0CMWA5tl0ElOlX9u_HC3G_dPiKGUBU5PpWONgHpg2-ewrQcUe4-J4hBQmqZmRSB9n-6zB1XD80cDQO7aHeJ9aysJS1vgmwaSuT9y6PhPsp05NUC0TDzZVJUX\"\n"
 ;
 
 cjwt_t jwt1;	// secure, payload good
@@ -123,7 +143,8 @@ cjwt_t jwt3;	// insecure
 cjwt_t jwt4;	// missing endpoint
 
 // internal functions in token.c to be tested
-extern int analyze_jwt (const cjwt_t *jwt);
+extern int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
+	char *port_buf, int port_buflen);
 extern bool validate_algo(const cjwt_t *jwt);
 extern int nquery(const char* dns_txt_record_id,u_char *nsbuf);
 extern bool valid_b64_char (char c);
@@ -182,8 +203,8 @@ static int get_dns_text (const char *dns_rec_id, u_char *nsbuf, int bufsize)
 		rec = dns_recs_test;
 	else if (strstr (dns_rec_id, ".extra.") != NULL)
 		rec = dns_recs_extra;
-	else if (strstr (dns_rec_id, ".fabric.") != NULL)
-		rec = dns_recs_fabric;
+	else if (strstr (dns_rec_id, ".test2.") != NULL)
+		rec = dns_recs2_test;
 	else if (strstr (dns_rec_id, ".err1.") != NULL)
 		rec = dns_recs_err1;
 	else if (strstr (dns_rec_id, ".err2.") != NULL)
@@ -282,26 +303,34 @@ void		__res_nclose (res_state statp)
 	function_called ();
 }
 
+// Analyzes a jwt structure
 void test_analyze_jwt ()
 {
+    char port[8];
+    char server_Address[256];
 	int ret = setup_test_jwts ();
 	assert_int_equal (ret, 0);
-	ret = analyze_jwt (&jwt1);
+	ret = analyze_jwt (&jwt1, server_Address, (int) sizeof(server_Address),
+		port, (int) sizeof(port));
 	assert_int_equal (ret, 0);
-	ret = analyze_jwt (&jwt2);
+	assert_string_equal (server_Address, "mydns.mycom.net");
+	assert_string_equal (port, "8080");
+	ret = analyze_jwt (&jwt2, server_Address, (int) sizeof(server_Address),
+		port, (int) sizeof(port));
 	assert_int_equal (ret, TOKEN_ERR_JWT_EXPIRED);
-	ret = analyze_jwt (&jwt3);
+	ret = analyze_jwt (&jwt3, server_Address, (int) sizeof(server_Address),
+		port, (int) sizeof(port));
 	assert_int_equal (ret, 1);
-	ret = analyze_jwt (&jwt4);
+	ret = analyze_jwt (&jwt4, server_Address, (int) sizeof(server_Address),
+		port, (int) sizeof(port));
 	assert_int_equal (ret, TOKEN_ERR_INVALID_JWT_CONTENT);
-
 }
 
 void test_validate_algo ()
 {
 	bool ret;
 	ParodusCfg cfg;
-	parStrncpy (cfg.jwt_algo, "none:RS256", sizeof(cfg.jwt_algo));
+	cfg.jwt_algo = 1025;
 	set_parodus_cfg (&cfg);
 	jwt1.header.alg = alg_rs256;
 	ret = validate_algo (&jwt1);
@@ -444,7 +473,7 @@ void test_get_rr_seq_table()
 		assert_int_equal (ret, 0);
 	}
 
-	ret = get_dns_text (".fabric.", nsbuf, 4096);
+	ret = get_dns_text (".test2.", nsbuf, 4096);
 	assert_int_equal (ret, 0);
 	ns_initparse (nsbuf, 4096, &msg_handle);
 	assert_int_equal (msg_handle._counts[ns_s_an],  1);
@@ -452,9 +481,9 @@ void test_get_rr_seq_table()
 	assert_int_equal (num_txt_recs, 1);
 	assert_ptr_not_equal (seq_table[0].rr_ptr, NULL);
 	if (NULL != seq_table[0].rr_ptr) {
-		int len = strlen (rr_recs_fabric[0]);
+		int len = strlen (rr_recs2_test[0]);
 		assert_int_equal (len, seq_table[0].rr_len);
-		ret = strncmp (seq_table[0].rr_ptr, rr_recs_fabric[0], len);
+		ret = strncmp (seq_table[0].rr_ptr, rr_recs2_test[0], len);
 		assert_int_equal (ret, 0);
 	}
 
@@ -566,53 +595,58 @@ void test_query_dns ()
 void test_allow_insecure_conn ()
 {
 	int insecure;
+	char port_buf[6] = "8080";
 	ParodusCfg *cfg = get_parodus_cfg();
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
-	parStrncpy (cfg->dns_txt_url, "test", sizeof(cfg->dns_txt_url));
-	parStrncpy (cfg->jwt_algo, "none:RS256", sizeof(cfg->jwt_algo));
+	parStrncpy (cfg->dns_txt_url, "test.mydns.mycom.net", sizeof(cfg->dns_txt_url));
+	cfg->jwt_algo = 1025;
 
-	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
+	read_key_from_file ("../../tests/pubkey4.pem", cfg->jwt_key, 4096);
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
 	expect_function_call (__res_nclose);
 
-	insecure = allow_insecure_conn ();
+	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
+		port_buf, sizeof(port_buf));
 	assert_int_equal (insecure, 0);
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
-	parStrncpy (cfg->dns_txt_url, "err5", sizeof(cfg->dns_txt_url));
+	parStrncpy (cfg->dns_txt_url, "err5.mydns.mycom.net", sizeof(cfg->dns_txt_url));
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
 	expect_function_call (__res_nclose);
 
-	insecure = allow_insecure_conn ();
+	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
+		port_buf, sizeof(port_buf));
 	assert_int_equal (insecure, TOKEN_ERR_QUERY_DNS_FAIL);
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
-	parStrncpy (cfg->dns_txt_url, "test", sizeof(cfg->dns_txt_url));
-	parStrncpy (cfg->jwt_algo, "none:RS256", sizeof(cfg->jwt_algo));
+	parStrncpy (cfg->dns_txt_url, "test.mydns.mycom.net", sizeof(cfg->dns_txt_url));
+	cfg->jwt_algo = 1024;
 	parStrncpy (cfg->jwt_key, "xxxxxxxxxx", sizeof(cfg->jwt_key));
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
 	expect_function_call (__res_nclose);
 
-	insecure = allow_insecure_conn ();
+	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
+		port_buf, sizeof(port_buf));
 	assert_int_equal (insecure, TOKEN_ERR_JWT_DECODE_FAIL);
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
-	parStrncpy (cfg->dns_txt_url, "test", sizeof(cfg->dns_txt_url));
-	parStrncpy (cfg->jwt_algo, "none:RS512", sizeof(cfg->jwt_algo));
-	read_key_from_file ("../../tests/webpa-rs256.pem", cfg->jwt_key, 4096);
+	parStrncpy (cfg->dns_txt_url, "test.mydns.mycom.net", sizeof(cfg->dns_txt_url));
+	cfg->jwt_algo = 4097;
+	read_key_from_file ("../../tests/pubkey4.pem", cfg->jwt_key, 4096);
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
 	expect_function_call (__res_nclose);
 
-	insecure = allow_insecure_conn ();
+	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
+		port_buf, sizeof(port_buf));
 	assert_int_equal (insecure, TOKEN_ERR_ALGO_NOT_ALLOWED);
 
 }
@@ -644,11 +678,11 @@ void test_get_algo_mask ()
 {
 	unsigned mask;
 
-	mask = get_algo_mask ("none");
-	assert_int_equal ((int) mask, 1);
+	mask = get_algo_mask ("rs256");
+	assert_int_equal ((int) mask, 1024);
 
-	mask = get_algo_mask ("none:rs256");
-	assert_int_equal ((int) mask, 1025);
+	mask = get_algo_mask ("rs512:rs256");
+	assert_int_equal ((int) mask, 5120);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -668,7 +702,7 @@ int main(void)
 	cmocka_unit_test(test_get_rr_seq_table),
 	cmocka_unit_test(test_assemble_jwt_from_dns),
         cmocka_unit_test(test_query_dns),
-        //cmocka_unit_test(test_allow_insecure_conn),
+        cmocka_unit_test(test_allow_insecure_conn),
         cmocka_unit_test(test_get_tok),
         cmocka_unit_test(test_get_algo_mask),
     };

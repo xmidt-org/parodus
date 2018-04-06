@@ -118,8 +118,8 @@ target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-
 add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
 #add_executable(test_connection test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC}) 
 #target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
-set(SOURCES test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC})
-add_executable(test_connection ${SOURCES})
+set(CONN_SRC test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC})
+add_executable(test_connection ${CONN_SRC})
 #target_link_libraries (test_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka)
 target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 
@@ -139,19 +139,19 @@ target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
 add_test(NAME test_client_list COMMAND ${MEMORY_CHECK} ./test_client_list)
 #add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 #target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
-set(SOURCES test_client_list.c ../src/client_list.c 
+set(CLIST_SRC test_client_list.c ../src/client_list.c 
  ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c 
  ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c 
  ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c 
  ../src/partners_check.c ${PARODUS_COMMON_SRC})
 
 if (ENABLE_SESHAT)
-set(SOURCES ${SOURCES} ../src/seshat_interface.c)
+set(CLIST_SRC ${CLIST_SRC} ../src/seshat_interface.c)
 else()
-set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
+set(CLIST_SRC ${CLIST_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
  
-add_executable(test_client_list ${SOURCES})
+add_executable(test_client_list ${CLIST_SRC})
 #target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 
@@ -161,14 +161,14 @@ target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 add_test(NAME test_service_alive COMMAND ${MEMORY_CHECK} ./test_service_alive)
 #add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
-set(SOURCES test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
+set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 if (ENABLE_SESHAT)
-set(SOURCES ${SOURCES} ../src/seshat_interface.c)
+set(SVA_SRC ${SVA_SRC} ../src/seshat_interface.c)
 else()
-set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
+set(SVA_SRC ${SVA_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 
-add_executable(test_service_alive ${SOURCES})
+add_executable(test_service_alive ${SVA_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 
@@ -214,13 +214,13 @@ target_link_libraries (test_thread_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #   test_conn_interface
 #-------------------------------------------------------------------------------
 add_test(NAME test_conn_interface COMMAND ${MEMORY_CHECK} ./test_conn_interface)
-set(SOURCES test_conn_interface.c ../src/conn_interface.c ../src/config.c ../src/string_helpers.c ../src/mutex.c)
+set(CONIFC_SRC test_conn_interface.c ../src/conn_interface.c ../src/config.c ../src/string_helpers.c ../src/mutex.c)
 if (ENABLE_SESHAT)
-set(SOURCES ${SOURCES} ../src/seshat_interface.c)
+set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface.c)
 else()
-set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
+set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
-add_executable(test_conn_interface ${SOURCES})
+add_executable(test_conn_interface ${CONIFC_SRC})
 target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
@@ -241,7 +241,18 @@ target_link_libraries (test_partners_check -lcmocka ${PARODUS_COMMON_LIBS} -lwrp
 #   test_token - token.c tests
 #-------------------------------------------------------------------------------
 add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
-add_executable(test_token ${SOURCES} ) 
+set(TOKEN_SRC ../src/conn_interface.c ../src/config.c
+ ../src/connection.c ../src/spin_thread.c
+ ../src/service_alive.c ../src/client_list.c
+ ../src/nopoll_handlers.c ../src/nopoll_helpers.c
+ ../src/partners_check.c ../src/ParodusInternal.c
+ ../src/upstream.c ../src/downstream.c 
+ ../src/networking.c
+ ../src/thread_tasks.c ../src/time.c
+ ../src/string_helpers.c ../src/mutex.c 
+ ../src/seshat_interface.c ../src/token.c
+ )
+add_executable(test_token test_token.c ${TOKEN_SRC} ) 
 #target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
 target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
 
@@ -250,11 +261,11 @@ target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
 #-------------------------------------------------------------------------------
 add_test(NAME test_seshat_interface COMMAND ${MEMORY_CHECK} ./test_seshat_interface)
 if (ENABLE_SESHAT)
-set(SOURCES test_seshat_interface.c ../src/seshat_interface.c ../src/string_helpers.c)
+set(SESHIFC_SRC test_seshat_interface.c ../src/seshat_interface.c ../src/string_helpers.c)
 else()
-set(SOURCES test_seshat_interface_stub.c ../src/seshat_interface_stub.c)
+set(SESHIFC_SRC test_seshat_interface_stub.c ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
-add_executable(test_seshat_interface ${SOURCES})
+add_executable(test_seshat_interface ${SESHIFC_SRC})
 target_link_libraries (test_seshat_interface -lcmocka ${PARODUS_COMMON_LIBS} -lwrp-c)
 
 if (INTEGRATION_TESTING)
@@ -262,28 +273,28 @@ if (INTEGRATION_TESTING)
 #   simple_connection test
 #-------------------------------------------------------------------------------
 add_test(NAME simple_connection COMMAND ${MEMORY_CHECK} ./simple_connection)
-set(SOURCES simple_connection.c ${PARODUS_COMMON_SRC} ../src/upstream.c ../src/conn_interface.c
+set(SIMCON_SRC simple_connection.c ${PARODUS_COMMON_SRC} ../src/upstream.c ../src/conn_interface.c
  ../src/thread_tasks.c ../src/downstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/connection.c ../src/ParodusInternal.c ../src/client_list.c ../src/partners_check.c ../src/service_alive.c)
 if (ENABLE_SESHAT)
-set(SOURCES ${SOURCES} ../src/seshat_interface.c)
+set(SIMCON_SRC ${SIMCON_SRC} ../src/seshat_interface.c)
 else()
-set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
+set(SIMCON_SRC ${SIMCON_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
-add_executable(simple_connection ${SOURCES}) 
+add_executable(simple_connection ${SIMCON_SRC}) 
 target_link_libraries (simple_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   simple test
 #-------------------------------------------------------------------------------
 add_test(NAME simple COMMAND ${MEMORY_CHECK} ./simple)
-set(SOURCES simple.c ../src/upstream.c ../src/conn_interface.c ../src/downstream.c ../src/thread_tasks.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/string_helpers.c ../src/mutex.c ../src/time.c
+set(SIMPLE_SRC simple.c ../src/upstream.c ../src/conn_interface.c ../src/downstream.c ../src/thread_tasks.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/string_helpers.c ../src/mutex.c ../src/time.c
  ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/spin_thread.c ../src/client_list.c ../src/partners_check.c ../src/service_alive.c)
 if (ENABLE_SESHAT)
-set(SOURCES ${SOURCES} ../src/seshat_interface.c)
+set(SIMPLE_SRC ${SIMPLE_SRC} ../src/seshat_interface.c)
 else()
-set(SOURCES ${SOURCES} ../src/seshat_interface_stub.c)
+set(SIMPLE_SRC ${SIMPLE_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
-add_executable(simple ${SOURCES}) 
+add_executable(simple ${SIMPLE_SRC}) 
 
 target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  gcov -lnopoll -lnanomsg )
 endif (INTEGRATION_TESTING)
