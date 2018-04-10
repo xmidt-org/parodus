@@ -225,6 +225,9 @@ static int get_dns_text (const char *dns_rec_id, u_char *nsbuf, int bufsize)
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
 
+// These mocks assume that the pieces of a dns txt record end with '\n';
+
+
 int ns_initparse(const u_char *nsbuf, int l, ns_msg *msg_handle)
 {
 	UNUSED(l);
@@ -269,12 +272,14 @@ int ns_parserr(ns_msg *msg_handle, ns_sect sect, int rec, ns_rr *rr)
 		ptr += (l+1);
 	}
 
-	if (strlen (ptr) == 0) {
+	l = strlen(ptr);
+	if (l == 0) {
 		rr->type = ns_t_key;
 	} else {
 		rr->type = ns_t_txt;
 	}
 	rr->rdata = (u_char *) ptr;
+	rr->rdlength = l; 
 	return 0;
 }
 
@@ -382,12 +387,14 @@ void test_strip_rrdata ()
 	const char *result;
   int rlen;
 
+	rlen = strlen (s1);
 	result = strip_rr_data (s1, &rlen);
 	assert_int_equal (rlen, s1len);
 	if (rlen == s1len) {
 		assert_int_equal (strncmp (result, ss1, rlen), 0);
 	}
 
+	rlen = strlen (s2);
 	result = strip_rr_data (s2, &rlen);
 	assert_int_equal (rlen, s1len);
 	if (rlen == s1len) {

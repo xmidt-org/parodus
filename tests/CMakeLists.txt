@@ -214,7 +214,13 @@ target_link_libraries (test_thread_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #   test_conn_interface
 #-------------------------------------------------------------------------------
 add_test(NAME test_conn_interface COMMAND ${MEMORY_CHECK} ./test_conn_interface)
-set(CONIFC_SRC test_conn_interface.c ../src/conn_interface.c ../src/config.c ../src/string_helpers.c ../src/mutex.c)
+set(CONIFC_SRC test_conn_interface.c 
+  ../src/conn_interface.c 
+  ../src/config.c 
+  ../src/token.c
+  ../src/string_helpers.c 
+  ../src/mutex.c
+)
 if (ENABLE_SESHAT)
 set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface.c)
 else()
