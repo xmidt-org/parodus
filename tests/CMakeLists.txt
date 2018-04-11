@@ -112,6 +112,14 @@ add_test(NAME test_nopoll_handlers COMMAND ${MEMORY_CHECK} ./test_nopoll_handler
 add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c)
 target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm)
 
+
+#-------------------------------------------------------------------------------
+#   test_nopoll_handlers_fragment
+#-------------------------------------------------------------------------------
+add_test(NAME test_nopoll_handlers_fragment COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers_fragment)
+add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c)
+target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm -lcmocka)
+
 #-------------------------------------------------------------------------------
 #   test_connection
 #-------------------------------------------------------------------------------

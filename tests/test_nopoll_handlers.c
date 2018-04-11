@@ -69,6 +69,12 @@ noPollOpCode nopoll_msg_opcode (noPollMsg * msg)
     return NOPOLL_UNKNOWN_OP_CODE;
 }
 
+nopoll_bool nopoll_msg_is_fragment(noPollMsg *msg)
+{
+    (void) msg;
+    return nopoll_false;
+}
+
 int nopoll_msg_get_payload_size(noPollMsg *msg)
 {
     (void) msg;
