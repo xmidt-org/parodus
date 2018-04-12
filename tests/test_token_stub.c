@@ -33,8 +33,11 @@
 void test_allow_insecure_conn ()
 {
 	int insecure;
-	insecure = allow_insecure_conn ();
-	assert_int_equal (insecure, 1);
+	char *server_Address = NULL;
+	char *port = NULL;
+	insecure = allow_insecure_conn (server_Address,(int) sizeof(server_Address),
+                port, (int) sizeof(port));
+	assert_int_equal (insecure, -1);
 }
 
 /*----------------------------------------------------------------------------*/
