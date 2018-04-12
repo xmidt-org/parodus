@@ -258,9 +258,22 @@ set(TOKEN_SRC ../src/conn_interface.c ../src/config.c
  ../src/networking.c
  ../src/thread_tasks.c ../src/time.c
  ../src/string_helpers.c ../src/mutex.c 
- ../src/seshat_interface.c ../src/token.c
+ ../src/token.c
  )
-add_executable(test_token test_token.c ${TOKEN_SRC} ) 
+
+if (ENABLE_SESHAT)
+set(TOKEN_SRC ${TOKEN_SRC} ../src/seshat_interface.c)
+else()
+set(TOKEN_SRC ${TOKEN_SRC} ../src/seshat_interface_stub.c)
+endif (ENABLE_SESHAT)
+
+if (FEATURE_DNS_QUERY)
+set(TOKEN_SRC test_token.c ${TOKEN_SRC})
+else()
+set(TOKEN_SRC test_token_stub.c ${TOKEN_SRC})
+endif (FEATURE_DNS_QUERY)
+
+add_executable(test_token ${TOKEN_SRC} ) 
 #target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
 target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
 
