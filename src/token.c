@@ -233,11 +233,10 @@ static bool is_digit (char c)
 // strip quotes and newlines from rr rec
 const char *strip_rr_data (const char *rr_ptr, int *rrlen)
 {
-	int len;
+	int len = *rrlen;
 	const char *optr = rr_ptr;
 	char c;
 
-	len = strlen (optr);
 	if (len > 0) {
 		c = optr[0];
 		if (!is_digit(c)) {
@@ -338,6 +337,7 @@ int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_table)
     	continue;
 		++num_txt_recs;
     rr_ptr = (const char *)ns_rr_rdata(rr);
+    rrlen = ns_rr_rdlen(rr);
 		ParodusPrint ("Found rr rec type %d: %s\n", ns_t_txt, rr_ptr);
 		rr_ptr = strip_rr_data (rr_ptr, &rrlen);		
 		seq_pos = find_seq_num (rr_ptr, rrlen);
