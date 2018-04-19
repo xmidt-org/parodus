@@ -35,6 +35,8 @@
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
+#define Parodus_Print printf
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -192,12 +194,12 @@ int createNopollConnection(noPollCtx *ctx)
         }
 		if(allow_insecure <= 0)
 		{                    
-		    ParodusPrint("secure true\n");
+		    Parodus_Print("secure true\n");
             connection = nopoll_tls_common_conn(ctx,server_Address, port, extra_headers,&fallback);
 		}
 		else 
 		{
-		    ParodusPrint("secure false\n");
+		    Parodus_Print("secure false\n");
             noPollConnOpts * opts;
             opts = createConnOpts(extra_headers, false);
             connection = nopoll_conn_new_opts (ctx, opts,server_Address,port,NULL,get_parodus_cfg()->webpa_path_url,NULL,NULL);// WEBPA-787

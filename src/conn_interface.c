@@ -33,6 +33,7 @@
 #include "spin_thread.h"
 #include "service_alive.h"
 #include "seshat_interface.h"
+#include "token.h"
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
@@ -122,6 +123,27 @@ void createSocketConnection(void (* initKeypress)())
             }
             heartBeatTimer = 0;
         }
+#ifdef FEATURE_DNS_QUERY
+        else if(jwt_has_expired()) 
+        {
+            if(!close_retry) 
+            {
+                ParodusError("JWT Expired. Terminating the connection with WebPA server and retrying\n");
+                ParodusInfo("Reconnect detected, setting JWT Expired reason for Reconnect\n");
+                set_global_reconnect_reason("JWT Expired");
+                set_global_reconnect_status(true);
+                pthread_mutex_lock (&close_mut);
+                close_retry = true;
+                pthread_mutex_unlock (&close_mut);
+            }
+            else
+            {			
+                ParodusPrint("JWT Expiration Handler - close_retry set to %d\n", close_retry);
+            }
+            heartBeatTimer = 0;
+            intTimer = 0;
+        }
+#endif
         else if(intTimer >= 30)
         {
             ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);

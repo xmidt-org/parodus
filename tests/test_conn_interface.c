@@ -36,6 +36,9 @@ ParodusMsg *ParodusMsgQ;
 extern bool close_retry;
 extern pthread_mutex_t close_mut;
 extern volatile unsigned int heartBeatTimer;
+extern time_t jwt_expiration;
+extern void init_jwt_expiration (void);
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -161,11 +164,12 @@ void initKeypress()
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 
-void test_createSocketConnection()
+void test_createSocketConn_ping1()	// ping timeout with close_retry false
 {
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(ParodusCfg));
+    init_jwt_expiration();
     
     pthread_mutex_lock (&close_mut);
     close_retry = false;
@@ -200,11 +204,13 @@ void test_createSocketConnection()
     createSocketConnection(initKeypress);
 }
 
-void test_createSocketConnection1()
+void test_createSocketConn_ping2()	// ping timeout with close_retry true
 {
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0, sizeof(ParodusCfg));
+    init_jwt_expiration();
+
     pthread_mutex_lock (&close_mut);
     close_retry = true;
     pthread_mutex_unlock (&close_mut);
@@ -236,7 +242,95 @@ void test_createSocketConnection1()
     
 }
 
-void test_createSocketConnection2()
+#ifdef FEATURE_DNS_QUERY
+void test_createSocketConn_jwtexp1()	// jwt expiration with close_retry false
+{
+    noPollCtx *ctx;
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(ParodusCfg));
+    cfg.webpa_ping_timeout = 1;
+    set_parodus_cfg(&cfg);
+
+    jwt_expiration = time(NULL) - 5;
+    
+    pthread_mutex_lock (&close_mut);
+    close_retry = false;
+    pthread_mutex_unlock (&close_mut);
+    expect_function_call(nopoll_thread_handlers);
+    
+    will_return(nopoll_ctx_new, (intptr_t)&ctx);
+    expect_function_call(nopoll_ctx_new);
+    expect_function_call(nopoll_log_set_handler);
+    will_return(createNopollConnection, nopoll_true);
+    expect_function_call(createNopollConnection);
+    expect_function_call(packMetaData);
+
+    expect_function_calls(StartThread, 4);
+    expect_function_call(initKeypress);
+    will_return(nopoll_loop_wait, 1);
+    expect_function_call(nopoll_loop_wait);
+    
+    expect_function_call(set_global_reconnect_reason);
+    will_return(get_global_conn, (intptr_t)NULL);
+    expect_function_call(set_global_reconnect_status);
+    expect_function_call(get_global_conn);
+    expect_function_call(close_and_unref_connection);
+    expect_function_call(set_global_conn);
+    will_return(createNopollConnection, nopoll_true);
+    expect_function_call(createNopollConnection);
+    will_return(get_global_conn, (intptr_t)NULL);
+    expect_function_call(get_global_conn);
+    expect_function_call(close_and_unref_connection);
+    expect_function_call(nopoll_ctx_unref);
+    expect_function_call(nopoll_cleanup_library);
+    createSocketConnection(initKeypress);
+}
+
+void test_createSocketConn_jwtexp2()	// jwt expiration with close_retry true
+{
+    noPollCtx *ctx;
+    ParodusCfg cfg;
+    memset(&cfg,0, sizeof(ParodusCfg));
+    cfg.webpa_ping_timeout = 1;
+    set_parodus_cfg(&cfg);
+
+    jwt_expiration = time(NULL) - 5;
+
+    pthread_mutex_lock (&close_mut);
+    close_retry = true;
+    pthread_mutex_unlock (&close_mut);
+    expect_function_call(nopoll_thread_handlers);
+    
+    will_return(nopoll_ctx_new, (intptr_t)&ctx);
+    expect_function_call(nopoll_ctx_new);
+    expect_function_call(nopoll_log_set_handler);
+    will_return(createNopollConnection, nopoll_true);
+    expect_function_call(createNopollConnection);
+    expect_function_call(packMetaData);
+
+    expect_function_calls(StartThread, 4);
+    will_return(nopoll_loop_wait, 1);
+    expect_function_call(nopoll_loop_wait);
+    
+    will_return(get_global_conn, (intptr_t)NULL);
+    expect_function_call(get_global_conn);
+    expect_function_call(close_and_unref_connection);
+    expect_function_call(set_global_conn);
+    will_return(createNopollConnection, nopoll_true);
+    expect_function_call(createNopollConnection);
+    will_return(get_global_conn, (intptr_t)NULL);
+    expect_function_call(get_global_conn);
+    expect_function_call(close_and_unref_connection);
+    expect_function_call(nopoll_ctx_unref);
+    expect_function_call(nopoll_cleanup_library);
+    createSocketConnection(NULL);
+    
+}
+
+#endif
+
+
+void test_createSocketConnection1()
 {
     noPollCtx *ctx;
     ParodusCfg cfg;
@@ -252,8 +346,10 @@ void test_createSocketConnection2()
     parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
     parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
+
     cfg.webpa_ping_timeout = 1;
     set_parodus_cfg(&cfg);
+    init_jwt_expiration ();
     
     pthread_mutex_lock (&close_mut);
     close_retry = false;
@@ -333,9 +429,13 @@ void err_createSocketConnection()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_createSocketConnection),
+        cmocka_unit_test(test_createSocketConn_ping1),
+        cmocka_unit_test(test_createSocketConn_ping2),
+#ifdef FEATURE_DNS_QUERY
+        cmocka_unit_test(test_createSocketConn_jwtexp1),
+        cmocka_unit_test(test_createSocketConn_jwtexp2),
+#endif
         cmocka_unit_test(test_createSocketConnection1),
-        cmocka_unit_test(test_createSocketConnection2),
         cmocka_unit_test(err_createSocketConnection),
     };
 

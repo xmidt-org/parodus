@@ -89,4 +89,17 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 	char *port_buf, int port_buflen);
 
 
+/**
+ * initialize variable used to track jwt expiration.
+ *
+*/ 
+void init_jwt_expiration (void);
+
+/**
+ * check if jwt has expired
+ *
+*/ 
+int jwt_has_expired (void);
+
+
 #endif
