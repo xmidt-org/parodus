@@ -127,9 +127,7 @@ bool send_to_hub(const char *url, const char *notification, size_t notification_
 
 finished:
     nn_shutdown(sock, 0);
-    
     free(payload_bytes);
-
     return (bytes_sent == (int) payload_size);
 }
 
