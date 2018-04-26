@@ -180,6 +180,39 @@ add_executable(test_service_alive ${SVA_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 
+
+#-------------------------------------------------------------------------------
+# printer client for flying circus
+add_test(NAME printer COMMAND ${MEMORY_CHECK} ./printer)
+add_executable(printer ./printer.c ) 
+
+target_link_libraries ( printer
+	               -llibparodus
+                       -lwrp-c
+                       -lmsgpackc
+                       -ltrower-base64
+                       -lnanomsg
+                       -lcimplog
+                       -lm
+                       -lpthread)
+
+# producer client for flying circus
+add_test(NAME producer COMMAND ${MEMORY_CHECK} ./producer)
+add_executable(producer ./producer.c ) 
+
+target_link_libraries ( producer
+	               -llibparodus
+                       -lwrp-c
+                       -lmsgpackc
+                       -ltrower-base64
+                       -lnanomsg
+                       -lcimplog
+                       -lm
+                       -lpthread)
+#-------------------------------------------------------------------------------
+
+
+
 #-------------------------------------------------------------------------------
 #   test_config
 #-------------------------------------------------------------------------------
