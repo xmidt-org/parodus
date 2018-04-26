@@ -167,6 +167,9 @@ void stop_listening_to_spokes(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
+/**
+ *  Listener task.
+ */
 static void *listen_to_spokes(void *args)
 {
     const char *url;
@@ -211,6 +214,12 @@ finished:
     return NULL;
 }
 
+/**
+ *  Process notifications from other parodus.
+ *
+ *  @param msg    Notification message.
+ *  @param msg_sz Notification message size.
+ */
 static void process_spoke_msg(const char *msg, size_t msg_sz)
 {
     wrp_msg_t *wrp_msg;
@@ -258,6 +267,9 @@ static void process_spoke_msg(const char *msg, size_t msg_sz)
     wrp_free_struct(wrp_msg);
 }
 
+/**
+ *  Cleanup and free linked list
+ */
 static void ll_clean(ll_t *list)
 {
     ll_t *current = list;
