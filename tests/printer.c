@@ -174,6 +174,7 @@ static int main_loop(libpd_cfg_t *cfg)
     while( true ) {
         rv = libparodus_init( &hpd_instance, cfg );
         if( 0 != rv ) {
+            debug_info("Init for parodus (url %s): %d '%s'\n", cfg->parodus_url, rv, libparodus_strerror(rv) );
             backoff_retry_time = (1 << c) - 1;
             sleep(backoff_retry_time);
             c++;
@@ -182,9 +183,8 @@ static int main_loop(libpd_cfg_t *cfg)
                 c = 2;
                 backoff_retry_time = 0;
             }
-        }
-        debug_info("Init for parodus (url %s): %d '%s'\n", cfg->parodus_url, rv, libparodus_strerror(rv) );
-        if( 0 == rv ) {
+        } else {
+            printf("printer service registered with libparodus url %s\n", cfg->parodus_url);
             break;
         }
         libparodus_shutdown(&hpd_instance);
@@ -205,10 +205,10 @@ static int main_loop(libpd_cfg_t *cfg)
             }
             
         } else if( 1 == rv || 2 == rv ) {
-            debug_print("Timed out or message closed.\n");
+            printf("Timed out or message closed.\n");
             continue;
         } else {
-            debug_info("Libparodus failed to receive message: '%s'\n",libparodus_strerror(rv));
+            printf("Libparodus failed to receive message: '%s'\n",libparodus_strerror(rv));
         }
 
         if( (NULL != wrp_msg) && (2 != rv) ) {
