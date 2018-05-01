@@ -32,7 +32,7 @@
 /*----------------------------------------------------------------------------*/
 
 
-#define SERVICE_NAME "printer"
+#define SERVICE_NAME "producer"
 
 static void sig_handler(int sig);
 static int main_loop(libpd_cfg_t *cfg);
