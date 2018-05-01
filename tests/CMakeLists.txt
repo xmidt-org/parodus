@@ -358,3 +358,12 @@ add_executable(simple ${SIMPLE_SRC})
 
 target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  gcov -lnopoll -lnanomsg )
 endif (INTEGRATION_TESTING)
+
+#-------------------------------------------------------------------------------
+#   test_parodus_interface
+#-------------------------------------------------------------------------------
+add_test(NAME test_parodus_interface COMMAND ${MEMORY_CHECK} ./test_parodus_interface)
+add_executable(test_parodus_interface test_parodus_interface.c ../src/parodus_interface.c)
+target_link_libraries (test_parodus_interface ${PARODUS_COMMON_LIBS})
+
+
