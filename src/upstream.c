@@ -196,7 +196,7 @@ void *processUpstreamMessage()
             if(rv > 0)
             {
                 msgType = msg->msg_type;				   
-                if(msgType == 9)
+                if(msgType == WRP_MSG_TYPE__SVC_REGISTRATION)
                 {
                     ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                     //Extract serviceName and url & store it in a linked list for reg_clients
@@ -344,12 +344,18 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{
+		noPollConn *conn;
 	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
 	   	ParodusPrint("metadata appended upstream response %s\n", (char *)appendData);
 	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
-		ParodusInfo("Sending response to server\n");
-	   	sendMessage(get_global_conn(),appendData, encodedSize);
+        conn = get_global_conn();
+		if (conn) {
+            ParodusInfo("Sending response to server host %s port %s\n", conn->host, conn->port);
+            sendMessage(conn, appendData, encodedSize);
+        } else {
+            ParodusInfo("Unexpected NULL connection returned by get_global_conn()\n");
+        }
 	   	
 		free(appendData);
 		appendData =NULL;
