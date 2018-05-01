@@ -153,20 +153,22 @@ int parse_server_url (const char *full_url, server_t *server)
 }
 
 //--------------------------------------------------------------------
+/* --- Defined in ParodusInternal.h
 typedef struct {
   int running;
   struct timespec start_time;
   struct timespec end_time;
 } expire_timer_t;
+*/
 
-static void init_expire_timer (expire_timer_t *timer)
+void init_expire_timer (expire_timer_t *timer)
 {
   timer->running = false;
 }
 
-static int check_timer_expired (expire_timer_t *timer, long timeout)
+int check_timer_expired (expire_timer_t *timer, long timeout_ms)
 {
-  long time_diff;
+  long time_diff_ms;
   
   if (!timer->running) {
     getCurrentTime(&timer->start_time);
@@ -176,32 +178,40 @@ static int check_timer_expired (expire_timer_t *timer, long timeout)
   }
   
   getCurrentTime(&timer->end_time);
-  time_diff = timeValDiff (&timer->start_time, &timer->end_time);
-  ParodusPrint("checking timeout difference:%ld\n", time_diff);
-  if(time_diff >= timeout)
+  time_diff_ms = timeValDiff (&timer->start_time, &timer->end_time);
+  ParodusPrint("checking timeout difference:%ld\n", time_diff_ms);
+  if(time_diff_ms >= timeout_ms)
     return true;
   return false;
 }
 
 //--------------------------------------------------------------------
+/* ---- Defined in ParodusInternal.h
 typedef struct {
   int max_delay;
   int delay;
 } backoff_timer_t;
+*/
 
-static void init_backoff_timer (backoff_timer_t *timer, int max_delay)
+void init_backoff_timer (backoff_timer_t *timer, int max_delay)
 {
   timer->max_delay = max_delay;
   timer->delay = 1;
 }
 
-static void backoff_delay (backoff_timer_t *timer)
+int update_backoff_delay (backoff_timer_t *timer)
 {
   if (timer->delay < timer->max_delay)
     timer->delay = timer->delay + timer->delay + 1;
     // 3,7,15,31 ..
   if (timer->delay > timer->max_delay)
     timer->delay = timer->max_delay;
+  return timer->delay;
+}  
+
+static void backoff_delay (backoff_timer_t *timer)
+{
+  update_backoff_delay (timer);
   ParodusInfo("Waiting with backoffRetryTime %d seconds\n", timer->delay);
   sleep (timer->delay);
 }  

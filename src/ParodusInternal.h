@@ -94,6 +94,20 @@ typedef struct {
 			//  nopoll_conn_wait_until_connection_ready
 } server_list_t;
 
+//---- Used in connection.c for expire timer
+typedef struct {
+  int running;
+  struct timespec start_time;
+  struct timespec end_time;
+} expire_timer_t;
+
+//--- Used in connection.c for backoff delay timer
+typedef struct {
+  int max_delay;
+  int delay;
+} backoff_timer_t;
+
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/

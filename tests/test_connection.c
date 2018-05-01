@@ -34,6 +34,10 @@ extern void set_server_list_null (server_list_t *server_list);
 extern int server_is_null (server_t *server);
 extern server_t *get_current_server (server_list_t *server_list);
 extern int parse_server_url (const char *full_url, server_t *server);
+extern void init_expire_timer (expire_timer_t *timer);
+extern int check_timer_expired (expire_timer_t *timer, long timeout_ms);
+extern void init_backoff_timer (backoff_timer_t *timer, int max_delay);
+extern int update_backoff_delay (backoff_timer_t *timer);
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -156,6 +160,26 @@ void test_parse_server_url ()
 	assert_int_equal (1, test_server.allow_insecure);
 }
 
+void test_expire_timer()
+{
+  expire_timer_t exp_timer;
+  init_expire_timer (&exp_timer);
+  assert_int_equal (false, check_timer_expired (&exp_timer, 1000));
+  sleep (2);
+  assert_int_equal (false, check_timer_expired (&exp_timer, 3000));
+  assert_int_equal (true, check_timer_expired (&exp_timer, 1000));
+}
+
+void test_backoff_delay_timer()
+{
+  backoff_timer_t btimer;
+  init_backoff_timer (&btimer, 30);
+  assert_int_equal (3, update_backoff_delay (&btimer));
+  assert_int_equal (7, update_backoff_delay (&btimer));
+  assert_int_equal (15, update_backoff_delay (&btimer));
+  assert_int_equal (30, update_backoff_delay (&btimer));
+  assert_int_equal (30, update_backoff_delay (&btimer));
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -171,7 +195,9 @@ int main(void)
         cmocka_unit_test(test_server_is_null),
         cmocka_unit_test(test_server_list_null),
         cmocka_unit_test(test_get_current_server),
-        cmocka_unit_test(test_parse_server_url)
+        cmocka_unit_test(test_parse_server_url),
+        cmocka_unit_test(test_expire_timer),
+        cmocka_unit_test(test_backoff_delay_timer)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
