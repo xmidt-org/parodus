@@ -12,9 +12,9 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g -fprofile-arcs -ftest-coverage -O0")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g3 -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTEST ")
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-coverage -O0")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g3 -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
 set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c ../src/token.c)
 set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c
@@ -179,6 +179,39 @@ endif (ENABLE_SESHAT)
 add_executable(test_service_alive ${SVA_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
+
+
+#-------------------------------------------------------------------------------
+# printer client for flying circus
+add_test(NAME printer COMMAND ${MEMORY_CHECK} ./printer)
+add_executable(printer ./printer.c ) 
+
+target_link_libraries ( printer
+	               -llibparodus
+                       -lwrp-c
+                       -lmsgpackc
+                       -ltrower-base64
+                       -lnanomsg
+                       -lcimplog
+                       -lm
+                       -lpthread)
+
+# producer client for flying circus
+add_test(NAME producer COMMAND ${MEMORY_CHECK} ./producer)
+add_executable(producer ./producer.c ) 
+
+target_link_libraries ( producer
+	               -llibparodus
+                       -lwrp-c
+                       -lmsgpackc
+                       -ltrower-base64
+                       -lnanomsg
+                       -lcimplog
+                       -lm
+                       -lpthread)
+#-------------------------------------------------------------------------------
+
+
 
 #-------------------------------------------------------------------------------
 #   test_config
