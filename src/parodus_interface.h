@@ -37,19 +37,30 @@ extern "C" {
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 /**
- *  Starts the listener thread.
+ *  @note Call this with valid parmeter before using any listen_to_xxx function
+ *  TEMPORARY - will be replaced by a parodus cfg parameter similar to 
+ *  get_parodus_cfg()->local_url
  *
- *  @param thread if not NULL the thread id is returned here, ignored otherwise
- *  @param url    URL to be listening on
- *
- *  @return the result of thread creation
+ *  @param url    URL to receive messages from other parodoi.
  */
-int start_listening_to_spokes(pthread_t *thread, const char *url);
+void set_parodus_to_parodus_listener_url(const char *url);
+
+/**
+ *  Start listening to a spoke parodus.
+ *
+ *  @note msg needs to be cleaned up by the caller.
+ *
+ *  @param url    spoke URL to be listened to
+ *  @param msg    address of message buffer
+ *
+ *  @return size of msg
+ */
+ssize_t listen_to_spoke(const char *url, char **msg);
 
 /**
  *  Send to hub parodus.
  * 
- *  @param url  hub parodus URl
+ *  @param url  hub parodus URL
  *  @param msg  notification
  *  @param size size of notification
  *
@@ -58,23 +69,37 @@ int start_listening_to_spokes(pthread_t *thread, const char *url);
 bool send_to_hub(const char *url, const char *msg, size_t size);
 
 /**
- *  Receive from spoke parodus.
+ *  Start listening to a spoke parodus.
  *
- *  @param url spoke parodus URL
- *  @param msg pointer to buffer pointer with notification from spoke parodus.
+ *  @note msg needs to be cleaned up by the caller.
+ *
+ *  @param url    spoke URL to be listened to
+ *  @param msg    address of message buffer
+ *
+ *  @return size of msg
  */
-ssize_t receive_from_spoke(const char *url, char **msg);
+ssize_t listen_to_hub(const char *url, char **msg);
 
 /**
- *  Stops and cleans up the listener thread.
+ *  Broadcast to hub parodus.
+ * 
+ *  @param url  hub parodus URL
+ *  @param msg  notification
+ *  @param size size of notification
+ *
+ *  @return whether operation succeeded, or not.
+ */
+bool broadcast_to_spoke(const char *url, const char *msg, size_t size);
+
+/**
+ *  Stops listener to url.
  *
  */
-void stop_listening_to_spokes(void);
+void stop_listening(const char *url);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* _PARODUS_INTERFACE_H_ */
 
