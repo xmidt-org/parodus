@@ -134,12 +134,9 @@ target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
 #-------------------------------------------------------------------------------
-add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
+#add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
 #add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
-#target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
-add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
-#target_link_libraries (test_createConnection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka )
-target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
+#target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
 
 #-------------------------------------------------------------------------------
 #   test_client_list

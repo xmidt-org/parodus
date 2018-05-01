@@ -28,6 +28,7 @@
 #include "nopoll_helpers.h"
 #include "mutex.h"
 #include "spin_thread.h"
+#include "ParodusInternal.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -95,6 +96,7 @@ void set_global_reconnect_status(bool status)
 
 
 //--------------------------------------------------------------------
+/*  Defined in ParodusInternal.h
 #define SERVER_ADDR_LEN 256
 #define PORT_LEN 8
 
@@ -110,20 +112,21 @@ typedef struct {
   server_t redirect;	// from redirect response to
 			//  nopoll_conn_wait_until_connection_ready
 } server_list_t;
+*/
 
-static void set_server_null (server_t *server)
+void set_server_null (server_t *server)
 {
   server->server_addr[0] = 0;
 }
 
-static void set_server_list_null (server_list_t *server_list)
+void set_server_list_null (server_list_t *server_list)
 {
   set_server_null (&server_list->defaults);
   set_server_null (&server_list->jwt);
   set_server_null (&server_list->redirect);
 }
 
-static int server_is_null (server_t *server)
+int server_is_null (server_t *server)
 {
   return (0 == server->server_addr[0]);
 }
@@ -132,7 +135,7 @@ static int server_is_null (server_t *server)
 // else if there's a jwt server that's it,
 // else it's the default server
 
-static server_t *get_current_server (server_list_t *server_list)
+server_t *get_current_server (server_list_t *server_list)
 {
   if (!server_is_null (&server_list->redirect))
     return &server_list->redirect;
@@ -142,7 +145,7 @@ static server_t *get_current_server (server_list_t *server_list)
 }
 
   
-static int parse_server_url (const char *full_url, server_t *server)
+int parse_server_url (const char *full_url, server_t *server)
 {
   server->allow_insecure = parse_webpa_url (full_url,
 	server->server_addr, SERVER_ADDR_LEN, server->port, PORT_LEN);

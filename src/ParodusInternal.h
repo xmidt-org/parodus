@@ -77,6 +77,23 @@ typedef struct {
 	int rr_len;
 } rr_rec_t;
 
+//------------ Used in comnection.c -----------------
+#define SERVER_ADDR_LEN 256
+#define PORT_LEN 8
+
+typedef struct {
+  int allow_insecure;
+  char server_addr[SERVER_ADDR_LEN];
+  char port[PORT_LEN];
+} server_t;
+
+typedef struct {
+  server_t defaults;	// from command line
+  server_t jwt;		// from jwt endpoint claim
+  server_t redirect;	// from redirect response to
+			//  nopoll_conn_wait_until_connection_ready
+} server_list_t;
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
