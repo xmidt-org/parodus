@@ -52,7 +52,7 @@ int main( int argc, char **argv)
     };
 
     libpd_cfg_t cfg = { .service_name = SERVICE_NAME,
-                        .receive = false,
+                        .receive = true, // false,
                         .keepalive_timeout_secs = 64,
                         .parodus_url = NULL,
                         .client_url = NULL
@@ -208,9 +208,9 @@ static int main_loop(libpd_cfg_t *cfg)
         memset(&wrp_msg, 0, sizeof(wrp_msg_t));
         wrp_msg.msg_type = WRP_MSG_TYPE__EVENT;     
 
-	wrp_msg.u.event.source = strdup(source);
+	    wrp_msg.u.event.source = strdup(source);
         wrp_msg.u.event.dest   = strdup(destination);
-	wrp_msg.u.event.payload = NULL;
+	    wrp_msg.u.event.payload = NULL;
         wrp_msg.u.event.payload_size = 0;
         
         
@@ -221,6 +221,20 @@ static int main_loop(libpd_cfg_t *cfg)
              printf("producer send error %d\n", rv);
         }
         sleep(10); // should be 60
+        {
+            wrp_msg_t *msg = NULL;
+            rv = libparodus_receive(hpd, &msg, 2001);
+            if (0 == rv && msg) {
+                char *bytes = NULL;
+                ssize_t n = wrp_struct_to(msg, WRP_STRING, (void **) &bytes);
+                if (n > 0) {
+                    printf("**Producer Got**: \n%s", bytes);
+                    free(bytes);
+                } else {
+                printf("Service Producer Memory Error on WRP message conversion\n");
+                }
+            }
+        }
        
     } while (true);
 
