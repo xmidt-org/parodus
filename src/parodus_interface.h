@@ -37,13 +37,22 @@ extern "C" {
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 /**
- *  @note Call this with valid parmeter before using any listen_to_xxx function
+ *  @note Call this with valid parameter before using any function
  *  TEMPORARY - will be replaced by a parodus cfg parameter similar to 
  *  get_parodus_cfg()->local_url
  *
  *  @param url    URL to receive messages from other parodoi.
  */
 void set_parodus_to_parodus_listener_url(const char *url);
+
+/**
+ *  @note Call this after finishing use of any function here to cleanup
+ *  TEMPORARY - will be replaced by a parodus cfg parameter similar to 
+ *  get_parodus_cfg()->local_url
+ *
+ *  @param url    URL to receive messages from other parodoi.
+ */
+void cleanup_parodus_to_parodus_listener_url(void);
 
 /**
  *  Send message to hub parodus.

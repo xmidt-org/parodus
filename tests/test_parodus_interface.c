@@ -77,11 +77,13 @@ void test_push_pull()
     pthread_t t;
 
     g_execute = true;
+    set_parodus_to_parodus_listener_url( HUB );
     pthread_create(&t, NULL, check_hub, NULL);
 
     result = spoke_send_msg(tests[0].d, tests[0].n, tests[0].nsz);
     CU_ASSERT(true == result);
 
+    cleanup_parodus_to_parodus_listener_url();
     g_execute = false;
 }
 
@@ -91,11 +93,13 @@ void test_pub_sub()
     pthread_t t;
 
     g_execute = true;
+    set_parodus_to_parodus_listener_url( SPOKE );
     pthread_create(&t, NULL, check_spoke, NULL);
 
     result = hub_send_msg(tests[1].d, tests[1].n, tests[1].nsz);
     CU_ASSERT(true == result);
 
+    cleanup_parodus_to_parodus_listener_url();
     g_execute = false;
 }
 
@@ -137,7 +141,6 @@ static void *check_hub()
     char *msg;
     ssize_t msg_sz;
 
-    set_parodus_to_parodus_listener_url( HUB );
     msg_sz = hub_check_inbox(&msg);
     if( 0 < msg_sz ) {
         CU_ASSERT_EQUAL( (tests[0].nsz + 1), msg_sz );
@@ -154,7 +157,6 @@ static void *check_spoke()
     char *msg;
     ssize_t msg_sz;
 
-    set_parodus_to_parodus_listener_url( SPOKE );
     msg_sz = spoke_check_inbox(&msg);
     if( 0 < msg_sz ) {
         CU_ASSERT_EQUAL( (tests[1].nsz + 1), msg_sz );

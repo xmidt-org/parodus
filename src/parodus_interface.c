@@ -37,7 +37,7 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-static char p2p_url[30];
+static char *p2p_url;
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
@@ -49,8 +49,12 @@ static char p2p_url[30];
 /*----------------------------------------------------------------------------*/
 void set_parodus_to_parodus_listener_url(const char *url)
 {
-    memset(p2p_url, '\0', sizeof(p2p_url));
-    strcpy(p2p_url, url);
+    p2p_url = strdup(url);
+}
+
+void cleanup_parodus_to_parodus_listener_url(void)
+{
+    free(p2p_url);
 }
 
 bool spoke_send_msg(const char *url, const char *notification, size_t notification_size)
