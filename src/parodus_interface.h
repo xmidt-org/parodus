@@ -46,19 +46,7 @@ extern "C" {
 void set_parodus_to_parodus_listener_url(const char *url);
 
 /**
- *  Start listening to a spoke parodus.
- *
- *  @note msg needs to be cleaned up by the caller.
- *
- *  @param url    spoke URL to be listened to
- *  @param msg    address of message buffer
- *
- *  @return size of msg
- */
-ssize_t listen_to_spoke(const char *url, char **msg);
-
-/**
- *  Send to hub parodus.
+ *  Send message to hub parodus.
  * 
  *  @param url  hub parodus URL
  *  @param msg  notification
@@ -66,36 +54,40 @@ ssize_t listen_to_spoke(const char *url, char **msg);
  *
  *  @return whether operation succeeded, or not.
  */
-bool send_to_hub(const char *url, const char *msg, size_t size);
+bool spoke_send_msg(const char *url, const char *msg, size_t size);
 
 /**
- *  Start listening to a spoke parodus.
+ *  Check for message from spoke parodus.
  *
  *  @note msg needs to be cleaned up by the caller.
  *
- *  @param url    spoke URL to be listened to
  *  @param msg    address of message buffer
  *
  *  @return size of msg
  */
-ssize_t listen_to_hub(const char *url, char **msg);
+ssize_t hub_check_inbox(char **msg);
 
 /**
- *  Broadcast to hub parodus.
+ *  Check for message from spoke parodus.
+ *
+ *  @note msg needs to be cleaned up by the caller.
+ *
+ *  @param msg    address of message buffer
+ *
+ *  @return size of msg
+ */
+ssize_t spoke_check_inbox(char **msg);
+
+/**
+ *  Send message to spoke parodus
  * 
- *  @param url  hub parodus URL
+ *  @param url  spoke parodus URL
  *  @param msg  notification
  *  @param size size of notification
  *
  *  @return whether operation succeeded, or not.
  */
-bool broadcast_to_spoke(const char *url, const char *msg, size_t size);
-
-/**
- *  Stops listener to url.
- *
- */
-void stop_listening(const char *url);
+bool hub_send_msg(const char *url, const char *msg, size_t size);
 
 #ifdef __cplusplus
 }
