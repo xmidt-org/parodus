@@ -40,19 +40,22 @@ static void _help(char *, char *);
 
 static char *mac_address;
 
+static int send_period = 60; // sleep time between each send.
+
 int main( int argc, char **argv)
 {
-    const char *option_string = "p:c:w:d:f:m::h::";
+    const char *option_string = "p:c:w:d:f:m::t:h::";
     static const struct option options[] = {
         { "help",         optional_argument, 0, 'h' },
         { "parodus-url",  required_argument, 0, 'p' },
         { "client-url",   required_argument, 0, 'c' },
-	{ "mac-address",  optional_argument, 0, 'm'},
+        { "mac-address",  optional_argument, 0, 'm'},
+        { "send-period",  required_argument, 0, 't'},
         { 0, 0, 0, 0 }
     };
 
     libpd_cfg_t cfg = { .service_name = SERVICE_NAME,
-                        .receive = true, // false,
+                        .receive = true,
                         .keepalive_timeout_secs = 64,
                         .parodus_url = NULL,
                         .client_url = NULL
@@ -88,9 +91,17 @@ int main( int argc, char **argv)
             case 'h':
                 _help(argv[0], optarg);
                 break;
-	    case 'm':
-		mac_address = strdup(optarg);
-		break;
+            case 't':
+                {
+                    int val = atoi(optarg);
+                    if (val > 0) {
+                      send_period = val;
+                    }
+                }
+                break;
+            case 'm':
+                mac_address = strdup(optarg);
+            break;
             case '?':
                 if (strchr(option_string, optopt)) {
                     printf("%s Option %c requires an argument!\n", argv[0], optopt);
@@ -220,10 +231,12 @@ static int main_loop(libpd_cfg_t *cfg)
         } else {
              printf("producer send error %d\n", rv);
         }
-        sleep(10); // should be 60
+
+        sleep(send_period);
+
         {
             wrp_msg_t *msg = NULL;
-            rv = libparodus_receive(hpd, &msg, 2001);
+            rv = libparodus_receive(hpd, &msg, 1);
             if (0 == rv && msg) {
                 char *bytes = NULL;
                 ssize_t n = wrp_struct_to(msg, WRP_STRING, (void **) &bytes);
