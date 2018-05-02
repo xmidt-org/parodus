@@ -51,6 +51,7 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
+static void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size);
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
@@ -196,7 +197,7 @@ void *processUpstreamMessage()
             if(rv > 0)
             {
                 msgType = msg->msg_type;				   
-                if(msgType == 9)
+                if(msgType == WRP_MSG_TYPE__SVC_REGISTRATION)
                 {
                     ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                     //Extract serviceName and url & store it in a linked list for reg_clients
@@ -287,6 +288,7 @@ void *processUpstreamMessage()
                         if(size > 0)
                         {
                             sendUpstreamMsgToServer(&bytes, size);
+                            sendToAllRegisteredClients(&bytes, size);
                         }
                         free(eventMsg);
                         free(bytes);
@@ -336,6 +338,36 @@ void *processUpstreamMessage()
     return NULL;
 }
 
+/* ToDo: Pick clients based on an requirement */
+void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size)
+{
+	void *appendData;
+	size_t encodedSize;
+
+	//appending response with metadata
+	if(metaPackSize > 0)
+	{
+        reg_list_item_t *temp;
+        encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
+
+	    temp = get_global_node();
+        while(NULL != temp)
+        {
+              int  bytes = nn_send (temp->sock, appendData, encodedSize, 0);
+              ParodusInfo("sendToAllRegisteredClients() sent %d bytes to url: %s service: %s\n",
+                      bytes, temp->url, temp->service_name);
+              temp = temp->next;
+        }
+		free(appendData);
+    }
+	else
+	{
+		ParodusError("Failed to send upstream as metadata packing is not successful\n");
+	}
+
+}
+
+
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
@@ -344,12 +376,18 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{
+		noPollConn *conn;
 	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
 	   	ParodusPrint("metadata appended upstream response %s\n", (char *)appendData);
 	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
-		ParodusInfo("Sending response to server\n");
-	   	sendMessage(get_global_conn(),appendData, encodedSize);
+        conn = get_global_conn();
+		if (conn) {
+            ParodusInfo("Sending response to server host %s port %s\n", conn->host, conn->port);
+            sendMessage(conn, appendData, encodedSize);
+        } else {
+            ParodusInfo("Unexpected NULL connection returned by get_global_conn()\n");
+        }
 	   	
 		free(appendData);
 		appendData =NULL;

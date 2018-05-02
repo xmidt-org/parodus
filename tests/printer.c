@@ -40,15 +40,16 @@
 static void sig_handler(int sig);
 static int main_loop(libpd_cfg_t *cfg);
 static void _help(char *, char *);
-
+static int wait_time = 60 * 1000; // One minute
 
 int main( int argc, char **argv)
 {
-    const char *option_string = "p:c:w:d:f:m:h::";
+    const char *option_string = "p:c:w:d:f:m:t:h::";
     static const struct option options[] = {
         { "help",         optional_argument, 0, 'h' },
         { "parodus-url",  required_argument, 0, 'p' },
         { "client-url",   required_argument, 0, 'c' },
+        { "wait-time",    required_argument, 0, 't'},
         { 0, 0, 0, 0 }
     };
 
@@ -86,6 +87,14 @@ int main( int argc, char **argv)
                 break;
             case 'h':
                 _help(argv[0], optarg);
+                break;
+            case 't':
+                {
+                    int val = atoi(optarg);
+                    if (val > 0) {
+                      wait_time = val;
+                    }
+                }
                 break;
             case '?':
                 if (strchr(option_string, optopt)) {
@@ -192,7 +201,7 @@ static int main_loop(libpd_cfg_t *cfg)
 
     debug_print("starting the main loop...\n");
     while( true ) {
-        rv = libparodus_receive(hpd_instance, &wrp_msg, 2000);
+        rv = libparodus_receive(hpd_instance, &wrp_msg, wait_time);
 
         if( 0 == rv ) {
             char *bytes = NULL;
