@@ -141,7 +141,6 @@ ssize_t hub_check_inbox(char **notification)
         if( msg_sz < 0 ) {
             ParodusError("NN parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
             n_sz = -3;
-            // goto finished;
         } else {
             break;
         }
@@ -205,7 +204,6 @@ ssize_t spoke_check_inbox(char **notification)
         if( msg_sz < 0 ) {
             ParodusError("NN parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
             n_sz = -4;
-            // goto finished;
         } else {
             break;
         }
