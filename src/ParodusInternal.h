@@ -43,6 +43,7 @@
 #include <nopoll.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
+#include <nanomsg/pubsub.h>
 #include <wrp-c.h>
 
 #include "parodus_log.h"

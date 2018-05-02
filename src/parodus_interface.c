@@ -22,7 +22,6 @@
  */
 
 #include "ParodusInternal.h"
-#include "config.h"
 #include "parodus_interface.h"
 
 /*----------------------------------------------------------------------------*/
@@ -33,49 +32,28 @@
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-typedef struct ll_node {
-    char *key;
-    char *value;
-    struct ll_node *next;
-} ll_t;
+/* None */
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-static ll_t *head = NULL;
-static pthread_mutex_t ll_mutex = PTHREAD_MUTEX_INITIALIZER;
-static bool g_execute = true;
+static char p2p_url[30];
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
-static void *listen_to_spokes(void *args);
-static void process_spoke_msg(const char *msg, size_t msg_sz);
-static void ll_clean(ll_t *list);
+/* None */
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
-int start_listening_to_spokes(pthread_t *thread, const char *url)
+void set_parodus_to_parodus_listener_url(const char *url)
 {
-    pthread_t t, *p;
-    pthread_mutex_init( &ll_mutex, NULL );
-    int rv;
-
-    p = &t;
-    if( NULL != thread ) {
-        p = thread;
-    }
-
-    rv = pthread_create( p, NULL, listen_to_spokes, (void*) url );
-    if( 0 != rv ) {
-        pthread_mutex_destroy(&ll_mutex);
-    }
-
-    return rv;
+    memset(p2p_url, '\0', sizeof(p2p_url));
+    strcpy(p2p_url, url);
 }
 
-bool send_to_hub(const char *url, const char *notification, size_t notification_size)
+bool spoke_send_msg(const char *url, const char *notification, size_t notification_size)
 {
     wrp_msg_t *msg;
     int sock;
@@ -90,17 +68,13 @@ bool send_to_hub(const char *url, const char *notification, size_t notification_
     
     msg->msg_type = WRP_MSG_TYPE__EVENT;
     msg->u.event.content_type = "application/msgpack";
-    msg->u.event.source  = get_parodus_cfg()->local_url;
+    msg->u.event.source  = (char *) p2p_url;
     msg->u.event.dest    = (char *) url;
     msg->u.event.payload = (char *) notification;
     msg->u.event.payload_size = notification_size;
 
     payload_size = wrp_struct_to( (const wrp_msg_t *) msg, WRP_BYTES, (void **) &payload_bytes);
     free(msg);
-    if( 1 > payload_size ) {
-        ParodusError("NN payload size %d\n", payload_size);
-        return false;
-    }
     
     sock = nn_socket(AF_SP, NN_PUSH);
     if( sock < 0 ) {
@@ -121,165 +95,202 @@ bool send_to_hub(const char *url, const char *notification, size_t notification_
     }
 
     bytes_sent = nn_send(sock, payload_bytes, payload_size, 0);
+    if( bytes_sent < 0 ) {
+        ParodusError("NN send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
+        goto finished;
+    }
+
     if( bytes_sent > 0 ) {
         ParodusPrint("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) payload_size);
     }
 
+    sleep(2);
 finished:
     nn_shutdown(sock, 0);
     free(payload_bytes);
-    return (bytes_sent == (int) payload_size);
+    return (bytes_sent == payload_size);
 }
 
-ssize_t receive_from_spoke(const char *url, char **msg)
+ssize_t hub_check_inbox(char **notification)
 {
-    ll_t *current;
-    ll_t *next;
+    char *msg = NULL;
+    int sock;
+    int rv;
+    int msg_sz;
+    ssize_t n_sz = -1;
 
-    *msg = NULL;
-    pthread_mutex_lock(&ll_mutex);
-    current = head;
-    while( NULL != current ) {
-        if( 0 == strcmp(url, current->key) ) {
-            *msg = strdup(current->value);
-            free(current->key);
-            free(current->value);
-            next = current->next;
-            free(current);
-            current = next;
-            pthread_mutex_unlock(&ll_mutex);
-            return strlen(*msg) + 1;
-        }
-        current = current->next;
+    sock = nn_socket(AF_SP, NN_PULL);
+    if( sock < 0 ) {
+        ParodusError("NN parodus receive socket error %d\n", sock);
+        return -1;
     }
-    pthread_mutex_unlock(&ll_mutex);
 
-    return 0;
+    rv = nn_bind(sock, p2p_url);
+    if( rv < 0 ) {
+        ParodusError("NN parodus receive bind error %d\n", rv);
+        n_sz = -2;
+        goto finished;
+    }
+
+    do {
+        msg_sz = nn_recv(sock, &msg, NN_MSG, 0); //NN_DONTWAIT);
+        if( msg_sz < 0 ) {
+            ParodusError("NN parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
+            n_sz = -3;
+            // goto finished;
+        } else {
+            break;
+        }
+    } while( EAGAIN != errno );
+
+    if( msg_sz > 0 ) {
+        wrp_msg_t *wrp_msg;
+        int wrp_msg_sz;
+
+        wrp_msg_sz = wrp_to_struct(msg, msg_sz, WRP_BYTES, &wrp_msg);
+        if( 0 >= wrp_msg_sz ) {
+            return -4;
+        }
+    
+        if( WRP_MSG_TYPE__EVENT != wrp_msg->msg_type ) {
+            wrp_free_struct(wrp_msg);
+            return -5;
+        }
+        
+        n_sz = wrp_msg->u.event.payload_size + 1;
+        *notification = strdup(wrp_msg->u.event.payload);
+        wrp_free_struct(wrp_msg);
+    }
+    nn_freemsg(msg);
+
+finished:
+    nn_shutdown(sock, 0);
+    return n_sz;
 }
 
-void stop_listening_to_spokes(void)
+ssize_t spoke_check_inbox(char **notification)
 {
-    g_execute = false;
+    char *msg = NULL;
+    int sock;
+    int rv;
+    int msg_sz;
+    ssize_t n_sz = -1;
+
+    sock = nn_socket(AF_SP, NN_SUB);
+    if( sock < 0 ) {
+        ParodusError("NN parodus receive socket error %d\n", sock);
+        return -1;
+    }
+
+    /* Subscribe to everything ("" means all topics) */
+    rv = nn_setsockopt(sock, NN_SUB, NN_SUB_SUBSCRIBE, "", 0);
+    if( 0 > rv ) {
+        ParodusError("NN parodus receive set socket opt error %d\n", sock);
+        return -2;
+    }
+
+    rv = nn_connect(sock, p2p_url);
+    if( rv < 0 ) {
+        ParodusError("NN parodus receive bind error %d\n", rv);
+        n_sz = -3;
+        goto finished;
+    }
+
+    do {
+        msg_sz = nn_recv(sock, &msg, NN_MSG, 0); // NN_DONTWAIT);
+        if( msg_sz < 0 ) {
+            ParodusError("NN parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
+            n_sz = -4;
+            // goto finished;
+        } else {
+            break;
+        }
+    } while( true );
+
+    if( msg_sz > 0 ) {
+        wrp_msg_t *wrp_msg;
+        int wrp_msg_sz;
+
+        wrp_msg_sz = wrp_to_struct(msg, msg_sz, WRP_BYTES, &wrp_msg);
+        if( 0 >= wrp_msg_sz ) {
+            return -5;
+        }
+
+        if( WRP_MSG_TYPE__EVENT != wrp_msg->msg_type ) {
+            wrp_free_struct(wrp_msg);
+            return -6;
+        }
+
+        n_sz = wrp_msg->u.event.payload_size;
+        *notification = strdup(wrp_msg->u.event.payload);
+        wrp_free_struct(wrp_msg);
+    }
+    nn_freemsg(msg);
+
+finished:
+    nn_shutdown(sock, 0);
+    return n_sz;
+}
+
+bool hub_send_msg(const char *url, const char *notification, size_t notification_size)
+{
+    wrp_msg_t *msg;
+    int sock;
+    int rv;
+    int bytes_sent = 0;
+    int payload_size;
+    int t = 2000;
+    char *payload_bytes;
+
+    msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(msg, 0, sizeof(wrp_msg_t));
+
+    msg->msg_type = WRP_MSG_TYPE__EVENT;
+    msg->u.event.content_type = "application/msgpack";
+    msg->u.event.source  = (char *) p2p_url;
+    msg->u.event.dest    = (char *) url;
+    msg->u.event.payload = (char *) notification;
+    msg->u.event.payload_size = notification_size;
+
+    payload_size = wrp_struct_to( (const wrp_msg_t *) msg, WRP_BYTES, (void **) &payload_bytes);
+    free(msg);
+
+    sock = nn_socket(AF_SP, NN_PUB);
+    if( sock < 0 ) {
+        ParodusError("NN parodus send socket error %d\n", sock);
+        goto finished;
+    }
+
+    rv = nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
+    if( rv < 0 ) {
+        ParodusError("NN parodus send timeout setting error %d\n", rv);
+        goto finished;
+    }
+
+    rv = nn_bind(sock, url);
+    if( rv < 0 ) {
+        ParodusError("NN parodus send connect error %d\n", rv);
+        goto finished;
+    }
+
+    bytes_sent = nn_send(sock, payload_bytes, payload_size, 0);
+    if( bytes_sent < 0 ) {
+        ParodusError("NN send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
+        goto finished;
+    }
+
+    if( bytes_sent > 0 ) {
+        ParodusPrint("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) payload_size);
+    }
+
+    sleep(2);
+finished:
+    nn_shutdown(sock, 0);
+    free(payload_bytes);
+    return (bytes_sent == payload_size);
 }
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
-/**
- *  Listener task.
- */
-static void *listen_to_spokes(void *args)
-{
-    const char *url;
-    char *msg = NULL;
-    int sock;
-    int rv;
-    int msg_sz;
-
-    url = (const char *) args;
-
-    sock = nn_socket(AF_SP, NN_PULL);
-    if( sock < 0 ) {
-        ParodusError("NN parodus receive socket error %d\n", sock);
-        return NULL;
-    }
-
-    rv = nn_bind(sock, url);
-    if( rv < 0 ) {
-        ParodusError("NN parodus receive bind error %d\n", rv);
-        goto finished;
-    }
-
-    while( true == g_execute ) {
-        msg_sz = nn_recv(sock, &msg, NN_MSG, 0);
-        if( msg_sz < 0 ) {
-            ParodusError("NN parodus receive error %d\n", msg_sz);
-            break;
-        } else if( msg_sz > 0 ) {
-            process_spoke_msg(msg, msg_sz);
-        }
-        nn_freemsg(msg);
-    }
-
-    sleep(1); // wait for messages to flush before shutting down
-
-finished:
-    rv = nn_shutdown(sock, 0);
-    pthread_mutex_lock(&ll_mutex);
-    ll_clean(head);
-    pthread_mutex_unlock(&ll_mutex);
-    pthread_mutex_destroy(&ll_mutex);
-    return NULL;
-}
-
-/**
- *  Process notifications from other parodus.
- *
- *  @param msg    Notification message.
- *  @param msg_sz Notification message size.
- */
-static void process_spoke_msg(const char *msg, size_t msg_sz)
-{
-    wrp_msg_t *wrp_msg;
-    int wrp_msg_sz;
-    ll_t *current;
-    ll_t *prev;
-    
-    wrp_msg_sz = wrp_to_struct(msg, msg_sz, WRP_BYTES, &wrp_msg);
-    if( 0 >= wrp_msg_sz ) {
-        return;
-    }
-
-    if( WRP_MSG_TYPE__EVENT != wrp_msg->msg_type ) {
-        wrp_free_struct(wrp_msg);
-        return;
-    }
-
-    pthread_mutex_lock(&ll_mutex);
-    current = head;
-    while( NULL != current ) {
-        if( 0 == strcmp(wrp_msg->u.event.source, current->key) ) {
-            free(current->value);
-            current->value = strdup(wrp_msg->u.event.payload);
-            pthread_mutex_unlock(&ll_mutex);
-            wrp_free_struct(wrp_msg);
-            return;
-        }
-        prev = current;
-        current = current->next;
-    }
-
-    /* TODO: Validate URL of spoke parodus before adding. */
-    current = (ll_t *) malloc(sizeof(ll_t));
-    current->key = strdup(wrp_msg->u.event.source);
-    current->value = strdup(wrp_msg->u.event.payload);
-    current->next = NULL;
-
-    if( NULL == head ) {
-        head = current;
-    } else {
-        prev->next = current;
-    }
-
-    pthread_mutex_unlock(&ll_mutex);
-    wrp_free_struct(wrp_msg);
-}
-
-/**
- *  Cleanup and free linked list
- */
-static void ll_clean(ll_t *list)
-{
-    ll_t *current = list;
-    ll_t *next;
-
-    while( NULL != current ) {
-        free(current->key);
-        free(current->value);
-
-        next = current->next;
-        free(current);
-        current = next;
-    }
-    list = NULL;
-}
+/* None */
