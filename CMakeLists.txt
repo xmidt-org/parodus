@@ -168,8 +168,10 @@ add_dependencies(libwrp-c wrp-c)
 ExternalProject_Add(libparodus
     DEPENDS trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
-    GIT_REPOSITORY https://github.com/Comcast/libparodus.git
-    GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
+    GIT_REPOSITORY https://github.com/schmidtw/libparodus.git
+    GIT_TAG "master"
+    #  GIT_REPOSITORY https://github.com/Comcast/libparodus.git
+    #  GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     		  -DMAIN_PROJ_BUILD=ON
     		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
