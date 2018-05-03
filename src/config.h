@@ -49,6 +49,7 @@ extern "C" {
 #define WEBPA_BACKOFF_MAX       "webpa-backoff-max"
 #define PARTNER_ID              "partner-id"
 #define CERT_PATH               "ssl-cert-path"
+#define HUB_OR_SPK              "hub-or-spoke"
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                  "/api/v2/device"
@@ -58,6 +59,10 @@ extern "C" {
 #define PARODUS_UPSTREAM                "tcp://127.0.0.1:6666"
 
 #define ALLOW_NON_RSA_ALG	false
+
+#define HUB_URL                 "tcp://127.0.0.1:7777"
+#define SPK1_URL                "tcp://127.0.0.1:7778"
+#define SPK2_URL                "tcp://127.0.0.1:7779"
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -93,6 +98,8 @@ typedef struct
     char webpa_auth_token[4096];
     char token_acquisition_script[64];
     char token_read_script[64];
+    char hub_or_spk[5];
+    unsigned int connect_upstream;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)

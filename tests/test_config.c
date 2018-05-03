@@ -82,7 +82,9 @@ void test_setParodusConfig()
     parStrncpy(cfg.dns_txt_url, "test",sizeof(cfg.dns_txt_url));
     cfg.jwt_algo = 1025;
     parStrncpy(cfg.jwt_key, "key.txt",sizeof(cfg.jwt_key));
-#endif    
+#endif
+    parStrncpy(cfg.hub_or_spk, "", sizeof(cfg.hub_or_spk));
+    cfg.connect_upstream = 1;
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
@@ -111,6 +113,8 @@ void test_setParodusConfig()
     assert_int_equal( (int) cfg.jwt_algo, (int) temp->jwt_algo);
     assert_string_equal(cfg.jwt_key, temp->jwt_key);
 #endif
+    assert_string_equal(cfg.hub_or_spk, temp->hub_or_spk);
+    assert_int_equal((int) cfg.connect_upstream, temp->connect_upstream);
 }
 
 void test_getParodusConfig()
@@ -188,6 +192,8 @@ void test_parseCommandLine()
 		"--jwt-public-key-file=../../tests/jwt_key.tst",
 		"--jwt-algo=RS256",
 #endif
+                "--hub-or-spoke=hub",
+                "--connect-upstream=1",
 		NULL
 	};
 	int argc = (sizeof (command) / sizeof (char *)) - 1;
@@ -230,7 +236,8 @@ void test_parseCommandLine()
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
 #endif
-
+    assert_string_equal(parodusCfg.hub_or_spk, "hub");
+    assert_int_equal( (int) parodusCfg.connect_upstream, 1 );
 }
 
 void test_parseCommandLineNull()
@@ -317,6 +324,8 @@ void test_loadParodusCfg()
 #ifdef ENABLE_SESHAT
     parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
 #endif
+    parStrncpy(Cfg->hub_or_spk, "spk1", sizeof(Cfg->hub_or_spk));
+    Cfg->connect_upstream = 1;
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
 
@@ -339,6 +348,8 @@ void test_loadParodusCfg()
 #ifdef ENABLE_SESHAT
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
 #endif
+    assert_string_equal(tmpcfg.hub_or_spk, "spk1");
+    assert_int_equal( (int)tmpcfg.connect_upstream, 1 );
     free(Cfg);
 }
 

@@ -293,6 +293,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"force-ipv6",              no_argument,       0, '6'},
         {"token-read-script",       required_argument, 0, 'T'},
 	{"token-acquisition-script",     required_argument, 0, 'J'},
+        {"hub-or-spoke",            required_argument, 0, 'h'},
+        {"connect-upstream",        required_argument, 0, 'x'},
         {0, 0, 0, 0}
     };
     int c;
@@ -313,8 +315,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46",
-				long_options, &option_index);
+      c = getopt_long (argc, argv,
+                             "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h:x",
+                             long_options, &option_index);
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -456,6 +459,19 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
           break;
 
+        case 'h':
+          parStrncpy(cfg->hub_or_spk, optarg,sizeof(cfg->hub_or_spk));
+          ParodusInfo("hub_or_spk is %s\n",cfg->hub_or_spk);
+          break;
+
+        case 'x':
+          cfg->connect_upstream = parse_num_arg (optarg, "connect_upstream");
+          if( cfg->connect_upstream == (unsigned int) -1 ) {
+              return -1;
+          }
+          ParodusInfo("acquire jwt option is %d\n",cfg->connect_upstream);
+          break;
+
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -585,7 +601,8 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
-    
+
+    cfg->connect_upstream = 1;
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
@@ -749,7 +766,18 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
-    
+
+    if(strlen(config->hub_or_spk )!=0)
+    {
+        parStrncpy(cfg->hub_or_spk, config->hub_or_spk, sizeof(cfg->hub_or_spk));
+    }
+    else
+    {
+        parStrncpy(cfg->hub_or_spk, "\0", sizeof(cfg->hub_or_spk));
+        ParodusPrint("hub_or_spk is NULL. set to empty\n");
+    }
+
+    cfg->connect_upstream = config->connect_upstream;
 }
 
 
