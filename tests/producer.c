@@ -55,7 +55,8 @@ int main( int argc, char **argv)
     };
 
     libpd_cfg_t cfg = { .service_name = SERVICE_NAME,
-                        .receive = true,
+                       /* .receive = true, causes a loop back from libparodus hacked ;-) */
+			.receive = false,
                         .keepalive_timeout_secs = 64,
                         .parodus_url = NULL,
                         .client_url = NULL
@@ -212,8 +213,8 @@ static int main_loop(libpd_cfg_t *cfg)
     }
 
     snprintf(source,127,"mac:/%s/%s", mac_address, SERVICE_NAME);
-    snprintf(destination, 127, "node-change:");
-
+    snprintf(destination, 127, "event:node-change/");
+    // zztop snprintf(destination, 127, "event:node-change/%s","printer");
     printf("starting the main loop...\n");
     do {
         memset(&wrp_msg, 0, sizeof(wrp_msg_t));
