@@ -294,11 +294,12 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
         {"token-read-script",       required_argument, 0, 'T'},
-        {"token-acquisition-script",required_argument, 0, 'J'},
+	{"token-acquisition-script",     required_argument, 0, 'J'},
+        {"hub-or-spoke",            required_argument, 0, 'h'},
         {"Xmidt", no_argument, 0, 'X'}, /* Parodus MUST not try to connect to Xmidt */
         {0, 0, 0, 0}
     };
-    const char *option_string = "X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46";
+    const char *option_string = "X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h";
     int c;
     ParodusInfo("Parsing parodus command line arguments..\n");
 
@@ -460,6 +461,11 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
           break;
 
+        case 'h':
+          parStrncpy(cfg->hub_or_spk, optarg,sizeof(cfg->hub_or_spk));
+          ParodusInfo("hub_or_spk is %s\n",cfg->hub_or_spk);
+          break;
+
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -594,7 +600,6 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
-    
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
@@ -758,7 +763,16 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
-    
+
+    if(strlen(config->hub_or_spk )!=0)
+    {
+        parStrncpy(cfg->hub_or_spk, config->hub_or_spk, sizeof(cfg->hub_or_spk));
+    }
+    else
+    {
+        parStrncpy(cfg->hub_or_spk, "\0", sizeof(cfg->hub_or_spk));
+        ParodusPrint("hub_or_spk is NULL. set to empty\n");
+    }
 }
 
 
