@@ -24,6 +24,8 @@
 #ifndef _CONFIG_H_ 
 #define _CONFIG_H_
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -62,6 +64,10 @@ extern "C" {
 #define HUB_URL                 "tcp://127.0.0.1:7777"
 #define SPK1_URL                "tcp://127.0.0.1:7778"
 #define SPK2_URL                "tcp://127.0.0.1:7779"
+
+/* For Flying Circus Demo allow cli to disable Websocket connection to Xmidt */
+/* Default is to connect. */
+extern bool connectToXmidt;
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */

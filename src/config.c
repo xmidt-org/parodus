@@ -29,6 +29,8 @@
 
 #define MAX_BUF_SIZE	128
 
+bool connectToXmidt = true;
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -294,8 +296,10 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"token-read-script",       required_argument, 0, 'T'},
 	{"token-acquisition-script",     required_argument, 0, 'J'},
         {"hub-or-spoke",            required_argument, 0, 'h'},
+        {"Xmidt", no_argument, 0, 'X'}, /* Parodus MUST not try to connect to Xmidt */
         {0, 0, 0, 0}
     };
+    const char *option_string = "X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h";
     int c;
     ParodusInfo("Parsing parodus command line arguments..\n");
 
@@ -314,9 +318,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv,
-                             "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h",
-                             long_options, &option_index);
+      c = getopt_long (argc, argv, option_string,
+				       long_options, &option_index);
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -467,6 +470,11 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           /* getopt_long already printed an error message. */
           break;
 
+          case 'X':
+        ParodusInfo("\n**************************************************\n\
+parseCommandLine(): Xmidt is overriden ;-), will skip connection!\n");
+              connectToXmidt = false;
+              break;
         default:
            ParodusError("Enter Valid commands..\n");
 		   return -1;
