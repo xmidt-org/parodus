@@ -38,21 +38,35 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 /**
  *  @note Call this with valid parameter before using any function
- *  TEMPORARY - will be replaced by a parodus cfg parameter similar to 
- *  get_parodus_cfg()->local_url
  *
  *  @param url    URL to receive messages from other parodoi.
+ *
+ *  @return true if success, false if failure
  */
-void set_parodus_to_parodus_listener_url(const char *url);
+bool spoke_setup_listener(const char *url);
 
 /**
  *  @note Call this after finishing use of any function here to cleanup
- *  TEMPORARY - will be replaced by a parodus cfg parameter similar to 
- *  get_parodus_cfg()->local_url
  *
  *  @param url    URL to receive messages from other parodoi.
  */
-void cleanup_parodus_to_parodus_listener_url(void);
+void spoke_cleanup_listener(void);
+
+/**
+ *  @note Call this with valid parameter before using any function
+ *
+ *  @param url    URL to receive messages from other parodoi.
+ *
+ *  @return true if success, false if failure
+ */
+bool hub_setup_listener(const char *url);
+
+/**
+ *  @note Call this after finishing use of any function here to cleanup
+ *
+ *  @param url    URL to receive messages from other parodoi.
+ */
+void hub_cleanup_listener(void);
 
 /**
  *  Send message to hub parodus.

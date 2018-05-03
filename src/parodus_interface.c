@@ -37,7 +37,8 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-static char *p2p_url;
+static int g_spk_sock;
+static int g_hub_sock;
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
@@ -47,14 +48,59 @@ static char *p2p_url;
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
-void set_parodus_to_parodus_listener_url(const char *url)
+bool spoke_setup_listener(const char *url)
 {
-    p2p_url = strdup(url);
+    int rv;
+
+    g_spk_sock = nn_socket(AF_SP, NN_SUB);
+    if( g_spk_sock < 0 ) {
+        ParodusError("NN parodus receive socket error %d, %d(%s)\n", g_spk_sock, errno, strerror(errno));
+        return false;
+    }
+
+    /* Subscribe to everything ("" means all topics) */
+    rv = nn_setsockopt(g_spk_sock, NN_SUB, NN_SUB_SUBSCRIBE, "", 0);
+    if( 0 > rv ) {
+        ParodusError("NN parodus receive set socket opt error %d, %d(%s)\n", g_spk_sock, errno, strerror(errno));
+        return false;
+    }
+
+    rv = nn_connect(g_spk_sock, url);
+    if( rv < 0 ) {
+        ParodusError("NN parodus receive bind error %d, %d(%s)\n", rv, errno, strerror(errno));
+        nn_shutdown(g_spk_sock, 0);
+        return false;
+    }
+    return true;
 }
 
-void cleanup_parodus_to_parodus_listener_url(void)
+void spoke_cleanup_listener(void)
 {
-    free(p2p_url);
+    nn_shutdown(g_spk_sock, 0);
+}
+
+bool hub_setup_listener(const char *url)
+{
+    int rv;
+
+    g_hub_sock = nn_socket(AF_SP, NN_PULL);
+    if( g_hub_sock < 0 ) {
+        ParodusError("NN parodus receive socket error %d\n", g_hub_sock, errno, strerror(errno));
+        return false;
+    }
+
+    rv = nn_bind(g_hub_sock, url);
+    if( rv < 0 ) {
+        ParodusError("NN parodus receive bind error %d\n", rv, errno, strerror(errno));
+        return false;
+    }
+
+    return true;
+}
+
+void hub_cleanup_listener(void)
+{
+    nn_shutdown(g_hub_sock, 0);
 }
 
 bool spoke_send_msg(const char *url, const char *notification, size_t notification_size)
@@ -72,7 +118,7 @@ bool spoke_send_msg(const char *url, const char *notification, size_t notificati
     
     msg->msg_type = WRP_MSG_TYPE__EVENT;
     msg->u.event.content_type = "application/msgpack";
-    msg->u.event.source  = (char *) p2p_url;
+    msg->u.event.source  = // (char *) SPK1_URL;
     msg->u.event.dest    = (char *) url;
     msg->u.event.payload = (char *) notification;
     msg->u.event.payload_size = notification_size;
@@ -118,33 +164,18 @@ finished:
 ssize_t hub_check_inbox(char **notification)
 {
     char *msg = NULL;
-    int sock;
-    int rv;
     int msg_sz;
     ssize_t n_sz = -1;
 
-    sock = nn_socket(AF_SP, NN_PULL);
-    if( sock < 0 ) {
-        ParodusError("NN parodus receive socket error %d\n", sock);
-        return -1;
-    }
-
-    rv = nn_bind(sock, p2p_url);
-    if( rv < 0 ) {
-        ParodusError("NN parodus receive bind error %d\n", rv);
-        n_sz = -2;
-        goto finished;
-    }
-
     do {
-        msg_sz = nn_recv(sock, &msg, NN_MSG, 0); //NN_DONTWAIT);
-        if( msg_sz < 0 ) {
-            ParodusError("NN parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
+        msg_sz = nn_recv(g_hub_sock, &msg, NN_MSG, NN_DONTWAIT);
+        if( msg_sz < 0 && EAGAIN != errno ) {
+            ParodusError("Hub parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
             n_sz = -3;
         } else {
             break;
         }
-    } while( EAGAIN != errno );
+    } while( EAGAIN == errno );
 
     if( msg_sz > 0 ) {
         wrp_msg_t *wrp_msg;
@@ -163,51 +194,27 @@ ssize_t hub_check_inbox(char **notification)
         n_sz = wrp_msg->u.event.payload_size + 1;
         *notification = strdup(wrp_msg->u.event.payload);
         wrp_free_struct(wrp_msg);
+        nn_freemsg(msg);
     }
-    nn_freemsg(msg);
 
-finished:
-    nn_shutdown(sock, 0);
     return n_sz;
 }
 
 ssize_t spoke_check_inbox(char **notification)
 {
     char *msg = NULL;
-    int sock;
-    int rv;
     int msg_sz;
     ssize_t n_sz = -1;
 
-    sock = nn_socket(AF_SP, NN_SUB);
-    if( sock < 0 ) {
-        ParodusError("NN parodus receive socket error %d\n", sock);
-        return -1;
-    }
-
-    /* Subscribe to everything ("" means all topics) */
-    rv = nn_setsockopt(sock, NN_SUB, NN_SUB_SUBSCRIBE, "", 0);
-    if( 0 > rv ) {
-        ParodusError("NN parodus receive set socket opt error %d\n", sock);
-        return -2;
-    }
-
-    rv = nn_connect(sock, p2p_url);
-    if( rv < 0 ) {
-        ParodusError("NN parodus receive bind error %d\n", rv);
-        n_sz = -3;
-        goto finished;
-    }
-
     do {
-        msg_sz = nn_recv(sock, &msg, NN_MSG, 0); // NN_DONTWAIT);
-        if( msg_sz < 0 ) {
-            ParodusError("NN parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
+        msg_sz = nn_recv(g_spk_sock, &msg, NN_MSG, NN_DONTWAIT);
+        if( msg_sz < 0 && EAGAIN != errno ) {
+            ParodusError("Spoke parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
             n_sz = -4;
         } else {
             break;
         }
-    } while( true );
+    } while( errno == EAGAIN );
 
     if( msg_sz > 0 ) {
         wrp_msg_t *wrp_msg;
@@ -226,11 +233,8 @@ ssize_t spoke_check_inbox(char **notification)
         n_sz = wrp_msg->u.event.payload_size;
         *notification = strdup(wrp_msg->u.event.payload);
         wrp_free_struct(wrp_msg);
+        nn_freemsg(msg);
     }
-    nn_freemsg(msg);
-
-finished:
-    nn_shutdown(sock, 0);
     return n_sz;
 }
 
@@ -249,7 +253,7 @@ bool hub_send_msg(const char *url, const char *notification, size_t notification
 
     msg->msg_type = WRP_MSG_TYPE__EVENT;
     msg->u.event.content_type = "application/msgpack";
-    msg->u.event.source  = (char *) p2p_url;
+    msg->u.event.source  = // (char *) HUB_URL;
     msg->u.event.dest    = (char *) url;
     msg->u.event.payload = (char *) notification;
     msg->u.event.payload_size = notification_size;
