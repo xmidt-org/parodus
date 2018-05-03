@@ -24,6 +24,8 @@
 #ifndef _CONFIG_H_ 
 #define _CONFIG_H_
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -58,6 +60,10 @@ extern "C" {
 #define PARODUS_UPSTREAM                "tcp://127.0.0.1:6666"
 
 #define ALLOW_NON_RSA_ALG	false
+
+    /* For Flying Circus Demo allow cli to disable Websocket connection to Xmidt */
+    /* Default is to connect. */
+extern bool connectToXmidt;
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
