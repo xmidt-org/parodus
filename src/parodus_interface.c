@@ -107,7 +107,7 @@ void hub_cleanup_listener(void)
     nn_shutdown(g_hub_sock, 0);
 }
 
-bool spoke_send_msg(const char *url, const char *notification, size_t notification_size)
+bool spoke_send_msg(const char *url, const void *notification, size_t notification_size)
 {
     int sock;
     int rv;
@@ -195,7 +195,7 @@ ssize_t spoke_check_inbox(void **notification)
     return msg_sz;
 }
 
-bool hub_send_msg(const char *url, const char *notification, size_t notification_size)
+bool hub_send_msg(const char *url, const void *notification, size_t notification_size)
 {
     int sock;
     int rv;
@@ -223,7 +223,7 @@ bool hub_send_msg(const char *url, const char *notification, size_t notification
     sleep(2);
     do {
         bytes_sent = nn_send(sock, notification, notification_size, NN_DONTWAIT);
-    } while( EAGAIN == errno );
+    } while( bytes_sent != notification_size );// nn_send always returning errno as EAGAIN even in success case
     if( bytes_sent < 0 ) {
         ParodusError("Hub send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
         goto finished;
