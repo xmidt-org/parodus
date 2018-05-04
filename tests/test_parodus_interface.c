@@ -129,13 +129,14 @@ int main(void)
 /*----------------------------------------------------------------------------*/
 static void *check_hub()
 {
-    char *msg;
-    ssize_t msg_sz;
+    char *msg = NULL;
+    ssize_t msg_sz = 0;
 
     while( true ) {
-        msg_sz = hub_check_inbox(&msg);
+        msg_sz = hub_check_inbox((void **)&msg);
         if( 0 < msg_sz ) {
-            CU_ASSERT_EQUAL( (tests[0].nsz + 1), msg_sz );
+            printf("check hub - msg_sz = %zd\n", msg_sz);
+            CU_ASSERT_EQUAL( (tests[0].nsz), msg_sz );
             CU_ASSERT_STRING_EQUAL( tests[0].n, msg );
             free(msg);
             break;
@@ -147,13 +148,14 @@ static void *check_hub()
 
 static void *check_spoke()
 {
-    char *msg;
-    ssize_t msg_sz;
+    char *msg = NULL;
+    ssize_t msg_sz = 0;
 
     while( true ) {
-        msg_sz = spoke_check_inbox(&msg);
+        msg_sz = spoke_check_inbox((void **)&msg);
         if( 0 < msg_sz ) {
-            CU_ASSERT_EQUAL( (tests[1].nsz + 1), msg_sz );
+            printf("check spoke - msg_sz = %zd\n", msg_sz);
+            CU_ASSERT_EQUAL( (tests[1].nsz), msg_sz );
             CU_ASSERT_STRING_EQUAL( tests[1].n, msg );
             free(msg);
             break;

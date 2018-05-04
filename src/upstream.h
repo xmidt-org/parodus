@@ -47,6 +47,7 @@ void *handle_upstream();
 void *processUpstreamMessage();
 
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size);
+void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size);
 
 #ifdef __cplusplus
 }

@@ -157,6 +157,12 @@ void initKeypress()
 {
     function_called();
 }
+
+void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size)
+{
+    UNUSED(resp_bytes); UNUSED(resp_size);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/

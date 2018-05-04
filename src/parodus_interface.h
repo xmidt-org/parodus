@@ -88,7 +88,7 @@ bool spoke_send_msg(const char *url, const char *msg, size_t size);
  *
  *  @return size of msg
  */
-ssize_t hub_check_inbox(char **msg);
+ssize_t hub_check_inbox(void **msg);
 
 /**
  *  Check for message from spoke parodus.
@@ -99,7 +99,7 @@ ssize_t hub_check_inbox(char **msg);
  *
  *  @return size of msg
  */
-ssize_t spoke_check_inbox(char **msg);
+ssize_t spoke_check_inbox(void **msg);
 
 /**
  *  Send message to spoke parodus
