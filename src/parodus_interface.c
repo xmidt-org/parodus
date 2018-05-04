@@ -223,7 +223,7 @@ bool hub_send_msg(const char *url, const void *notification, size_t notification
     sleep(2);
     do {
         bytes_sent = nn_send(sock, notification, notification_size, NN_DONTWAIT);
-    } while( bytes_sent != notification_size );// nn_send always returning errno as EAGAIN even in success case
+    } while( bytes_sent != (int ) notification_size );// nn_send always returning errno as EAGAIN even in success case
     if( bytes_sent < 0 ) {
         ParodusError("Hub send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
         goto finished;
