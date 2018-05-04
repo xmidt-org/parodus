@@ -43,7 +43,7 @@ void *handle_P2P_Incoming()
 			inMsg->msg = malloc(l);
 			memcpy(inMsg->msg,ptr,l);
 			inMsg->len = l;
-            		inMsgQ->next = NULL;
+            		inMsg->next = NULL;
 		}
 	    } 
 	    else 
@@ -55,10 +55,10 @@ void *handle_P2P_Incoming()
 			inMsg->msg = malloc(l);
 			memcpy(inMsg->msg,ptr,l);
 			inMsg->len = l;
-            		inMsgQ->next = NULL;
+            		inMsg->next = NULL;
 		}
 	    }
-
+			pthread_mutex_lock (&inMsgQ_mut);
             if(inMsgQ == NULL)
             {
                 inMsgQ = inMsg;
@@ -89,6 +89,7 @@ void *process_P2P_IncomingMessage()
     ParodusPrint("****** %s *******\n",__FUNCTION__);
     while( FOREVER() )
     {
+        pthread_mutex_lock (&inMsgQ_mut);
         ParodusPrint("mutex lock in consumer thread\n");
         if(inMsgQ != NULL)
         {
@@ -161,6 +162,7 @@ void *process_P2P_OutgoingMessage()
     ParodusInfo("****** %s *******\n",__FUNCTION__);
     while( FOREVER() )
     {
+        pthread_mutex_lock (&outMsgQ_mut);
         ParodusPrint("mutex lock in consumer thread\n");
         if(outMsgQ != NULL)
         {
@@ -243,7 +245,7 @@ void add_P2P_OutgoingMessage(void **message, size_t len)
 	    outMsg->msg = bytes;
             outMsg->len = len;
             outMsg->next = NULL;
-
+			pthread_mutex_lock (&outMsgQ_mut);
             if(outMsgQ == NULL)
             {
                 outMsgQ = outMsg;
