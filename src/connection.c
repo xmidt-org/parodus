@@ -41,7 +41,6 @@
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
-char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
 static noPollConn *g_conn = NULL;
 static bool LastReasonStatus = false;
@@ -96,27 +95,16 @@ void set_global_reconnect_status(bool status)
 
 
 //--------------------------------------------------------------------
-/*  Defined in ParodusInternal.h
-#define SERVER_ADDR_LEN 256
-#define PORT_LEN 8
 
-typedef struct {
-  int allow_insecure;
-  char server_addr[SERVER_ADDR_LEN];
-  char port[PORT_LEN];
-} server_t;
-
-typedef struct {
-  server_t defaults;	// from command line
-  server_t jwt;		// from jwt endpoint claim
-  server_t redirect;	// from redirect response to
-			//  nopoll_conn_wait_until_connection_ready
-} server_list_t;
-*/
+#define FREE_PTR_VAR(ptr_var) \
+  if (NULL != ptr_var) { \
+    free(ptr_var); \
+    ptr_var = NULL; \
+  }
 
 void set_server_null (server_t *server)
 {
-  server->server_addr[0] = 0;
+  server->server_addr = NULL;
 }
 
 void set_server_list_null (server_list_t *server_list)
@@ -128,8 +116,21 @@ void set_server_list_null (server_list_t *server_list)
 
 int server_is_null (server_t *server)
 {
-  return (0 == server->server_addr[0]);
+  return (NULL == server->server_addr);
 }
+
+void free_server (server_t *server)
+{
+  FREE_PTR_VAR (server->server_addr)
+}
+
+void free_server_list (server_list_t *server_list)
+{
+  free_server (&server_list->redirect);
+  free_server (&server_list->jwt);
+  free_server (&server_list->defaults);
+}
+
 
 // If there's a redirect server, that's it,
 // else if there's a jwt server that's it,
@@ -147,20 +148,12 @@ server_t *get_current_server (server_list_t *server_list)
   
 int parse_server_url (const char *full_url, server_t *server)
 {
-  server->allow_insecure = parse_webpa_url (full_url,
-	server->server_addr, SERVER_ADDR_LEN, server->port, PORT_LEN);
+  server->allow_insecure = parse_webpa_url_a (full_url,
+	&server->server_addr, &server->port);
   return server->allow_insecure;
 }
 
 //--------------------------------------------------------------------
-/* --- Defined in ParodusInternal.h
-typedef struct {
-  int running;
-  struct timespec start_time;
-  struct timespec end_time;
-} expire_timer_t;
-*/
-
 void init_expire_timer (expire_timer_t *timer)
 {
   timer->running = false;
@@ -186,13 +179,6 @@ int check_timer_expired (expire_timer_t *timer, long timeout_ms)
 }
 
 //--------------------------------------------------------------------
-/* ---- Defined in ParodusInternal.h
-typedef struct {
-  int max_delay;
-  int delay;
-} backoff_timer_t;
-*/
-
 void init_backoff_timer (backoff_timer_t *timer, int max_delay)
 {
   timer->max_delay = max_delay;
@@ -217,33 +203,67 @@ static void backoff_delay (backoff_timer_t *timer)
 }  
 
 //--------------------------------------------------------------------
-typedef struct {
-  char *conveyHeader;
-  char device_id[32];
-  char user_agent[512];
-} header_info_t;
-
-static void init_header_info (header_info_t *header_info)
+void free_header_info (header_info_t *header_info)
 {
-  char deviceMAC[32]={'\0'};
-
+  FREE_PTR_VAR (header_info->user_agent)
+  FREE_PTR_VAR (header_info->device_id)
+  // Don't free header_info->conveyHeader, because it's static
   header_info->conveyHeader = NULL;
-  memset (header_info->device_id, 0, sizeof(header_info->device_id));
-  memset (header_info->user_agent, 0, sizeof(header_info->user_agent));
-  
-  snprintf(header_info->user_agent, sizeof(header_info->user_agent),"%s (%s; %s/%s;)",
-     ((0 != strlen(get_parodus_cfg()->webpa_protocol)) ? get_parodus_cfg()->webpa_protocol : "unknown"),
-     ((0 != strlen(get_parodus_cfg()->fw_name)) ? get_parodus_cfg()->fw_name : "unknown"),
-     ((0 != strlen(get_parodus_cfg()->hw_model)) ? get_parodus_cfg()->hw_model : "unknown"),
-     ((0 != strlen(get_parodus_cfg()->hw_manufacturer)) ? get_parodus_cfg()->hw_manufacturer : "unknown"));
-
-  ParodusInfo("User-Agent: %s\n",header_info->user_agent);
-  header_info->conveyHeader = getWebpaConveyHeader();
-  parStrncpy(deviceMAC, get_parodus_cfg()->hw_mac,sizeof(deviceMAC));
-  snprintf(header_info->device_id, sizeof(header_info->device_id), "mac:%s", deviceMAC);
-  ParodusInfo("Device_id %s\n", header_info->device_id);
-  
 }
+
+void set_header_info_null (header_info_t *header_info)
+{
+  header_info->conveyHeader = NULL;
+  header_info->user_agent = NULL;
+  header_info->device_id = NULL;
+}
+
+int init_header_info (header_info_t *header_info)
+{
+  ParodusCfg *cfg = get_parodus_cfg();
+  size_t device_id_len;
+#define CFG_PARAM(param) ((0 != strlen(cfg->param)) ? cfg->param : "unknown")
+
+  const char *user_agent_format = "%s (%s; %s/%s;)";
+  char *protocol = CFG_PARAM (webpa_protocol);
+  char *fw_name = CFG_PARAM (fw_name);
+  char *hw_model = CFG_PARAM (hw_model);
+  char *hw_manufacturer = CFG_PARAM (hw_manufacturer);
+  
+  size_t user_agent_len = strlen(protocol) + strlen(fw_name) + 
+    strlen(hw_model) + strlen(hw_manufacturer) + strlen(user_agent_format)
+    + 1;
+    
+  set_header_info_null (header_info);  
+
+  header_info->user_agent = (char *) malloc (user_agent_len);
+  if (NULL == header_info->user_agent) {
+    ParodusError ("header user agent allocation failed.\n");
+    return -1;
+  }
+  
+  snprintf(header_info->user_agent, user_agent_len, user_agent_format,
+     protocol, fw_name, hw_model, hw_manufacturer);
+  device_id_len = strlen (cfg->hw_mac) + 5;
+  header_info->device_id = (char *) malloc (device_id_len);
+  if (NULL == header_info->device_id) {
+    ParodusError ("header device id allocation failed.\n");
+    FREE_PTR_VAR (header_info->user_agent)
+    return -1;
+  }
+  snprintf(header_info->device_id, device_id_len, "mac:%s", cfg->hw_mac);
+  
+  ParodusInfo("User-Agent: %s\n",header_info->user_agent);
+  header_info->conveyHeader = getWebpaConveyHeader();  // ptr to static variable returned
+  if (NULL == header_info->conveyHeader) {
+    ParodusError ("getWebpaConveyHeader error\n");
+    free_header_info (header_info);
+    return -1;
+  }
+  ParodusInfo("Device_id %s\n", header_info->device_id);
+  return 0;
+#undef CFG_PARAM
+} 
 
 static char *build_extra_hdrs (header_info_t *header_info)
 // result must be freed
@@ -255,18 +275,6 @@ static char *build_extra_hdrs (header_info_t *header_info)
 
 
 //--------------------------------------------------------------------
-// connection context which is defined in createNopollConnection
-// and passed into functions keep_retrying_connect, connect_and_wait,
-// wait_connection_ready, and nopoll_connect 
-typedef struct {
-  noPollCtx *nopoll_ctx;
-  server_list_t server_list;
-  server_t *current_server;
-  header_info_t header_info;
-  char *extra_headers;		// need to be freed ?
-  expire_timer_t connect_timer;
-} create_connection_ctx_t;
-
 static void set_current_server (create_connection_ctx_t *ctx)
 {
   ctx->current_server = get_current_server (&ctx->server_list);
@@ -285,10 +293,14 @@ static void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize)
 
 static void free_extra_headers (create_connection_ctx_t *ctx)
 {
-  if (NULL != ctx->extra_headers) {
-    free (ctx->extra_headers);
-    ctx->extra_headers = NULL;
-  }
+  FREE_PTR_VAR (ctx->extra_headers)
+}
+
+void free_connection_ctx (create_connection_ctx_t *ctx)
+{
+  free_extra_headers (ctx);
+  free_header_info (&ctx->header_info);
+  free_server_list (&ctx->server_list);
 }
 
 
@@ -306,27 +318,26 @@ static void free_extra_headers (create_connection_ctx_t *ctx)
 static int find_servers (server_list_t *server_list)
 {
   server_t *default_server = &server_list->defaults;
-  set_server_list_null (server_list);
+
+  free_server_list (server_list);
   // parse default server URL
   if (parse_server_url (get_parodus_cfg()->webpa_url, default_server) < 0)
      return FIND_INVALID_DEFAULT;	// must have valid default url
   ParodusInfo("default server_Address %s\n", default_server->server_addr);
-  ParodusInfo("default port %s\n", default_server->port);
+  ParodusInfo("default port %u\n", default_server->port);
 #ifdef FEATURE_DNS_QUERY
   if (get_parodus_cfg()->acquire_jwt) {
     server_t *jwt_server = &server_list->jwt;
     //query dns and validate JWT
     jwt_server->allow_insecure = allow_insecure_conn(
-             jwt_server->server_addr, SERVER_ADDR_LEN,
-             jwt_server->port, PORT_LEN);
+             &jwt_server->server_addr, &jwt_server->port);
     if (jwt_server->allow_insecure < 0) {
-      set_server_null (jwt_server);
       return FIND_JWT_FAIL;
     }
     ParodusInfo("JWT ON: jwt_server_url stored as %s\n", jwt_server->server_addr);
   }
 #endif
-  return 0;
+  return FIND_SUCCESS;
 }
 
 
@@ -339,12 +350,14 @@ static int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
    noPollConn *connection;
    noPollConnOpts * opts;
    char *default_url = get_parodus_cfg()->webpa_path_url; 
+   char port_buf[8];
 
+   sprintf (port_buf, "%u", server->port);
    if (server->allow_insecure > 0) {
       ParodusPrint("secure false\n");
       opts = createConnOpts(ctx->extra_headers, false); 
       connection = nopoll_conn_new_opts (nopoll_ctx, opts, 
-        server->server_addr,server->port,
+        server->server_addr, port_buf,
         NULL, default_url,NULL,NULL);// WEBPA-787
    } else {
       ParodusPrint("secure true\n");
@@ -352,12 +365,12 @@ static int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
       if (is_ipv6) {
          ParodusInfo("Connecting in Ipv6 mode\n");
          connection = nopoll_conn_tls_new6 (nopoll_ctx, opts, 
-           server->server_addr, server->port,
+           server->server_addr, port_buf,
            NULL, default_url,NULL,NULL);
       } else {      
          ParodusInfo("Connecting in Ipv4 mode\n");
          connection = nopoll_conn_tls_new (nopoll_ctx, opts, 
-           server->server_addr, server->port,
+           server->server_addr, port_buf,
            NULL, default_url,NULL,NULL);
       }      
    }
@@ -398,7 +411,11 @@ static int wait_connection_ready (create_connection_ctx_t *ctx)
 	// Extract server Address and port from the redirectURL
 	if (strncmp (redirect_ptr, "Redirect:", 9) == 0)
 	    redirect_ptr += 9;
-	parse_server_url (redirect_ptr, &ctx->server_list.redirect);
+	free_server (&ctx->server_list.redirect);
+	if (parse_server_url (redirect_ptr, &ctx->server_list.redirect) < 0) {
+	  ParodusError ("Redirect url error %\n", redirectURL);
+	  return WAIT_FAIL;
+	}
 	set_current_server (ctx); // set current server to redirect server
 	return WAIT_ACTION_RETRY;
   }
@@ -523,6 +540,7 @@ int createNopollConnection(noPollCtx *ctx)
 	init_expire_timer (&conn_ctx.connect_timer);
 	init_header_info (&conn_ctx.header_info);
 	set_extra_headers (&conn_ctx, false);
+        set_server_list_null (&conn_ctx.server_list);
   
 	while (true)
 	{
@@ -545,7 +563,9 @@ int createNopollConnection(noPollCtx *ctx)
 	}
 	
 	free_extra_headers (&conn_ctx);
-	
+        free_header_info (&conn_ctx.header_info);
+        free_server_list (&conn_ctx.server_list);
+        
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): close_mut lock\n");
 	pthread_mutex_lock (&close_mut);

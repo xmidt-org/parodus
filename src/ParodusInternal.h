@@ -83,8 +83,8 @@ typedef struct {
 
 typedef struct {
   int allow_insecure;
-  char server_addr[SERVER_ADDR_LEN];
-  char port[PORT_LEN];
+  char *server_addr;  // must be freed
+  unsigned int port;
 } server_t;
 
 typedef struct {
@@ -107,6 +107,24 @@ typedef struct {
   int delay;
 } backoff_timer_t;
 
+//--- Used in connection.c for init_header_info
+typedef struct {
+  char *conveyHeader;	// Do not free
+  char *device_id;	// Need to free
+  char *user_agent;	// Need to free
+} header_info_t;
+
+// connection context which is defined in createNopollConnection
+// and passed into functions keep_retrying_connect, connect_and_wait,
+// wait_connection_ready, and nopoll_connect 
+typedef struct {
+  noPollCtx *nopoll_ctx;
+  server_list_t server_list;
+  server_t *current_server;
+  header_info_t header_info;
+  char *extra_headers;		// need to be freed
+  expire_timer_t connect_timer;
+} create_connection_ctx_t;
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */

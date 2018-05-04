@@ -265,6 +265,46 @@ unsigned int parse_num_arg (const char *arg, const char *arg_name)
 	return result;
 }
 
+int parse_webpa_url_a (const char *full_url, 
+	char **server_addr, unsigned int *port)
+{
+  int allow_insecure;
+  unsigned int port_val;
+  int buflen = strlen (full_url) + 1;
+  char *url_buf = NULL;
+  char port_buf[8];
+
+#define ERROR_RTN(msg) \
+  ParodusError (msg); \
+  if (NULL != url_buf) \
+    free (url_buf); \
+  return -1;
+
+  *server_addr = NULL;
+     
+  url_buf = (char *) malloc (buflen);
+  if (NULL == url_buf) {
+    ERROR_RTN ("parse_webpa_url allocation failed.\n")
+  }
+  allow_insecure = parse_webpa_url (full_url,
+	url_buf, buflen, port_buf, 8);
+  if (allow_insecure < 0) {
+    ERROR_RTN ("parse_webpa_url invalid url\n")
+  }
+  port_val = parse_num_arg (port_buf, "server port");
+  if (port_val == (unsigned int) -1) {
+    ERROR_RTN ("Invalid port in server url")
+  }
+  if ((port_val == 0) || (port_val > 65535)) {
+    ERROR_RTN ("port value out of range in server url")
+  }
+  *server_addr = url_buf;
+  *port = port_val;	
+  return allow_insecure;
+#undef ERROR_RTN
+}
+
+
 int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
     static const struct option long_options[] = {

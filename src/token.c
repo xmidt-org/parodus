@@ -111,8 +111,7 @@ static void show_times (time_t exp_time, time_t cur_time)
 }
 
 // returns 1 if insecure, 0 if secure, < 0 if error
-int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
-	char *port_buf, int port_buflen)
+int analyze_jwt (const cjwt_t *jwt, char **url_buf, unsigned int *port)
 {
 	cJSON *claims = jwt->private_claims;
 	cJSON *endpoint = NULL;
@@ -143,8 +142,8 @@ int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
 			return TOKEN_ERR_JWT_EXPIRED;
 		}
 	}
-	http_match = parse_webpa_url (endpoint->valuestring,
-		url_buf, url_buflen, port_buf, port_buflen);
+	http_match = parse_webpa_url_a (endpoint->valuestring,
+		url_buf, port);
 	if (http_match < 0) {
 		ParodusError ("Invalid endpoint claim in JWT\n");
 		return TOKEN_ERR_BAD_ENDPOINT;
@@ -474,8 +473,7 @@ static void get_dns_txt_record_id (char *buf)
 }
 #endif
 
-int allow_insecure_conn(char *url_buf, int url_buflen,
-	char *port_buf, int port_buflen)
+int allow_insecure_conn(char **server_addr, unsigned int *port)
 {
 #ifdef FEATURE_DNS_QUERY	
 	int insecure=0, ret = -1;
@@ -523,7 +521,7 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 
 	//validate algo from --jwt_algo
 	if( validate_algo(jwt) ) {
-		insecure = analyze_jwt (jwt, url_buf, url_buflen, port_buf, port_buflen);
+		insecure = analyze_jwt (jwt, server_addr, port);
 	} else {
 		insecure = TOKEN_ERR_ALGO_NOT_ALLOWED;
 	}
@@ -537,10 +535,8 @@ end:
 	if (NULL != jwt_token)
 		free (jwt_token);
 #else
-  (void) url_buf;
-  (void) url_buflen;
-  (void) port_buf;
-  (void) port_buflen;
+  (void) server_addr;
+  (void) port;
   int insecure = TOKEN_NO_DNS_QUERY;
 #endif
 	ParodusPrint ("Allow Insecure %d\n", insecure);

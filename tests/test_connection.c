@@ -38,6 +38,7 @@ extern void init_expire_timer (expire_timer_t *timer);
 extern int check_timer_expired (expire_timer_t *timer, long timeout_ms);
 extern void init_backoff_timer (backoff_timer_t *timer, int max_delay);
 extern int update_backoff_delay (backoff_timer_t *timer);
+extern void init_header_info (header_info_t *header_info);
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -53,7 +54,7 @@ pthread_mutex_t close_mut;
 /*----------------------------------------------------------------------------*/
 char* getWebpaConveyHeader()
 {
-    return NULL;
+    return (char*) "WebPA-1.6 (TG1682)";
 }
 
 int checkHostIp(char * serverIP)
@@ -181,6 +182,28 @@ void test_backoff_delay_timer()
   assert_int_equal (30, update_backoff_delay (&btimer));
 }
 
+
+void test_header_info ()
+{
+    header_info_t hinfo;
+    ParodusCfg Cfg;
+    memset(&Cfg, 0, sizeof(ParodusCfg));
+
+    parStrncpy(Cfg.hw_model, "TG1682", sizeof(Cfg.hw_model));
+    parStrncpy(Cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(Cfg.hw_manufacturer));
+    parStrncpy(Cfg.hw_mac , "123567892366", sizeof(Cfg.hw_mac));
+    parStrncpy(Cfg.fw_name , "2.364s2", sizeof(Cfg.fw_name));
+    parStrncpy(Cfg.webpa_protocol , "WebPA-1.6", sizeof(Cfg.webpa_protocol));
+    set_parodus_cfg(&Cfg);
+
+    init_header_info (&hinfo);
+    assert_string_equal (hinfo.conveyHeader, "WebPA-1.6 (TG1682)");
+    assert_string_equal (hinfo.device_id, "mac:123567892366");
+    assert_string_equal (hinfo.user_agent,
+      "WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)");
+}
+
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -197,7 +220,8 @@ int main(void)
         cmocka_unit_test(test_get_current_server),
         cmocka_unit_test(test_parse_server_url),
         cmocka_unit_test(test_expire_timer),
-        cmocka_unit_test(test_backoff_delay_timer)
+        cmocka_unit_test(test_backoff_delay_timer),
+        cmocka_unit_test(test_header_info)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
