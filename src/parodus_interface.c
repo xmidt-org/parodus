@@ -76,6 +76,7 @@ bool spoke_setup_listener(const char *url)
 
 void spoke_cleanup_listener(void)
 {
+    nn_close(g_spk_sock);
     nn_shutdown(g_spk_sock, 0);
 }
 
@@ -100,31 +101,16 @@ bool hub_setup_listener(const char *url)
 
 void hub_cleanup_listener(void)
 {
+    nn_close(g_hub_sock);
     nn_shutdown(g_hub_sock, 0);
 }
 
 bool spoke_send_msg(const char *url, const char *notification, size_t notification_size)
 {
-    wrp_msg_t *msg;
     int sock;
     int rv;
     int bytes_sent = 0;
-    int payload_size;
     int t = 2000;
-    char *payload_bytes;
-    
-    msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
-    memset(msg, 0, sizeof(wrp_msg_t));
-    
-    msg->msg_type = WRP_MSG_TYPE__EVENT;
-    msg->u.event.content_type = "application/msgpack";
-    msg->u.event.source  = // (char *) SPK1_URL;
-    msg->u.event.dest    = (char *) url;
-    msg->u.event.payload = (char *) notification;
-    msg->u.event.payload_size = notification_size;
-
-    payload_size = wrp_struct_to( (const wrp_msg_t *) msg, WRP_BYTES, (void **) &payload_bytes);
-    free(msg);
     
     sock = nn_socket(AF_SP, NN_PUSH);
     if( sock < 0 ) {
@@ -144,122 +130,79 @@ bool spoke_send_msg(const char *url, const char *notification, size_t notificati
         goto finished;
     }
 
-    bytes_sent = nn_send(sock, payload_bytes, payload_size, 0);
+    do {
+        bytes_sent = nn_send(sock, notification, notification_size, NN_DONTWAIT);
+    } while( EAGAIN == errno );
     if( bytes_sent < 0 ) {
-        ParodusError("NN send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
+        ParodusError("Spoke send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
         goto finished;
     }
 
     if( bytes_sent > 0 ) {
-        ParodusPrint("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) payload_size);
+        ParodusPrint("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) notification_size);
     }
 
     sleep(2);
 finished:
+    nn_close(sock);
     nn_shutdown(sock, 0);
-    free(payload_bytes);
-    return (bytes_sent == payload_size);
+    return (bytes_sent == (int) notification_size);
 }
 
-ssize_t hub_check_inbox(char **notification)
+ssize_t hub_check_inbox(void **notification)
 {
     char *msg = NULL;
-    int msg_sz;
-    ssize_t n_sz = -1;
+    int msg_sz = 0;
 
     do {
         msg_sz = nn_recv(g_hub_sock, &msg, NN_MSG, NN_DONTWAIT);
         if( msg_sz < 0 && EAGAIN != errno ) {
             ParodusError("Hub parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
-            n_sz = -3;
+            return -1;
         } else {
             break;
         }
     } while( EAGAIN == errno );
 
     if( msg_sz > 0 ) {
-        wrp_msg_t *wrp_msg;
-        int wrp_msg_sz;
-
-        wrp_msg_sz = wrp_to_struct(msg, msg_sz, WRP_BYTES, &wrp_msg);
-        if( 0 >= wrp_msg_sz ) {
-            return -4;
-        }
-    
-        if( WRP_MSG_TYPE__EVENT != wrp_msg->msg_type ) {
-            wrp_free_struct(wrp_msg);
-            return -5;
-        }
-        
-        n_sz = wrp_msg->u.event.payload_size + 1;
-        *notification = strdup(wrp_msg->u.event.payload);
-        wrp_free_struct(wrp_msg);
+        *notification = malloc(msg_sz);
+        memcpy(*notification, msg, msg_sz);
         nn_freemsg(msg);
     }
 
-    return n_sz;
+    return msg_sz;
 }
 
-ssize_t spoke_check_inbox(char **notification)
+ssize_t spoke_check_inbox(void **notification)
 {
     char *msg = NULL;
-    int msg_sz;
-    ssize_t n_sz = -1;
+    int msg_sz = 0;
 
     do {
         msg_sz = nn_recv(g_spk_sock, &msg, NN_MSG, NN_DONTWAIT);
         if( msg_sz < 0 && EAGAIN != errno ) {
             ParodusError("Spoke parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
-            n_sz = -4;
+            return -1;
         } else {
             break;
         }
     } while( errno == EAGAIN );
 
     if( msg_sz > 0 ) {
-        wrp_msg_t *wrp_msg;
-        int wrp_msg_sz;
-
-        wrp_msg_sz = wrp_to_struct(msg, msg_sz, WRP_BYTES, &wrp_msg);
-        if( 0 >= wrp_msg_sz ) {
-            return -5;
-        }
-
-        if( WRP_MSG_TYPE__EVENT != wrp_msg->msg_type ) {
-            wrp_free_struct(wrp_msg);
-            return -6;
-        }
-
-        n_sz = wrp_msg->u.event.payload_size;
-        *notification = strdup(wrp_msg->u.event.payload);
-        wrp_free_struct(wrp_msg);
+        *notification = malloc(msg_sz);
+        memcpy(*notification, msg, msg_sz);
         nn_freemsg(msg);
     }
-    return n_sz;
+
+    return msg_sz;
 }
 
 bool hub_send_msg(const char *url, const char *notification, size_t notification_size)
 {
-    wrp_msg_t *msg;
     int sock;
     int rv;
     int bytes_sent = 0;
-    int payload_size;
     int t = 2000;
-    char *payload_bytes;
-
-    msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
-    memset(msg, 0, sizeof(wrp_msg_t));
-
-    msg->msg_type = WRP_MSG_TYPE__EVENT;
-    msg->u.event.content_type = "application/msgpack";
-    msg->u.event.source  = // (char *) HUB_URL;
-    msg->u.event.dest    = (char *) url;
-    msg->u.event.payload = (char *) notification;
-    msg->u.event.payload_size = notification_size;
-
-    payload_size = wrp_struct_to( (const wrp_msg_t *) msg, WRP_BYTES, (void **) &payload_bytes);
-    free(msg);
 
     sock = nn_socket(AF_SP, NN_PUB);
     if( sock < 0 ) {
@@ -279,21 +222,23 @@ bool hub_send_msg(const char *url, const char *notification, size_t notification
         goto finished;
     }
 
-    bytes_sent = nn_send(sock, payload_bytes, payload_size, 0);
+    do {
+        bytes_sent = nn_send(sock, notification, notification_size, NN_DONTWAIT);
+    } while( EAGAIN == errno );
     if( bytes_sent < 0 ) {
-        ParodusError("NN send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
+        ParodusError("Hub send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
         goto finished;
     }
 
     if( bytes_sent > 0 ) {
-        ParodusPrint("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) payload_size);
+        ParodusPrint("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) notification_size);
     }
 
     sleep(2);
 finished:
+    nn_close(sock);
     nn_shutdown(sock, 0);
-    free(payload_bytes);
-    return (bytes_sent == payload_size);
+    return (bytes_sent == (int) notification_size);
 }
 
 /*----------------------------------------------------------------------------*/

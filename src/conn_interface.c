@@ -36,12 +36,17 @@
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
+#include "parodus_interface.h"
+#include "peer2peer.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
+#define HUB_STR                                         "hub"
+#define SPK1_STR                                        "spk1"
+#define SPK2_STR                                        "spk2"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -98,6 +103,17 @@ void createSocketConnection(void (* initKeypress)())
     }
 
     seshat_registered = __registerWithSeshat();
+
+    if( 0 == strncmp(HUB_STR, get_parodus_cfg()->hub_or_spk, sizeof(HUB_STR)) ) {
+        hub_setup_listener(HUB_URL);
+    } else if( 0 == strncmp(SPK1_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK1_STR)) ) {
+        spoke_setup_listener(SPK1_URL);
+    } else if( 0 == strncmp(SPK2_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK2_STR)) ) {
+        spoke_setup_listener(SPK2_URL);
+    }
+    StartThread(handle_P2P_Incoming);
+    StartThread(process_P2P_IncomingMessage);
+    StartThread(process_P2P_OutgoingMessage);
     
     do
     {
@@ -141,6 +157,14 @@ void createSocketConnection(void (* initKeypress)())
             createNopollConnection(ctx);
         }		
     } while(!close_retry);
+
+    if( 0 == strncmp(HUB_STR, get_parodus_cfg()->hub_or_spk, sizeof(HUB_STR)) ) {
+        hub_cleanup_listener();
+    } else if( 0 == strncmp(SPK1_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK1_STR)) ) {
+        spoke_cleanup_listener(); 
+    } else if( 0 == strncmp(SPK2_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK2_STR)) ) {
+        spoke_cleanup_listener();
+    }
 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);

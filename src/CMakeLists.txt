@@ -15,7 +15,7 @@ set(SOURCES main.c mutex.c networking.c nopoll_helpers.c nopoll_handlers.c
     ParodusInternal.c string_helpers.c time.c config.c conn_interface.c
     connection.c spin_thread.c client_list.c service_alive.c
     upstream.c downstream.c thread_tasks.c partners_check.c token.c
-    parodus_interface.c)
+    parodus_interface.c peer2peer.c)
 
 if (ENABLE_SESHAT)
 set(SOURCES ${SOURCES} seshat_interface.c)

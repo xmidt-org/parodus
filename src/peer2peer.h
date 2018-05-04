@@ -17,29 +17,29 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-typedef struct P2P_inQ__
+typedef struct P2P_Msg__
 {
 	void *msg;
 	size_t len;
-	struct P2P_inQ__ *next;
-} P2P_inQ;
-
-typedef struct P2P_outQ__
-{
-	void *msg;
-	size_t len;
-	struct P2P_outQ__ *next;
-} P2P_outQ;
+	struct P2P_Msg__ *next;
+} P2P_Msg;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
+// Producer thread to pull and add P2P Incoming queue items 
+// from the peer 2 peer pipe
 void *handle_P2P_Incoming();
+
+// Consumer thread to process the P2P Incoming queue items 
 void *process_P2P_IncomingMessage();
 
-void *handle_P2P_Outgoing();
+// Consumer thread to process the P2P Outgoing queue items 
 void *process_P2P_OutgoingMessage();
+
+// Add outgoing messages to the P2P Outgoing queue
+void add_P2P_OutgoingMessage(void **message, size_t len);
 
 #ifdef __cplusplus
 }
@@ -47,4 +47,3 @@ void *process_P2P_OutgoingMessage();
 
 
 #endif /* _PEER2PEER_H_ */
-

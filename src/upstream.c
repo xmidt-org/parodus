@@ -28,6 +28,7 @@
 #include "connection.h"
 #include "client_list.h"
 #include "nopoll_helpers.h"
+#include "peer2peer.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -51,7 +52,7 @@ pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
-static void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size);
+void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size);
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
@@ -289,6 +290,7 @@ void *processUpstreamMessage()
                         {
                             sendUpstreamMsgToServer(&bytes, size);
                             sendToAllRegisteredClients(&bytes, size);
+                            add_P2P_OutgoingMessage(&bytes, size);
                         }
                         free(eventMsg);
                         free(bytes);
