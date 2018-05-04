@@ -153,8 +153,8 @@ void *process_P2P_IncomingMessage()
 **/
 void *process_P2P_OutgoingMessage()
 {
-    int rv=-1;
-    wrp_msg_t *msg;
+    int rv=-1; (void) rv;
+    wrp_msg_t *msg; (void) msg;
     bool status;
     ParodusInfo("****** %s *******\n",__FUNCTION__);
     while( FOREVER() )
@@ -166,13 +166,15 @@ void *process_P2P_OutgoingMessage()
             outMsgQ = outMsgQ->next;
             pthread_mutex_unlock (&outMsgQ_mut);
             ParodusPrint("mutex unlock in consumer thread\n");
-            rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
-            if(rv > 0)
+            //rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
+            ParodusInfo("process_P2P_OutgoingMessage - message->msg = %p, message->len = %zd\n", message->msg, message->len);
+            //if(rv > 0)
             {
-                if(msg->msg_type == WRP_MSG_TYPE__EVENT)
+                //if(msg->msg_type == WRP_MSG_TYPE__EVENT)
                 {
 		    if (0 == strncmp("hub", get_parodus_cfg()->hub_or_spk, 3) )
 		    {
+                            ParodusInfo("Just before hub send message\n");
 		            status = hub_send_msg(SPK1_URL, message->msg, message->len);
 		            if(status == true)
 		            {
@@ -197,18 +199,18 @@ void *process_P2P_OutgoingMessage()
 		     }
                 }
             }
-            else
+            /* else
             {
                 ParodusError("Error in msgpack decoding for upstream\n");
             }
-
+             
             wrp_free_struct(msg);
             msg = NULL;
 
             if(nn_freemsg (message->msg) < 0)
             {
                 ParodusError ("Failed to free msg\n");
-            }
+            }*/
             free(message);
             message = NULL;
         }
@@ -226,13 +228,17 @@ void *process_P2P_OutgoingMessage()
 void add_P2P_OutgoingMessage(void **message, size_t len)
 {
 	P2P_Msg *outMsg;
+	void *bytes;
     	ParodusInfo("****** %s *******\n",__FUNCTION__);
 
 	outMsg = (P2P_Msg *)malloc(sizeof(P2P_Msg));
 
         if(outMsg)
         {
-	    outMsg->msg = *message;
+            ParodusInfo("add_P2P_OutgoingMessage - *message = %p, len = %zd\n", *message, len);
+	    bytes = malloc(sizeof(len));
+	    memcpy(bytes,*message,len);
+	    outMsg->msg = bytes;
             outMsg->len = len;
             outMsg->next = NULL;
 
