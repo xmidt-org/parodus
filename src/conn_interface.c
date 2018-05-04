@@ -118,33 +118,35 @@ void createSocketConnection(void (* initKeypress)())
     do
     {
         nopoll_loop_wait(ctx, 5000000);
-        intTimer = intTimer + 5;
-
-        if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout) 
-        {
-            if(!close_retry) 
-            {
-                ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
-                ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
-                set_global_reconnect_reason("Ping_Miss");
-                set_global_reconnect_status(true);
-                pthread_mutex_lock (&close_mut);
-                close_retry = true;
-                pthread_mutex_unlock (&close_mut);
-            }
-            else
-            {			
-                ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
-            }
-            heartBeatTimer = 0;
-        }
-        else if(intTimer >= 30)
-        {
-            ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
-            heartBeatTimer += HEARTBEAT_RETRY_SEC;	
-            intTimer = 0;		
-        }
-
+		//Add check for spoke, so that parodus won't reconect everytime for ping miss
+        if (true == connectToXmidt)
+		{
+			intTimer = intTimer + 5;
+		    if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout)
+		    {
+		        if(!close_retry)
+		        {
+		            ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
+		            ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
+		            set_global_reconnect_reason("Ping_Miss");
+		            set_global_reconnect_status(true);
+		            pthread_mutex_lock (&close_mut);
+		            close_retry = true;
+		            pthread_mutex_unlock (&close_mut);
+		        }
+		        else
+		        {
+		            ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+		        }
+		        heartBeatTimer = 0;
+		    }
+		    else if(intTimer >= 30)
+		    {
+		        ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
+		        heartBeatTimer += HEARTBEAT_RETRY_SEC;
+		        intTimer = 0;
+		    }
+		}
         if( false == seshat_registered ) {
             seshat_registered = __registerWithSeshat();
         }
