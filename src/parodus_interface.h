@@ -77,7 +77,7 @@ void hub_cleanup_listener(void);
  *
  *  @return whether operation succeeded, or not.
  */
-bool spoke_send_msg(const char *url, const char *msg, size_t size);
+bool spoke_send_msg(const char *url, const void *msg, size_t size);
 
 /**
  *  Check for message from spoke parodus.
@@ -110,7 +110,7 @@ ssize_t spoke_check_inbox(void **msg);
  *
  *  @return whether operation succeeded, or not.
  */
-bool hub_send_msg(const char *url, const char *msg, size_t size);
+bool hub_send_msg(const char *url, const void *msg, size_t size);
 
 #ifdef __cplusplus
 }

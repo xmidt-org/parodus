@@ -289,8 +289,6 @@ void *processUpstreamMessage()
                         if(size > 0)
                         {
                             sendUpstreamMsgToServer(&bytes, size);
-                            sendToAllRegisteredClients(&bytes, size);
-                            add_P2P_OutgoingMessage(&bytes, size);
                         }
                         free(eventMsg);
                         free(bytes);
@@ -300,6 +298,9 @@ void *processUpstreamMessage()
                     {
                         sendUpstreamMsgToServer(&message->msg, message->len);
                     }
+		    //PartnerId validation is not required for local messages
+                    sendToAllRegisteredClients(&message->msg, message->len);
+                    add_P2P_OutgoingMessage(&message->msg, message->len);
                 }
                 else
                 {
