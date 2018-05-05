@@ -53,7 +53,6 @@ bool spoke_setup_listener(const char *url)
     int rv;
 
     g_spk_sock = nn_socket(AF_SP, NN_SUB);
-    printf("spoke_setup_listener - g_spk_sock = %d\n", g_spk_sock);
     if( g_spk_sock < 0 ) {
         ParodusError("NN parodus receive socket error %d, %d(%s)\n", g_spk_sock, errno, strerror(errno));
         return false;
@@ -86,7 +85,6 @@ bool hub_setup_listener(const char *url)
     int rv;
 
     g_hub_sock = nn_socket(AF_SP, NN_PULL);
-    printf("hub_setup_listener - g_hub_sock = %d\n", g_hub_sock);
     if( g_hub_sock < 0 ) {
         ParodusError("NN parodus receive socket error %d\n", g_hub_sock, errno, strerror(errno));
         return false;
