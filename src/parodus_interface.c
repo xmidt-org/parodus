@@ -132,7 +132,7 @@ bool spoke_send_msg(const char *url, const void *notification, size_t notificati
 
     do {
         bytes_sent = nn_send(sock, notification, notification_size, NN_DONTWAIT);
-    } while( EAGAIN == errno );
+    } while( bytes_sent != (int) notification_size ); //EAGAIN == errno );
     if( bytes_sent < 0 ) {
         ParodusError("Spoke send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
         goto finished;
@@ -158,7 +158,7 @@ ssize_t hub_check_inbox(void **notification)
         msg_sz = nn_recv(g_hub_sock, &msg, NN_MSG, NN_DONTWAIT);
         if( msg_sz < 0 && EAGAIN != errno ) {
             ParodusError("Hub parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
-            return -1;
+            return msg_sz;
         } 
     } while( msg_sz < 0 );
 
@@ -176,11 +176,13 @@ ssize_t spoke_check_inbox(void **notification)
     char *msg = NULL;
     int msg_sz = 0;
 
-    msg_sz = nn_recv(g_spk_sock, &msg, NN_MSG, 0); //NN_DONTWAIT);
-    if( msg_sz < 0 ) {
-        ParodusError("Spoke parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
-        return msg_sz;
-    }
+    do {
+        msg_sz = nn_recv(g_spk_sock, &msg, NN_MSG, NN_DONTWAIT);
+        if( msg_sz < 0 && EAGAIN != errno ) {
+            ParodusError("Spoke parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
+            return msg_sz;
+        }
+    } while( msg_sz < 0 );
 
     if( msg_sz > 0 ) {
         *notification = malloc(msg_sz);
