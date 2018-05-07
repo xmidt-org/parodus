@@ -44,7 +44,7 @@ static int send_period = 60; // sleep time between each send.
 
 int main( int argc, char **argv)
 {
-    const char *option_string = "p:c:w:d:f:m::t:h::";
+    const char *option_string = "p:c:w:d:f:m:t:h::";
     static const struct option options[] = {
         { "help",         optional_argument, 0, 'h' },
         { "parodus-url",  required_argument, 0, 'p' },
