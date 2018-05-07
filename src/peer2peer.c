@@ -115,7 +115,11 @@ void *process_P2P_IncomingMessage()
 		                ParodusError("Failed to send event to spoke\n");
 		            }
 			}
-			else if (0 == strncmp("spk", get_parodus_cfg()->hub_or_spk, 3) )
+			//Send event to all registered clients for both hub and spoke incoming msg 
+			sendToAllRegisteredClients(&message->msg, message->len);
+			
+			
+			/*else if (0 == strncmp("spk", get_parodus_cfg()->hub_or_spk, 3) )
                         {
                             status = spoke_send_msg(SPK1_URL, message->msg, message->len);
                             if(status == true)
@@ -132,7 +136,7 @@ void *process_P2P_IncomingMessage()
 				// For incoming of type spoke, use sendToAllRegisteredClients() to propagate message to its local registered printer. 
                                 // If source is itself then ignore the message
 				sendToAllRegisteredClients(&message->msg, message->len);
-			}
+			}*/
                 /*}
             }
             else

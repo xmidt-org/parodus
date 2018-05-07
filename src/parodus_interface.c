@@ -159,10 +159,8 @@ ssize_t hub_check_inbox(void **notification)
         if( msg_sz < 0 && EAGAIN != errno ) {
             ParodusError("Hub parodus receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
             return -1;
-        } else {
-            break;
-        }
-    } while( EAGAIN == errno );
+        } 
+    } while( msg_sz < 0 );
 
     if( msg_sz > 0 ) {
         *notification = malloc(msg_sz);
