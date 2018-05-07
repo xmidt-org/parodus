@@ -33,6 +33,8 @@ extern int server_is_http (const char *full_url,
 extern int parse_webpa_url(const char *full_url, 
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
+extern int parse_webpa_url_a (const char *full_url,
+	char **server_addr, unsigned int *port);
 extern unsigned int get_algo_mask (const char *algo_str);
 extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
 
@@ -474,6 +476,34 @@ void test_parse_webpa_url ()
 		
 }
 
+void test_parse_webpa_url_a ()
+{
+	char *addr;
+	unsigned int port;
+	assert_int_equal (parse_webpa_url_a ("mydns.mycom.net:8080",
+		&addr, &port), -1);
+	assert_int_equal (parse_webpa_url_a ("https://mydns.mycom.net:8080",
+		&addr, &port), 0);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 8080);
+	free (addr);
+	assert_int_equal (parse_webpa_url_a ("https://mydns.mycom.net/",
+		&addr, &port), 0);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 443);
+	free (addr);
+	assert_int_equal (parse_webpa_url_a ("http://mydns.mycom.net:8080",
+		&addr, &port), 1);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 8080);
+	free (addr);
+	assert_int_equal (parse_webpa_url_a ("http://mydns.mycom.net",
+		&addr, &port), 1);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 80);
+	free(addr);
+}
+
 void test_get_algo_mask ()
 {
 	assert_true (get_algo_mask ("RS256:RS512") == 5120);
@@ -504,6 +534,7 @@ int main(void)
         cmocka_unit_test(test_get_algo_mask),
         cmocka_unit_test(test_server_is_http),
         cmocka_unit_test(test_parse_webpa_url),
+        cmocka_unit_test(test_parse_webpa_url_a),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
