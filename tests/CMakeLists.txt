@@ -248,33 +248,33 @@ target_link_libraries (test_partners_check -lcmocka ${PARODUS_COMMON_LIBS} -lwrp
 #-------------------------------------------------------------------------------
 #   test_token - token.c tests
 #-------------------------------------------------------------------------------
-#add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
-#set(TOKEN_SRC ../src/conn_interface.c ../src/config.c
-# ../src/connection.c ../src/spin_thread.c
-# ../src/service_alive.c ../src/client_list.c
-# ../src/nopoll_handlers.c ../src/nopoll_helpers.c
-# ../src/partners_check.c ../src/ParodusInternal.c
-# ../src/upstream.c ../src/downstream.c 
-# ../src/networking.c
-# ../src/thread_tasks.c ../src/time.c
-# ../src/string_helpers.c ../src/mutex.c 
-# ../src/token.c
-# )
+add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
+set(TOKEN_SRC ../src/conn_interface.c ../src/config.c
+ ../src/connection.c ../src/spin_thread.c
+ ../src/service_alive.c ../src/client_list.c
+ ../src/nopoll_handlers.c ../src/nopoll_helpers.c
+ ../src/partners_check.c ../src/ParodusInternal.c
+ ../src/upstream.c ../src/downstream.c 
+ ../src/networking.c
+ ../src/thread_tasks.c ../src/time.c
+ ../src/string_helpers.c ../src/mutex.c 
+ ../src/token.c
+ )
 
-#if (ENABLE_SESHAT)
-#set(TOKEN_SRC ${TOKEN_SRC} ../src/seshat_interface.c)
-#else()
-#set(TOKEN_SRC ${TOKEN_SRC} ../src/seshat_interface_stub.c)
-#endif (ENABLE_SESHAT)
+if (ENABLE_SESHAT)
+set(TOKEN_SRC ${TOKEN_SRC} ../src/seshat_interface.c)
+else()
+set(TOKEN_SRC ${TOKEN_SRC} ../src/seshat_interface_stub.c)
+endif (ENABLE_SESHAT)
 
-#if (FEATURE_DNS_QUERY)
-#set(TOKEN_SRC test_token.c ${TOKEN_SRC})
-#else()
-#set(TOKEN_SRC test_token_stub.c ${TOKEN_SRC})
-#endif (FEATURE_DNS_QUERY)
+if (FEATURE_DNS_QUERY)
+set(TOKEN_SRC test_token.c ${TOKEN_SRC})
+else()
+set(TOKEN_SRC test_token_stub.c ${TOKEN_SRC})
+endif (FEATURE_DNS_QUERY)
 
-#add_executable(test_token ${TOKEN_SRC} ) 
-#target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
+add_executable(test_token ${TOKEN_SRC} ) 
+target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
 
 #-------------------------------------------------------------------------------
 #   test_seshat_interface - registerWithSeshat

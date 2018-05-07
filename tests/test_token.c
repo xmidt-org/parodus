@@ -143,8 +143,7 @@ cjwt_t jwt3;	// insecure
 cjwt_t jwt4;	// missing endpoint
 
 // internal functions in token.c to be tested
-extern int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
-	char *port_buf, int port_buflen);
+extern int analyze_jwt (const cjwt_t *jwt, char **url_buf, unsigned int *port);
 extern bool validate_algo(const cjwt_t *jwt);
 extern int nquery(const char* dns_txt_record_id,u_char *nsbuf);
 extern bool valid_b64_char (char c);
@@ -311,23 +310,23 @@ void		__res_nclose (res_state statp)
 // Analyzes a jwt structure
 void test_analyze_jwt ()
 {
-    char port[8];
-    char server_Address[256];
+    unsigned int port;
+    char *server_Address;
 	int ret = setup_test_jwts ();
 	assert_int_equal (ret, 0);
-	ret = analyze_jwt (&jwt1, server_Address, (int) sizeof(server_Address),
-		port, (int) sizeof(port));
+	ret = analyze_jwt (&jwt1, &server_Address, &port);
 	assert_int_equal (ret, 0);
 	assert_string_equal (server_Address, "mydns.mycom.net");
-	assert_string_equal (port, "8080");
-	ret = analyze_jwt (&jwt2, server_Address, (int) sizeof(server_Address),
-		port, (int) sizeof(port));
+	assert_int_equal (port, 8080);
+	free (server_Address);
+	ret = analyze_jwt (&jwt2, &server_Address, &port);
 	assert_int_equal (ret, TOKEN_ERR_JWT_EXPIRED);
-	ret = analyze_jwt (&jwt3, server_Address, (int) sizeof(server_Address),
-		port, (int) sizeof(port));
+	ret = analyze_jwt (&jwt3, &server_Address, &port);
 	assert_int_equal (ret, 1);
-	ret = analyze_jwt (&jwt4, server_Address, (int) sizeof(server_Address),
-		port, (int) sizeof(port));
+	assert_string_equal (server_Address, "mydns.mycom.net");
+	assert_int_equal (port, 8080);
+	free (server_Address);
+	ret = analyze_jwt (&jwt4, &server_Address, &port);
 	assert_int_equal (ret, TOKEN_ERR_INVALID_JWT_CONTENT);
 }
 
@@ -602,7 +601,8 @@ void test_query_dns ()
 void test_allow_insecure_conn ()
 {
 	int insecure;
-	char port_buf[6] = "8080";
+	char *server_addr;
+	unsigned int port;
 	ParodusCfg *cfg = get_parodus_cfg();
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
@@ -615,9 +615,10 @@ void test_allow_insecure_conn ()
 	expect_function_call (__res_ninit);
 	expect_function_call (__res_nclose);
 
-	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
-		port_buf, sizeof(port_buf));
+	insecure = allow_insecure_conn (&server_addr, &port);
+	free (server_addr);
 	assert_int_equal (insecure, 0);
+
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
 	parStrncpy (cfg->dns_txt_url, "err5.mydns.mycom.net", sizeof(cfg->dns_txt_url));
@@ -626,8 +627,7 @@ void test_allow_insecure_conn ()
 	expect_function_call (__res_ninit);
 	expect_function_call (__res_nclose);
 
-	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
-		port_buf, sizeof(port_buf));
+	insecure = allow_insecure_conn (&server_addr, &port);
 	assert_int_equal (insecure, TOKEN_ERR_QUERY_DNS_FAIL);
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
@@ -639,8 +639,7 @@ void test_allow_insecure_conn ()
 	expect_function_call (__res_ninit);
 	expect_function_call (__res_nclose);
 
-	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
-		port_buf, sizeof(port_buf));
+	insecure = allow_insecure_conn (&server_addr, &port);
 	assert_int_equal (insecure, TOKEN_ERR_JWT_DECODE_FAIL);
 
 	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
@@ -652,8 +651,7 @@ void test_allow_insecure_conn ()
 	expect_function_call (__res_ninit);
 	expect_function_call (__res_nclose);
 
-	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
-		port_buf, sizeof(port_buf));
+	insecure = allow_insecure_conn (&server_addr, &port);
 	assert_int_equal (insecure, TOKEN_ERR_ALGO_NOT_ALLOWED);
 
 }
