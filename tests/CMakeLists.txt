@@ -123,10 +123,10 @@ target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog 
 #-------------------------------------------------------------------------------
 #   test_connection
 #-------------------------------------------------------------------------------
-#add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
-#set(CONN_SRC test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC})
-#add_executable(test_connection ${CONN_SRC})
-#target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
+add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
+set(CONN_SRC test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC})
+add_executable(test_connection ${CONN_SRC})
+target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
