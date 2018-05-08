@@ -95,11 +95,10 @@ void listenerOnMessage(void * msg, size_t msgSize)
                     } 
 
                       
-                              
                     destVal = strdup(((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
                               ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest)));
                               
-                    
+                              
                     if( (destVal != NULL) && (ret >= 0) )
                     {
                         strtok(destVal , "/");

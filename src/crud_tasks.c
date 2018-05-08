@@ -29,11 +29,28 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	    ParodusInfo( "CREATE request\n" );
 	    
 	    ret = createObject( reqMsg, &resp_msg );
-	    
-	    //WRP payload is NULL for create requests
-	    resp_msg ->u.crud.payload = NULL;
-	    resp_msg ->u.crud.payload_size = 0;
-	    *responseMsg = resp_msg;
+
+	    if(ret == 0)
+	    {
+		    cJSON *payloadObj = cJSON_Parse( (resp_msg)->u.crud.payload );
+		    str = cJSON_PrintUnformatted(payloadObj);
+		    ParodusInfo("Payload Response: %s\n", str);
+
+		    resp_msg ->u.crud.payload = (void *)str;
+		    resp_msg ->u.crud.payload_size = strlen(str);
+
+		   *responseMsg = resp_msg;
+	    }
+	    else
+	    {
+		ParodusError("Failed to create object in config JSON\n");
+		response = cJSON_CreateObject();
+		
+		//WRP payload is NULL for failure cases
+		resp_msg ->u.crud.payload = NULL;
+		resp_msg ->u.crud.payload_size = 0;
+		*responseMsg = resp_msg;
+	    }
 	    break;
 	    
 	case WRP_MSG_TYPE__RETREIVE:
