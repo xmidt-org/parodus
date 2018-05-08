@@ -39,6 +39,7 @@ extern int check_timer_expired (expire_timer_t *timer, long timeout_ms);
 extern void init_backoff_timer (backoff_timer_t *timer, int max_delay);
 extern int update_backoff_delay (backoff_timer_t *timer);
 extern void init_header_info (header_info_t *header_info);
+extern void free_header_info (header_info_t *header_info);
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -201,6 +202,7 @@ void test_header_info ()
     assert_string_equal (hinfo.device_id, "mac:123567892366");
     assert_string_equal (hinfo.user_agent,
       "WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)");
+    free_header_info (&hinfo);
 }
 
 
@@ -219,9 +221,9 @@ int main(void)
         cmocka_unit_test(test_server_list_null),
         cmocka_unit_test(test_get_current_server),
         cmocka_unit_test(test_parse_server_url),
-        //cmocka_unit_test(test_expire_timer),
-        //cmocka_unit_test(test_backoff_delay_timer),
-        //cmocka_unit_test(test_header_info)
+        cmocka_unit_test(test_expire_timer),
+        cmocka_unit_test(test_backoff_delay_timer),
+        cmocka_unit_test(test_header_info)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
