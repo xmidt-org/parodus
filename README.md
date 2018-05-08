@@ -89,3 +89,29 @@ make test
 
 ```
 
+# Sample start commands for parodus to parodus demo:
+
+1. Hub parodus
+```
+sudo ./src/parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=666666666666 --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=enp1s0 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-bundle.crt --webpa-url=https://fabric.webpa.comcast.net:8080 --force-ipv4 --hub-or-spoke=hub
+```
+
+2. Printer component connecting to Hub
+```
+sudo ./tests/printer -p tcp://127.0.0.1:6666 -c tcp://127.0.0.1:9001 -t 10000
+```
+
+3. Spoke parodus
+```
+sudo ./src/parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=888888888888 --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=enp1s0 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:8888 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-bundle.crt --webpa-url=https://fabric.webpa.comcast.net:8080 --force-ipv4 --hub-or-spoke=spk1
+```
+
+4. Printer component connecting to Spoke
+```
+sudo ./tests/printer -p tcp://127.0.0.1:8888 -c tcp://127.0.0.1:8001 -t 10000
+```
+
+5. Producer connecting to Hub
+```
+sudo ./tests/producer -p tcp://127.0.0.1:6666 -c tcp://127.0.0.1:9000 -t 90
+```

@@ -58,7 +58,7 @@ void *handle_P2P_Incoming()
             		inMsg->next = NULL;
 		}
 	    }
-			pthread_mutex_lock (&inMsgQ_mut);
+            pthread_mutex_lock (&inMsgQ_mut);
             if(inMsgQ == NULL)
             {
                 inMsgQ = inMsg;
@@ -115,12 +115,28 @@ void *process_P2P_IncomingMessage()
 		                ParodusError("Failed to send event to spoke\n");
 		            }
 			}
-			else
+			//Send event to all registered clients for both hub and spoke incoming msg 
+			sendToAllRegisteredClients(&message->msg, message->len);
+			
+			
+			/*else if (0 == strncmp("spk", get_parodus_cfg()->hub_or_spk, 3) )
+                        {
+                            status = spoke_send_msg(SPK1_URL, message->msg, message->len);
+                            if(status == true)
+                            {
+                                ParodusInfo("Successfully sent event to hub\n");
+                            }
+                            else
+                            {
+                                ParodusError("Failed to send event to hub\n");
+                            }
+                        }
+                        else
 			{
 				// For incoming of type spoke, use sendToAllRegisteredClients() to propagate message to its local registered printer. 
                                 // If source is itself then ignore the message
 				sendToAllRegisteredClients(&message->msg, message->len);
-			}
+			}*/
                 /*}
             }
             else
@@ -245,7 +261,7 @@ void add_P2P_OutgoingMessage(void **message, size_t len)
 	    outMsg->msg = bytes;
             outMsg->len = len;
             outMsg->next = NULL;
-			pthread_mutex_lock (&outMsgQ_mut);
+            pthread_mutex_lock (&outMsgQ_mut);
             if(outMsgQ == NULL)
             {
                 outMsgQ = outMsg;
