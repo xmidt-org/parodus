@@ -68,7 +68,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
             
             if(matchFlag != 1)
             {
-                (*partnerIds) = (partners_t *) malloc(sizeof(partners_t));
+                (*partnerIds) = (partners_t *) malloc(sizeof(partners_t) + (sizeof(char *) * (count+1)));
                 (*partnerIds)->count = count+1;
                 for(i = 0; i < count; i++)
                 {
@@ -83,7 +83,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
         else
         {
             ParodusPrint("partner_ids list is NULL\n");
-            (*partnerIds) = (partners_t *) malloc(sizeof(partners_t));
+            (*partnerIds) = (partners_t *) malloc(sizeof(partners_t) + (sizeof(char *) * 1));
             (*partnerIds)->count = 1;
             (*partnerIds)->partner_ids[0] = (char *) malloc(sizeof(char) * 64);
             parStrncpy((*partnerIds)->partner_ids[0], partnerId, 64);
