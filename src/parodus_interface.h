@@ -41,12 +41,13 @@ extern "C" {
  *
  *  @param pipeline_url  [in]  URL
  *  @param pubsub_url    [in]  URL
+ *  @param topics        [in]  string array of topics
  *  @param pipeline_sock [out] sock
  *  @param pubsub_sock   [out] sock
  *
  *  @return true if success, false if failure
  */
-bool spoke_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_sock, int *pubsub_sock);
+bool spoke_setup(const char *pipeline_url, const char *pubsub_url, const char **topics, int *pipeline_sock, int *pubsub_sock);
 
 /**
  *  @note Call this after finishing use of any function here to cleanup
