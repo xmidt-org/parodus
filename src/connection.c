@@ -265,7 +265,7 @@ int init_header_info (header_info_t *header_info)
 #undef CFG_PARAM
 } 
 
-static char *build_extra_hdrs (header_info_t *header_info)
+char *build_extra_hdrs (header_info_t *header_info)
 // result must be freed
 {
   char *auth_token = get_parodus_cfg()->webpa_auth_token;
