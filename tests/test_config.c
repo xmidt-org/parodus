@@ -37,6 +37,8 @@ extern int parse_webpa_url_a (const char *full_url,
 	char **server_addr, unsigned int *port);
 extern unsigned int get_algo_mask (const char *algo_str);
 extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
+extern void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
+extern void createNewAuthToken(char *newToken, size_t len);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -516,6 +518,46 @@ void test_get_algo_mask ()
 #endif	
 }
 
+void test_execute_token_script()
+{
+  char *cmd1 = "../../tests/return_ser_mac.bsh";
+  char *cmd2 = "nosuch";
+  char token[32];
+  
+  memset (token, '\0', sizeof(token));
+  execute_token_script (token, cmd1, sizeof(token), "mac123", "ser456");
+  assert_string_equal (token, "SER_MAC ser456 mac123");
+  
+  memset (token, '\0', sizeof(token));
+  execute_token_script (token, cmd2, sizeof(token), "mac123", "ser456");
+  assert_string_equal (token, "");
+}
+
+void test_new_auth_token ()
+{
+  char token[64];
+  ParodusCfg cfg;
+  memset(&cfg,0,sizeof(cfg));
+
+  parStrncpy (cfg.token_acquisition_script, "../../tests/return_success.bsh",
+	sizeof(cfg.token_acquisition_script));
+  parStrncpy (cfg.token_read_script, "../../tests/return_ser_mac.bsh",
+	sizeof(cfg.token_read_script));
+  parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+  parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+	
+  set_parodus_cfg(&cfg);
+  createNewAuthToken (token, sizeof(token));
+  assert_string_equal (token, "SER_MAC Fer23u948590 123567892366");
+  
+  memset (token, 0, sizeof(token));
+  parStrncpy (cfg.token_acquisition_script, "../../tests/return_failure.bsh",
+	sizeof(cfg.token_acquisition_script));
+  set_parodus_cfg(&cfg);
+  createNewAuthToken (token, sizeof(token));
+  assert_string_equal (token, "");  
+	
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -541,6 +583,8 @@ int main(void)
         //cmocka_unit_test(test_parodusGitVersion),
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),
+        cmocka_unit_test(test_execute_token_script),
+        cmocka_unit_test(test_new_auth_token)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

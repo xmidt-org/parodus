@@ -51,8 +51,6 @@ void set_parodus_cfg(ParodusCfg *cfg)
     memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
 }
 
-static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
-
 const char *get_tok (const char *src, int delim, char *result, int resultsize)
 {
 	int i;
@@ -132,7 +130,7 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
   ParodusInfo ("%d bytes read\n", nbytes);
 }
 
-static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
+void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
 {
     FILE* out = NULL, *file = NULL;
     char command[MAX_BUF_SIZE] = {'\0'};
