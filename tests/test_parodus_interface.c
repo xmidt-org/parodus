@@ -54,12 +54,12 @@ static test_t tests[] = {
         .d = HUB,
         .n = "Some binary",
         .nsz = 11,
-     },
+    },
     {   // 1 
         .d = SPOKE,
         .n = "Some other binary",
         .nsz = 17,
-     },
+    },
 };
 
 /*----------------------------------------------------------------------------*/
@@ -74,24 +74,28 @@ void test_push_pull()
 {
     bool result;
     pthread_t t;
+    int i[2];
 
-    hub_setup_listener( HUB );
-    pthread_create(&t, NULL, check_hub, NULL);
+    spoke_setup( SPOKE, HUB, NULL, &i[0], &i[1] );
+    pthread_create(&t, NULL, check_hub, &i);
 
-    result = spoke_send_msg(tests[0].d, tests[0].n, tests[0].nsz);
+    result = send_msg(i[0], tests[0].n, tests[0].nsz);
     CU_ASSERT(true == result);
+    spoke_cleanup(i[0], i[1]);
 }
 
 void test_pub_sub()
 {
     bool result;
     pthread_t t;
+    int i[2];
 
-    spoke_setup_listener( SPOKE );
-    pthread_create(&t, NULL, check_spoke, NULL);
+    hub_setup( SPOKE, HUB, &i[0], &i[1] );
+    pthread_create(&t, NULL, check_spoke, &i);
 
-    result = hub_send_msg(tests[1].d, tests[1].n, tests[1].nsz);
+    result = send_msg(i[1], tests[1].n, tests[1].nsz);
     CU_ASSERT(true == result);
+    hub_cleanup(i[0], i[1]);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -127,40 +131,40 @@ int main(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
-static void *check_hub()
+static void *check_hub(void *args)
 {
     char *msg = NULL;
     ssize_t msg_sz = 0;
+    int *i;
 
-    while( true ) {
-        msg_sz = hub_check_inbox((void **)&msg);
-        if( 0 < msg_sz ) {
-            printf("check hub - msg_sz = %zd\n", msg_sz);
-            CU_ASSERT_EQUAL( (tests[0].nsz), msg_sz );
-            CU_ASSERT_STRING_EQUAL( tests[0].n, msg );
-            free(msg);
-            break;
-        }
+    i = (int *) args;
+    hub_setup( SPOKE, HUB, &i[0], &i[1] );
+    msg_sz = check_inbox(i[0], (void **)&msg);
+    if( 0 < msg_sz ) {
+        printf("check hub - msg_sz = %zd\n", msg_sz);
+        CU_ASSERT_EQUAL( (tests[0].nsz), msg_sz );
+        CU_ASSERT_STRING_EQUAL( tests[0].n, msg );
+        free_msg(msg);
     }
-    hub_cleanup_listener();
+    hub_cleanup(i[0], i[1]);
     return NULL;
 }
 
-static void *check_spoke()
+static void *check_spoke(void *args)
 {
     char *msg = NULL;
     ssize_t msg_sz = 0;
+    int *i;
 
-    while( true ) {
-        msg_sz = spoke_check_inbox((void **)&msg);
-        if( 0 < msg_sz ) {
-            printf("check spoke - msg_sz = %zd\n", msg_sz);
-            CU_ASSERT_EQUAL( (tests[1].nsz), msg_sz );
-            CU_ASSERT_STRING_EQUAL( tests[1].n, msg );
-            free(msg);
-            break;
-        }
+    i = (int *) args;
+    spoke_setup( SPOKE, HUB, NULL, &i[0], &i[1] );
+    msg_sz = check_inbox(i[1], (void **)&msg);
+    if( 0 < msg_sz ) {
+        printf("check spoke - msg_sz = %zd\n", msg_sz);
+        CU_ASSERT_EQUAL( (tests[1].nsz), msg_sz );
+        CU_ASSERT_STRING_EQUAL( tests[1].n, msg );
+        free_msg(msg);
     }
-    spoke_cleanup_listener();
+    spoke_cleanup(i[0], i[1]);
     return NULL;
 }

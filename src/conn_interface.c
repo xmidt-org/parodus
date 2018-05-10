@@ -45,8 +45,7 @@
 
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
 #define HUB_STR                                         "hub"
-#define SPK1_STR                                        "spk1"
-#define SPK2_STR                                        "spk2"
+#define SPK_STR                                         "spk"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -70,6 +69,7 @@ void createSocketConnection(void (* initKeypress)())
     //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
     bool seshat_registered = false;
+    socket_handles_t sock;
     
     //loadParodusCfg(tmpCfg,get_parodus_cfg());
 #ifdef FEATURE_DNS_QUERY
@@ -91,11 +91,11 @@ void createSocketConnection(void (* initKeypress)())
     packMetaData();
     
     UpStreamMsgQ = NULL;
-    StartThread(handle_upstream);
-    StartThread(processUpstreamMessage);
+    StartThread(handle_upstream, NULL);
+    StartThread(processUpstreamMessage, NULL);
     ParodusMsgQ = NULL;
-    StartThread(messageHandlerTask);
-    StartThread(serviceAliveTask);
+    StartThread(messageHandlerTask, NULL);
+    StartThread(serviceAliveTask, NULL);
 
     if (NULL != initKeypress) 
     {
@@ -105,15 +105,13 @@ void createSocketConnection(void (* initKeypress)())
     seshat_registered = __registerWithSeshat();
 
     if( 0 == strncmp(HUB_STR, get_parodus_cfg()->hub_or_spk, sizeof(HUB_STR)) ) {
-        hub_setup_listener(HUB_URL);
-    } else if( 0 == strncmp(SPK1_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK1_STR)) ) {
-        spoke_setup_listener(SPK1_URL);
-    } else if( 0 == strncmp(SPK2_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK2_STR)) ) {
-        spoke_setup_listener(SPK2_URL);
+        hub_setup(PIPELINE_URL, PUBSUB_URL, &sock.pipeline, &sock.pubsub);
+    } else if( 0 == strncmp(SPK_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK_STR)) ) {
+        spoke_setup(PIPELINE_URL, PUBSUB_URL, NULL, &sock.pipeline, &sock.pubsub);
     }
-    StartThread(handle_P2P_Incoming);
-    StartThread(process_P2P_IncomingMessage);
-    StartThread(process_P2P_OutgoingMessage);
+    StartThread(handle_P2P_Incoming, &sock);
+    StartThread(process_P2P_IncomingMessage, &sock);
+    StartThread(process_P2P_OutgoingMessage, &sock);
     
     do
     {
@@ -161,11 +159,9 @@ void createSocketConnection(void (* initKeypress)())
     } while(!close_retry);
 
     if( 0 == strncmp(HUB_STR, get_parodus_cfg()->hub_or_spk, sizeof(HUB_STR)) ) {
-        hub_cleanup_listener();
-    } else if( 0 == strncmp(SPK1_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK1_STR)) ) {
-        spoke_cleanup_listener(); 
-    } else if( 0 == strncmp(SPK2_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK2_STR)) ) {
-        spoke_cleanup_listener();
+        hub_cleanup(sock.pipeline, sock.pubsub);
+    } else if( 0 == strncmp(SPK_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK_STR)) ) {
+        spoke_cleanup(sock.pipeline, sock.pubsub); 
     }
 
     close_and_unref_connection(get_global_conn());

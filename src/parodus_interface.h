@@ -91,7 +91,7 @@ bool send_msg(int sock, const void *msg, size_t size);
 /**
  *  Check for message.
  *
- *  @note msg needs to be cleaned up by the caller.
+ *  @note msg needs to be cleaned up by the caller using free_msg() only.
  *
  *  @param sock   socket handle
  *  @param msg    address of message buffer
@@ -99,6 +99,13 @@ bool send_msg(int sock, const void *msg, size_t size);
  *  @return size of msg
  */
 ssize_t check_inbox(int sock, void **msg);
+
+/**
+ *  Free message return by check_inbox().
+ *
+ *  @param msg    address of message buffer
+ */
+void free_msg(void *msg);
 
 #ifdef __cplusplus
 }
