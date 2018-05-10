@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
+#include <wrp-c.h>
 
 #include "../src/downstream.h"
 #include "../src/ParodusInternal.h"
@@ -35,6 +36,12 @@ pthread_cond_t g_cond;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	UNUSED(crudMsg) ;
+	return;
+}
+
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
     UNUSED(resp_bytes); UNUSED(resp_size);

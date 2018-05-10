@@ -15,48 +15,41 @@
  *
  */
 /**
- * @file upstream.h
+ * @file crud_interface.h
  *
- * @description This header defines functions required to manage upstream messages.
+ * @description This header defines functions required to manage CRUD messages.
  *
  */
  
-#ifndef _UPSTREAM_H_
-#define _UPSTREAM_H_
+#ifndef _CRUD_INTERFACE_H_
+#define _CRUD_INTERFACE_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-typedef struct UpStreamMsg__
+typedef struct CrudMsg__
 {
-	void *msg;
-	size_t len;
-	struct UpStreamMsg__ *next;
-} UpStreamMsg;
+	wrp_msg_t *msg;
+	struct CrudMsg__ *next;
+} CrudMsg;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-void packMetaData();
-void *handle_upstream();
-void *processUpstreamMessage();
-
-void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size);
-void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size);
-void set_global_UpStreamMsgQ(UpStreamMsg * UpStreamQ);
-UpStreamMsg * get_global_UpStreamMsgQ(void);
-pthread_cond_t *get_global_nano_con(void);
-pthread_mutex_t *get_global_nano_mut(void);
+//void *CRUDHandlerTask();
+//void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
+void addCRUDresponseToUpstreamQ(void *response_bytes, ssize_t response_size);
 
 #ifdef __cplusplus
 }
 #endif
 
 
-#endif /* _UPSTREAM_H_ */
+#endif /* _CRUD_INTERFACE_H_ */
 
