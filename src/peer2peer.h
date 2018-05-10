@@ -28,12 +28,8 @@ typedef struct P2P_Msg__
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-// Producer thread to pull and add P2P Incoming queue items 
-// from the peer 2 peer pipe
-void *handle_P2P_Incoming();
-
-// Consumer thread to process the P2P Incoming queue items 
-void *process_P2P_IncomingMessage();
+// Thread to pull, add and process P2P Incoming queue items 
+void *handle_and_process_P2P_IncomingMessage();
 
 // Consumer thread to process the P2P Outgoing queue items 
 void *process_P2P_OutgoingMessage();
