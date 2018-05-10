@@ -16,7 +16,8 @@ set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -W -g3 -fprofile-arcs -ftest-coverage
 set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTEST ")
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g3 -fprofile-arcs -ftest-coverage -O0")
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
-set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c ../src/token.c)
+set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c
+     ../src/config.c ../src/spin_thread.c ../src/token.c ../src/config_file.c )
 set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c
  -luuid -lpthread -lmsgpackc -lnopoll -lnanomsg
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
@@ -137,7 +138,8 @@ target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
 #add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
 #target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
-add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
+add_executable(test_createConnection test_createConnection.c ../src/connection.c
+               ../src/string_helpers.c ../src/config.c ../src/config_file.c ) 
 #target_link_libraries (test_createConnection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka )
 target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
 
@@ -169,7 +171,12 @@ target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 add_test(NAME test_service_alive COMMAND ${MEMORY_CHECK} ./test_service_alive)
 #add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
-set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ../src/parodus_interface.c ../src/peer2peer.c ${PARODUS_COMMON_SRC})
+set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c
+    ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c 
+    ../src/nopoll_handlers.c ../src/config.c ../src/config_file.c ../src/connection.c
+    ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c
+    ../src/conn_interface.c ../src/partners_check.c ../src/parodus_interface.c
+    ../src/peer2peer.c ${PARODUS_COMMON_SRC})
 if (ENABLE_SESHAT)
 set(SVA_SRC ${SVA_SRC} ../src/seshat_interface.c)
 else()
@@ -217,7 +224,8 @@ target_link_libraries ( producer
 #   test_config
 #-------------------------------------------------------------------------------
 add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
-add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
+add_executable(test_config test_config.c ../src/config.c ../src/config_file.c
+               ../src/string_helpers.c)
 target_link_libraries (test_config -lcmocka
  -Wl,--no-as-needed -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm
@@ -259,6 +267,7 @@ add_test(NAME test_conn_interface COMMAND ${MEMORY_CHECK} ./test_conn_interface)
 set(CONIFC_SRC test_conn_interface.c 
   ../src/conn_interface.c 
   ../src/config.c 
+  ../src/config_file.c
   ../src/token.c
   ../src/string_helpers.c 
   ../src/mutex.c
@@ -277,7 +286,10 @@ target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 #   test_ParodusInternal
 #-------------------------------------------------------------------------------
 add_test(NAME test_ParodusInternal COMMAND ${MEMORY_CHECK} ./test_ParodusInternal)
-add_executable(test_ParodusInternal test_ParodusInternal.c ../src/ParodusInternal.c ../src/config.c ../src/string_helpers.c)
+add_executable(test_ParodusInternal test_ParodusInternal.c 
+               ../src/ParodusInternal.c 
+               ../src/config.c ../src/config_file.c
+               ../src/string_helpers.c)
 target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
@@ -291,7 +303,7 @@ target_link_libraries (test_partners_check -lcmocka ${PARODUS_COMMON_LIBS} -lwrp
 #   test_token - token.c tests
 #-------------------------------------------------------------------------------
 add_test(NAME test_token COMMAND ${MEMORY_CHECK} ./test_token)
-set(TOKEN_SRC ../src/conn_interface.c ../src/config.c
+set(TOKEN_SRC ../src/conn_interface.c ../src/config.c ../src/config_file.c
  ../src/connection.c ../src/spin_thread.c
  ../src/service_alive.c ../src/client_list.c
  ../src/nopoll_handlers.c ../src/nopoll_helpers.c
@@ -351,8 +363,13 @@ target_link_libraries (simple_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_L
 #   simple test
 #-------------------------------------------------------------------------------
 add_test(NAME simple COMMAND ${MEMORY_CHECK} ./simple)
-set(SIMPLE_SRC simple.c ../src/upstream.c ../src/conn_interface.c ../src/downstream.c ../src/thread_tasks.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/string_helpers.c ../src/mutex.c ../src/time.c
- ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/spin_thread.c ../src/client_list.c ../src/partners_check.c ../src/service_alive.c)
+set(SIMPLE_SRC simple.c ../src/upstream.c ../src/conn_interface.c
+ ../src/downstream.c ../src/thread_tasks.c ../src/networking.c 
+ ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/string_helpers.c
+ ../src/mutex.c ../src/time.c ../src/config.c ./src/config_file.c 
+ ../src/connection.c ../src/ParodusInternal.c ../src/spin_thread.c
+ ../src/client_list.c ../src/partners_check.c ../src/service_alive.c)
+
 if (ENABLE_SESHAT)
 set(SIMPLE_SRC ${SIMPLE_SRC} ../src/seshat_interface.c)
 else()

@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <fcntl.h> 
 #include "config.h"
+#include "config_file.h"
 #include "ParodusInternal.h"
 #include <cjwt/cjwt.h>
 
@@ -269,6 +270,8 @@ unsigned int parse_num_arg (const char *arg, const char *arg_name)
 
 int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {
+    bool keepParsing = true;
+    
     static const struct option long_options[] = {
         {"hw-model",                required_argument, 0, 'm'},
         {"hw-serial-number",        required_argument, 0, 's'},
@@ -297,9 +300,11 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"token-acquisition-script",     required_argument, 0, 'J'},
         {"hub-or-spoke",            required_argument, 0, 'h'},
         {"Xmidt", no_argument, 0, 'X'}, /* Parodus MUST not try to connect to Xmidt */
+        /* Overrides all other arguments, will parse the configuration file specified */
+        {"config-file", required_argument, 0, 'F'}, 
         {0, 0, 0, 0}
     };
-    const char *option_string = "X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h";
+    const char *option_string = "F:X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h";
     int c;
     ParodusInfo("Parsing parodus command line arguments..\n");
 
@@ -313,7 +318,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->jwt_algo = 0;
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	optind = 1;  /* We need this if parseCommandLine is called again */
-    while (1)
+    while (keepParsing)
     {
 
       /* getopt_long stores the option index here. */
@@ -475,6 +480,18 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 parseCommandLine(): Xmidt is overriden ;-), will skip connection!\n");
               connectToXmidt = false;
               break;
+              
+          case 'F':
+              if (optarg) {
+                ParodusInfo("file name for configuration %s\n", optarg);
+                if (0 == processParodusCfg(cfg, optarg)) {
+                  keepParsing = false; // This overwrites all others! 
+                }
+              } else {
+                  ParodusError("Missing configuration file name with -F option!\n");
+              }
+              break;
+              
         default:
            ParodusError("Enter Valid commands..\n");
 		   return -1;
