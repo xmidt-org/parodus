@@ -109,8 +109,8 @@ int main(void)
     if( CUE_SUCCESS == CU_initialize_registry() ) {
         printf("--------Start of Test Cases Execution ---------\n");
         suite = CU_add_suite( "tests", NULL, NULL );
-        CU_add_test( suite, "Test Push/Pull", test_push_pull );
-        CU_add_test( suite, "Test Pub/Sub",   test_pub_sub );
+//        CU_add_test( suite, "Test Push/Pull", test_push_pull );
+//        CU_add_test( suite, "Test Pub/Sub",   test_pub_sub );
 
         if( NULL != suite ) {
             CU_basic_set_mode( CU_BRM_VERBOSE );
