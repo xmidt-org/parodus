@@ -78,9 +78,6 @@ typedef struct {
 } rr_rec_t;
 
 //------------ Used in comnection.c -----------------
-#define SERVER_ADDR_LEN 256
-#define PORT_LEN 8
-
 typedef struct {
   int allow_insecure;
   char *server_addr;  // must be freed
