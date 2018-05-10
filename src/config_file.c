@@ -130,27 +130,89 @@ cJSON* __parse_config_file( char *file, int *error )
     return NULL;
 }
 
+
 int __setParodusConfig(cJSON *jsp, ParodusCfg *cfg)
 {
     cJSON *item;
     
     memset(cfg, 0, sizeof(ParodusCfg));
-    
-    /* ToDo: Implement Me ;0) */
-    /* Correct config.h, we should not have hard-coded numbers and limits on strings. */
-    
-    /* Sample implementation of some of the fields ... */
+       
     item = cJSON_GetObjectItem(jsp, HW_MODELNAME);
     if (item && (cJSON_String == item->type)) {
         strncpy(cfg->hw_model, item->valuestring, 64);
     }
+    
+    item = cJSON_GetObjectItem(jsp, HW_SERIALNUMBER);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->hw_serial_number, item->valuestring, 64);
+    }
+ 
+    item = cJSON_GetObjectItem(jsp, HW_MANUFACTURER);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->hw_manufacturer, item->valuestring, 64);
+    }
+    
+    item = cJSON_GetObjectItem(jsp, HW_DEVICEMAC);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->hw_mac, item->valuestring, 64);
+    }
+    
+    item = cJSON_GetObjectItem(jsp, HW_LAST_REBOOT_REASON);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->hw_last_reboot_reason, item->valuestring, 64);
+    }
+                
+    item = cJSON_GetObjectItem(jsp, FIRMWARE_NAME);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->fw_name, item->valuestring, 64);
+    }
+    
+    item = cJSON_GetObjectItem(jsp, BOOT_TIME);
+    if (item && (cJSON_Number == item->type)) {
+        cfg->boot_time = item->valueint;
+    }
+    
+    item = cJSON_GetObjectItem(jsp, WEBPA_PROTOCOL);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->webpa_protocol, item->valuestring, 64);
+    }    
+    
+    item = cJSON_GetObjectItem(jsp, WEBPA_INTERFACE);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->webpa_interface_used, item->valuestring, 64);
+    }
+     
+    item = cJSON_GetObjectItem(jsp, WEBPA_UUID);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->webpa_uuid, item->valuestring, 64);
+    }  
     
     item = cJSON_GetObjectItem(jsp, WEBPA_PING_TIMEOUT);
     if (item && (cJSON_Number == item->type)) {
         cfg->webpa_ping_timeout = item->valueint;
     }
 
+    item = cJSON_GetObjectItem(jsp, WEBPA_URL);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->webpa_url, item->valuestring, 64);
+    }
     
-    // Not completed...so always return an error.
-    return -4;
+    item = cJSON_GetObjectItem(jsp, WEBPA_BACKOFF_MAX);
+    if (item && (cJSON_Number == item->type)) {
+        cfg->webpa_backoff_max = item->valueint;
+    }
+
+    item = cJSON_GetObjectItem(jsp, PARTNER_ID);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->partner_id, item->valuestring, 64);
+    }
+     
+     item = cJSON_GetObjectItem(jsp, CERT_PATH);
+    if (item && (cJSON_String == item->type)) {
+        strncpy(cfg->cert_path, item->valuestring, 64);
+    }
+ 
+    /* ToDo: Do a check of required fields */ 
+     
+    return 0;
 }
