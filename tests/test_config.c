@@ -84,8 +84,6 @@ void test_setParodusConfig()
     parStrncpy(cfg.jwt_key, "key.txt",sizeof(cfg.jwt_key));
 #endif
     parStrncpy(cfg.hub_or_spk, "", sizeof(cfg.hub_or_spk));
-    cfg.pipeline_url = strdup("tcp://127.0.0.1:1111");
-    cfg.pub_sub_url = NULL;
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
@@ -115,8 +113,6 @@ void test_setParodusConfig()
     assert_string_equal(cfg.jwt_key, temp->jwt_key);
 #endif
     assert_string_equal(cfg.hub_or_spk, temp->hub_or_spk);
-    assert_string_equal(cfg.pipeline_url, temp->pipeline_url);
-    free_parodusCfg(&cfg);
 }
 
 void test_getParodusConfig()
@@ -195,8 +191,6 @@ void test_parseCommandLine()
 		"--jwt-algo=RS256",
 #endif
                 "--hub-or-spoke=hub",
-        "--pipeline-url=tcp://127.0.0.1:9999",
-        "--pub-sub-url=tcp://127.0.0.1:5555",
 		NULL
 	};
 	int argc = (sizeof (command) / sizeof (char *)) - 1;
@@ -240,9 +234,6 @@ void test_parseCommandLine()
 	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
 #endif
     assert_string_equal(parodusCfg.hub_or_spk, "hub");
-    assert_string_equal(parodusCfg.pipeline_url, "tcp://127.0.0.1:9999");
-    assert_string_equal(parodusCfg.pub_sub_url, "tcp://127.0.0.1:5555");
-    free_parodusCfg(&parodusCfg);
 }
 
 void test_parseCommandLineNull()
@@ -330,8 +321,6 @@ void test_loadParodusCfg()
     parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
 #endif
     parStrncpy(Cfg->hub_or_spk, "spk1", sizeof(Cfg->hub_or_spk));
-    Cfg->pipeline_url = strdup("tcp://127.0.0.1:2222");
-    Cfg->pub_sub_url = strdup("tcp://127.0.0.1:3333");
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
 
@@ -355,11 +344,7 @@ void test_loadParodusCfg()
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
 #endif
     assert_string_equal(tmpcfg.hub_or_spk, "spk1");
-    assert_string_equal(tmpcfg.pipeline_url, "tcp://127.0.0.1:2222");
-    assert_string_equal(tmpcfg.pub_sub_url, "tcp://127.0.0.1:3333");
-    free_parodusCfg(Cfg);
     free(Cfg);
-    free_parodusCfg(&tmpcfg);
 }
 
 void test_loadParodusCfgNull()
@@ -379,8 +364,7 @@ void test_loadParodusCfgNull()
     assert_string_equal( temp.webpa_path_url, WEBPA_PATH_URL);	
     assert_string_equal( temp.webpa_uuid,"1234567-345456546");
     assert_string_equal( temp.local_url, PARODUS_UPSTREAM);
-    assert_null(temp.pipeline_url);
-    assert_null(temp.pub_sub_url);
+
     free(cfg);
 }
 

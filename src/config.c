@@ -297,11 +297,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"token-acquisition-script",     required_argument, 0, 'J'},
         {"hub-or-spoke",            required_argument, 0, 'h'},
         {"Xmidt", no_argument, 0, 'X'}, /* Parodus MUST not try to connect to Xmidt */
-        {"pipeline-url",            required_argument, 0, 'P'},
-        {"pub-sub-url",            required_argument, 0, 'S'},
         {0, 0, 0, 0}
     };
-    const char *option_string = "X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h:P:S";
+    const char *option_string = "X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h";
     int c;
     ParodusInfo("Parsing parodus command line arguments..\n");
 
@@ -314,8 +312,6 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->acquire_jwt = 0;
 	cfg->jwt_algo = 0;
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
-	cfg->pipeline_url = NULL;
-	cfg->pub_sub_url = NULL;
 	optind = 1;  /* We need this if parseCommandLine is called again */
     while (1)
     {
@@ -469,16 +465,6 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->hub_or_spk, optarg,sizeof(cfg->hub_or_spk));
           ParodusInfo("hub_or_spk is %s\n",cfg->hub_or_spk);
           break;
-          
-        case 'P':
-          cfg->pipeline_url = strdup(optarg);
-          ParodusInfo("pipeline_url is %s\n",cfg->pipeline_url);
-          break;
-
-        case 'S':
-          cfg->pub_sub_url = strdup(optarg);
-          ParodusInfo("pub_sub_url is %s\n",cfg->pub_sub_url);
-          break;
 
         case '?':
           /* getopt_long already printed an error message. */
@@ -614,8 +600,6 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
-    cfg->pipeline_url = NULL;
-	cfg->pub_sub_url = NULL;
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
@@ -789,42 +773,6 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->hub_or_spk, "\0", sizeof(cfg->hub_or_spk));
         ParodusPrint("hub_or_spk is NULL. set to empty\n");
     }
-    
-    if(config->pipeline_url != NULL)
-    {
-        cfg->pipeline_url = strdup(config->pipeline_url);
-    }
-    else
-    {
-        ParodusPrint("pipeline_url is NULL. set to empty\n");
-    }
-    
-    if(config->pub_sub_url != NULL)
-    {
-        cfg->pub_sub_url = strdup(config->pub_sub_url);
-    }
-    else
-    {
-        ParodusPrint("pub_sub_url is NULL. set to empty\n");
-    }
 }
 
-void free_parodusCfg(ParodusCfg *cfg)
-{
-    ParodusPrint("---------- %s ---------\n",__FUNCTION__);
-    if(cfg != NULL)
-    {
-        if(cfg->pipeline_url != NULL)
-        {
-            free(cfg->pipeline_url);
-            cfg->pipeline_url = NULL;
-        }
-        
-        if(cfg->pub_sub_url != NULL)
-        {
-            free(cfg->pub_sub_url);
-            cfg->pub_sub_url = NULL;
-        }
-    }
-    ParodusPrint("---------- %s ---------\n",__FUNCTION__);
-}
+
