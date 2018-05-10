@@ -78,7 +78,7 @@ bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_s
 void hub_cleanup(int pipeline_sock, int pubsub_sock);
 
 /**
- *  Send message to hub parodus.
+ *  Send message.
  *
  *  @param sock socket handle 
  *  @param msg  notification
@@ -86,10 +86,10 @@ void hub_cleanup(int pipeline_sock, int pubsub_sock);
  *
  *  @return whether operation succeeded, or not.
  */
-bool spoke_send_msg(int sock, const void *msg, size_t size);
+bool send_msg(int sock, const void *msg, size_t size);
 
 /**
- *  Check for message from spoke parodus.
+ *  Check for message.
  *
  *  @note msg needs to be cleaned up by the caller.
  *
@@ -98,30 +98,7 @@ bool spoke_send_msg(int sock, const void *msg, size_t size);
  *
  *  @return size of msg
  */
-ssize_t hub_check_inbox(int pipeline_sock, void **msg);
-
-/**
- *  Check for message from spoke parodus.
- *
- *  @note msg needs to be cleaned up by the caller.
- *
- *  @param sock   socket handle
- *  @param msg    address of message buffer
- *
- *  @return size of msg
- */
-ssize_t spoke_check_inbox(int sock, void **msg);
-
-/**
- *  Send message to spoke parodus
- * 
- *  @param sock socket handle
- *  @param msg  notification
- *  @param size size of notification
- *
- *  @return whether operation succeeded, or not.
- */
-bool hub_send_msg(int sock, const void *msg, size_t size);
+ssize_t check_inbox(int sock, void **msg);
 
 #ifdef __cplusplus
 }
