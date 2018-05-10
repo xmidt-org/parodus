@@ -109,8 +109,8 @@ int main(void)
     if( CUE_SUCCESS == CU_initialize_registry() ) {
         printf("--------Start of Test Cases Execution ---------\n");
         suite = CU_add_suite( "tests", NULL, NULL );
-//        CU_add_test( suite, "Test Push/Pull", test_push_pull );
-//        CU_add_test( suite, "Test Pub/Sub",   test_pub_sub );
+        CU_add_test( suite, "Test Push/Pull", test_push_pull );
+        CU_add_test( suite, "Test Pub/Sub",   test_pub_sub );
 
         if( NULL != suite ) {
             CU_basic_set_mode( CU_BRM_VERBOSE );
@@ -139,6 +139,7 @@ static void *check_hub(void *args)
 
     i = (int *) args;
     hub_setup( SPOKE, HUB, &i[0], &i[1] );
+    sleep(5);
     msg_sz = check_inbox(i[0], (void **)&msg);
     if( 0 < msg_sz ) {
         printf("check hub - msg_sz = %zd\n", msg_sz);
@@ -158,6 +159,7 @@ static void *check_spoke(void *args)
 
     i = (int *) args;
     spoke_setup( SPOKE, HUB, NULL, &i[0], &i[1] );
+    sleep(5);
     msg_sz = check_inbox(i[1], (void **)&msg);
     if( 0 < msg_sz ) {
         printf("check spoke - msg_sz = %zd\n", msg_sz);

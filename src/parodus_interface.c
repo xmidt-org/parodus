@@ -175,7 +175,10 @@ bool send_msg(int sock, const void *notification, size_t notification_size)
 {
     int bytes_sent = 0;
     
-    bytes_sent = nn_send(sock, notification, notification_size, 0);
+    do {
+        bytes_sent = nn_send(sock, notification, notification_size, NN_DONTWAIT);
+    } while( EAGAIN == errno && bytes_sent < 0 );
+
     if( bytes_sent < 0 ) {
         ParodusError("Send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
     }
@@ -184,7 +187,6 @@ bool send_msg(int sock, const void *notification, size_t notification_size)
         ParodusPrint("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) notification_size);
     }
 
-    sleep(2);
     return (bytes_sent == (int) notification_size);
 }
 
@@ -196,11 +198,11 @@ ssize_t check_inbox(int sock, void **notification)
     msg = *notification;
     do {
         msg_sz = nn_recv(sock, &msg, NN_MSG, NN_DONTWAIT);
-        if( msg_sz < 0 && EAGAIN != errno ) {
-            ParodusError("Receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
-            return msg_sz;
-        } 
-    } while( EAGAIN == errno );
+    } while( EAGAIN == errno && msg_sz < 0 );
+
+    if( msg_sz < 0 ) {
+        ParodusError("Receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
+    }
 
     return msg_sz;
 }
