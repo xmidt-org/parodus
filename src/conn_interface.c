@@ -111,8 +111,7 @@ void createSocketConnection(void (* initKeypress)())
     } else if( 0 == strncmp(SPK2_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK2_STR)) ) {
         spoke_setup_listener(SPK2_URL);
     }
-    StartThread(handle_P2P_Incoming);
-    StartThread(process_P2P_IncomingMessage);
+    StartThread(handle_and_process_P2P_IncomingMessage);
     StartThread(process_P2P_OutgoingMessage);
     
     do
