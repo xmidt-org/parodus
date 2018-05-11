@@ -54,6 +54,7 @@ bool spoke_setup(const char *pipeline_url, const char *pubsub_url, const char **
     int t = 2000;
 
     sock = nn_socket(AF_SP, NN_SUB);
+    printf("nn_sub sock = %d\n", sock);
     if( sock < 0 ) {
         ParodusError("NN spoke sub socket error %d, %d(%s)\n", sock, errno, strerror(errno));
         return false;
@@ -69,13 +70,14 @@ bool spoke_setup(const char *pipeline_url, const char *pubsub_url, const char **
 
     rv = nn_connect(sock, pubsub_url);
     if( rv < 0 ) {
-        ParodusError("NN spoke sub socket bind error %d, %d(%s)\n", rv, errno, strerror(errno));
+        ParodusError("NN spoke sub socket %d bind error %d, %d(%s)\n", sock, rv, errno, strerror(errno));
         goto finished;
     }
 
     *pubsub_sock = sock;
 
     sock = nn_socket(AF_SP, NN_PUSH);
+    printf("nn_push sock = %d\n", sock);
     if( sock < 0 ) {
         ParodusError("NN spoke push socket error %d, %d(%s)\n", sock, errno, strerror(errno));
         return false;
@@ -104,15 +106,6 @@ finished:
     return false;
 }
 
-void spoke_cleanup(int pipeline_sock, int pubsub_sock)
-{
-    nn_shutdown(pipeline_sock, 0);
-    nn_close(pipeline_sock);
-
-    nn_shutdown(pubsub_sock, 0);
-    nn_close(pubsub_sock);
-}
-
 bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_sock, int *pubsub_sock)
 {
     int sock;
@@ -120,6 +113,7 @@ bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_s
     int t = 2000;
 
     sock = nn_socket(AF_SP, NN_PULL);
+    printf("nn_pull sock = %d\n", sock);
     if( sock < 0 ) {
         ParodusError("NN hub pull socket error %d, %d(%s)\n", sock, errno, strerror(errno));
         return false;
@@ -127,7 +121,7 @@ bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_s
 
     rv = nn_bind(sock, pipeline_url);
     if( rv < 0 ) {
-        ParodusError("NN hub pull socket bind error %d, %d(%s)\n", rv, errno, strerror(errno));
+        ParodusError("NN hub pull socket %d bind error %d, %d(%s)\n", sock, rv, errno, strerror(errno));
         nn_close(sock);
         return false;
     }
@@ -135,6 +129,7 @@ bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_s
     *pipeline_sock = sock;
 
     sock = nn_socket(AF_SP, NN_PUB);
+    printf("nn_pub sock = %d\n", sock);
     if( sock < 0 ) {
         ParodusError("NN hub pub socket error %d, %d(%s)\n", sock, errno, strerror(errno));
         return false;
@@ -162,23 +157,18 @@ finished:
     return false;
 }
 
-void hub_cleanup(int pipeline_sock, int pubsub_sock)
+void sock_cleanup(int sock)
 {
-    nn_shutdown(pipeline_sock, 0);
-    nn_close(pipeline_sock);
-
-    nn_shutdown(pubsub_sock, 0);
-    nn_close(pubsub_sock);
+    nn_shutdown(sock, 0);
+    nn_close(sock);
 }
 
 bool send_msg(int sock, const void *notification, size_t notification_size)
 {
     int bytes_sent = 0;
     
-    do {
-        bytes_sent = nn_send(sock, notification, notification_size, NN_DONTWAIT);
-    } while( EAGAIN == errno && bytes_sent < 0 );
-
+    bytes_sent = nn_send(sock, notification, notification_size, 0);
+    printf("send_msg = %d\n", bytes_sent);
     if( bytes_sent < 0 ) {
         ParodusError("Send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
     }
@@ -195,13 +185,12 @@ ssize_t check_inbox(int sock, void **notification)
     char *msg = NULL;
     int msg_sz = 0;
 
-    msg = *notification;
-    do {
-        msg_sz = nn_recv(sock, &msg, NN_MSG, NN_DONTWAIT);
-    } while( EAGAIN == errno && msg_sz < 0 );
-
-    if( msg_sz < 0 ) {
+    msg_sz = nn_recv(sock, &msg, NN_MSG, NN_DONTWAIT);
+    if( msg_sz < 0 && errno != EAGAIN ) {
         ParodusError("Receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
+    } 
+    if( msg_sz > 0 ) {
+       *notification = msg;
     }
 
     return msg_sz;

@@ -50,14 +50,6 @@ extern "C" {
 bool spoke_setup(const char *pipeline_url, const char *pubsub_url, const char **topics, int *pipeline_sock, int *pubsub_sock);
 
 /**
- *  @note Call this after finishing use of any function here to cleanup
- *
- *  @param pipeline_sock handle
- *  @param pubsub_sock   handle
- */
-void spoke_cleanup(int pipeline_sock, int pubsub_sock);
-
-/**
  *  @note Call this with valid parameter before using any function
  *
  *  @param pipeline_url  [in]  URL
@@ -70,12 +62,11 @@ void spoke_cleanup(int pipeline_sock, int pubsub_sock);
 bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_sock, int *pubsub_sock);
 
 /**
- *  @note Call this after finishing use of any function here to cleanup
+ *  @note Call this after any setup function to cleanup
  *
- *  @param pipeline_sock handle
- *  @param pubsub_sock   handle
+ *  @param sock handle
  */
-void hub_cleanup(int pipeline_sock, int pubsub_sock);
+void sock_cleanup(int sock);
 
 /**
  *  Send message.

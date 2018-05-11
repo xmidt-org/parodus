@@ -159,9 +159,11 @@ void createSocketConnection(void (* initKeypress)())
     } while(!close_retry);
 
     if( 0 == strncmp(HUB_STR, get_parodus_cfg()->hub_or_spk, sizeof(HUB_STR)) ) {
-        hub_cleanup(sock.pipeline, sock.pubsub);
+        sock_cleanup(sock.pipeline);
+        sock_cleanup(sock.pubsub);
     } else if( 0 == strncmp(SPK_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK_STR)) ) {
-        spoke_cleanup(sock.pipeline, sock.pubsub); 
+        sock_cleanup(sock.pipeline);
+        sock_cleanup(sock.pubsub); 
     }
 
     close_and_unref_connection(get_global_conn());

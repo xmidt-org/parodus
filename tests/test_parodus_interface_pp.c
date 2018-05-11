@@ -44,7 +44,6 @@ typedef struct {
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 static void *check_hub();
-static void *check_spoke();
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -72,30 +71,18 @@ static test_t tests[] = {
 /*----------------------------------------------------------------------------*/
 void test_push_pull()
 {
-    bool result;
     pthread_t t;
-    int i[2];
-
-    spoke_setup( SPOKE, HUB, NULL, &i[0], &i[1] );
-    pthread_create(&t, NULL, check_hub, &i);
-
-    result = send_msg(i[0], tests[0].n, tests[0].nsz);
-    CU_ASSERT(true == result);
-    spoke_cleanup(i[0], i[1]);
-}
-
-void test_pub_sub()
-{
+    int pipeline_sock, pubsub_sock;
     bool result;
-    pthread_t t;
-    int i[2];
 
-    hub_setup( SPOKE, HUB, &i[0], &i[1] );
-    pthread_create(&t, NULL, check_spoke, &i);
+    pthread_create(&t, NULL, check_hub, NULL);
 
-    result = send_msg(i[1], tests[1].n, tests[1].nsz);
+    spoke_setup( SPOKE, HUB, NULL, &pipeline_sock, &pubsub_sock );
+    printf("#1 ppln = %d, pbsb = %d\n", pipeline_sock, pubsub_sock);
+    result = send_msg(pipeline_sock, tests[0].n, tests[0].nsz);
     CU_ASSERT(true == result);
-    hub_cleanup(i[0], i[1]);
+    sock_cleanup(pipeline_sock);
+    sock_cleanup(pubsub_sock);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -110,7 +97,6 @@ int main(void)
         printf("--------Start of Test Cases Execution ---------\n");
         suite = CU_add_suite( "tests", NULL, NULL );
         CU_add_test( suite, "Test Push/Pull", test_push_pull );
-        CU_add_test( suite, "Test Pub/Sub",   test_pub_sub );
 
         if( NULL != suite ) {
             CU_basic_set_mode( CU_BRM_VERBOSE );
@@ -131,42 +117,26 @@ int main(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
-static void *check_hub(void *args)
+static void *check_hub()
 {
+    int pipeline_sock, pubsub_sock;
     char *msg = NULL;
     ssize_t msg_sz = 0;
-    int *i;
 
-    i = (int *) args;
-    hub_setup( SPOKE, HUB, &i[0], &i[1] );
+    hub_setup( SPOKE, HUB, &pipeline_sock, &pubsub_sock );
+    printf("#3 ppln = %d, pbsb = %d\n", pipeline_sock, pubsub_sock);
     sleep(5);
-    msg_sz = check_inbox(i[0], (void **)&msg);
-    if( 0 < msg_sz ) {
-        printf("check hub - msg_sz = %zd\n", msg_sz);
-        CU_ASSERT_EQUAL( (tests[0].nsz), msg_sz );
-        CU_ASSERT_STRING_EQUAL( tests[0].n, msg );
-        free_msg(msg);
+    for( ;; ) {
+        msg_sz = check_inbox(pipeline_sock, (void **)&msg);
+        if( 0 < msg_sz ) {
+            printf("check hub - msg_sz = %zd\n", msg_sz);
+            CU_ASSERT_EQUAL( (tests[0].nsz), msg_sz );
+            CU_ASSERT_STRING_EQUAL( tests[0].n, msg );
+            free_msg(msg);
+            break;
+        }
     }
-    hub_cleanup(i[0], i[1]);
-    return NULL;
-}
-
-static void *check_spoke(void *args)
-{
-    char *msg = NULL;
-    ssize_t msg_sz = 0;
-    int *i;
-
-    i = (int *) args;
-    spoke_setup( SPOKE, HUB, NULL, &i[0], &i[1] );
-    sleep(5);
-    msg_sz = check_inbox(i[1], (void **)&msg);
-    if( 0 < msg_sz ) {
-        printf("check spoke - msg_sz = %zd\n", msg_sz);
-        CU_ASSERT_EQUAL( (tests[1].nsz), msg_sz );
-        CU_ASSERT_STRING_EQUAL( tests[1].n, msg );
-        free_msg(msg);
-    }
-    spoke_cleanup(i[0], i[1]);
+    sock_cleanup(pipeline_sock);
+    sock_cleanup(pubsub_sock);
     return NULL;
 }
