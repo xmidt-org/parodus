@@ -104,6 +104,8 @@ typedef struct
     char token_acquisition_script[64];
     char token_read_script[64];
     char hub_or_spk[5];
+    char *pipeline_url;
+    char *pubsub_url;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
@@ -151,6 +153,7 @@ int parse_webpa_url(const char *full_url,
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
 
+void free_parodusCfg(ParodusCfg *cfg);
 #ifdef __cplusplus
 }
 #endif
