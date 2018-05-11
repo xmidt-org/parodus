@@ -8,7 +8,6 @@
 
 int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 {
-    cJSON *response = NULL;
     wrp_msg_t *resp_msg = NULL;
     char *str= NULL;
     int ret = -1;
@@ -44,7 +43,6 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	    else
 	    {
 		ParodusError("Failed to create object in config JSON\n");
-		response = cJSON_CreateObject();
 		
 		//WRP payload is NULL for failure cases
 		resp_msg ->u.crud.payload = NULL;
@@ -55,29 +53,27 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	    
 	case WRP_MSG_TYPE__RETREIVE:
 	    ParodusInfo( "RETREIVE request\n" );
-            ret = retrieveObject( );
+            ret = retrieveObject( reqMsg, &resp_msg );
 	    
 	    if(ret == 0)
 	    {
-		    response = cJSON_CreateObject();
-		    cJSON_AddNumberToObject(response, "statusCode", 200);
-		    cJSON_AddStringToObject(response, "message", "Success");
-		    
-		    cJSON_AddStringToObject(response, "data", (resp_msg)->u.crud.payload);
-		                    
-		    if(response != NULL)
-		    {
-			str = cJSON_PrintUnformatted(response);
-			ParodusInfo("Payload Response: %s\n", str);
+		    cJSON *payloadObj = cJSON_Parse( (resp_msg)->u.crud.payload );
+		    str = cJSON_PrintUnformatted(payloadObj);
+		    ParodusInfo("Payload Response: %s\n", str);
 
-			resp_msg ->u.crud.payload = (void *)str;
-			resp_msg ->u.crud.payload_size = strlen(str);
+		    resp_msg ->u.crud.payload = (void *)str;
+		    resp_msg ->u.crud.payload_size = strlen((resp_msg)->u.crud.payload);
 
-			*responseMsg = resp_msg;
-			ParodusInfo("(*responseMsg)->u.crud.payload : %s\n", (char* )(*responseMsg)->u.crud.payload);
-			ParodusInfo("(*responseMsg)->u.crud.payload_size : %lu\n", (*responseMsg)->u.crud.payload_size);
-			cJSON_Delete(response);
-		    }
+		   *responseMsg = resp_msg;
+	    }
+	    else
+	    {
+		ParodusError("Failed to retrieve object \n");
+		
+		//WRP payload is NULL for failure cases
+		resp_msg ->u.crud.payload = NULL;
+		resp_msg ->u.crud.payload_size = 0;
+		*responseMsg = resp_msg;
 	    }
 	    
 	    break;

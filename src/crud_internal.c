@@ -23,6 +23,7 @@
 #include <wrp-c.h>
 #include "crud_tasks.h"
 #include "crud_internal.h"
+#include "config.h"
 
 #define CRUD_CONFIG_FILE  "parodus_cfg.json"
 
@@ -230,9 +231,207 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 	return 0;
 }
 
-
-int retrieveObject( )
+int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 {
+	*jsonresponse = cJSON_CreateObject();
+	
+	if(strcmp(HW_MODELNAME, keyName)==0)
+	{
+		 if(get_parodus_cfg()->hw_model ==NULL)
+		 {
+		 	ParodusError("retrieveFromMemory: hw_model value is NULL\n");
+		 	return -1;
+		 }
+		 ParodusInfo("retrieveFromMemory: keyName: %s value: %s\n",keyName,get_parodus_cfg()->hw_model);
+		 cJSON_AddItemToObject(*jsonresponse, HW_MODELNAME, cJSON_CreateString(get_parodus_cfg()->hw_model));
+	}
+	else if(strcmp(HW_SERIALNUMBER, keyName)==0)
+	{
+		if(get_parodus_cfg()->hw_serial_number ==NULL)
+		{
+			ParodusError("retrieveFromMemory: hw_serial_number value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->hw_serial_number);
+		cJSON_AddItemToObject( *jsonresponse, HW_SERIALNUMBER , cJSON_CreateString(get_parodus_cfg()->hw_serial_number));
+	}
+	else if(strcmp(HW_MANUFACTURER, keyName)==0)
+	{
+		if(get_parodus_cfg()->hw_manufacturer ==NULL)
+		{
+			ParodusError("retrieveFromMemory: hw_manufacturer value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->hw_manufacturer);
+		cJSON_AddItemToObject( *jsonresponse, HW_MANUFACTURER , cJSON_CreateString(get_parodus_cfg()->hw_manufacturer));
+	}
+	else if(strcmp(HW_DEVICEMAC, keyName)==0)
+	{
+		if(get_parodus_cfg()->hw_mac ==NULL)
+		{
+			ParodusError("retrieveFromMemory: hw_mac value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->hw_mac);
+		cJSON_AddItemToObject( *jsonresponse, HW_DEVICEMAC , cJSON_CreateString(get_parodus_cfg()->hw_mac));
+	}
+	else if(strcmp(HW_LAST_REBOOT_REASON, keyName)==0)
+	{
+		if(get_parodus_cfg()->hw_last_reboot_reason ==NULL)
+		{
+			ParodusError("retrieveFromMemory: hw_last_reboot_reason value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->hw_last_reboot_reason);
+		cJSON_AddItemToObject( *jsonresponse, HW_LAST_REBOOT_REASON , cJSON_CreateString(get_parodus_cfg()->hw_last_reboot_reason));
+	}
+	else if(strcmp(FIRMWARE_NAME, keyName)==0)
+	{
+		if(get_parodus_cfg()->fw_name ==NULL)
+		{
+			ParodusError("retrieveFromMemory: fw_name value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->fw_name);
+		cJSON_AddItemToObject( *jsonresponse, FIRMWARE_NAME , cJSON_CreateString(get_parodus_cfg()->fw_name));
+	}
+	else if(strcmp(WEBPA_INTERFACE, keyName)==0)
+	{
+		if(get_parodus_cfg()->webpa_interface_used ==NULL)
+		{
+			ParodusError("retrieveFromMemory: webpa_interface_used value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->webpa_interface_used);
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_INTERFACE , cJSON_CreateString(get_parodus_cfg()->webpa_interface_used));
+	}
+	else if(strcmp(WEBPA_URL, keyName)==0)
+	{
+		if(get_parodus_cfg()->webpa_url ==NULL)
+		{
+			ParodusError("retrieveFromMemory: webpa_url value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->webpa_url);
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_URL , cJSON_CreateString(get_parodus_cfg()->webpa_url));
+	}
+	else if(strcmp(WEBPA_PROTOCOL, keyName)==0)
+	{
+		if(get_parodus_cfg()->webpa_protocol ==NULL)
+		{
+			ParodusError("retrieveFromMemory: webpa_protocol value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->webpa_protocol);
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_PROTOCOL , cJSON_CreateString(get_parodus_cfg()->webpa_protocol));
+	}
+	else if(strcmp(WEBPA_UUID, keyName)==0)
+	{
+		if(get_parodus_cfg()->webpa_uuid ==NULL)
+		{
+			ParodusError("retrieveFromMemory: webpa_uuid value is NULL\n");
+		 	return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->webpa_uuid);
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_UUID , cJSON_CreateString(get_parodus_cfg()->webpa_uuid));
+	}
+	else if(strcmp(BOOT_TIME, keyName)==0)
+	{
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%d\n",keyName,get_parodus_cfg()->boot_time);
+		cJSON_AddItemToObject( *jsonresponse, BOOT_TIME , cJSON_CreateNumber(get_parodus_cfg()->boot_time));
+	}
+	else if(strcmp(WEBPA_PING_TIMEOUT , keyName)==0)
+	{
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%d\n",keyName,get_parodus_cfg()->webpa_ping_timeout);
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_PING_TIMEOUT , cJSON_CreateNumber(get_parodus_cfg()->webpa_ping_timeout));
+	}
+	else if(strcmp(WEBPA_BACKOFF_MAX, keyName)==0)
+	{
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%d\n",keyName,get_parodus_cfg()->webpa_backoff_max);
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_BACKOFF_MAX , cJSON_CreateNumber(get_parodus_cfg()->webpa_backoff_max));
+	}
+	else
+	{
+		ParodusError("Invalid retrieve key object\n");
+		return -1;
+	}
+	
+	return 0;
+}
+
+int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
+{
+	char *destVal = NULL;
+	char *jsonData = NULL;
+	char *child_ptr,*obj[5];
+	int objlevel = 1, i = 1;
+	cJSON *inMemResponse;
+	int status, inMemStatus = -1;
+	
+	status = readFromJSON(&jsonData);
+	ParodusInfo("read status %d\n", status);
+        cJSON_Parse( jsonData );
+        	
+	if(reqMsg->u.crud.dest !=NULL)
+	{
+	   destVal = strdup(reqMsg->u.crud.dest);
+	   ParodusInfo("destVal is %s\n", destVal);
+
+	    if( (destVal != NULL))
+	    {
+	    	child_ptr = strtok(destVal , "/");
+	    	
+	    	//Get the 1st object
+		obj[0] = strdup( child_ptr );
+		ParodusInfo( "parent is %s\n", obj[0] );
+		
+		
+		while( child_ptr != NULL ) 
+		{
+		    child_ptr = strtok( NULL, "/" );
+		    if( child_ptr != NULL ) {
+		        obj[i] = strdup( child_ptr );
+		        ParodusInfo( "child obj[%d]:%s\n", i, obj[i] );
+		        i++;
+		    }
+		}
+		
+		objlevel = i;
+		ParodusInfo( "Number of object level %d\n", objlevel );
+		
+		if( (objlevel == 3) && ((obj[2] !=NULL) && strcmp( obj[2] , "tag") !=0 ))
+		{
+			inMemStatus = retrieveFromMemory(obj[2], &inMemResponse );
+			
+			if(inMemStatus == 0)
+			{
+				ParodusInfo("inMemory retrieve returns success \n");
+        			char *inmem_str = cJSON_PrintUnformatted( inMemResponse );
+            			ParodusInfo( "inMemResponse: %s\n", inmem_str );
+            			(*response)->u.crud.status = 201;
+            			(*response)->u.crud.payload = inmem_str;
+            			cJSON_Delete( inMemResponse );
+        		}
+        		else
+        		{
+        			ParodusError("Failed to retrieve inMemory value \n");
+            			(*response)->u.crud.status = 400;
+            			return -1;
+        		}
+		}
+		else
+		{
+			ParodusInfo("Processing CRUD external tag request \n");
+			return -1;
+		}
+	    }
+	    else
+	    {
+		ParodusError("Unable to parse object details from RETRIEVE request\n");
+		return -1;
+	    }
+	}
+			    
 	return 0;
 }
 
