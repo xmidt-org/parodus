@@ -168,7 +168,7 @@ bool send_msg(int sock, const void *notification, size_t notification_size)
     int bytes_sent = 0;
     
     bytes_sent = nn_send(sock, notification, notification_size, 0);
-    printf("send_msg = %d\n", bytes_sent);
+    sleep(5);
     if( bytes_sent < 0 ) {
         ParodusError("Send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
     }
@@ -186,6 +186,7 @@ ssize_t check_inbox(int sock, void **notification)
     int msg_sz = 0;
 
     msg_sz = nn_recv(sock, &msg, NN_MSG, NN_DONTWAIT);
+    sleep(5);
     if( msg_sz < 0 && errno != EAGAIN ) {
         ParodusError("Receive error %d, %d(%s)\n", msg_sz, errno, strerror(errno));
     } 
