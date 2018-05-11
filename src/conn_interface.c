@@ -33,6 +33,7 @@
 #include "spin_thread.h"
 #include "service_alive.h"
 #include "seshat_interface.h"
+#include "crud_interface.h"
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
@@ -96,6 +97,7 @@ void createSocketConnection(void (* initKeypress)())
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask, NULL);
     StartThread(serviceAliveTask, NULL);
+    StartThread(CRUDHandlerTask, NULL);
 
     if (NULL != initKeypress) 
     {
@@ -116,7 +118,7 @@ void createSocketConnection(void (* initKeypress)())
     do
     {
         nopoll_loop_wait(ctx, 5000000);
-		//Add check for spoke, so that parodus won't reconect everytime for ping miss
+        //Add check for spoke, so that parodus won't reconect everytime for ping miss
         if (true == connectToXmidt)
 		{
 			intTimer = intTimer + 5;

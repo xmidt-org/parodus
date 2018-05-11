@@ -38,7 +38,16 @@ pthread_t threadId;
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	(void)crudMsg;
+	return;
+}
 
+void *CRUDHandlerTask()
+{
+	return NULL;
+}
 static void add_client()
 {
 	const wrp_msg_t reg = { .msg_type = WRP_MSG_TYPE__SVC_REGISTRATION,
