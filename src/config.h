@@ -61,9 +61,8 @@ extern "C" {
 
 #define ALLOW_NON_RSA_ALG	false
 
-#define HUB_URL                 "tcp://127.0.0.1:7777"
-#define SPK1_URL                "tcp://127.0.0.1:7778"
-#define SPK2_URL                "tcp://127.0.0.1:7779"
+#define PUBSUB_URL              "tcp://127.0.0.1:7777"
+#define PIPELINE_URL            "tcp://127.0.0.1:7778"
 
 /* For Flying Circus Demo allow cli to disable Websocket connection to Xmidt */
 /* Default is to connect. */

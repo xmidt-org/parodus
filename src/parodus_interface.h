@@ -39,78 +39,64 @@ extern "C" {
 /**
  *  @note Call this with valid parameter before using any function
  *
- *  @param url    URL to receive messages from other parodoi.
+ *  @param pipeline_url  [in]  URL
+ *  @param pubsub_url    [in]  URL
+ *  @param topics        [in]  string array of topics
+ *  @param pipeline_sock [out] sock
+ *  @param pubsub_sock   [out] sock
  *
  *  @return true if success, false if failure
  */
-bool spoke_setup_listener(const char *url);
-
-/**
- *  @note Call this after finishing use of any function here to cleanup
- *
- *  @param url    URL to receive messages from other parodoi.
- */
-void spoke_cleanup_listener(void);
+bool spoke_setup(const char *pipeline_url, const char *pubsub_url, const char **topics, int *pipeline_sock, int *pubsub_sock);
 
 /**
  *  @note Call this with valid parameter before using any function
  *
- *  @param url    URL to receive messages from other parodoi.
+ *  @param pipeline_url  [in]  URL
+ *  @param pubsub_url    [in]  URL
+ *  @param pipeline_sock [out] sock
+ *  @param pubsub_sock   [out] sock
  *
  *  @return true if success, false if failure
  */
-bool hub_setup_listener(const char *url);
+bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_sock, int *pubsub_sock);
 
 /**
- *  @note Call this after finishing use of any function here to cleanup
+ *  @note Call this after any setup function to cleanup
  *
- *  @param url    URL to receive messages from other parodoi.
+ *  @param sock handle
  */
-void hub_cleanup_listener(void);
+void sock_cleanup(int sock);
 
 /**
- *  Send message to hub parodus.
- * 
- *  @param url  hub parodus URL
+ *  Send message.
+ *
+ *  @param sock socket handle 
  *  @param msg  notification
  *  @param size size of notification
  *
  *  @return whether operation succeeded, or not.
  */
-bool spoke_send_msg(const char *url, const void *msg, size_t size);
+bool send_msg(int sock, const void *msg, size_t size);
 
 /**
- *  Check for message from spoke parodus.
+ *  Check for message.
  *
- *  @note msg needs to be cleaned up by the caller.
+ *  @note msg needs to be cleaned up by the caller using free_msg() only.
  *
+ *  @param sock   socket handle
  *  @param msg    address of message buffer
  *
  *  @return size of msg
  */
-ssize_t hub_check_inbox(void **msg);
+ssize_t check_inbox(int sock, void **msg);
 
 /**
- *  Check for message from spoke parodus.
- *
- *  @note msg needs to be cleaned up by the caller.
+ *  Free message return by check_inbox().
  *
  *  @param msg    address of message buffer
- *
- *  @return size of msg
  */
-ssize_t spoke_check_inbox(void **msg);
-
-/**
- *  Send message to spoke parodus
- * 
- *  @param url  spoke parodus URL
- *  @param msg  notification
- *  @param size size of notification
- *
- *  @return whether operation succeeded, or not.
- */
-bool hub_send_msg(const char *url, const void *msg, size_t size);
+void free_msg(void *msg);
 
 #ifdef __cplusplus
 }
