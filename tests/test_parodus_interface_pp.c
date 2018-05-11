@@ -78,7 +78,6 @@ void test_push_pull()
     pthread_create(&t, NULL, check_hub, NULL);
 
     spoke_setup( SPOKE, HUB, NULL, &pipeline_sock, &pubsub_sock );
-    //printf("#1 ppln = %d, pbsb = %d\n", pipeline_sock, pubsub_sock);
     result = send_msg(pipeline_sock, tests[0].n, tests[0].nsz);
     CU_ASSERT(true == result);
     sock_cleanup(pipeline_sock);
@@ -124,7 +123,6 @@ static void *check_hub()
     ssize_t msg_sz = 0;
 
     hub_setup( SPOKE, HUB, &pipeline_sock, &pubsub_sock );
-    //printf("#3 ppln = %d, pbsb = %d\n", pipeline_sock, pubsub_sock);
     sleep(5);
     for( ;; ) {
         msg_sz = check_inbox(pipeline_sock, (void **)&msg);
