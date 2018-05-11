@@ -54,7 +54,6 @@ bool spoke_setup(const char *pipeline_url, const char *pubsub_url, const char **
     int t = 2000;
 
     sock = nn_socket(AF_SP, NN_SUB);
-    printf("nn_sub sock = %d\n", sock);
     if( sock < 0 ) {
         ParodusError("NN spoke sub socket error %d, %d(%s)\n", sock, errno, strerror(errno));
         return false;
@@ -77,7 +76,6 @@ bool spoke_setup(const char *pipeline_url, const char *pubsub_url, const char **
     *pubsub_sock = sock;
 
     sock = nn_socket(AF_SP, NN_PUSH);
-    printf("nn_push sock = %d\n", sock);
     if( sock < 0 ) {
         ParodusError("NN spoke push socket error %d, %d(%s)\n", sock, errno, strerror(errno));
         return false;
@@ -113,7 +111,6 @@ bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_s
     int t = 2000;
 
     sock = nn_socket(AF_SP, NN_PULL);
-    printf("nn_pull sock = %d\n", sock);
     if( sock < 0 ) {
         ParodusError("NN hub pull socket error %d, %d(%s)\n", sock, errno, strerror(errno));
         return false;
@@ -129,7 +126,6 @@ bool hub_setup(const char *pipeline_url, const char *pubsub_url, int *pipeline_s
     *pipeline_sock = sock;
 
     sock = nn_socket(AF_SP, NN_PUB);
-    printf("nn_pub sock = %d\n", sock);
     if( sock < 0 ) {
         ParodusError("NN hub pub socket error %d, %d(%s)\n", sock, errno, strerror(errno));
         return false;

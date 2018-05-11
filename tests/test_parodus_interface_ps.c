@@ -79,7 +79,7 @@ void test_pub_sub()
     pthread_create(&t, NULL, send_hub, NULL);
 
     spoke_setup( SPOKE, HUB, NULL, &pipeline_sock, &pubsub_sock );
-    printf("#2 ppln = %d, pbsb = %d\n", pipeline_sock, pubsub_sock);
+    //printf("#2 ppln = %d, pbsb = %d\n", pipeline_sock, pubsub_sock);
     for( ;; ) {
         msg_sz = check_inbox(pubsub_sock, (void **) &msg);
         if( 0 < msg_sz ) {
@@ -132,7 +132,7 @@ static void *send_hub()
     bool result;
 
     hub_setup( SPOKE, HUB, &pipeline_sock, &pubsub_sock );
-    printf("#4 ppln = %d, pbsb = %d\n", pipeline_sock, pubsub_sock);
+    //printf("#4 ppln = %d, pbsb = %d\n", pipeline_sock, pubsub_sock);
     sleep(5);
     for( ;; ) {
         result = send_msg(pubsub_sock, tests[1].n, tests[1].nsz);

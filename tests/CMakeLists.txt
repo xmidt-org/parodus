@@ -183,7 +183,7 @@ target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 # printer client for flying circus
-add_test(NAME printer COMMAND ${MEMORY_CHECK} ./printer)
+#add_test(NAME printer COMMAND ${MEMORY_CHECK} ./printer)
 add_executable(printer ./printer.c ) 
 
 target_link_libraries ( printer
@@ -197,7 +197,7 @@ target_link_libraries ( printer
                        -lpthread)
 
 # producer client for flying circus
-add_test(NAME producer COMMAND ${MEMORY_CHECK} ./producer)
+#add_test(NAME producer COMMAND ${MEMORY_CHECK} ./producer)
 add_executable(producer ./producer.c ) 
 
 target_link_libraries ( producer
