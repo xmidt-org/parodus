@@ -134,85 +134,172 @@ cJSON* __parse_config_file( char *file, int *error )
 int __setParodusConfig(cJSON *jsp, ParodusCfg *cfg)
 {
     cJSON *item;
-    
     memset(cfg, 0, sizeof(ParodusCfg));
-       
+    setDefaultValuesToCfg(cfg);
+
     item = cJSON_GetObjectItem(jsp, HW_MODELNAME);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->hw_model, item->valuestring, 64);
+        parStrncpy(cfg->hw_model, item->valuestring, sizeof(cfg->hw_model));
+        ParodusInfo("hw-model is %s\n",cfg->hw_model);
     }
-    
+
     item = cJSON_GetObjectItem(jsp, HW_SERIALNUMBER);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->hw_serial_number, item->valuestring, 64);
+        parStrncpy(cfg->hw_serial_number, item->valuestring, sizeof(cfg->hw_serial_number));
+        ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
     }
- 
+
     item = cJSON_GetObjectItem(jsp, HW_MANUFACTURER);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->hw_manufacturer, item->valuestring, 64);
+        parStrncpy(cfg->hw_manufacturer, item->valuestring, sizeof(cfg->hw_manufacturer));
+        ParodusInfo("hw_manufacturer is %s\n",cfg->hw_manufacturer);
     }
-    
+
     item = cJSON_GetObjectItem(jsp, HW_DEVICEMAC);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->hw_mac, item->valuestring, 64);
+        if (parse_mac_address (cfg->hw_mac, item->valuestring) == 0)
+        {
+            ParodusInfo ("hw_mac is %s\n",cfg->hw_mac);
+        }
+        else
+        {
+            ParodusError ("Bad mac address %s\n", optarg);
+            return -1;
+        }
     }
-    
+
     item = cJSON_GetObjectItem(jsp, HW_LAST_REBOOT_REASON);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->hw_last_reboot_reason, item->valuestring, 64);
+        parStrncpy(cfg->hw_last_reboot_reason, item->valuestring, sizeof(cfg->hw_last_reboot_reason));
+        ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
     }
-                
+
     item = cJSON_GetObjectItem(jsp, FIRMWARE_NAME);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->fw_name, item->valuestring, 64);
+        parStrncpy(cfg->fw_name, item->valuestring, sizeof(cfg->fw_name));
+        ParodusInfo ("fw_name is %s\n",cfg->fw_name);
     }
-    
+
     item = cJSON_GetObjectItem(jsp, BOOT_TIME);
     if (item && (cJSON_Number == item->type)) {
         cfg->boot_time = item->valueint;
+        ParodusInfo("boot_time is %d\n",cfg->boot_time);
     }
-    
-    item = cJSON_GetObjectItem(jsp, WEBPA_PROTOCOL);
-    if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->webpa_protocol, item->valuestring, 64);
-    }    
-    
-    item = cJSON_GetObjectItem(jsp, WEBPA_INTERFACE);
-    if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->webpa_interface_used, item->valuestring, 64);
-    }
-     
-    item = cJSON_GetObjectItem(jsp, WEBPA_UUID);
-    if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->webpa_uuid, item->valuestring, 64);
-    }  
-    
+
     item = cJSON_GetObjectItem(jsp, WEBPA_PING_TIMEOUT);
     if (item && (cJSON_Number == item->type)) {
         cfg->webpa_ping_timeout = item->valueint;
+        ParodusInfo("webpa_ping_timeout is %d\n",cfg->webpa_ping_timeout);
     }
 
     item = cJSON_GetObjectItem(jsp, WEBPA_URL);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->webpa_url, item->valuestring, 64);
+        parStrncpy(cfg->webpa_url, item->valuestring, sizeof(cfg->webpa_url));
+		if (server_is_http (cfg->webpa_url, NULL) < 0) {
+			ParodusError ("Bad webpa url %s\n", item->valuestring);
+			return -1;
+		}
+        ParodusInfo("webpa_url is %s\n",cfg->webpa_url);
     }
-    
+
     item = cJSON_GetObjectItem(jsp, WEBPA_BACKOFF_MAX);
     if (item && (cJSON_Number == item->type)) {
         cfg->webpa_backoff_max = item->valueint;
+        ParodusInfo("webpa_backoff_max is %d\n",cfg->webpa_backoff_max);
+    }
+
+    item = cJSON_GetObjectItem(jsp, WEBPA_INTERFACE);
+    if (item && (cJSON_String == item->type)) {
+        parStrncpy(cfg->webpa_interface_used, item->valuestring, sizeof(cfg->webpa_interface_used));
+        ParodusInfo("webpa_interface_used is %s\n",cfg->webpa_interface_used);
+    }
+
+    item = cJSON_GetObjectItem(jsp, PARODUS_LOCAL_URL);
+    if (item && (cJSON_String == item->type)) {
+        parStrncpy(cfg->local_url, item->valuestring, sizeof(cfg->local_url));
+        ParodusInfo("parodus local_url is %s\n",cfg->local_url);
     }
 
     item = cJSON_GetObjectItem(jsp, PARTNER_ID);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->partner_id, item->valuestring, 64);
+        parStrncpy(cfg->partner_id, item->valuestring, sizeof(cfg->partner_id));
+        ParodusInfo("partner_id is %s\n",cfg->partner_id);
     }
-     
-     item = cJSON_GetObjectItem(jsp, CERT_PATH);
+#ifdef ENABLE_SESHAT
+    item = cJSON_GetObjectItem(jsp, SESHAT_URL);
     if (item && (cJSON_String == item->type)) {
-        strncpy(cfg->cert_path, item->valuestring, 64);
+        parStrncpy(cfg->seshat_url, item->valuestring, sizeof(cfg->seshat_url));
+        ParodusInfo("seshat_url is %s\n",cfg->seshat_url);
     }
- 
-    /* ToDo: Do a check of required fields */ 
-     
+#endif
+
+    item = cJSON_GetObjectItem(jsp, TXT_URL);
+    if (item && (cJSON_String == item->type)) {
+        parStrncpy(cfg->dns_txt_url, item->valuestring, sizeof(cfg->dns_txt_url));
+        ParodusInfo("parodus dns-txt-url is %s\n",cfg->dns_txt_url);
+    }
+
+    item = cJSON_GetObjectItem(jsp, ACQUIRE_JWT);
+    if (item && (cJSON_Number == item->type)) {
+        cfg->acquire_jwt = item->valueint;
+        ParodusInfo("acquire jwt option is %d\n",cfg->acquire_jwt);
+    }
+
+    item = cJSON_GetObjectItem(jsp, JWT_ALGORITHM);
+    if (item && (cJSON_String == item->type)) {
+        cfg->jwt_algo = get_algo_mask (item->valuestring);
+		if (cfg->jwt_algo == (unsigned int) -1)
+		{
+		  return -1;
+		}
+		ParodusInfo("jwt_algo is %u\n",cfg->jwt_algo);
+    }
+
+    item = cJSON_GetObjectItem(jsp, JWT_KEY);
+    if (item && (cJSON_String == item->type)) {
+        read_key_from_file (item->valuestring, cfg->jwt_key, sizeof(cfg->jwt_key));
+        ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
+    }
+
+    item = cJSON_GetObjectItem(jsp, CERT_PATH);
+    if (item && (cJSON_String == item->type)) {
+        parStrncpy(cfg->cert_path, item->valuestring, sizeof(cfg->cert_path));
+        ParodusInfo("cert_path is %s\n",cfg->cert_path);
+    }
+
+    item = cJSON_GetObjectItem(jsp, ACQUISITION_SCRIPT);
+    if (item && (cJSON_String == item->type)) {
+        parStrncpy(cfg->token_acquisition_script, item->valuestring, sizeof(cfg->token_acquisition_script));
+    }
+
+    item = cJSON_GetObjectItem(jsp, READ_SCRIPT);
+    if (item && (cJSON_String == item->type)) {
+        parStrncpy(cfg->token_read_script, item->valuestring, sizeof(cfg->token_read_script));
+    }
+
+    item = cJSON_GetObjectItem(jsp, HUB_OR_SPOKE);
+    if (item && (cJSON_String == item->type)) {
+        parStrncpy(cfg->hub_or_spk, item->valuestring, sizeof(cfg->hub_or_spk));
+        ParodusInfo("hub_or_spk is %s\n",cfg->hub_or_spk);
+    }
+
+    item = cJSON_GetObjectItem(jsp, FORCE_IPV4);
+    if (item) {
+        if(cJSON_True == item->type)
+        {
+            ParodusInfo("Force IPv4\n");
+            cfg->flags |= FLAGS_IPV4_ONLY;
+        }
+    }
+
+    item = cJSON_GetObjectItem(jsp, FORCE_IPV6);
+    if (item) {
+        if(cJSON_True == item->type)
+        {
+            ParodusInfo("Force IPv6\n");
+            cfg->flags |= FLAGS_IPV6_ONLY;
+        }
+    }
+
     return 0;
 }
