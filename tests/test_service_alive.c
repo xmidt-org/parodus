@@ -38,7 +38,16 @@ pthread_t threadId;
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
 
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	(void)crudMsg;
+	return;
+}
 
+void *CRUDHandlerTask()
+{
+	return NULL;
+}
 static void add_client()
 {
 	const wrp_msg_t reg = { .msg_type = WRP_MSG_TYPE__SVC_REGISTRATION,
@@ -62,7 +71,7 @@ static void add_client()
 	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
 	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
 	
-	StartThread(client_rcv_task);
+	StartThread(client_rcv_task, NULL);
 	status = addToList(&message);
 	ParodusPrint("addToList status is %d\n", status);
 	

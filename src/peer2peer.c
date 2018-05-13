@@ -25,18 +25,20 @@ pthread_cond_t outMsgQ_con=PTHREAD_COND_INITIALIZER;
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
 
-void *handle_P2P_Incoming()
+void *handle_P2P_Incoming(void *args)
 {
     void *ptr;
     int l;
     P2P_Msg *inMsg;
+    socket_handles_t *p_sock;
     ParodusPrint("****** %s *******\n",__FUNCTION__);
 
+    p_sock = (socket_handles_t *) args;
     while( FOREVER() )
     {
 	    if (0 == strncmp("hub", get_parodus_cfg()->hub_or_spk, 3) ) 
 	    {
-            	l = hub_check_inbox(&ptr);
+            	l = check_inbox(p_sock->pipeline, &ptr);
 		if (l > 0 && ptr != NULL)
 		{
 			inMsg = (P2P_Msg *)malloc(sizeof(P2P_Msg));
@@ -44,11 +46,12 @@ void *handle_P2P_Incoming()
 			memcpy(inMsg->msg,ptr,l);
 			inMsg->len = l;
             		inMsg->next = NULL;
+                        free_msg(ptr);
 		}
 	    } 
 	    else 
 	    {
-		l = spoke_check_inbox(&ptr);
+		l = check_inbox(p_sock->pubsub, &ptr);
 		if (l > 0 && ptr != NULL)
 		{
 			inMsg = (P2P_Msg *)malloc(sizeof(P2P_Msg));
@@ -56,6 +59,7 @@ void *handle_P2P_Incoming()
 			memcpy(inMsg->msg,ptr,l);
 			inMsg->len = l;
             		inMsg->next = NULL;
+                        free_msg(ptr);
 		}
 	    }
             pthread_mutex_lock (&inMsgQ_mut);
@@ -81,12 +85,15 @@ void *handle_P2P_Incoming()
     return NULL;
 }
 
-void *process_P2P_IncomingMessage()
+void *process_P2P_IncomingMessage(void *args)
 {
     int rv=-1; (void) rv;
     wrp_msg_t *msg; (void) msg;
     bool status;
+    socket_handles_t *p_sock;
     ParodusPrint("****** %s *******\n",__FUNCTION__);
+
+    p_sock = (socket_handles_t *) args;
     while( FOREVER() )
     {
         pthread_mutex_lock (&inMsgQ_mut);
@@ -105,7 +112,7 @@ void *process_P2P_IncomingMessage()
 			// For incoming of type HUB, use hub_send_msg() to propagate message to hardcoded spoke
 			if (0 == strncmp("hub", get_parodus_cfg()->hub_or_spk, 3) )
 			{
-		            status = hub_send_msg(SPK1_URL, message->msg, message->len);
+		            status = send_msg(p_sock->pubsub, message->msg, message->len);
 		            if(status == true)
 		            {
 		                ParodusInfo("Successfully sent event to spoke\n");
@@ -170,12 +177,15 @@ void *process_P2P_IncomingMessage()
  * For outgoing of type HUB, use hub_send_msg() to propagate message to hardcoded spoke
  * For outgoing of type spoke, use spoke_send_msg()
 **/
-void *process_P2P_OutgoingMessage()
+void *process_P2P_OutgoingMessage(void *args)
 {
     int rv=-1; (void) rv;
     wrp_msg_t *msg; (void) msg;
     bool status;
+    socket_handles_t *p_sock;
     ParodusInfo("****** %s *******\n",__FUNCTION__);
+
+    p_sock = (socket_handles_t *) args;
     while( FOREVER() )
     {
         pthread_mutex_lock (&outMsgQ_mut);
@@ -195,7 +205,7 @@ void *process_P2P_OutgoingMessage()
 		    if (0 == strncmp("hub", get_parodus_cfg()->hub_or_spk, 3) )
 		    {
                             ParodusInfo("Just before hub send message\n");
-		            status = hub_send_msg(SPK1_URL, message->msg, message->len);
+		            status = send_msg(p_sock->pubsub, message->msg, message->len);
 		            if(status == true)
 		            {
 		                ParodusInfo("Successfully sent event to spoke\n");
@@ -207,7 +217,7 @@ void *process_P2P_OutgoingMessage()
 		     }
 		     else
 		     {
-		            status = spoke_send_msg(HUB_URL, message->msg, message->len);
+		            status = send_msg(p_sock->pipeline, message->msg, message->len);
 		            if(status == true)
 		            {
 		                ParodusInfo("Successfully sent event to hub\n");

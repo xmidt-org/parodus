@@ -48,6 +48,10 @@ void *processUpstreamMessage();
 
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size);
 void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size);
+void set_global_UpStreamMsgQ(UpStreamMsg * UpStreamQ);
+UpStreamMsg * get_global_UpStreamMsgQ(void);
+pthread_cond_t *get_global_nano_con(void);
+pthread_mutex_t *get_global_nano_mut(void);
 
 #ifdef __cplusplus
 }

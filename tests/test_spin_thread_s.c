@@ -44,7 +44,7 @@ void *_routine(void *v)
 
 void test_StartThread_success()
 {
-    StartThread(&_routine);
+    StartThread(&_routine, NULL);
 }
 
 void add_suites( CU_pSuite *suite )

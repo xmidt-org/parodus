@@ -32,7 +32,7 @@ extern "C" {
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-void StartThread(void *(*start_routine) (void *));
+void StartThread(void *(*start_routine) (void *), void *args);
 
 
 #ifdef __cplusplus

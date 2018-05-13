@@ -43,8 +43,7 @@ typedef struct {
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-static void *check_hub();
-static void *check_spoke();
+static void *send_hub();
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -54,12 +53,12 @@ static test_t tests[] = {
         .d = HUB,
         .n = "Some binary",
         .nsz = 11,
-     },
+    },
     {   // 1 
         .d = SPOKE,
         .n = "Some other binary",
         .nsz = 17,
-     },
+    },
 };
 
 /*----------------------------------------------------------------------------*/
@@ -70,28 +69,28 @@ static test_t tests[] = {
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-void test_push_pull()
-{
-    bool result;
-    pthread_t t;
-
-    hub_setup_listener( HUB );
-    pthread_create(&t, NULL, check_hub, NULL);
-
-    result = spoke_send_msg(tests[0].d, tests[0].n, tests[0].nsz);
-    CU_ASSERT(true == result);
-}
-
 void test_pub_sub()
 {
-    bool result;
     pthread_t t;
+    int pipeline_sock, pubsub_sock;
+    char *msg = NULL;
+    ssize_t msg_sz = 0;
 
-    spoke_setup_listener( SPOKE );
-    pthread_create(&t, NULL, check_spoke, NULL);
+    pthread_create(&t, NULL, send_hub, NULL);
 
-    result = hub_send_msg(tests[1].d, tests[1].n, tests[1].nsz);
-    CU_ASSERT(true == result);
+    spoke_setup( SPOKE, HUB, NULL, &pipeline_sock, &pubsub_sock );
+    for( ;; ) {
+        msg_sz = check_inbox(pubsub_sock, (void **) &msg);
+        if( 0 < msg_sz ) {
+            printf("check spoke - msg_sz = %zd\n", msg_sz);
+            CU_ASSERT_EQUAL( (tests[1].nsz), msg_sz );
+            CU_ASSERT_STRING_EQUAL( tests[1].n, msg );
+            free_msg(msg);
+            break;
+        }
+    }
+    sock_cleanup(pipeline_sock);
+    sock_cleanup(pubsub_sock);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -105,7 +104,6 @@ int main(void)
     if( CUE_SUCCESS == CU_initialize_registry() ) {
         printf("--------Start of Test Cases Execution ---------\n");
         suite = CU_add_suite( "tests", NULL, NULL );
-        CU_add_test( suite, "Test Push/Pull", test_push_pull );
         CU_add_test( suite, "Test Pub/Sub",   test_pub_sub );
 
         if( NULL != suite ) {
@@ -127,40 +125,22 @@ int main(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
-static void *check_hub()
+static void *send_hub()
 {
-    char *msg = NULL;
-    ssize_t msg_sz = 0;
+    int pipeline_sock, pubsub_sock;
+    bool result;
 
-    while( true ) {
-        msg_sz = hub_check_inbox((void **)&msg);
-        if( 0 < msg_sz ) {
-            printf("check hub - msg_sz = %zd\n", msg_sz);
-            CU_ASSERT_EQUAL( (tests[0].nsz), msg_sz );
-            CU_ASSERT_STRING_EQUAL( tests[0].n, msg );
-            free(msg);
+    hub_setup( SPOKE, HUB, &pipeline_sock, &pubsub_sock );
+    sleep(5);
+    for( ;; ) {
+        result = send_msg(pubsub_sock, tests[1].n, tests[1].nsz);
+        if( 0 < result ) {
+            printf("send hub - result = %d\n", result);
+            CU_ASSERT(true == result);
             break;
         }
     }
-    hub_cleanup_listener();
-    return NULL;
-}
-
-static void *check_spoke()
-{
-    char *msg = NULL;
-    ssize_t msg_sz = 0;
-
-    while( true ) {
-        msg_sz = spoke_check_inbox((void **)&msg);
-        if( 0 < msg_sz ) {
-            printf("check spoke - msg_sz = %zd\n", msg_sz);
-            CU_ASSERT_EQUAL( (tests[1].nsz), msg_sz );
-            CU_ASSERT_STRING_EQUAL( tests[1].n, msg );
-            free(msg);
-            break;
-        }
-    }
-    spoke_cleanup_listener();
+    sock_cleanup(pipeline_sock);
+    sock_cleanup(pubsub_sock);
     return NULL;
 }

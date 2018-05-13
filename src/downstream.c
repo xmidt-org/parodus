@@ -26,6 +26,7 @@
 #include "connection.h"
 #include "partners_check.h"
 #include "ParodusInternal.h"
+#include "crud_interface.h"
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -93,8 +94,11 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         cJSON_AddStringToObject(response, "message", "Invalid partner_id");
                     } 
 
-                    destVal = ((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
-                              ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest));
+                      
+                    destVal = strdup(((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
+                              ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest)));
+                              
+                              
                     if( (destVal != NULL) && (ret >= 0) )
                     {
                         strtok(destVal , "/");
@@ -102,6 +106,8 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         ParodusInfo("Received downstream dest as :%s and transaction_uuid :%s\n", dest, 
                             ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid : 
                             ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
+                        
+                        free(destVal);
                         temp = get_global_node();
                         //Checking for individual clients & Sending to each client
 
@@ -122,6 +128,14 @@ void listenerOnMessage(void * msg, size_t msgSize)
                             temp= temp->next;
                         }
 
+			/* check Downstream dest for CRUD requests */
+			if(destFlag ==0 && strcmp("parodus", dest)==0)
+			{
+				ParodusPrint("Received CRUD request : dest : %s\n", dest);
+				addCRUDmsgToQueue(message);
+				destFlag =1;
+			}
+			
                         //if any unknown dest received sending error response to server
                         if(destFlag ==0)
                         {
