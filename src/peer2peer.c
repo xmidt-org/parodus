@@ -33,7 +33,6 @@ void *handle_P2P_Incoming(void *args)
     socket_handles_t *p_sock;
     ParodusPrint("****** %s *******\n",__FUNCTION__);
 	int msgAdded=0;
-
     p_sock = (socket_handles_t *) args;
     while( FOREVER() )
     {
@@ -48,7 +47,7 @@ void *handle_P2P_Incoming(void *args)
 			inMsg->len = l;
             		inMsg->next = NULL;
                         free_msg(ptr);
-						msgAdded = 1;
+                        msgAdded = 1;
 		}
 	    } 
 	    else 
@@ -62,10 +61,10 @@ void *handle_P2P_Incoming(void *args)
 			inMsg->len = l;
             		inMsg->next = NULL;
                         free_msg(ptr);
-						msgAdded = 1;
+                        msgAdded = 1;
 		}
 	    }
-		if(msgAdded)
+	    if(msgAdded)
         {
             pthread_mutex_lock (&inMsgQ_mut);
             if(inMsgQ == NULL)
@@ -86,8 +85,8 @@ void *handle_P2P_Incoming(void *args)
                 temp->next = inMsg;
                 pthread_mutex_unlock (&inMsgQ_mut);
             }
-			msgAdded = 0;
-		}
+           msgAdded = 0;
+         }
     }
     return NULL;
 }

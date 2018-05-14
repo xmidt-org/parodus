@@ -48,6 +48,12 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
     function_called();
 }
 
+int sendMsgtoRegisteredClients(char *dest,const void *recivedMsg,size_t msgSize)
+{
+	UNUSED(dest); UNUSED(recivedMsg);UNUSED(msgSize);
+	return 0;
+}
+
 int get_numOfClients()
 {
     function_called();
