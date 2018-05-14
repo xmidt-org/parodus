@@ -46,6 +46,12 @@ wrp_msg_t *temp = NULL;
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
 
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	UNUSED(crudMsg) ;
+	return;
+}
+
 noPollConn *get_global_conn()
 {
     return conn;   
