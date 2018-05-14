@@ -28,6 +28,7 @@
 #include "connection.h"
 #include "client_list.h"
 #include "nopoll_helpers.h"
+#include "peer2peer.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -48,9 +49,30 @@ pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 
+UpStreamMsg * get_global_UpStreamMsgQ(void)
+{
+    return UpStreamMsgQ;
+}
+
+void set_global_UpStreamMsgQ(UpStreamMsg * UpStreamQ)
+{
+    UpStreamMsgQ = UpStreamQ;
+}
+
+pthread_cond_t *get_global_nano_con(void)
+{
+    return &nano_con;
+}
+
+pthread_mutex_t *get_global_nano_mut(void)
+{
+    return &nano_mut;
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
+void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size);
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
@@ -165,17 +187,49 @@ void *handle_upstream()
     ParodusPrint ("End of handle_upstream\n");
     return 0;
 }
+/*
+*@dest : Client destination to send message
+*@Msg:	Msg to send it to client (No free done here), user responsibilites to free the msg
+*@msgSize : Total size of the msg to send to client
+*/
+int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
+{
+	int bytes =0;
+	reg_list_item_t *temp = NULL;
+	temp = get_global_node();
+	//Checking for individual clients & Sending msg to registered client
 
+	while (NULL != temp)
+	{
+		ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
+		// Sending message to registered clients
+		if( strcmp(dest, temp->service_name) == 0)
+		{
+			bytes = nn_send(temp->sock, *Msg, msgSize, 0);
+			ParodusInfo("sent downstream message to reg_client '%s'\n",temp->url);
+			ParodusPrint("downstream bytes sent:%d\n", bytes);
+			return 1;
+		}
+		ParodusPrint("checking the next item in the list\n");
+		temp= temp->next;
+	}
+	return 0;
+}
 
 void *processUpstreamMessage()
 {		
     int rv=-1, rc = -1;	
     int msgType;
-    wrp_msg_t *msg;	
+    wrp_msg_t *msg,*create_msg = NULL;
     void *bytes;
     reg_list_item_t *temp = NULL;
     int matchFlag = 0;
     int status = -1;
+    char *destVal = NULL;
+    char *eventDest= NULL;
+    char *upstreamDest = NULL;
+    char *endValue = NULL;
+    
 
     while(FOREVER())
     {
@@ -196,7 +250,7 @@ void *processUpstreamMessage()
             if(rv > 0)
             {
                 msgType = msg->msg_type;				   
-                if(msgType == 9)
+                if(msgType == WRP_MSG_TYPE__SVC_REGISTRATION)
                 {
                     ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                     //Extract serviceName and url & store it in a linked list for reg_clients
@@ -296,32 +350,97 @@ void *processUpstreamMessage()
                     {
                         sendUpstreamMsgToServer(&message->msg, message->len);
                     }
+		    //PartnerId validation is not required for local messages
+                    sendToAllRegisteredClients(&message->msg, message->len);
+                    add_P2P_OutgoingMessage(&message->msg, message->len);
                 }
                 else
                 {
                     //Sending to server for msgTypes 3, 5, 6, 7, 8.
-                    if( WRP_MSG_TYPE__REQ == msgType ) {
+                    if( WRP_MSG_TYPE__REQ == msgType ) 
+                    {
                         ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", 
                                       msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
-                    } else {
-                        ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s status: %d\n", 
-                                      msgType, msg->u.crud.dest, msg->u.crud.transaction_uuid, msg->u.crud.status );
+                    } 
+                    else 
+                    {
+                    	ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s status: %d\n",msgType, msg->u.crud.dest, msg->u.crud.transaction_uuid, msg->u.crud.status );
+                		if(WRP_MSG_TYPE__CREATE == msgType && msg->u.crud.dest !=NULL)
+                		{
+                			//Expecting dest format as mac:xxxxxxxxxxxx/parodus/subscribe
+                			//Strip dest field to get "parodus/subscribe"
+                			destVal = strdup(msg->u.crud.dest);
+                			strtok(destVal , "/");
+                			eventDest = strtok(NULL , "");
+                			if(eventDest != NULL)
+                			{
+				            	if ( strcmp(eventDest,"parodus/subscribe")== 0) 
+				            	{
+									//if needed, add your required wrp CREATE fields to the struct 
+									create_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+									memset(create_msg, 0, sizeof(wrp_msg_t));
+									create_msg->msg_type = msg->msg_type;
+									create_msg->u.crud.transaction_uuid = strdup(msg->u.crud.transaction_uuid);
+									create_msg->u.crud.source = strdup(msg->u.crud.source);
+									create_msg->u.crud.dest = strdup(msg->u.crud.dest);
+									create_msg->u.crud.payload =  strdup(msg->u.crud.payload);
+									create_msg->u.crud.payload_size = msg->u.crud.payload_size;
+									addCRUDmsgToQueue(create_msg);
+									//TODO Don't free here, find correct place to free. 
+									//free(create_msg);
+								}
+                			}
+                			
+							free(destVal);
+							destVal = NULL;
+                    	}
+						
                     }
-                    sendUpstreamMsgToServer(&message->msg, message->len);
+                    
+                    if(WRP_MSG_TYPE__CREATE == msgType && msg->u.crud.dest !=NULL)
+                	{
+            			//Expecting dest format as mac:xxxxxxxxxxxx/producer
+            			//Strip dest field to get "producer"
+            			upstreamDest = strdup(msg->u.crud.dest);
+            			strtok(upstreamDest , "/");
+            			endValue = strtok(NULL , "");
+            			if(endValue != NULL)
+            			{
+            				if ( strcmp(endValue,"producer")== 0) 
+			            	{
+								//Send Client Subscribe response back to registered client
+								sendMsgtoRegisteredClients(endValue,(const char **)&message->msg,message->len);
+							}
+            			}
+						free(upstreamDest);
+						upstreamDest = NULL;
+
+                    }else
+                    {
+	                    sendUpstreamMsgToServer(&message->msg, message->len);                    	
+                    }
                 }
             }
             else
             {
                 ParodusError("Error in msgpack decoding for upstream\n");
             }
+            
+
+	    //nn_freemsg should not be done for parodus/tags/ CRUD requests as it is not received through nanomsg.
+	    
+	    if ((msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "parodus") == NULL)
+	    {
+		    if(nn_freemsg (message->msg) < 0)
+		    {
+		        ParodusError ("Failed to free msg\n");
+		    }
+         }
+            
             ParodusPrint("Free for upstream decoded msg\n");
             wrp_free_struct(msg);
             msg = NULL;
-
-            if(nn_freemsg (message->msg) < 0)
-            {
-                ParodusError ("Failed to free msg\n");
-            }
+            
             free(message);
             message = NULL;
         }
@@ -336,6 +455,36 @@ void *processUpstreamMessage()
     return NULL;
 }
 
+/* ToDo: Pick clients based on an requirement */
+void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size)
+{
+	void *appendData;
+	size_t encodedSize;
+
+	//appending response with metadata
+	if(metaPackSize > 0)
+	{
+        reg_list_item_t *temp;
+        encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
+
+	    temp = get_global_node();
+        while(NULL != temp)
+        {
+              int  bytes = nn_send (temp->sock, appendData, encodedSize, 0);
+              ParodusInfo("sendToAllRegisteredClients() sent %d bytes to url: %s service: %s\n",
+                      bytes, temp->url, temp->service_name);
+              temp = temp->next;
+        }
+		free(appendData);
+    }
+	else
+	{
+		ParodusError("Failed to send upstream as metadata packing is not successful\n");
+	}
+
+}
+
+
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
@@ -344,12 +493,18 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{
+		noPollConn *conn;
 	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
 	   	ParodusPrint("metadata appended upstream response %s\n", (char *)appendData);
 	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
-		ParodusInfo("Sending response to server\n");
-	   	sendMessage(get_global_conn(),appendData, encodedSize);
+        conn = get_global_conn();
+		if (conn) {
+            ParodusInfo("Sending response to server host %s port %s\n", conn->host, conn->port);
+            sendMessage(conn, appendData, encodedSize);
+        } else {
+            ParodusInfo("Unexpected NULL connection returned by get_global_conn()\n");
+        }
 	   	
 		free(appendData);
 		appendData =NULL;

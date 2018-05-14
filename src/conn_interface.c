@@ -33,15 +33,20 @@
 #include "spin_thread.h"
 #include "service_alive.h"
 #include "seshat_interface.h"
+#include "crud_interface.h"
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
+#include "parodus_interface.h"
+#include "peer2peer.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
+#define HUB_STR                                         "hub"
+#define SPK_STR                                         "spk"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -65,6 +70,7 @@ void createSocketConnection(void (* initKeypress)())
     //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
     bool seshat_registered = false;
+    socket_handles_t sock;
     
     //loadParodusCfg(tmpCfg,get_parodus_cfg());
 #ifdef FEATURE_DNS_QUERY
@@ -86,11 +92,12 @@ void createSocketConnection(void (* initKeypress)())
     packMetaData();
     
     UpStreamMsgQ = NULL;
-    StartThread(handle_upstream);
-    StartThread(processUpstreamMessage);
+    StartThread(handle_upstream, NULL);
+    StartThread(processUpstreamMessage, NULL);
     ParodusMsgQ = NULL;
-    StartThread(messageHandlerTask);
-    StartThread(serviceAliveTask);
+    StartThread(messageHandlerTask, NULL);
+    StartThread(serviceAliveTask, NULL);
+    StartThread(CRUDHandlerTask, NULL);
 
     if (NULL != initKeypress) 
     {
@@ -98,37 +105,48 @@ void createSocketConnection(void (* initKeypress)())
     }
 
     seshat_registered = __registerWithSeshat();
+
+    if( 0 == strncmp(HUB_STR, get_parodus_cfg()->hub_or_spk, sizeof(HUB_STR)) ) {
+        hub_setup(PIPELINE_URL, PUBSUB_URL, &sock.pipeline, &sock.pubsub);
+    } else if( 0 == strncmp(SPK_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK_STR)) ) {
+        spoke_setup(PIPELINE_URL, PUBSUB_URL, NULL, &sock.pipeline, &sock.pubsub);
+    }
+    StartThread(handle_P2P_Incoming, &sock);
+    StartThread(process_P2P_IncomingMessage, &sock);
+    StartThread(process_P2P_OutgoingMessage, &sock);
     
     do
     {
         nopoll_loop_wait(ctx, 5000000);
-        intTimer = intTimer + 5;
-
-        if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout) 
-        {
-            if(!close_retry) 
-            {
-                ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
-                ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
-                set_global_reconnect_reason("Ping_Miss");
-                set_global_reconnect_status(true);
-                pthread_mutex_lock (&close_mut);
-                close_retry = true;
-                pthread_mutex_unlock (&close_mut);
-            }
-            else
-            {			
-                ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
-            }
-            heartBeatTimer = 0;
-        }
-        else if(intTimer >= 30)
-        {
-            ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
-            heartBeatTimer += HEARTBEAT_RETRY_SEC;	
-            intTimer = 0;		
-        }
-
+        //Add check for spoke, so that parodus won't reconect everytime for ping miss
+        if (true == connectToXmidt)
+		{
+			intTimer = intTimer + 5;
+		    if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout)
+		    {
+		        if(!close_retry)
+		        {
+		            ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
+		            ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
+		            set_global_reconnect_reason("Ping_Miss");
+		            set_global_reconnect_status(true);
+		            pthread_mutex_lock (&close_mut);
+		            close_retry = true;
+		            pthread_mutex_unlock (&close_mut);
+		        }
+		        else
+		        {
+		            ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+		        }
+		        heartBeatTimer = 0;
+		    }
+		    else if(intTimer >= 30)
+		    {
+		        ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
+		        heartBeatTimer += HEARTBEAT_RETRY_SEC;
+		        intTimer = 0;
+		    }
+		}
         if( false == seshat_registered ) {
             seshat_registered = __registerWithSeshat();
         }
@@ -141,6 +159,14 @@ void createSocketConnection(void (* initKeypress)())
             createNopollConnection(ctx);
         }		
     } while(!close_retry);
+
+    if( 0 == strncmp(HUB_STR, get_parodus_cfg()->hub_or_spk, sizeof(HUB_STR)) ) {
+        sock_cleanup(sock.pipeline);
+        sock_cleanup(sock.pubsub);
+    } else if( 0 == strncmp(SPK_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK_STR)) ) {
+        sock_cleanup(sock.pipeline);
+        sock_cleanup(sock.pubsub); 
+    }
 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);

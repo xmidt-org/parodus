@@ -26,6 +26,7 @@
 #include "connection.h"
 #include "partners_check.h"
 #include "ParodusInternal.h"
+#include "crud_interface.h"
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -44,7 +45,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
     char* destVal = NULL;
     char dest[32] = {'\0'};
     int msgType;
-    int bytes =0;
     int destFlag =0;
     size_t size = 0;
     int resp_size = -1 ;
@@ -53,7 +53,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
     wrp_msg_t *resp_msg = NULL;
     void *resp_bytes;
     cJSON *response = NULL;
-    reg_list_item_t *temp = NULL;
 
     recivedMsg =  (const char *) msg;
 
@@ -93,8 +92,11 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         cJSON_AddStringToObject(response, "message", "Invalid partner_id");
                     } 
 
-                    destVal = ((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
-                              ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest));
+                      
+                    destVal = strdup(((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
+                              ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest)));
+                              
+                              
                     if( (destVal != NULL) && (ret >= 0) )
                     {
                         strtok(destVal , "/");
@@ -102,7 +104,9 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         ParodusInfo("Received downstream dest as :%s and transaction_uuid :%s\n", dest, 
                             ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid : 
                             ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
-                        temp = get_global_node();
+                        
+                        free(destVal);
+                        /*temp = get_global_node();
                         //Checking for individual clients & Sending to each client
 
                         while (NULL != temp)
@@ -120,8 +124,17 @@ void listenerOnMessage(void * msg, size_t msgSize)
                             }
                             ParodusPrint("checking the next item in the list\n");
                             temp= temp->next;
-                        }
+                        }*/
+						destFlag = sendMsgtoRegisteredClients(dest,&recivedMsg,msgSize);
 
+			/* check Downstream dest for CRUD requests */
+			if(destFlag ==0 && strcmp("parodus", dest)==0)
+			{
+				ParodusPrint("Received CRUD request : dest : %s\n", dest);
+				addCRUDmsgToQueue(message);
+				destFlag =1;
+			}
+			
                         //if any unknown dest received sending error response to server
                         if(destFlag ==0)
                         {

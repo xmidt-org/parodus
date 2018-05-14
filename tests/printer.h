@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Comcast Cable Communications Management, LLC
+ * Copyright 2018 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,31 +14,20 @@
  * limitations under the License.
  *
  */
-/**
- * @file spin_thread.h
- *
- * @description This file is used to define thread function
- *
- */
- 
-#ifndef _SPIN_THREAD_H_
-#define _SPIN_THREAD_H_
+
+#ifndef __PRINTER__H__
+#define __PRINTER__H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/*----------------------------------------------------------------------------*/
-/*                             Function Prototypes                            */
-/*----------------------------------------------------------------------------*/
-
-void StartThread(void *(*start_routine) (void *), void *args);
-
+    
+    
+    
+    
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-
-

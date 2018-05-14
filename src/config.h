@@ -24,6 +24,8 @@
 #ifndef _CONFIG_H_ 
 #define _CONFIG_H_
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -59,6 +61,13 @@ extern "C" {
 
 #define ALLOW_NON_RSA_ALG	false
 
+#define PUBSUB_URL              "tcp://127.0.0.1:7777"
+#define PIPELINE_URL            "tcp://127.0.0.1:7778"
+
+/* For Flying Circus Demo allow cli to disable Websocket connection to Xmidt */
+/* Default is to connect. */
+extern bool connectToXmidt;
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -93,6 +102,9 @@ typedef struct
     char webpa_auth_token[4096];
     char token_acquisition_script[64];
     char token_read_script[64];
+    char hub_or_spk[5];
+    char *pipeline_url;
+    char *pubsub_url;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
@@ -140,6 +152,7 @@ int parse_webpa_url(const char *full_url,
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
 
+void free_parodusCfg(ParodusCfg *cfg);
 #ifdef __cplusplus
 }
 #endif
