@@ -110,11 +110,6 @@ void *process_P2P_IncomingMessage(void *args)
             inMsgQ = inMsgQ->next;
             pthread_mutex_unlock (&inMsgQ_mut);
             ParodusPrint("mutex unlock in consumer thread\n");
-            /*rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
-            if(rv > 0)
-            {
-                if(msg->msg_type == WRP_MSG_TYPE__EVENT)
-                {*/
 			// For incoming of type HUB, use hub_send_msg() to propagate message to hardcoded spoke
 			if (0 == strncmp("hub", get_parodus_cfg()->hub_or_spk, 3) )
 			{
@@ -130,42 +125,6 @@ void *process_P2P_IncomingMessage(void *args)
 			}
 			//Send event to all registered clients for both hub and spoke incoming msg 
 			sendToAllRegisteredClients(&message->msg, message->len);
-			
-			
-			/*else if (0 == strncmp("spk", get_parodus_cfg()->hub_or_spk, 3) )
-                        {
-                            status = spoke_send_msg(SPK1_URL, message->msg, message->len);
-                            if(status == true)
-                            {
-                                ParodusInfo("Successfully sent event to hub\n");
-                            }
-                            else
-                            {
-                                ParodusError("Failed to send event to hub\n");
-                            }
-                        }
-                        else
-			{
-				// For incoming of type spoke, use sendToAllRegisteredClients() to propagate message to its local registered printer. 
-                                // If source is itself then ignore the message
-				sendToAllRegisteredClients(&message->msg, message->len);
-			}*/
-                /*}
-            }
-            else
-            {
-                ParodusError("Error in msgpack decoding for upstream\n");
-            }
-
-            wrp_free_struct(msg);
-            msg = NULL;
-
-            if(nn_freemsg (message->msg) < 0)
-            {
-                ParodusError ("Failed to free msg\n");
-            }
-            free(message);
-            message = NULL;*/
         }
         else
         {
@@ -202,12 +161,7 @@ void *process_P2P_OutgoingMessage(void *args)
             outMsgQ = outMsgQ->next;
             pthread_mutex_unlock (&outMsgQ_mut);
             ParodusPrint("mutex unlock in consumer thread\n");
-            //rv = wrp_to_struct( message->msg, message->len, WRP_BYTES, &msg );
             ParodusInfo("process_P2P_OutgoingMessage - message->msg = %p, message->len = %zd\n", message->msg, message->len);
-            //if(rv > 0)
-            {
-                //if(msg->msg_type == WRP_MSG_TYPE__EVENT)
-                {
 		    if (0 == strncmp("hub", get_parodus_cfg()->hub_or_spk, 3) )
 		    {
                             ParodusInfo("Just before hub send message\n");
@@ -233,20 +187,6 @@ void *process_P2P_OutgoingMessage(void *args)
 		                ParodusError("Failed to send event to hub\n");
 		            }
 		     }
-                }
-            }
-            /* else
-            {
-                ParodusError("Error in msgpack decoding for upstream\n");
-            }
-             
-            wrp_free_struct(msg);
-            msg = NULL;
-
-            if(nn_freemsg (message->msg) < 0)
-            {
-                ParodusError ("Failed to free msg\n");
-            }*/
             free(message);
             message = NULL;
         }
