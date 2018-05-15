@@ -24,6 +24,12 @@ typedef struct P2P_Msg__
 	struct P2P_Msg__ *next;
 } P2P_Msg;
 
+typedef struct _socket_handles
+{
+        int pipeline;
+        int pubsub;
+} socket_handles_t;
+
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/

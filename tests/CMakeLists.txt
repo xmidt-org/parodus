@@ -153,7 +153,7 @@ set(CLIST_SRC test_client_list.c ../src/client_list.c
  ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c 
  ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c 
  ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c 
- ../src/partners_check.c ../src/parodus_interface.c ../src/peer2peer.c ${PARODUS_COMMON_SRC})
+ ../src/partners_check.c ../src/parodus_interface.c ../src/peer2peer.c ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c ${PARODUS_COMMON_SRC})
 
 if (ENABLE_SESHAT)
 set(CLIST_SRC ${CLIST_SRC} ../src/seshat_interface.c)
@@ -190,7 +190,7 @@ target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 # printer client for flying circus
-add_test(NAME printer COMMAND ${MEMORY_CHECK} ./printer)
+#add_test(NAME printer COMMAND ${MEMORY_CHECK} ./printer)
 add_executable(printer ./printer.c ) 
 
 target_link_libraries ( printer
@@ -204,7 +204,7 @@ target_link_libraries ( printer
                        -lpthread)
 
 # producer client for flying circus
-add_test(NAME producer COMMAND ${MEMORY_CHECK} ./producer)
+#add_test(NAME producer COMMAND ${MEMORY_CHECK} ./producer)
 add_executable(producer ./producer.c ) 
 
 target_link_libraries ( producer
@@ -265,6 +265,8 @@ target_link_libraries (test_thread_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_conn_interface COMMAND ${MEMORY_CHECK} ./test_conn_interface)
 set(CONIFC_SRC test_conn_interface.c 
+  test_get_set.c
+  ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c 
   ../src/conn_interface.c 
   ../src/config.c 
   ../src/config_file.c
@@ -381,10 +383,15 @@ target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  gcov 
 endif (INTEGRATION_TESTING)
 
 #-------------------------------------------------------------------------------
-#   test_parodus_interface
+#   test_parodus_interface pipeline
 #-------------------------------------------------------------------------------
-add_test(NAME test_parodus_interface COMMAND ${MEMORY_CHECK} ./test_parodus_interface)
-add_executable(test_parodus_interface test_parodus_interface.c ../src/parodus_interface.c)
-target_link_libraries (test_parodus_interface ${PARODUS_COMMON_LIBS})
+add_test(NAME test_parodus_interface_pp COMMAND ${MEMORY_CHECK} ./test_parodus_interface_pp)
+add_executable(test_parodus_interface_pp test_parodus_interface_pp.c ../src/parodus_interface.c)
+target_link_libraries (test_parodus_interface_pp ${PARODUS_COMMON_LIBS})
 
-
+#-------------------------------------------------------------------------------
+#   test_parodus_interface pubsub
+#-------------------------------------------------------------------------------
+add_test(NAME test_parodus_interface_ps COMMAND ./test_parodus_interface_ps)
+add_executable(test_parodus_interface_ps test_parodus_interface_ps.c ../src/parodus_interface.c)
+target_link_libraries (test_parodus_interface_ps ${PARODUS_COMMON_LIBS})

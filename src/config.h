@@ -75,6 +75,7 @@ typedef enum {
 
 #define ALLOW_NON_RSA_ALG	false
 
+
 #define HUB_URL                 "tcp://127.0.0.1:7777"
 #define SPK1_URL                "tcp://127.0.0.1:7778"
 #define SPK2_URL                "tcp://127.0.0.1:7779"
@@ -89,6 +90,8 @@ typedef enum {
 #define HUB_OR_SPOKE            "hub-or-spoke"
 #define FORCE_IPV4              "force-ipv4"
 #define FORCE_IPV6              "force-ipv6"
+#define PUBSUB_URL              "tcp://127.0.0.1:7777"
+#define PIPELINE_URL            "tcp://127.0.0.1:7778"
 
 /* For Flying Circus Demo allow cli to disable Websocket connection to Xmidt */
 /* Default is to connect. */
@@ -129,6 +132,8 @@ typedef struct
     char token_acquisition_script[64];
     char token_read_script[64];
     char hub_or_spk[5];
+    char *pipeline_url;
+    char *pubsub_url;
     /* Instance_type will replace hub_or_spk, so we don't need strcmp, etc...
        Also will allow for easier addition of any other type   
     */
@@ -185,6 +190,7 @@ int parse_webpa_url(const char *full_url,
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
 
+void free_parodusCfg(ParodusCfg *cfg);
 #ifdef __cplusplus
 }
 #endif

@@ -15,37 +15,41 @@
  *
  */
 /**
- * @file spin_thread.c
+ * @file crud_interface.h
  *
- * @description This file is used to define thread function
+ * @description This header defines functions required to manage CRUD messages.
  *
  */
  
-#include <stdlib.h>
-#include <string.h>
-#include <pthread.h>
+#ifndef _CRUD_INTERFACE_H_
+#define _CRUD_INTERFACE_H_
 
-#include "spin_thread.h"
-#include "parodus_log.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /*----------------------------------------------------------------------------*/
-/*                             External Functions                             */
+/*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-void StartThread(void *(*start_routine) (void *), void *args)
+typedef struct CrudMsg__
 {
-    int err = 0;
-	pthread_t threadId;
+	wrp_msg_t *msg;
+	struct CrudMsg__ *next;
+} CrudMsg;
 
-	err = pthread_create(&threadId, NULL, start_routine, args);
-	if (err != 0) 
-	{
-		ParodusError("Error creating thread :[%s]\n", strerror(err));
-        exit(1);
-	}
-	else
-	{
-		ParodusPrint("Thread created Successfully %lu\n", (unsigned long) threadId);
-	}    
+/*----------------------------------------------------------------------------*/
+/*                             Function Prototypes                            */
+/*----------------------------------------------------------------------------*/
+
+//void *CRUDHandlerTask();
+//void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
+void addCRUDresponseToUpstreamQ(void *response_bytes, ssize_t response_size);
+
+#ifdef __cplusplus
 }
+#endif
 
-         
+
+#endif /* _CRUD_INTERFACE_H_ */
+

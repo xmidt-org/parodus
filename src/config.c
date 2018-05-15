@@ -300,11 +300,13 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"token-acquisition-script",     required_argument, 0, 'J'},
         {"hub-or-spoke",            required_argument, 0, 'h'},
         {"Xmidt", no_argument, 0, 'X'}, /* Parodus MUST not try to connect to Xmidt */
-        /* Overrides all other arguments, will parse the configuration file specified */
-        {"config-file", required_argument, 0, 'F'}, 
-        {0, 0, 0, 0}
+        {"pipeline-url",            required_argument, 0, 'P'},
+        {"pubsub-url",            required_argument, 0, 'S'},
+        
+        /* -F Overrides all other arguments, will parse the configuration file specified */
+        {"config-file", required_argument, 0, 'F'},        {0, 0, 0, 0}
     };
-    const char *option_string = "F:X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h";
+    const char *option_string = "F:X::m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:h:P:S";
     int c;
     ParodusInfo("Parsing parodus command line arguments..\n");
 
@@ -317,6 +319,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->acquire_jwt = 0;
 	cfg->jwt_algo = 0;
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
+	cfg->pipeline_url = NULL;
+	cfg->pubsub_url = NULL;
 	optind = 1;  /* We need this if parseCommandLine is called again */
     while (keepParsing)
     {
@@ -471,6 +475,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("hub_or_spk is %s\n",cfg->hub_or_spk);
           break;
 
+        case 'P':
+          cfg->pipeline_url = strdup(optarg);
+          ParodusInfo("pipeline_url is %s\n",cfg->pipeline_url);
+          break;
+
+        case 'S':
+          cfg->pubsub_url = strdup(optarg);
+          ParodusInfo("pubsub_url is %s\n",cfg->pubsub_url);
+          break;
+
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -617,6 +631,8 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
+    cfg->pipeline_url = NULL;
+	cfg->pubsub_url = NULL;
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
@@ -790,6 +806,42 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->hub_or_spk, "\0", sizeof(cfg->hub_or_spk));
         ParodusPrint("hub_or_spk is NULL. set to empty\n");
     }
+
+    if(config->pipeline_url != NULL)
+    {
+        cfg->pipeline_url = strdup(config->pipeline_url);
+    }
+    else
+    {
+        ParodusPrint("pipeline_url is NULL. set to empty\n");
+    }
+
+    if(config->pubsub_url != NULL)
+    {
+        cfg->pubsub_url = strdup(config->pubsub_url);
+    }
+    else
+    {
+        ParodusPrint("pubsub_url is NULL. set to empty\n");
+    }
 }
 
+void free_parodusCfg(ParodusCfg *cfg)
+{
+    ParodusPrint("---------- %s ---------\n",__FUNCTION__);
+    if(cfg != NULL)
+    {
+        if(cfg->pipeline_url != NULL)
+        {
+            free(cfg->pipeline_url);
+            cfg->pipeline_url = NULL;
+        }
 
+        if(cfg->pubsub_url != NULL)
+        {
+            free(cfg->pubsub_url);
+            cfg->pubsub_url = NULL;
+        }
+    }
+    ParodusPrint("---------- %s ---------\n",__FUNCTION__);
+}
