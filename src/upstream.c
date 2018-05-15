@@ -399,14 +399,15 @@ void *processUpstreamMessage()
                     
                     if(WRP_MSG_TYPE__CREATE == msgType && msg->u.crud.dest !=NULL)
                 	{
-            			//Expecting dest format as mac:xxxxxxxxxxxx/producer
-            			//Strip dest field to get "producer"
+            			//Expecting dest format as mac:xxxxxxxxxxxx/printer
+            			//Strip dest field to get "printer"
             			upstreamDest = strdup(msg->u.crud.dest);
             			strtok(upstreamDest , "/");
             			endValue = strtok(NULL , "");
             			if(endValue != NULL)
             			{
-            				if ( strcmp(endValue,"producer")== 0) 
+            				//Hardcoded destination
+            				if ( strcmp(endValue,"printer")== 0) 
 			            	{
 								//Send Client Subscribe response back to registered client
 								sendMsgtoRegisteredClients(endValue,(const char **)&message->msg,message->len);
