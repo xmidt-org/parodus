@@ -38,6 +38,11 @@ typedef struct UpStreamMsg__
 	struct UpStreamMsg__ *next;
 } UpStreamMsg;
 
+typedef struct _sub_list {
+	char *service_name;
+	char *regex;
+} _sub_list_t;
+
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
@@ -52,6 +57,7 @@ void set_global_UpStreamMsgQ(UpStreamMsg * UpStreamQ);
 UpStreamMsg * get_global_UpStreamMsgQ(void);
 pthread_cond_t *get_global_nano_con(void);
 pthread_mutex_t *get_global_nano_mut(void);
+int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize);
 
 #ifdef __cplusplus
 }

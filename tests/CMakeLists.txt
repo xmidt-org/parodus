@@ -215,7 +215,8 @@ target_link_libraries ( producer
                        -lnanomsg
                        -lcimplog
                        -lm
-                       -lpthread)
+                       -lpthread
+                       -lcjson)
 #-------------------------------------------------------------------------------
 
 

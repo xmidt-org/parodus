@@ -38,6 +38,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
                     ${INCLUDE_DIR}/cjwt
+                    ${INCLUDE_DIR}/rebar-c
 					)	
 
 # Get git commit hash 
@@ -244,6 +245,17 @@ add_library(libcmocka STATIC SHARED IMPORTED)
 add_dependencies(libcmocka cmocka)
 
 endif (BUILD_TESTING)
+
+# rebar-c external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(rebar-c
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/rebar-c
+    GIT_REPOSITORY https://github.com/Comcast/rebar-c.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+)
+add_library(librebar-c STATIC SHARED IMPORTED)
+add_dependencies(librebar-c rebar-c)
 
 endif () # NOT BUILD_YOCTO
 

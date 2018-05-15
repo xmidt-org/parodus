@@ -234,6 +234,12 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
     (void) resp_bytes; (void) resp_size;    
 }
 
+int sendMsgtoRegisteredClients(char *dest,const void *recivedMsg,size_t msgSize)
+{
+	(void)dest;(void)recivedMsg;(void)msgSize;
+	return 0;
+}
+
 int get_numOfClients()
 {
     return 0;
