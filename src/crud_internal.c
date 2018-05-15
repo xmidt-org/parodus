@@ -361,16 +361,22 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 
 int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 {
+
 	char *destVal = NULL;
+	cJSON *paramArray = NULL;
+	cJSON *json = NULL, *childObj = NULL, *subitemObj =NULL;
 	char *jsonData = NULL;
 	char *child_ptr,*obj[5];
-	int objlevel = 1, i = 1;
+	int objlevel = 1, i = 1, j=0, found = 0, status;
 	cJSON *inMemResponse;
-	int status, inMemStatus = -1;
+	int inMemStatus = -1, itemSize =0;
+	char *str1 = NULL;
+	
+	cJSON *jsonresponse = cJSON_CreateObject();
 	
 	status = readFromJSON(&jsonData);
 	ParodusInfo("read status %d\n", status);
-        cJSON_Parse( jsonData );
+        json = cJSON_Parse( jsonData );
         	
 	if(reqMsg->u.crud.dest !=NULL)
 	{
@@ -383,7 +389,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	    	
 	    	//Get the 1st object
 		obj[0] = strdup( child_ptr );
-		ParodusInfo( "parent is %s\n", obj[0] );
+		ParodusPrint( "parent is %s\n", obj[0] );
 		
 		
 		while( child_ptr != NULL ) 
@@ -397,9 +403,9 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		}
 		
 		objlevel = i;
-		ParodusInfo( "Number of object level %d\n", objlevel );
+		ParodusPrint( "Number of object level %d\n", objlevel );
 		
-		if( (objlevel == 3) && ((obj[2] !=NULL) && strcmp( obj[2] , "tag") !=0 ))
+		if( (objlevel == 3) && ((obj[2] !=NULL) && strstr( obj[2] , "tags") == NULL ))
 		{
 			inMemStatus = retrieveFromMemory(obj[2], &inMemResponse );
 			
@@ -416,22 +422,122 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
         		{
         			ParodusError("Failed to retrieve inMemory value \n");
             			(*response)->u.crud.status = 400;
+            			free(destVal);
             			return -1;
         		}
 		}
 		else
 		{
+			
 			ParodusInfo("Processing CRUD external tag request \n");
-			return -1;
+			paramArray = cJSON_GetObjectItem( json, "tags" );
+				
+			if( paramArray != NULL ) 
+			{
+				itemSize = cJSON_GetArraySize( paramArray );
+            			if( itemSize == 0 )  
+            			{
+            				ParodusError("itemSize is 0, tags object is empty in json\n");
+                			(*response)->u.crud.status = 400;
+
+            			}
+            			else
+            			{
+            				//To retrieve top level tags object
+            				if( strcmp( cJSON_GetObjectItem( json, "tags" )->string, obj[objlevel - 1] ) == 0 ) 
+            				{
+            					ParodusInfo("top level tags object\n");
+            					
+            					cJSON_AddItemToObject( jsonresponse, obj[objlevel - 1] , childObj = cJSON_CreateObject());
+            					//To add test objects to jsonresponse
+            					for( i = 0; i < itemSize; i++ ) 
+            					{ 
+            					
+            						cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
+                        				int subitemSize = cJSON_GetArraySize( subitem );
+                        				cJSON_AddItemToObject( childObj, cJSON_GetArrayItem( paramArray, i )->string, subitemObj = cJSON_CreateObject() );
+                        				
+                        				//To add subitem objects to jsonresponse
+                        				for( j = 0 ; j < subitemSize ; j++ ) 
+							{
+							    
+							   ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, j )->string, cJSON_GetArrayItem( subitem, j )->valueint );
+							    
+							    cJSON_AddItemToObject( subitemObj, cJSON_GetArrayItem( subitem, j )->string, cJSON_CreateNumber(cJSON_GetArrayItem( subitem, j )->valueint));
+							}
+						
+            					}
+            					
+            					cJSON *tagObj = cJSON_GetObjectItem( jsonresponse, "tags" );
+		    			        str1 = cJSON_PrintUnformatted( tagObj );
+		            			ParodusInfo( "jsonResponse %s\n", str1 );
+		            			(*response)->u.crud.status = 201;
+		            			(*response)->u.crud.payload = str1;
+            					
+            				}
+            				else
+            				{
+            				
+            				    //To traverse through total number of test objects in json
+            				    for( i = 0 ; i < itemSize ; i++ ) 
+            				    {
+            					cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
+            					
+            					if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel - 1] ) == 0 ) 
+            					{
+            						
+		    					//retrieve test object value
+    							ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, 0)->string, cJSON_GetArrayItem( subitem, 0 )->valueint );
+    							
+                            				cJSON_AddItemToObject( jsonresponse, cJSON_GetArrayItem( subitem, 0 )->string , cJSON_CreateNumber(cJSON_GetArrayItem( subitem, 0 )->valueint));
+                            				
+                            				ParodusInfo("Retrieve: requested object found \n");
+                            				found = 1;
+                            				break;
+            					
+    						}
+    						else
+    						{
+    							ParodusPrint("retrieve object not found, traversing\n");
+    						}
+            				    }
+            				    
+            				    if(!found)
+            				    {
+            				    	ParodusError("Unable to retrieve requested object\n");
+            				    	(*response)->u.crud.status = 400;
+            				    	free(destVal);
+            					return -1;
+            				    }
+            				
+            				char *str1 = cJSON_PrintUnformatted( jsonresponse );
+                    			ParodusInfo( "jsonResponse %s\n", str1 );
+                    			(*response)->u.crud.status = 201;
+                    			(*response)->u.crud.payload = str1;
+            			
+            			     }
+            			     
+				}
+			}
+			else
+		  	{
+				ParodusError("Failed to RETRIEVE object from json\n");
+				(*response)->u.crud.status = 400;
+				free(destVal);
+				return -1;
+			}
 		}
+			free(destVal);
 	    }
 	    else
 	    {
+		
 		ParodusError("Unable to parse object details from RETRIEVE request\n");
 		return -1;
 	    }
 	}
-			    
+	
+	cJSON_Delete( jsonresponse );		    
 	return 0;
 }
 
