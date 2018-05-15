@@ -35,6 +35,7 @@
 
 
 #define SERVICE_NAME "producer"
+#define CONTENT_TYPE_JSON  "application/json"
 
 static void sig_handler(int sig);
 static int main_loop(libpd_cfg_t *cfg);
