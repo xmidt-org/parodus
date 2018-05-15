@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <cimplog/cimplog.h>
 #include <cJSON.h>
+#include <time.h>
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -259,6 +260,12 @@ static int main_loop(libpd_cfg_t *cfg)
     int c = 2;
     char source[128];
     char destination[128];
+    char *contentType;
+    cJSON *response;
+    cJSON *parameters;
+    cJSON *device_id, *time_stamp;
+
+    (void ) device_id; (void ) parameters; (void ) time_stamp;
 
     while( true ) {
         rv = libparodus_init( &hpd, cfg );
@@ -284,15 +291,47 @@ static int main_loop(libpd_cfg_t *cfg)
     snprintf(source,127,"mac:/%s/%s", mac_address, SERVICE_NAME);
     snprintf(destination, 127, "event:node-change/");
     // zztop snprintf(destination, 127, "event:node-change/%s","printer");
+    
+    contentType = (char *) malloc(sizeof(char) * (strlen(CONTENT_TYPE_JSON) + 1));
+	if (contentType) {
+        strncpy(contentType, CONTENT_TYPE_JSON, strlen(CONTENT_TYPE_JSON) + 1);
+    } else {
+        printf("Hell Froze over! Malloc failed!\n");
+        exit (-911);
+    } 
+    
     printf("starting the main loop...\n");
     do {
+        struct timespec tm;
+        time_t unix_time = 0;
+        char *str;
+        char time_str[32] = "0";
+        
+        if( 0 == clock_gettime(CLOCK_REALTIME, &tm) ) {
+            unix_time = tm.tv_sec; // ignore tm.tv_nsec
+            snprintf(time_str, 32, "%lu", unix_time);
+        }    
+            
+        response = cJSON_CreateObject();
+        //cJSON_AddItemToObject(response, "parameters", parameters =cJSON_CreateArray());
+        //cJSON_AddItemToArray(parameters, device_id = cJSON_CreateObject());
+        //cJSON_AddStringToObject(device_id, "device_id", mac_address);
+	cJSON_AddStringToObject(response, "device_id", mac_address);
+
+        //cJSON_AddItemToArray(parameters, time_stamp = cJSON_CreateObject());
+        //cJSON_AddStringToObject(device_id, "timestamp", time_str);
+	cJSON_AddStringToObject(response, "timestamp", time_str);
+        str = cJSON_PrintUnformatted(response);
+        printf("Payload Response: %s\n", str);
+
         memset(&wrp_msg, 0, sizeof(wrp_msg_t));
         wrp_msg.msg_type = WRP_MSG_TYPE__EVENT;     
 
 	    wrp_msg.u.event.source = strdup(source);
         wrp_msg.u.event.dest   = strdup(destination);
-	    wrp_msg.u.event.payload = NULL;
-        wrp_msg.u.event.payload_size = 0;
+        wrp_msg.u.event.content_type = strdup(contentType);
+	    wrp_msg.u.event.payload = str;
+        wrp_msg.u.event.payload_size = strlen(str);
         
         
         rv = libparodus_send(hpd, &wrp_msg);
