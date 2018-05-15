@@ -205,7 +205,7 @@ int parse_webpa_url__ (const char *full_url,
 {
 	const char *server_ptr;
 	char *port_val;
-	char *end_port;
+	char *end_ptr;
 	size_t server_len;
 	int http_match;
 
@@ -231,11 +231,18 @@ int parse_webpa_url__ (const char *full_url,
 	} else {
 		*port_val = '\0'; // terminate server address with null
 		port_val++;
-		end_port = strchr (port_val, '/');
-		if (NULL != end_port)
-			*end_port = '\0'; // terminate port with null
+		end_ptr = strchr (port_val, '/');
+		if (NULL != end_ptr)
+			*end_ptr = '\0'; // terminate port with null
 		parStrncpy (port_buf, port_val, port_buflen);
 	}
+	
+	// If we get https://mydns.mycom.net/api/v2/ for the server
+	// then we just take https://mydns.mycom.net
+	end_ptr = strchr (server_addr, '/');
+	if (NULL != end_ptr)
+		*end_ptr = '\0';
+		
 	ParodusInfo ("server %s, port %s, http_match %d\n", 
 		server_addr, port_buf, http_match);
 	return http_match;
