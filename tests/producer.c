@@ -219,7 +219,7 @@ static int main_loop(libpd_cfg_t *cfg)
             break;
     }
 
-    snprintf(source,127,"mac:/%s/%s", mac_address, SERVICE_NAME);
+    snprintf(source,127,"mac:%s/%s", mac_address, SERVICE_NAME);
     snprintf(destination, 127, "event:node-change/");
     // zztop snprintf(destination, 127, "event:node-change/%s","printer");
     
@@ -244,13 +244,7 @@ static int main_loop(libpd_cfg_t *cfg)
         }    
             
         response = cJSON_CreateObject();
-        //cJSON_AddItemToObject(response, "parameters", parameters =cJSON_CreateArray());
-        //cJSON_AddItemToArray(parameters, device_id = cJSON_CreateObject());
-        //cJSON_AddStringToObject(device_id, "device_id", mac_address);
 	cJSON_AddStringToObject(response, "device_id", mac_address);
-
-        //cJSON_AddItemToArray(parameters, time_stamp = cJSON_CreateObject());
-        //cJSON_AddStringToObject(device_id, "timestamp", time_str);
 	cJSON_AddStringToObject(response, "timestamp", time_str);
         str = cJSON_PrintUnformatted(response);
         printf("Payload Response: %s\n", str);

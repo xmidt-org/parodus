@@ -286,6 +286,7 @@ static int main_loop(libpd_cfg_t *cfg)
             ssize_t n = wrp_struct_to(wrp_msg, WRP_STRING, (void **) &bytes);
             if (n > 0) {
                 printf("\n%s", bytes);
+		printf("wrp_msg->u.event.payload %s\n",(char *)wrp_msg->u.event.payload);
                 free(bytes);
             } else {
                 printf("Service Printer Memory Error on WRP message conversion\n");
