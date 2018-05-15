@@ -148,7 +148,7 @@ server_t *get_current_server (server_list_t *server_list)
   
 int parse_server_url (const char *full_url, server_t *server)
 {
-  server->allow_insecure = parse_webpa_url_a (full_url,
+  server->allow_insecure = parse_webpa_url (full_url,
 	&server->server_addr, &server->port);
   return server->allow_insecure;
 }

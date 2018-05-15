@@ -142,7 +142,7 @@ int analyze_jwt (const cjwt_t *jwt, char **url_buf, unsigned int *port)
 			return TOKEN_ERR_JWT_EXPIRED;
 		}
 	}
-	http_match = parse_webpa_url_a (endpoint->valuestring,
+	http_match = parse_webpa_url (endpoint->valuestring,
 		url_buf, port);
 	if (http_match < 0) {
 		ParodusError ("Invalid endpoint claim in JWT\n");

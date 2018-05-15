@@ -30,10 +30,10 @@
 extern int parse_mac_address (char *target, const char *arg);
 extern int server_is_http (const char *full_url,
 	const char **server_ptr);
-extern int parse_webpa_url(const char *full_url, 
+extern int parse_webpa_url__(const char *full_url, 
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
-extern int parse_webpa_url_a (const char *full_url,
+extern int parse_webpa_url (const char *full_url,
 	char **server_addr, unsigned int *port);
 extern unsigned int get_algo_mask (const char *algo_str);
 extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
@@ -453,53 +453,53 @@ void test_server_is_http ()
 	
 }
 
-void test_parse_webpa_url ()
+void test_parse_webpa_url__ ()
 {
 	char addr_buf[80];
 	char port_buf[8];
-	assert_int_equal (parse_webpa_url ("mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), -1);
-	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("https://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "8080");
-	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/",
+	assert_int_equal (parse_webpa_url__ ("https://mydns.mycom.net/",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "443");
-	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("http://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "8080");
-	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net",
+	assert_int_equal (parse_webpa_url__ ("http://mydns.mycom.net",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "80");
 		
 }
 
-void test_parse_webpa_url_a ()
+void test_parse_webpa_url ()
 {
 	char *addr;
 	unsigned int port;
-	assert_int_equal (parse_webpa_url_a ("mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url ("mydns.mycom.net:8080",
 		&addr, &port), -1);
-	assert_int_equal (parse_webpa_url_a ("https://mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net:8080",
 		&addr, &port), 0);
 	assert_string_equal (addr, "mydns.mycom.net");
 	assert_int_equal (port, 8080);
 	free (addr);
-	assert_int_equal (parse_webpa_url_a ("https://mydns.mycom.net/",
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/",
 		&addr, &port), 0);
 	assert_string_equal (addr, "mydns.mycom.net");
 	assert_int_equal (port, 443);
 	free (addr);
-	assert_int_equal (parse_webpa_url_a ("http://mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net:8080",
 		&addr, &port), 1);
 	assert_string_equal (addr, "mydns.mycom.net");
 	assert_int_equal (port, 8080);
 	free (addr);
-	assert_int_equal (parse_webpa_url_a ("http://mydns.mycom.net",
+	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net",
 		&addr, &port), 1);
 	assert_string_equal (addr, "mydns.mycom.net");
 	assert_int_equal (port, 80);
@@ -575,8 +575,8 @@ int main(void)
         cmocka_unit_test(test_parse_mac_address),
         cmocka_unit_test(test_get_algo_mask),
         cmocka_unit_test(test_server_is_http),
+        cmocka_unit_test(test_parse_webpa_url__),
         cmocka_unit_test(test_parse_webpa_url),
-        cmocka_unit_test(test_parse_webpa_url_a),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
