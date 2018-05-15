@@ -59,7 +59,10 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 				ParodusInfo("Payload Response: %s\n", str);
 
 				resp_msg ->u.crud.payload = (void *)str;
-				resp_msg ->u.crud.payload_size = strlen(str);
+				if(str !=NULL)
+				{
+					resp_msg ->u.crud.payload_size = strlen(str);
+				}
 			}
 			else
 			{
@@ -85,7 +88,10 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 		    ParodusInfo("Payload Response: %s\n", str);
 
 		    resp_msg ->u.crud.payload = (void *)str;
-		    resp_msg ->u.crud.payload_size = strlen((resp_msg)->u.crud.payload);
+		    if((resp_msg)->u.crud.payload !=NULL)
+		    {
+		    	resp_msg ->u.crud.payload_size = strlen((resp_msg)->u.crud.payload);
+		    }
 
 		   *responseMsg = resp_msg;
 	    }

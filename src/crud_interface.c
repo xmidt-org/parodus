@@ -53,15 +53,15 @@ void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
 	{
 		crudMessage->msg = crudMsg;
 		crudMessage->next = NULL;
-		ParodusInfo("Inside addCRUDmsgToQueue : mutex lock in producer \n");
+		ParodusPrint("Inside addCRUDmsgToQueue : mutex lock in producer \n");
 		pthread_mutex_lock(&crud_mut);
 		if(crudMsgQ ==NULL)
 		{
 			crudMsgQ = crudMessage;
-			ParodusInfo("Producer added message\n");
+			ParodusPrint("Producer added message\n");
 			pthread_cond_signal(&crud_con);
 			pthread_mutex_unlock(&crud_mut);
-			ParodusInfo("Inside addCRUDmsgToQueue : mutex unlock in producer \n");
+			ParodusPrint("Inside addCRUDmsgToQueue : mutex unlock in producer \n");
 		}
 		else
 		{
@@ -92,14 +92,14 @@ void *CRUDHandlerTask()
 	while(1)
 	{
 		pthread_mutex_lock(&crud_mut);
-		ParodusInfo("Mutex lock in CRUD consumer thread\n");
+		ParodusPrint("Mutex lock in CRUD consumer thread\n");
 
 		if(crudMsgQ !=NULL)
 		{
 			CrudMsg *message = crudMsgQ;
 			crudMsgQ = crudMsgQ->next;
 			pthread_mutex_unlock(&crud_mut);
-			ParodusInfo("Mutex unlock in CRUD consumer thread\n");
+			ParodusPrint("Mutex unlock in CRUD consumer thread\n");
 
 			ret = processCrudRequest(message->msg, &crud_response);
 			
@@ -145,19 +145,19 @@ void addCRUDresponseToUpstreamQ(void *response_bytes, ssize_t response_size)
 	    response->len =(int)response_size;
 	    response->next=NULL;
 	    pthread_mutex_lock (get_global_nano_mut());
-	    ParodusInfo("Mutex lock in CRUD response producer\n");
+	    ParodusPrint("Mutex lock in CRUD response producer\n");
 	    
 	    if(get_global_UpStreamMsgQ() == NULL)
 	    {
 		set_global_UpStreamMsgQ(response);
-		ParodusInfo("Producer added CRUD response to UpStreamQ\n");
+		ParodusPrint("Producer added CRUD response to UpStreamQ\n");
 		pthread_cond_signal(get_global_nano_con());
 		pthread_mutex_unlock (get_global_nano_mut());
-		ParodusInfo("mutex unlock in CRUD response producer\n");
+		ParodusPrint("mutex unlock in CRUD response producer\n");
 	    }
 	    else
 	    {
-		ParodusInfo("Producer adding CRUD response to UpStreamQ\n");
+		ParodusPrint("Producer adding CRUD response to UpStreamQ\n");
 		UpStreamMsg *temp = get_global_UpStreamMsgQ();
 		while(temp->next)
 		{
