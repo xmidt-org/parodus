@@ -77,6 +77,52 @@ typedef struct {
 	int rr_len;
 } rr_rec_t;
 
+//------------ Used in comnection.c -----------------
+typedef struct {
+  int allow_insecure;
+  char *server_addr;  // must be freed
+  unsigned int port;
+} server_t;
+
+typedef struct {
+  server_t defaults;	// from command line
+  server_t jwt;		// from jwt endpoint claim
+  server_t redirect;	// from redirect response to
+			//  nopoll_conn_wait_until_connection_ready
+} server_list_t;
+
+//---- Used in connection.c for expire timer
+typedef struct {
+  int running;
+  struct timespec start_time;
+  struct timespec end_time;
+} expire_timer_t;
+
+//--- Used in connection.c for backoff delay timer
+typedef struct {
+  int max_delay;
+  int delay;
+} backoff_timer_t;
+
+//--- Used in connection.c for init_header_info
+typedef struct {
+  char *conveyHeader;	// Do not free
+  char *device_id;	// Need to free
+  char *user_agent;	// Need to free
+} header_info_t;
+
+// connection context which is defined in createNopollConnection
+// and passed into functions keep_retrying_connect, connect_and_wait,
+// wait_connection_ready, and nopoll_connect 
+typedef struct {
+  noPollCtx *nopoll_ctx;
+  server_list_t server_list;
+  server_t *current_server;
+  header_info_t header_info;
+  char *extra_headers;		// need to be freed
+  expire_timer_t connect_timer;
+} create_connection_ctx_t;
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/

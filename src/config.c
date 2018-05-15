@@ -51,8 +51,6 @@ void set_parodus_cfg(ParodusCfg *cfg)
     memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
 }
 
-static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
-
 const char *get_tok (const char *src, int delim, char *result, int resultsize)
 {
 	int i;
@@ -132,7 +130,7 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
   ParodusInfo ("%d bytes read\n", nbytes);
 }
 
-static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
+void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
 {
     FILE* out = NULL, *file = NULL;
     char command[MAX_BUF_SIZE] = {'\0'};
@@ -201,7 +199,7 @@ int server_is_http (const char *full_url,
 }
 	
 	
-int parse_webpa_url(const char *full_url, 
+int parse_webpa_url__ (const char *full_url, 
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen)
 {
@@ -264,6 +262,49 @@ unsigned int parse_num_arg (const char *arg, const char *arg_name)
 	}
 	return result;
 }
+
+int parse_webpa_url (const char *full_url, 
+	char **server_addr, unsigned int *port)
+{
+  int allow_insecure;
+  unsigned int port_val;
+  int buflen = strlen (full_url) + 1;
+  char *url_buf = NULL;
+  char port_buf[8];
+
+#define ERROR__(msg) \
+  ParodusError (msg); \
+  if (NULL != url_buf) \
+    free (url_buf);
+
+  *server_addr = NULL;
+     
+  url_buf = (char *) malloc (buflen);
+  if (NULL == url_buf) {
+    ERROR__ ("parse_webpa_url allocatio n failed.\n")
+    return -1;
+  }
+  allow_insecure = parse_webpa_url__ (full_url,
+	url_buf, buflen, port_buf, 8);
+  if (allow_insecure < 0) {
+    ERROR__ ("parse_webpa_url invalid url\n")
+    return -1;
+  }
+  port_val = parse_num_arg (port_buf, "server port");
+  if (port_val == (unsigned int) -1) {
+    ERROR__ ("Invalid port in server url")
+    return -1;
+  }
+  if ((port_val == 0) || (port_val > 65535)) {
+    ERROR__ ("port value out of range in server url")
+    return -1;
+  }
+  *server_addr = url_buf;
+  *port = port_val;	
+  return allow_insecure;
+#undef ERROR__
+}
+
 
 int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 {

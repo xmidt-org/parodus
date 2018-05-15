@@ -78,15 +78,13 @@ Yes			Yes			http		True			Default
  * query the dns server, obtain a jwt, determine if insecure
  * connections can be allowed. 
  *
- * @param url_buf		buffer containing endpoint value found in JWT
- * @param url_buflen	len of the url buffer provided by caller
- * @param port_buf 		buffer containing port value found in JWT
- * @param port_buflen	len of the port buffer provided by caller
+ * @param server_addr	ptr to buffer ptr containing endpoint value found in JWT
+ *                      will be NULL if invalid, otherwise needs to be freed
+ * @param port 		ptr to variable receiving the port number
  * @return 1 if insecure connection is allowed, 0 if not,
 *    or one of the error codes given above. 
 */ 
-int allow_insecure_conn(char *url_buf, int url_buflen,
-	char *port_buf, int port_buflen);
+int allow_insecure_conn (char **server_addr, unsigned int *port);
 
 
 #endif

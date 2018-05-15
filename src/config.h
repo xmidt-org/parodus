@@ -124,21 +124,21 @@ ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
 
+
 /**
  * parse a webpa url. Extract the server address, the port
  * and return whether it's secure or not
  *
- * @param full_url		full url
- * @param server_addr	 buffer containing server address found in url
- * @param server_addr_buflen len of the server addr buffer provided by caller
- * @param port_buf 		buffer containing port value found in url
- * @param port_buflen	len of the port buffer provided by caller
+ * @param full_url	full url
+ * @param server_addr	ptr to a server address ptr
+ *                      will be NULL if invalid,
+ *                      otherwise will need to be freed
+ * @param port 		ptr to port variable
  * @return 1 if insecure connection is allowed, 0 if not,
 *    or -1 if error
 */ 
-int parse_webpa_url(const char *full_url, 
-	char *server_addr, int server_addr_buflen,
-	char *port_buf, int port_buflen);
+int parse_webpa_url (const char *full_url, 
+	char **server_addr, unsigned int *port);
 
 #ifdef __cplusplus
 }
