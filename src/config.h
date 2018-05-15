@@ -24,6 +24,8 @@
 #ifndef _CONFIG_H_ 
 #define _CONFIG_H_
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,14 +52,50 @@ extern "C" {
 #define PARTNER_ID              "partner-id"
 #define CERT_PATH               "ssl-cert-path"
 
-#define PROTOCOL_VALUE 					"PARODUS-2.0"
-#define WEBPA_PATH_URL                  "/api/v2/device"
-#define JWT_ALGORITHM					"jwt-algo"
-#define	JWT_KEY						"jwt-key"
-#define DNS_TXT_URL	"fabric"
-#define PARODUS_UPSTREAM                "tcp://127.0.0.1:6666"
+/* Flying Circus Possible Additions */
+typedef enum {
+    INVALID_TYPE = 0,
+    HUB = 1,
+    SPOKE = 2  
+} instance_type_t;
+
+#define INSTANCE_TYPE           "instance-type" /* instance_type_t */
+#define INSTANCE_URL            "instance-url" /* URL of a spoke ? */
+/* Used only in debugging */
+#define ALIVE_TIME              "life-time"
+/* End Flying Circus */    
+
+
+#define PROTOCOL_VALUE 		 "PARODUS-2.0"
+#define WEBPA_PATH_URL           "/api/v2/device"
+#define JWT_ALGORITHM		 "jwt-algo"
+#define	JWT_KEY			 "jwt-public-key-file"
+#define DNS_TXT_URL	         "fabric"
+#define PARODUS_UPSTREAM         "tcp://127.0.0.1:6666"
 
 #define ALLOW_NON_RSA_ALG	false
+
+
+#define HUB_URL                 "tcp://127.0.0.1:7777"
+#define SPK1_URL                "tcp://127.0.0.1:7778"
+#define SPK2_URL                "tcp://127.0.0.1:7779"
+#define PARODUS_LOCAL_URL         "parodus-local-url"
+#ifdef ENABLE_SESHAT
+#define SESHAT_URL              "seshat-url"
+#endif
+#define TXT_URL                 "dns-txt-url"
+#define ACQUIRE_JWT             "acquire-jwt"
+#define READ_SCRIPT             "token-read-script"
+#define ACQUISITION_SCRIPT      "token-acquisition-script"
+#define HUB_OR_SPOKE            "hub-or-spoke"
+#define FORCE_IPV4              "force-ipv4"
+#define FORCE_IPV6              "force-ipv6"
+#define PUBSUB_URL              "tcp://127.0.0.1:7777"
+#define PIPELINE_URL            "tcp://127.0.0.1:7778"
+
+/* For Flying Circus Demo allow cli to disable Websocket connection to Xmidt */
+/* Default is to connect. */
+extern bool connectToXmidt;
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -93,6 +131,14 @@ typedef struct
     char webpa_auth_token[4096];
     char token_acquisition_script[64];
     char token_read_script[64];
+    char hub_or_spk[5];
+    char *pipeline_url;
+    char *pubsub_url;
+    /* Instance_type will replace hub_or_spk, so we don't need strcmp, etc...
+       Also will allow for easier addition of any other type   
+    */
+    instance_type_t intstance_type; 
+    int             instance_id; /* i.e. spoke #n */
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
@@ -123,6 +169,10 @@ void getAuthToken(ParodusCfg *cfg);
 ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
+unsigned int get_algo_mask (const char *algo_str);
+int parse_mac_address (char *target, const char *arg);
+void read_key_from_file (const char *fname, char *buf, size_t buflen);
+int server_is_http (const char *full_url, const char **server_ptr);
 
 /**
  * parse a webpa url. Extract the server address, the port
@@ -140,6 +190,7 @@ int parse_webpa_url(const char *full_url,
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
 
+void free_parodusCfg(ParodusCfg *cfg);
 #ifdef __cplusplus
 }
 #endif

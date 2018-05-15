@@ -38,6 +38,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/libparodus
                     ${INCLUDE_DIR}/cimplog
                     ${INCLUDE_DIR}/cjwt
+                    ${INCLUDE_DIR}/rebar-c
 					)	
 
 # Get git commit hash 
@@ -56,7 +57,7 @@ add_definitions("-DGIT_COMMIT_TAG=\"${GIT_COMMIT_TAG}\"")
 add_definitions(-std=c99)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -DNOPOLL_LOGGER ")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-missing-field-initializers")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -g3 -Wall -Wno-missing-field-initializers")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
 
 
@@ -168,8 +169,10 @@ add_dependencies(libwrp-c wrp-c)
 ExternalProject_Add(libparodus
     DEPENDS trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
-    GIT_REPOSITORY https://github.com/Comcast/libparodus.git
-    GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
+    GIT_REPOSITORY https://github.com/schmidtw/libparodus.git
+    GIT_TAG "master"
+    #  GIT_REPOSITORY https://github.com/Comcast/libparodus.git
+    #  GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     		  -DMAIN_PROJ_BUILD=ON
     		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
@@ -242,6 +245,17 @@ add_library(libcmocka STATIC SHARED IMPORTED)
 add_dependencies(libcmocka cmocka)
 
 endif (BUILD_TESTING)
+
+# rebar-c external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(rebar-c
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/rebar-c
+    GIT_REPOSITORY https://github.com/Comcast/rebar-c.git
+    GIT_TAG "master"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+)
+add_library(librebar-c STATIC SHARED IMPORTED)
+add_dependencies(librebar-c rebar-c)
 
 endif () # NOT BUILD_YOCTO
 

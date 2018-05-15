@@ -124,6 +124,12 @@ int createNopollConnection(noPollCtx *ctx)
         return nopoll_false;
     }
 
+    if (false == connectToXmidt) {
+        ParodusInfo("\n**************************************************\n\
+createNopollConnection(): Xmidt is overriden ;-), skipping connection!\n");
+        return nopoll_true;
+    }
+
 	ParodusPrint("BootTime In sec: %d\n", get_parodus_cfg()->boot_time);
 	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);

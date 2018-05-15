@@ -58,7 +58,7 @@ void test_client_addtolist()
 	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
 	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
 	
-	StartThread(client_rcv_task);
+	StartThread(client_rcv_task, NULL);
 	
 	status = addToList(&message);
 	ParodusPrint("addToList status is %d\n", status);
@@ -189,7 +189,7 @@ void test_addtolist_multiple_clients()
 	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
 	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
 	
-	StartThread(client2_rcv_task);
+	StartThread(client2_rcv_task, NULL);
 	
 	status = addToList(&message);
 	ParodusPrint("addToList status is %d\n", status);
