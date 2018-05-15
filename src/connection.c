@@ -275,12 +275,12 @@ char *build_extra_hdrs (header_info_t *header_info)
 
 
 //--------------------------------------------------------------------
-static void set_current_server (create_connection_ctx_t *ctx)
+void set_current_server (create_connection_ctx_t *ctx)
 {
   ctx->current_server = get_current_server (&ctx->server_list);
 }
 
-static void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize)
+void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize)
 {
   if (reauthorize && (strlen(get_parodus_cfg()->token_acquisition_script) >0))
   {

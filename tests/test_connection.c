@@ -38,9 +38,11 @@ extern void init_expire_timer (expire_timer_t *timer);
 extern int check_timer_expired (expire_timer_t *timer, long timeout_ms);
 extern void init_backoff_timer (backoff_timer_t *timer, int max_delay);
 extern int update_backoff_delay (backoff_timer_t *timer);
-extern void init_header_info (header_info_t *header_info);
+extern int init_header_info (header_info_t *header_info);
 extern void free_header_info (header_info_t *header_info);
 extern char *build_extra_hdrs (header_info_t *header_info);
+extern void set_current_server (create_connection_ctx_t *ctx);
+extern void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize);
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -235,6 +237,63 @@ void test_extra_headers ()
     free_header_info (&hinfo);
 }
 
+void test_set_current_server()
+{
+  create_connection_ctx_t ctx;
+  memset (&ctx, 0xFF, sizeof(ctx));
+  set_current_server (&ctx);
+  assert_ptr_equal (&ctx.server_list.redirect, ctx.current_server);
+  set_server_null (&ctx.server_list.redirect);
+  set_current_server (&ctx);
+  assert_ptr_equal (&ctx.server_list.jwt, ctx.current_server);
+  set_server_null (&ctx.server_list.jwt);
+  set_current_server (&ctx);
+  assert_ptr_equal (&ctx.server_list.defaults, ctx.current_server);
+}
+
+void test_set_extra_headers ()
+{
+  int rtn;
+  create_connection_ctx_t ctx;
+  ParodusCfg cfg;
+  const char *expected_extra_headers =
+      "\r\nAuthorization: Bearer SER_MAC Fer23u948590 123567892366"
+      "\r\nX-WebPA-Device-Name: mac:123567892366"
+      "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+      "\r\nUser-Agent: WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)"
+      "\r\nX-WebPA-Convey: WebPA-1.6 (TG1682)";
+
+  memset(&cfg,0,sizeof(cfg));
+  memset (&ctx, 0, sizeof(ctx));
+
+  parStrncpy (cfg.token_acquisition_script, "../../tests/return_success.bsh",
+	sizeof(cfg.token_acquisition_script));    
+  parStrncpy (cfg.token_read_script, "../../tests/return_ser_mac.bsh",
+	sizeof(cfg.token_read_script));
+  parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+  parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+  parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
+  parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
+  parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
+  parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
+	
+  set_parodus_cfg(&cfg);
+  rtn = init_header_info (&ctx.header_info);
+  assert_int_equal (rtn, 0);
+  assert_string_equal (ctx.header_info.device_id, "mac:123567892366");
+  assert_string_equal (ctx.header_info.user_agent,
+    "WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)");
+  assert_string_equal (ctx.header_info.conveyHeader, "WebPA-1.6 (TG1682)");
+  set_extra_headers (&ctx, true);
+  
+  assert_string_equal (get_parodus_cfg()->webpa_auth_token, 
+    "SER_MAC Fer23u948590 123567892366");
+  assert_string_equal (ctx.extra_headers, expected_extra_headers);
+  free (ctx.extra_headers);
+  free_header_info (&ctx.header_info);
+	
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -253,7 +312,10 @@ int main(void)
         cmocka_unit_test(test_expire_timer),
         cmocka_unit_test(test_backoff_delay_timer),
         cmocka_unit_test(test_header_info),
-        cmocka_unit_test(test_extra_headers)
+        cmocka_unit_test(test_extra_headers),
+        cmocka_unit_test(test_set_current_server),
+        cmocka_unit_test(test_set_extra_headers)
+
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
