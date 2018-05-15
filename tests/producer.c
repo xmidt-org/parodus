@@ -265,6 +265,8 @@ static int main_loop(libpd_cfg_t *cfg)
     cJSON *parameters;
     cJSON *device_id, *time_stamp;
 
+    (void ) device_id; (void ) parameters; (void ) time_stamp;
+
     while( true ) {
         rv = libparodus_init( &hpd, cfg );
         if( 0 != rv ) {
@@ -311,11 +313,14 @@ static int main_loop(libpd_cfg_t *cfg)
         }    
             
         response = cJSON_CreateObject();
-        cJSON_AddItemToObject(response, "parameters", parameters =cJSON_CreateArray());
-        cJSON_AddItemToArray(parameters, device_id = cJSON_CreateObject());
-        cJSON_AddStringToObject(device_id, "device_id", mac_address);
-        cJSON_AddItemToArray(parameters, time_stamp = cJSON_CreateObject());
-        cJSON_AddStringToObject(device_id, "timestamp", time_str);          
+        //cJSON_AddItemToObject(response, "parameters", parameters =cJSON_CreateArray());
+        //cJSON_AddItemToArray(parameters, device_id = cJSON_CreateObject());
+        //cJSON_AddStringToObject(device_id, "device_id", mac_address);
+	cJSON_AddStringToObject(response, "device_id", mac_address);
+
+        //cJSON_AddItemToArray(parameters, time_stamp = cJSON_CreateObject());
+        //cJSON_AddStringToObject(device_id, "timestamp", time_str);
+	cJSON_AddStringToObject(response, "timestamp", time_str);
         str = cJSON_PrintUnformatted(response);
         printf("Payload Response: %s\n", str);
 
