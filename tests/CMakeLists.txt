@@ -194,7 +194,8 @@ target_link_libraries ( printer
                        -lnanomsg
                        -lcimplog
                        -lm
-                       -lpthread)
+                       -lpthread
+		       -lcjson)
 
 # producer client for flying circus
 #add_test(NAME producer COMMAND ${MEMORY_CHECK} ./producer)
@@ -208,8 +209,7 @@ target_link_libraries ( producer
                        -lnanomsg
                        -lcimplog
                        -lm
-                       -lpthread
-                       -lcjson)
+                       -lpthread)
 #-------------------------------------------------------------------------------
 
 
