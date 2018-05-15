@@ -463,6 +463,10 @@ void test_parse_webpa_url ()
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "443");
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/api/v2/",
+		addr_buf, 80, port_buf, 8), 0);
+	assert_string_equal (addr_buf, "mydns.mycom.net");
+	assert_string_equal (port_buf, "443");
 	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
