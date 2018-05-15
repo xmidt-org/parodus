@@ -106,10 +106,19 @@ void createSocketConnection(void (* initKeypress)())
 
     seshat_registered = __registerWithSeshat();
 
+    char *pipelineURL = PIPELINE_URL;
+    char *pubsubURL = PUBSUB_URL;
+    if(NULL != get_parodus_cfg()->pipeline_url) {
+	pipelineURL = get_parodus_cfg()->pipeline_url;
+    }
+    if(NULL != get_parodus_cfg()->pubsub_url) {
+	pubsubURL = get_parodus_cfg()->pubsub_url;
+    }
+    
     if( 0 == strncmp(HUB_STR, get_parodus_cfg()->hub_or_spk, sizeof(HUB_STR)) ) {
-        hub_setup(PIPELINE_URL, PUBSUB_URL, &sock.pipeline, &sock.pubsub);
+        hub_setup(pipelineURL, pubsubURL, &sock.pipeline, &sock.pubsub);
     } else if( 0 == strncmp(SPK_STR, get_parodus_cfg()->hub_or_spk, sizeof(SPK_STR)) ) {
-        spoke_setup(PIPELINE_URL, PUBSUB_URL, NULL, &sock.pipeline, &sock.pubsub);
+        spoke_setup(pipelineURL, pubsubURL, NULL, &sock.pipeline, &sock.pubsub);
     }
     StartThread(handle_P2P_Incoming, &sock);
     StartThread(process_P2P_IncomingMessage, &sock);

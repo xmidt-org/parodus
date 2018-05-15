@@ -26,6 +26,7 @@
 
 #include <stdarg.h>
 #include <cimplog/cimplog.h>
+#include <cJSON.h>
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -36,11 +37,15 @@
 
 
 #define SERVICE_NAME "printer"
+#define CONTENT_TYPE_JSON  "application/json"
 
 static void sig_handler(int sig);
 static int main_loop(libpd_cfg_t *cfg);
 static void _help(char *, char *);
 static int wait_time = 60 * 1000; // One minute
+void subscribeToEvent(char *regex);
+libpd_instance_t hpd_instance;
+static char *mac_address;
 
 int main( int argc, char **argv)
 {
@@ -49,6 +54,7 @@ int main( int argc, char **argv)
         { "help",         optional_argument, 0, 'h' },
         { "parodus-url",  required_argument, 0, 'p' },
         { "client-url",   required_argument, 0, 'c' },
+	{ "mac-address",  optional_argument, 0, 'm'},
         { "wait-time",    required_argument, 0, 't'},
         { 0, 0, 0, 0 }
     };
@@ -76,6 +82,8 @@ int main( int argc, char **argv)
     signal(SIGQUIT, sig_handler);
     signal(SIGHUP, sig_handler);
     signal(SIGALRM, sig_handler);
+
+    mac_address = NULL;
     
     while( -1 != (item = getopt_long(argc, argv, option_string, options, &opt_index)) ) {
         switch( item ) {
@@ -88,6 +96,9 @@ int main( int argc, char **argv)
             case 'h':
                 _help(argv[0], optarg);
                 break;
+	    case 'm':
+                mac_address = strdup(optarg);
+            break;
             case 't':
                 {
                     int val = atoi(optarg);
@@ -116,7 +127,10 @@ int main( int argc, char **argv)
     if( (rv == 0) &&
         (NULL != cfg.parodus_url) &&
         (NULL != cfg.client_url))
-    {        
+    { 
+	if (NULL == mac_address) {
+            mac_address = strdup("14cfe1234567");
+	}       
         main_loop(&cfg);
         rv = 0;
     } else {
@@ -136,6 +150,7 @@ int main( int argc, char **argv)
 
     if( NULL != cfg.parodus_url )   free( (char*) cfg.parodus_url );
     if( NULL != cfg.client_url )    free( (char*) cfg.client_url );
+    if( NULL != mac_address ) free((char *) mac_address);
 
     return rv;
 }
@@ -169,13 +184,73 @@ static void sig_handler(int sig)
     }
 }
 
+void subscribeToEvent(char *regex){
 
+	wrp_msg_t *res_wrp_msg = NULL;
+	cJSON *response = NULL;
+	char * str = NULL;
+	char *contentType = NULL;
+	int sendStatus;
+	char source[128];
+	char dest[128];
+
+	res_wrp_msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	if (res_wrp_msg)
+	{
+		memset(res_wrp_msg, 0, sizeof(wrp_msg_t));
+	}
+	else
+	{
+		printf("In subscribeToEvent() - malloc Failed !!!");
+	}
+	
+	snprintf(source,127,"mac:%s/%s", mac_address, SERVICE_NAME);
+	snprintf(dest,127,"mac:%s/%s/%s", mac_address, "parodus","subscribe");
+	printf("source is %s\n",source);
+	printf("dest is %s\n",dest);	
+	response = cJSON_CreateObject();
+	//cJSON_AddItemToObject(response, SERVICE_NAME, parameters = cJSON_CreateObject());
+	cJSON_AddStringToObject(response, SERVICE_NAME, regex);
+
+	str = cJSON_PrintUnformatted(response);
+    printf("Payload Response: %s\n", str);
+
+	res_wrp_msg->msg_type = WRP_MSG_TYPE__CREATE;
+	res_wrp_msg->u.crud.payload = (void *)str;
+	res_wrp_msg->u.crud.payload_size = strlen(str);
+	res_wrp_msg->u.crud.source = strdup(source);
+	res_wrp_msg->u.crud.dest = strdup(dest);
+	res_wrp_msg->u.crud.transaction_uuid = "c07ee5e1-70be-444c-a156-097c767ad8aa";
+	res_wrp_msg->u.crud.status = 1;
+	res_wrp_msg->u.crud.rdr = 0;
+	contentType = (char *) malloc(sizeof(char) * (strlen(CONTENT_TYPE_JSON) + 1));
+	if (contentType)
+	{
+		strncpy(contentType, CONTENT_TYPE_JSON, strlen(CONTENT_TYPE_JSON) + 1);
+		res_wrp_msg->u.crud.content_type = contentType;
+	}
+	else
+	{
+		free(res_wrp_msg);
+		printf("In subscribeToEvent() - malloc Failed !!!");
+	}
+
+	sendStatus = libparodus_send(hpd_instance, res_wrp_msg);
+	printf("sendStatus is %d\n", sendStatus);
+	if (sendStatus == 0)
+	{
+		printf("Sent message successfully to parodus\n");
+	}
+	else
+	{
+		printf("libparodus_send() Failed to send message: '%s'\n", libparodus_strerror(sendStatus));
+	}
+}
 
 static int main_loop(libpd_cfg_t *cfg)
 {
     int rv;
     wrp_msg_t *wrp_msg;
-    libpd_instance_t hpd_instance;
     int backoff_retry_time = 0;
     int max_retry_sleep = (1 << 9) - 1;
     int c = 2;
@@ -199,6 +274,9 @@ static int main_loop(libpd_cfg_t *cfg)
         libparodus_shutdown(&hpd_instance);
     }
 
+    //Subscribe to event
+    subscribeToEvent("node-change");
+
     debug_print("starting the main loop...\n");
     while( true ) {
         rv = libparodus_receive(hpd_instance, &wrp_msg, wait_time);
@@ -208,9 +286,13 @@ static int main_loop(libpd_cfg_t *cfg)
             ssize_t n = wrp_struct_to(wrp_msg, WRP_STRING, (void **) &bytes);
             if (n > 0) {
                 printf("\n%s", bytes);
+		printf("wrp_msg->u.event.payload %s\n",(char *)wrp_msg->u.event.payload);
                 free(bytes);
             } else {
                 printf("Service Printer Memory Error on WRP message conversion\n");
+		printf("wrp_msg->src %s\n",(char *)wrp_msg->u.crud.source);
+                printf("wrp_msg->dest %s\n",(char *)wrp_msg->u.crud.dest);                
+                printf("wrp_msg->u.req.payload %s\n",(char *)wrp_msg->u.crud.payload);
             }
             
         } else if( 1 == rv || 2 == rv ) {

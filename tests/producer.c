@@ -40,8 +40,6 @@
 static void sig_handler(int sig);
 static int main_loop(libpd_cfg_t *cfg);
 static void _help(char *, char *);
-libpd_instance_t hpd;
-void subscribeToEvent(char *regex);
 
 static char *mac_address;
 
@@ -61,7 +59,7 @@ int main( int argc, char **argv)
 
     libpd_cfg_t cfg = { .service_name = SERVICE_NAME,
                        /* .receive = true, causes a loop back from libparodus hacked ;-) */
-			.receive = true,
+			.receive = false,
                         .keepalive_timeout_secs = 64,
                         .parodus_url = NULL,
                         .client_url = NULL
@@ -185,76 +183,11 @@ static void sig_handler(int sig)
     }
 }
 
-
-void subscribeToEvent(char *regex){
-
-	wrp_msg_t *res_wrp_msg = NULL;
-	cJSON *response = NULL;
-	char * str = NULL;
-	char *contentType = NULL;
-	int sendStatus;
-	char source[128];
-	char dest[128];
-
-	res_wrp_msg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
-	if (res_wrp_msg)
-	{
-		memset(res_wrp_msg, 0, sizeof(wrp_msg_t));
-	}
-	else
-	{
-		printf("In subscribeToEvent() - malloc Failed !!!");
-	}
-	
-	snprintf(source,127,"mac:%s/%s", mac_address, SERVICE_NAME);
-	snprintf(dest,127,"mac:%s/%s/%s", mac_address, "parodus","subscribe");
-	printf("source is %s\n",source);
-	printf("dest is %s\n",dest);	
-	response = cJSON_CreateObject();
-	//cJSON_AddItemToObject(response, SERVICE_NAME, parameters = cJSON_CreateObject());
-	cJSON_AddStringToObject(response, SERVICE_NAME, regex);
-
-	str = cJSON_PrintUnformatted(response);
-    printf("Payload Response: %s\n", str);
-
-	res_wrp_msg->msg_type = WRP_MSG_TYPE__CREATE;
-	res_wrp_msg->u.crud.payload = (void *)str;
-	res_wrp_msg->u.crud.payload_size = strlen(str);
-	res_wrp_msg->u.crud.source = strdup(source);
-	res_wrp_msg->u.crud.dest = strdup(dest);
-	res_wrp_msg->u.crud.transaction_uuid = "c07ee5e1-70be-444c-a156-097c767ad8aa";
-	res_wrp_msg->u.crud.status = 1;
-	res_wrp_msg->u.crud.rdr = 0;
-	contentType = (char *) malloc(sizeof(char) * (strlen(CONTENT_TYPE_JSON) + 1));
-	if (contentType)
-	{
-		strncpy(contentType, CONTENT_TYPE_JSON, strlen(CONTENT_TYPE_JSON) + 1);
-		res_wrp_msg->u.crud.content_type = contentType;
-	}
-	else
-	{
-		free(res_wrp_msg);
-		printf("In subscribeToEvent() - malloc Failed !!!");
-	}
-
-	sendStatus = libparodus_send(hpd, res_wrp_msg);
-	printf("sendStatus is %d\n", sendStatus);
-	if (sendStatus == 0)
-	{
-		printf("Sent message successfully to parodus\n");
-	}
-	else
-	{
-		printf("libparodus_send() Failed to send message: '%s'\n", libparodus_strerror(sendStatus));
-	}
-}
-
-
 static int main_loop(libpd_cfg_t *cfg)
 {
     int rv;
     wrp_msg_t wrp_msg;
-    //libpd_instance_t hpd;
+    libpd_instance_t hpd;
     int backoff_retry_time = 0;
     int max_retry_sleep = (1 << 9) - 1;
     int c = 2;
@@ -285,10 +218,8 @@ static int main_loop(libpd_cfg_t *cfg)
             printf("producer service registered with libparodus url %s\n", cfg->parodus_url);
             break;
     }
-	//Subscribe to event
-  	subscribeToEvent("node-change/");
 
-    snprintf(source,127,"mac:/%s/%s", mac_address, SERVICE_NAME);
+    snprintf(source,127,"mac:%s/%s", mac_address, SERVICE_NAME);
     snprintf(destination, 127, "event:node-change/");
     // zztop snprintf(destination, 127, "event:node-change/%s","printer");
     
@@ -313,13 +244,7 @@ static int main_loop(libpd_cfg_t *cfg)
         }    
             
         response = cJSON_CreateObject();
-        //cJSON_AddItemToObject(response, "parameters", parameters =cJSON_CreateArray());
-        //cJSON_AddItemToArray(parameters, device_id = cJSON_CreateObject());
-        //cJSON_AddStringToObject(device_id, "device_id", mac_address);
 	cJSON_AddStringToObject(response, "device_id", mac_address);
-
-        //cJSON_AddItemToArray(parameters, time_stamp = cJSON_CreateObject());
-        //cJSON_AddStringToObject(device_id, "timestamp", time_str);
 	cJSON_AddStringToObject(response, "timestamp", time_str);
         str = cJSON_PrintUnformatted(response);
         printf("Payload Response: %s\n", str);
@@ -353,6 +278,7 @@ static int main_loop(libpd_cfg_t *cfg)
                     printf("**Producer Got**: \n%s", bytes);
                     free(bytes);
                 } else {
+		printf("Service Producer Memory Error on WRP message conversion\n");
                 printf("wrp_msg->src %s\n",(char *)msg->u.crud.source);
                 printf("wrp_msg->dest %s\n",(char *)msg->u.crud.dest);                
                 printf("wrp_msg->u.req.payload %s\n",(char *)msg->u.crud.payload);

@@ -170,7 +170,7 @@ bool send_msg(int sock, const void *notification, size_t notification_size)
     }
 
     if( bytes_sent > 0 ) {
-        ParodusPrint("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) notification_size);
+        ParodusInfo("Sent %d bytes (size of struct %d)\n", bytes_sent, (int) notification_size);
     }
 
     return (bytes_sent == (int) notification_size);
