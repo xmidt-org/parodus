@@ -797,10 +797,8 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
 }
 
-void clean_up_parodus(void)
-{
-    ParodusCfg *cfg = get_parodus_cfg();
-    
+void clean_up_parodus_cfg(ParodusCfg *cfg)
+{    
     if (cfg->hw_model == NULL) free(cfg->hw_model);
     if (cfg->hw_serial_number == NULL) free(cfg->hw_serial_number);
     if (cfg->hw_manufacturer == NULL) free(cfg->hw_manufacturer);

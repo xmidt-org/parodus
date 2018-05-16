@@ -58,20 +58,20 @@ void test_setParodusConfig()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
 
-    parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
-    parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
-    parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
-    parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
-    parStrncpy(cfg.hw_last_reboot_reason , "unknown", sizeof(cfg.hw_last_reboot_reason));
-    parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
-    parStrncpy(cfg.webpa_path_url , "/v1", sizeof(cfg.webpa_path_url));
-    parStrncpy(cfg.webpa_url , "http://127.0.0.1", sizeof(cfg.webpa_url));
-    parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
-    parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
-    parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
-    parStrncpy(cfg.partner_id , "mycom", sizeof(cfg.partner_id));
+    cfg.hw_model = strdup ("TG1682");
+    cfg.hw_serial_number = strdup ("Fer23u948590");
+    cfg.hw_manufacturer = strdup ("ARRISGroup,Inc.");
+    cfg.hw_mac = strdup ("123567892366");
+    cfg.hw_last_reboot_reason = strdup ("unknown");
+    cfg.fw_name = strdup ("2.364s2");
+    cfg.webpa_path_url = strdup ("/v1");
+    cfg.webpa_url = strdup ("http://127.0.0.1");
+    cfg.webpa_interface_used = strdup ("eth0");
+    cfg.webpa_protocol = strdup ("WebPA-1.6");
+    cfg.webpa_uuid = strdup ("1234567-345456546");
+    cfg.partner_id = strdup ("mycom");
 #ifdef ENABLE_SESHAT
-    parStrncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", sizeof(cfg.seshat_url));
+    cfg.seshat_url = strdup ("ipc://tmp/seshat_service.url");
 #endif
     cfg.flags = 0;
     cfg.boot_time = 423457;
@@ -79,9 +79,9 @@ void test_setParodusConfig()
     cfg.webpa_backoff_max = 255;
 #ifdef FEATURE_DNS_QUERY
     cfg.acquire_jwt = 1;
-    parStrncpy(cfg.dns_txt_url, "test",sizeof(cfg.dns_txt_url));
+    cfg.dns_txt_urld = strdup ("test");
     cfg.jwt_algo = 1025;
-    parStrncpy(cfg.jwt_key, "key.txt",sizeof(cfg.jwt_key));
+    cfg.jwt_keyd = strdup ("key.txt");
 #endif    
     set_parodus_cfg(&cfg);
 
@@ -111,6 +111,8 @@ void test_setParodusConfig()
     assert_int_equal( (int) cfg.jwt_algo, (int) temp->jwt_algo);
     assert_string_equal(cfg.jwt_key, temp->jwt_key);
 #endif
+    
+    clean_up_parodus_cfg(&cfg);
 }
 
 void test_getParodusConfig()
@@ -118,12 +120,14 @@ void test_getParodusConfig()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
 
-    parStrncpy(cfg.hw_model, "TG1682133",sizeof(cfg.hw_model));
+    cfg.hw_model = strdup ("TG1682133");
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
 
     assert_string_equal(cfg.hw_model, temp->hw_model);
+    
+    free(cfg.hw_model);
 }
 
 static int open_output_file (const char *fname)
@@ -292,30 +296,30 @@ void test_loadParodusCfg()
     Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     char protocol[32] = {'\0'};
 
-    parStrncpy(Cfg->hw_model, "TG1682", sizeof(Cfg->hw_model));
-    parStrncpy(Cfg->hw_serial_number, "Fer23u948590", sizeof(Cfg->hw_serial_number));
-    parStrncpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.", sizeof(Cfg->hw_manufacturer));
-    parStrncpy(Cfg->hw_mac , "123567892366", sizeof(Cfg->hw_mac));
-    parStrncpy(Cfg->hw_last_reboot_reason , "unknown", sizeof(Cfg->hw_last_reboot_reason));
-    parStrncpy(Cfg->fw_name , "2.364s2", sizeof(Cfg->fw_name));
-    parStrncpy(Cfg->webpa_path_url , "/v1", sizeof(Cfg->webpa_path_url));
-    parStrncpy(Cfg->webpa_url , "http://127.0.0.1", sizeof(Cfg->webpa_url));
-    parStrncpy(Cfg->webpa_interface_used , "eth0", sizeof(Cfg->webpa_interface_used));
+    Cfg->hw_model = strdup ("TG1682");
+    Cfg->hw_serial_number = strdup ("Fer23u948590");
+    Cfg->hw_manufacturer = strdup ("ARRISGroup,Inc.");
+    Cfg->hw_mac = strdup ("123567892366");
+    Cfg->hw_last_reboot_reason = strdup ("unknown");
+    Cfg->fw_name = strdup ("2.364s2");
+    Cfg->webpa_path_url = strdup ("/v1");
+    Cfg->webpa_url = strdup ("http://127.0.0.1");
+    Cfg->webpa_interface_used = strdup ("eth0");
     snprintf(protocol, sizeof(protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
-    parStrncpy(Cfg->webpa_protocol , protocol, sizeof(Cfg->webpa_protocol));
-    parStrncpy(Cfg->local_url , "tcp://10.0.0.1:6000", sizeof(Cfg->local_url));
-    parStrncpy(Cfg->partner_id , "shaw", sizeof(Cfg->partner_id));
+    Cfg->webpa_protocol = strdup (protocol);
+    Cfg->local_url = strdup ("tcp://10.0.0.1:6000");
+    Cfg->partner_id = strdup ("shaw");
 #ifdef FEATURE_DNS_QUERY
 	Cfg->acquire_jwt = 1;
-    parStrncpy(Cfg->dns_txt_url, "mydns",sizeof(Cfg->dns_txt_url));
+    Cfg->dns_txt_url = strdup ("mydns");
     Cfg->jwt_algo = 1025;
-    parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
+    Cfg->jwt_key = strdup ("AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
 #endif
-    parStrncpy(Cfg->token_acquisition_script , "/tmp/token.sh", sizeof(Cfg->token_acquisition_script));
-    parStrncpy(Cfg->token_read_script , "/tmp/token.sh", sizeof(Cfg->token_read_script));
-    parStrncpy(Cfg->cert_path, "/etc/ssl.crt",sizeof(Cfg->cert_path));
+    Cfg->token_acquisition_script = strdup ("/tmp/token.sh");
+    Cfg->token_read_script = strdup ("/tmp/token.sh");
+    Cfg->cert_path = strdup ("/etc/ssl.crt");
 #ifdef ENABLE_SESHAT
-    parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
+    Cfg->seshat_url = strdup ("ipc://tmp/seshat_service.url");
 #endif
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
@@ -339,6 +343,7 @@ void test_loadParodusCfg()
 #ifdef ENABLE_SESHAT
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
 #endif
+    clean_up_parodus_cfg(Cfg);    
     free(Cfg);
 }
 
@@ -360,6 +365,7 @@ void test_loadParodusCfgNull()
     assert_string_equal( temp.webpa_uuid,"1234567-345456546");
     assert_string_equal( temp.local_url, PARODUS_UPSTREAM);
 
+    clean_up_parodus_cfg(cfg);    
     free(cfg);
 }
 
@@ -409,6 +415,9 @@ void test_setDefaultValuesToCfg()
     assert_int_equal((int)cfg->flags, 0);
     assert_string_equal(cfg->webpa_path_url, WEBPA_PATH_URL);
     assert_string_equal(cfg->webpa_uuid, "1234567-345456546");
+    
+    clean_up_parodus_cfg(cfg);    
+    free(cfg);
 }
 
 void err_setDefaultValuesToCfg()

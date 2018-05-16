@@ -127,7 +127,7 @@ ParodusCfg *get_parodus_cfg(void);
 /*
  Called on program exit
  */
-void clean_up_parodus(void);
+void clean_up_parodus_cfg(ParodusCfg *cfg);
 
 void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;

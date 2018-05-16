@@ -235,7 +235,7 @@ void test_createSecureConnection()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (SECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
 
     assert_non_null(ctx);
@@ -283,6 +283,7 @@ void test_createSecureConnection()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     if (g_jwt_server_ip !=NULL)
     {
@@ -305,7 +306,7 @@ void test_createConnection()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , UNSECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (UNSECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
@@ -339,6 +340,7 @@ void test_createConnection()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     if (g_jwt_server_ip !=NULL)
     {
@@ -361,7 +363,7 @@ void test_createConnectionConnNull()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL,sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (SECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
     
     assert_non_null(ctx);
@@ -493,6 +495,7 @@ void test_createConnectionConnNull()
     expect_function_call(setMessageHandlers);
 
     createNopollConnection(ctx);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     if (g_jwt_server_ip !=NULL)
     {
@@ -515,7 +518,7 @@ void test_createConnNull_JWT_NULL()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL,sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (SECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
     
     assert_non_null(ctx);
@@ -632,6 +635,7 @@ void test_createConnNull_JWT_NULL()
     expect_function_call(setMessageHandlers);
 
     createNopollConnection(ctx);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     if (g_jwt_server_ip !=NULL)
     {
@@ -654,7 +658,7 @@ void test_createConnectionConnNotOk()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , UNSECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (UNSECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
@@ -729,6 +733,7 @@ void test_createConnectionConnNotOk()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     if (g_jwt_server_ip !=NULL)
     {
@@ -751,7 +756,7 @@ void test_createConnNotOk_JWT_NULL()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , UNSECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (UNSECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
@@ -826,6 +831,7 @@ void test_createConnNotOk_JWT_NULL()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     if (g_jwt_server_ip !=NULL)
     {
@@ -848,7 +854,7 @@ void test_createConnectionConnRedirect()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , UNSECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (UNSECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
     assert_non_null(ctx);
 
@@ -921,6 +927,7 @@ void test_createConnectionConnRedirect()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
 	if (g_jwt_server_ip !=NULL)
 	{
@@ -941,7 +948,7 @@ void test_createIPv4Connection()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (SECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
 
     assert_non_null(ctx);
@@ -974,6 +981,7 @@ void test_createIPv4Connection()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     nopoll_ctx_unref (ctx);
 }
@@ -990,7 +998,7 @@ void test_createIPv6Connection()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (SECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
 
     assert_non_null(ctx);
@@ -1024,6 +1032,7 @@ void test_createIPv6Connection()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     nopoll_ctx_unref (ctx);
 }
@@ -1041,7 +1050,7 @@ void test_createIPv6toIPv4Connection()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (SECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
 
     assert_non_null(ctx);
@@ -1101,6 +1110,7 @@ void test_createIPv6toIPv4Connection()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     nopoll_ctx_unref (ctx);
 }
@@ -1117,7 +1127,7 @@ void test_createFallbackRedirectionConn()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (SECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
 
     assert_non_null(ctx);
@@ -1202,6 +1212,7 @@ void test_createFallbackRedirectionConn()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     nopoll_ctx_unref (ctx);
 }
@@ -1218,7 +1229,7 @@ void test_createIPv6FallbackRedirectConn()
 #ifdef FEATURE_DNS_QUERY
 	cfg->acquire_jwt = 1;
 #endif
-    parStrncpy(cfg->webpa_url , SECURE_WEBPA_URL, sizeof(cfg->webpa_url));
+    cfg->webpa_url = strdup (SECURE_WEBPA_URL);
     set_parodus_cfg(cfg);
 
     assert_non_null(ctx);
@@ -1280,6 +1291,7 @@ void test_createIPv6FallbackRedirectConn()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    clean_up_parodus_cfg(cfg);
     free(cfg);
     nopoll_ctx_unref (ctx);
 }
