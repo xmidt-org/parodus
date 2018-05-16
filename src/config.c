@@ -333,11 +333,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->acquire_jwt = 0;
 	cfg->jwt_algo = 0;
 	optind = 1;  /* We need this if parseCommandLine is called again */
+    int option_index = 0;/* getopt_long stores the option index here. */
     while (1)
     {
-
-      /* getopt_long stores the option index here. */
-      int option_index = 0;
       c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46",
 				long_options, &option_index);
 
@@ -498,8 +496,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case '?':
-          /* getopt_long already printed an error message. */
-          break;
+            ParodusError("Unrecognized option %s Aborting ...\n", argv[optind]);
+            return -1;
 
         default:
            ParodusError("Enter Valid commands..\n");
@@ -587,7 +585,7 @@ void getAuthToken(ParodusCfg *cfg)
 		else
 		{
 			ParodusInfo("update cfg->webpa_auth_token in success case\n");
-			parStrncpy(cfg->webpa_auth_token, output, sizeof(cfg->webpa_auth_token));
+			cfg->webpa_auth_token = strdup(output);
 		}
 	}
 	else
