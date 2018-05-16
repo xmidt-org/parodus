@@ -59,40 +59,42 @@ extern "C" {
 
 #define ALLOW_NON_RSA_ALG	false
 
+#define ENABLE_SESHAT // Do Not CheckIN !!!!!!!!!!!!!!!!!!    
+    
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
 
 typedef struct
 {
-    char hw_model[64];
-    char hw_serial_number[64];
-    char hw_manufacturer[64];
-    char hw_mac[64];
-    char hw_last_reboot_reason[64];
-    char fw_name[64];
+    char *hw_model;
+    char *hw_serial_number;
+    char *hw_manufacturer;
+    char *hw_mac;
+    char *hw_last_reboot_reason;
+    char *fw_name;
     unsigned int boot_time;
     unsigned int webpa_ping_timeout;
-    char webpa_url[124];
-    char webpa_path_url[124];
+    char *webpa_url;
+    char *webpa_path_url;
     unsigned int webpa_backoff_max;
-    char webpa_interface_used[16];
-    char webpa_protocol[32];
-    char webpa_uuid[64];
+    char *webpa_interface_used;
+    char *webpa_protocol;
+    char *webpa_uuid;
     unsigned int flags;
-    char local_url[124];
-    char partner_id[64];
+    char *local_url;
+    char *partner_id;
 #ifdef ENABLE_SESHAT
-    char seshat_url[128];
+    char *seshat_url;
 #endif
-    char dns_txt_url[64];
+    char *dns_txt_url;
     unsigned int acquire_jwt;
     unsigned int jwt_algo;  // bit mask set for each allowed algorithm
-    char jwt_key[4096]; // may be read in from a pem file
-    char cert_path[64];
-    char webpa_auth_token[4096];
-    char token_acquisition_script[64];
-    char token_read_script[64];
+    char *jwt_key; // may be read in from a pem file
+    char *cert_path;
+    char *webpa_auth_token;
+    char *token_acquisition_script;
+    char *token_read_script;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
@@ -121,6 +123,12 @@ void setDefaultValuesToCfg(ParodusCfg *cfg);
 void getAuthToken(ParodusCfg *cfg);
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
+
+/*
+ Called on program exit
+ */
+void clean_up_parodus(void);
+
 void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
 
