@@ -29,10 +29,10 @@ void *handle_P2P_Incoming(void *args)
 {
     void *ptr;
     int l;
-    P2P_Msg *inMsg;
+    P2P_Msg *inMsg = NULL;
     socket_handles_t *p_sock;
     ParodusPrint("****** %s *******\n",__FUNCTION__);
-	int msgAdded=0;
+    int msgAdded=0;
     p_sock = (socket_handles_t *) args;
     while( FOREVER() )
     {
@@ -94,7 +94,6 @@ void *handle_P2P_Incoming(void *args)
 void *process_P2P_IncomingMessage(void *args)
 {
     int rv=-1; (void) rv;
-    wrp_msg_t *msg; (void) msg;
     bool status;
     socket_handles_t *p_sock;
     ParodusPrint("****** %s *******\n",__FUNCTION__);
@@ -145,7 +144,6 @@ void *process_P2P_IncomingMessage(void *args)
 void *process_P2P_OutgoingMessage(void *args)
 {
     int rv=-1; (void) rv;
-    wrp_msg_t *msg; (void) msg;
     bool status;
     socket_handles_t *p_sock;
     ParodusInfo("****** %s *******\n",__FUNCTION__);
@@ -203,7 +201,7 @@ void *process_P2P_OutgoingMessage(void *args)
 
 void add_P2P_OutgoingMessage(void **message, size_t len)
 {
-	P2P_Msg *outMsg;
+	P2P_Msg *outMsg = NULL;
 	void *bytes;
     	ParodusInfo("****** %s *******\n",__FUNCTION__);
 
