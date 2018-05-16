@@ -163,7 +163,7 @@ bool send_msg(int sock, const void *notification, size_t notification_size)
 {
     int bytes_sent = 0;
     
-    bytes_sent = nn_send(sock, notification, notification_size, 0);
+    bytes_sent = nn_send(sock, notification, notification_size, NN_DONTWAIT);
     sleep(5);
     if( bytes_sent < 0 ) {
         ParodusError("Send msg - bytes_sent = %d, %d(%s)\n", bytes_sent, errno, strerror(errno));
