@@ -412,7 +412,7 @@ void test_setDefaultValuesToCfg()
     assert_string_equal(cfg->jwt_key, "\0");
     assert_int_equal( (int)cfg->jwt_algo, 0);
 #endif
-    assert_string_equal(cfg->cert_path, "\0");
+    assert_true(cfg->cert_path == NULL);
     assert_int_equal((int)cfg->flags, 0);
     assert_string_equal(cfg->webpa_path_url, WEBPA_PATH_URL);
     assert_string_equal(cfg->webpa_uuid, "1234567-345456546");

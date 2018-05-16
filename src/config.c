@@ -614,7 +614,7 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     
     cfg->jwt_algo = 0;
    
-    cfg->cert_path = strdup ("0");
+    cfg->cert_path = NULL;
 
     cfg->flags = 0;
     
