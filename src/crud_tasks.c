@@ -15,6 +15,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
     int ret = -1,sub_event=0;
     char *destVal = NULL;
     char *destination = NULL;
+    char *service_name, *token, *type;
     
     resp_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
     memset(resp_msg, 0, sizeof(wrp_msg_t));
@@ -80,32 +81,79 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	    
 	case WRP_MSG_TYPE__RETREIVE:
 	    ParodusInfo( "RETREIVE request\n" );
-            ret = retrieveObject( reqMsg, &resp_msg );
 	    
-	    if(ret == 0)
-	    {
-		    cJSON *payloadObj = cJSON_Parse( (resp_msg)->u.crud.payload );
-		    str = cJSON_PrintUnformatted(payloadObj);
-		    ParodusInfo("Payload Response: %s\n", str);
-
-		    resp_msg ->u.crud.payload = (void *)str;
-		    if((resp_msg)->u.crud.payload !=NULL)
-		    {
-		    	resp_msg ->u.crud.payload_size = strlen((resp_msg)->u.crud.payload);
-		    }
-
-		   *responseMsg = resp_msg;
-	    }
-	    else
-	    {
-		ParodusError("Failed to retrieve object \n");
+	    if(reqMsg->u.crud.dest !=NULL)
+		{
+			destVal = strdup(reqMsg->u.crud.dest);
+			strtok(destVal , "/");
+			destination = strtok(NULL , "");
+			ParodusPrint("destination %s\n",destination);
+			if(destination != NULL)
+			{
+				    token = strtok(destination , "/");
+				    if(token != NULL)
+				    {
+				        type = strtok(NULL , "/");
+				        if(NULL != type)
+				        {
+				            if(strcmp(type, "subscribe") == 0)
+				            {
+				                service_name = strtok(NULL , "/");
+    				            ParodusPrint("service_name %s\n",service_name);
+    				            cJSON * array = get_Client_Subscriptions(service_name);
+    				            if(array != NULL)
+    				            {
+    				                cJSON *payload = cJSON_CreateObject();
+    				                cJSON_AddItemToObject(payload, service_name, array);
+    				                str = cJSON_PrintUnformatted(payload);
+        				            ParodusInfo("Payload Response: %s\n", str);
+        				            resp_msg ->u.crud.payload = (void *)str;
+                                    if((resp_msg)->u.crud.payload !=NULL)
+                                    {
+                                        resp_msg ->u.crud.payload_size = strlen((resp_msg)->u.crud.payload);
+                                    }
+                                    resp_msg ->u.crud.status = 200;
+    				            }
+    				            else
+    				            {
+    				                ParodusError("Failed to retrieve list for %s \n",service_name);
+    				                resp_msg ->u.crud.payload = NULL;
+                                    resp_msg ->u.crud.payload_size = 0;
+                                    resp_msg ->u.crud.status = 400;
+    				            }
+    				            sub_event = 1;
+				            }
+			            }
+				    }
+			}
+			free(destVal);
+		}
 		
-		//WRP payload is NULL for failure cases
-		resp_msg ->u.crud.payload = NULL;
-		resp_msg ->u.crud.payload_size = 0;
-		*responseMsg = resp_msg;
+		if(!sub_event)
+		{
+            ret = retrieveObject( reqMsg, &resp_msg );
+            if(ret == 0)
+            {
+                cJSON *payloadObj = cJSON_Parse( (resp_msg)->u.crud.payload );
+                str = cJSON_PrintUnformatted(payloadObj);
+                ParodusInfo("Payload Response: %s\n", str);
+
+                resp_msg ->u.crud.payload = (void *)str;
+                if((resp_msg)->u.crud.payload !=NULL)
+                {
+                    resp_msg ->u.crud.payload_size = strlen((resp_msg)->u.crud.payload);
+                }
+            }
+            else
+            {
+                ParodusError("Failed to retrieve object \n");
+
+                //WRP payload is NULL for failure cases
+                resp_msg ->u.crud.payload = NULL;
+                resp_msg ->u.crud.payload_size = 0;
+            }
 	    }
-	    
+	    *responseMsg = resp_msg;
 	    break;
 	    
 	case WRP_MSG_TYPE__UPDATE:

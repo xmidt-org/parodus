@@ -54,6 +54,7 @@ cJSON* get_Client_Subscriptions(char *service_name)
     rebar_ll_node_t *node = NULL;
     Subscription *sub = NULL;
     cJSON * jsonArray = NULL;
+    int match_found = 0;
     
     ParodusPrint("****** %s *******\n",__FUNCTION__);
     if(service_name != NULL)
@@ -67,11 +68,19 @@ cJSON* get_Client_Subscriptions(char *service_name)
             if(strcmp(sub->service_name, service_name) == 0)
             {
                 cJSON_AddItemToArray(jsonArray, cJSON_CreateString(sub->regex));
+                match_found = 1;
             }
             node = node->next;
         }
     }
-    ParodusPrint("jsonArray = %s\n",cJSON_Print(jsonArray));
+    if(match_found == 0)
+    {
+        jsonArray = NULL;
+    }
+    else
+    {
+        ParodusPrint("jsonArray = %s\n",cJSON_Print(jsonArray));
+    }
     return jsonArray;
 }
 
