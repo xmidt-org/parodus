@@ -79,9 +79,9 @@ void test_setParodusConfig()
     cfg.webpa_backoff_max = 255;
 #ifdef FEATURE_DNS_QUERY
     cfg.acquire_jwt = 1;
-    cfg.dns_txt_urld = strdup ("test");
+    cfg.dns_txt_url = strdup ("test");
     cfg.jwt_algo = 1025;
-    cfg.jwt_keyd = strdup ("key.txt");
+    cfg.jwt_key = strdup ("key.txt");
 #endif    
     set_parodus_cfg(&cfg);
 
