@@ -39,8 +39,6 @@ static unsigned int rsa_algorithms =
 	(1<<alg_rs256) | (1<<alg_rs384) | (1<<alg_rs512);
 
 
-void read_key_from_file (const char *fname, char **data);
-
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/

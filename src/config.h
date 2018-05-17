@@ -128,6 +128,11 @@ ParodusCfg *get_parodus_cfg(void);
  */
 void clean_up_parodus_cfg(ParodusCfg *cfg);
 
+/* File Utility Function */
+/* Mallocs memory for the entire file, caller will have to call free(*data) */
+void read_key_from_file (const char *fname, char **data);
+
+
 void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
 
