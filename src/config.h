@@ -59,7 +59,6 @@ extern "C" {
 
 #define ALLOW_NON_RSA_ALG	false
 
-#define ENABLE_SESHAT // Do Not CheckIN !!!!!!!!!!!!!!!!!!    
     
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
