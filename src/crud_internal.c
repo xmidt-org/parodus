@@ -368,7 +368,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	char *jsonData = NULL;
 	char *child_ptr,*obj[5];
 	int objlevel = 1, i = 1, j=0, found = 0, status;
-	cJSON *inMemResponse;
+	cJSON *inMemResponse = NULL;
 	int inMemStatus = -1, itemSize =0;
 	char *str1 = NULL;
 	
@@ -414,7 +414,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 				ParodusInfo("inMemory retrieve returns success \n");
         			char *inmem_str = cJSON_PrintUnformatted( inMemResponse );
             			ParodusInfo( "inMemResponse: %s\n", inmem_str );
-            			(*response)->u.crud.status = 201;
+            			(*response)->u.crud.status = 200;
             			(*response)->u.crud.payload = inmem_str;
             			cJSON_Delete( inMemResponse );
         		}
@@ -471,7 +471,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
             					cJSON *tagObj = cJSON_GetObjectItem( jsonresponse, "tags" );
 		    			        str1 = cJSON_PrintUnformatted( tagObj );
 		            			ParodusInfo( "jsonResponse %s\n", str1 );
-		            			(*response)->u.crud.status = 201;
+		            			(*response)->u.crud.status = 200;
 		            			(*response)->u.crud.payload = str1;
             					
             				}
@@ -512,7 +512,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
             				
             				char *str1 = cJSON_PrintUnformatted( jsonresponse );
                     			ParodusInfo( "jsonResponse %s\n", str1 );
-                    			(*response)->u.crud.status = 201;
+                    			(*response)->u.crud.status = 200;
                     			(*response)->u.crud.payload = str1;
             			
             			     }
@@ -533,6 +533,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	    {
 		
 		ParodusError("Unable to parse object details from RETRIEVE request\n");
+		(*response)->u.crud.status = 400;
 		return -1;
 	    }
 	}
