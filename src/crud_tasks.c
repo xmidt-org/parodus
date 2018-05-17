@@ -6,6 +6,7 @@
 #include "crud_tasks.h"
 #include "crud_internal.h"
 #include "upstream.h"
+#include "subscription.h"
 
 int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 {
@@ -165,7 +166,10 @@ int HandleSubscriberEvent(wrp_msg_t *reqMsg,wrp_msg_t *eventResp_msg)
 		eventResp_msg->u.crud.payload =  reqMsg->u.crud.payload;
 		eventResp_msg->u.crud.payload_size = reqMsg->u.crud.payload_size;
 
-		//TODO Handle CRUD create request here and add it to singly linked list
+		if( true == add_Client_Subscription(newSubscriber->service_name, newSubscriber->regex))
+		{
+		    ParodusInfo("New subscriber is added to list\n");
+		}
 		free(newSubscriber->service_name);
 		free(newSubscriber->regex);
 		free(newSubscriber);

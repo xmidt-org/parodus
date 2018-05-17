@@ -39,6 +39,7 @@
 #endif
 #include "parodus_interface.h"
 #include "peer2peer.h"
+#include "subscription.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -105,6 +106,7 @@ void createSocketConnection(void (* initKeypress)())
     }
 
     seshat_registered = __registerWithSeshat();
+    init_subscription_list();
 
     char *pipelineURL = PIPELINE_URL;
     char *pubsubURL = PUBSUB_URL;
