@@ -309,13 +309,9 @@ void free_connection_ctx (create_connection_ctx_t *ctx)
 // get and parse default server
 // if necessary, query dns and parse server from jwt
 // populate server_list
-// return:
+// return values defined in ParodusInternal.h
 
-#define FIND_SUCCESS 0
-#define FIND_INVALID_DEFAULT -2
-#define FIND_JWT_FAIL -1
-
-static int find_servers (server_list_t *server_list)
+int find_servers (server_list_t *server_list)
 {
   server_t *default_server = &server_list->defaults;
 

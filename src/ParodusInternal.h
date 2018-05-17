@@ -59,6 +59,12 @@ extern int numLoops;
 #define FOREVER()   numLoops--
 #endif
 
+// Return values for find_servers() in connection.c
+#define FIND_SUCCESS 0
+#define FIND_INVALID_DEFAULT -2
+#define FIND_JWT_FAIL -1
+
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/

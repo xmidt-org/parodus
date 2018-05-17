@@ -43,6 +43,8 @@ extern void free_header_info (header_info_t *header_info);
 extern char *build_extra_hdrs (header_info_t *header_info);
 extern void set_current_server (create_connection_ctx_t *ctx);
 extern void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize);
+extern void free_server_list (server_list_t *server_list);
+extern int find_servers (server_list_t *server_list);
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -53,6 +55,10 @@ bool LastReasonStatus;
 volatile unsigned int heartBeatTimer;
 pthread_mutex_t close_mut;
 
+// Mock values
+char *mock_server_addr;
+unsigned int mock_port;
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -61,15 +67,73 @@ char* getWebpaConveyHeader()
     return (char*) "WebPA-1.6 (TG1682)";
 }
 
+noPollConn * nopoll_conn_new_opts (noPollCtx  * ctx, noPollConnOpts  * opts, const char  * host_ip, const char  * host_port, const char  * host_name,const char  * get_url,const char  * protocols, const char * origin)
+{
+    UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); 
+    UNUSED(origin); UNUSED(opts);
+    
+    function_called();
+    check_expected((intptr_t)ctx);
+    check_expected((intptr_t)host_ip);
+    return (noPollConn *) (intptr_t)mock();
+}
+
+noPollConn * nopoll_conn_tls_new (noPollCtx  * ctx, noPollConnOpts * options, const char * host_ip, const char * host_port, const char * host_name, const char * get_url, const char * protocols, const char * origin)
+{
+    UNUSED(options); UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); 
+    UNUSED(origin);
+    
+    function_called();
+    check_expected((intptr_t)ctx);
+    check_expected((intptr_t)host_ip);
+    return (noPollConn *) (intptr_t)mock();
+}
+
+noPollConn * nopoll_conn_tls_new6 (noPollCtx  * ctx, noPollConnOpts * options, const char * host_ip, const char * host_port, const char * host_name, const char * get_url, const char * protocols, const char * origin)
+{
+    UNUSED(options); UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); 
+    UNUSED(origin);
+    
+    function_called();
+    check_expected((intptr_t)ctx);
+    check_expected((intptr_t)host_ip);
+    return (noPollConn *) (intptr_t)mock();
+}
+
 int checkHostIp(char * serverIP)
 {
     UNUSED(serverIP);
-    return 0;
+    function_called();
+    return (int) mock();
+}
+
+int kill(pid_t pid, int sig)
+{
+    UNUSED(pid); UNUSED(sig);
+    function_called();
+    return (int) mock();
 }
 
 void setMessageHandlers()
 {
 }
+
+int allow_insecure_conn (char **server_addr, unsigned int *port)
+{
+  if (NULL != mock_server_addr) {
+    size_t len = strlen(mock_server_addr) + 1;
+    *server_addr = malloc (len);
+    if (NULL != *server_addr) {
+      strncpy (*server_addr, mock_server_addr, len);
+    }
+  }
+
+  *port = mock_port;
+		
+  function_called ();
+  return (int) mock();
+}
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -294,6 +358,59 @@ void test_set_extra_headers ()
 	
 }
 
+void test_find_servers ()
+{
+  ParodusCfg cfg;
+  server_list_t server_list;
+  server_t *default_server = &server_list.defaults;
+  server_t *jwt_server = &server_list.jwt;
+  
+  memset(&cfg,0,sizeof(cfg));
+  set_server_list_null (&server_list);
+  
+  parStrncpy (cfg.webpa_url, "mydns.mycom.net:8080", sizeof(cfg.webpa_url));
+  set_parodus_cfg(&cfg);
+  assert_int_equal (find_servers(&server_list), FIND_INVALID_DEFAULT);
+  assert_int_equal (default_server->allow_insecure, -1);
+     
+  parStrncpy (cfg.webpa_url, "https://mydns.mycom.net:8080", sizeof(cfg.webpa_url));
+
+#ifdef FEATURE_DNS_QUERY
+  cfg.acquire_jwt = 0;
+  set_parodus_cfg(&cfg);
+  assert_int_equal (find_servers(&server_list), FIND_SUCCESS);   
+  assert_int_equal (default_server->allow_insecure, 0);  
+  assert_string_equal (default_server->server_addr, "mydns.mycom.net");
+  assert_int_equal (default_server->port, 8080);
+  
+  cfg.acquire_jwt = 1;
+  mock_server_addr = "mydns.myjwtcom.net";
+  mock_port = 80;
+  set_parodus_cfg(&cfg);
+  will_return (allow_insecure_conn, -1);
+  expect_function_call (allow_insecure_conn);
+  assert_int_equal (find_servers(&server_list), FIND_JWT_FAIL);   
+  assert_int_equal (jwt_server->allow_insecure, -1);  
+
+  will_return (allow_insecure_conn, 0);
+  expect_function_call (allow_insecure_conn);
+  assert_int_equal (find_servers(&server_list), FIND_SUCCESS);   
+  assert_int_equal (jwt_server->allow_insecure, 0);
+  assert_string_equal (jwt_server->server_addr, "mydns.myjwtcom.net");
+  assert_int_equal (jwt_server->port, 80);
+  
+#else
+
+  set_parodus_cfg(&cfg);
+  assert_int_equal (find_servers(&server_list), FIND_SUCCESS);   
+  assert_int_equal (default_server->allow_insecure, 0);
+  assert_string_equal (default_server->server_addr, "mydns.mycom.net");
+  assert_int_equal (default_server->port, 8080);
+
+  free_server_list (&server_list);
+#endif
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -314,7 +431,8 @@ int main(void)
         cmocka_unit_test(test_header_info),
         cmocka_unit_test(test_extra_headers),
         cmocka_unit_test(test_set_current_server),
-        cmocka_unit_test(test_set_extra_headers)
+        cmocka_unit_test(test_set_extra_headers),
+        cmocka_unit_test(test_find_servers)
 
     };
 
