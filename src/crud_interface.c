@@ -103,8 +103,6 @@ void *CRUDHandlerTask()
 
 			ret = processCrudRequest(message->msg, &crud_response);
 			
-			wrp_free_struct(message->msg);
-			
 			if(ret == 0)
 			{
 			  ParodusInfo("CRUD processed successfully\n");

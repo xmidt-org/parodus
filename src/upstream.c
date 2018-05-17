@@ -365,60 +365,66 @@ void *processUpstreamMessage()
                     else 
                     {
                     	ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s status: %d\n",msgType, msg->u.crud.dest, msg->u.crud.transaction_uuid, msg->u.crud.status );
-                		if(WRP_MSG_TYPE__CREATE == msgType && msg->u.crud.dest !=NULL)
-                		{
-                			//Expecting dest format as mac:xxxxxxxxxxxx/parodus/subscribe
-                			//Strip dest field to get "parodus/subscribe"
-                			destVal = strdup(msg->u.crud.dest);
-                			strtok(destVal , "/");
-                			eventDest = strtok(NULL , "");
-                			if(eventDest != NULL)
-                			{
-				            	if ( strcmp(eventDest,"parodus/subscribe")== 0) 
-				            	{
-									//if needed, add your required wrp CREATE fields to the struct 
-									create_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-									memset(create_msg, 0, sizeof(wrp_msg_t));
-									create_msg->msg_type = msg->msg_type;
-									create_msg->u.crud.transaction_uuid = strdup(msg->u.crud.transaction_uuid);
-									create_msg->u.crud.source = strdup(msg->u.crud.source);
-									create_msg->u.crud.dest = strdup(msg->u.crud.dest);
-									create_msg->u.crud.payload =  strdup(msg->u.crud.payload);
-									create_msg->u.crud.payload_size = msg->u.crud.payload_size;
-									addCRUDmsgToQueue(create_msg);
-									//TODO Don't free here, find correct place to free. 
-									//free(create_msg);
-								}
-                			}
-                			
-							free(destVal);
-							destVal = NULL;
-                    	}
+        		if(WRP_MSG_TYPE__CREATE == msgType && msg->u.crud.dest !=NULL)
+        		{
+        			//Expecting dest format as mac:xxxxxxxxxxxx/parodus/subscribe
+        			//Strip dest field to get "parodus/subscribe"
+        			destVal = strdup(msg->u.crud.dest);
+        			strtok(destVal , "/");
+        			eventDest = strtok(NULL , "");
+        			if(eventDest != NULL)
+        			{
+			            	if ( strcmp(eventDest,"parodus/subscribe")== 0) 
+			            	{
+						//if needed, add your required wrp CREATE fields to the struct 
+						create_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+						memset(create_msg, 0, sizeof(wrp_msg_t));
+						create_msg->msg_type = msg->msg_type;
+						create_msg->u.crud.transaction_uuid = strdup(msg->u.crud.transaction_uuid);
+						create_msg->u.crud.source = strdup(msg->u.crud.source);
+						create_msg->u.crud.dest = strdup(msg->u.crud.dest);
+						create_msg->u.crud.payload =  strdup(msg->u.crud.payload);
+						create_msg->u.crud.payload_size = msg->u.crud.payload_size;
+						addCRUDmsgToQueue(create_msg);
+						//TODO Don't free here, find correct place to free. 
+						//free(create_msg);
+					}
+        			}
+        			
+				free(destVal);
+				destVal = NULL;
+            		}
 						
                     }
                     
                     if(WRP_MSG_TYPE__CREATE == msgType && msg->u.crud.dest !=NULL)
-                	{
-            			//Expecting dest format as mac:xxxxxxxxxxxx/printer
-            			//Strip dest field to get "printer"
-            			upstreamDest = strdup(msg->u.crud.dest);
-            			strtok(upstreamDest , "/");
-            			endValue = strtok(NULL , "");
-            			if(endValue != NULL)
-            			{
-            				//Hardcoded destination
-            				if ( strcmp(endValue,"printer")== 0) 
-			            	{
-								//Send Client Subscribe response back to registered client
-								sendMsgtoRegisteredClients(endValue,(const char **)&message->msg,message->len);
-							}
-            			}
-						free(upstreamDest);
-						upstreamDest = NULL;
-
-                    }else
                     {
-	                    sendUpstreamMsgToServer(&message->msg, message->len);                    	
+    			//Expecting dest format as mac:xxxxxxxxxxxx/printer
+    			//Strip dest field to get "printer"
+    			upstreamDest = strdup(msg->u.crud.dest);
+    			strtok(upstreamDest , "/");
+    			endValue = strtok(NULL , "");
+    			if(endValue != NULL)
+    			{
+    				//Hardcoded destination
+    				if ( strcmp(endValue,"printer")== 0) 
+		            	{
+					//Send Client Subscribe response back to registered client
+					sendMsgtoRegisteredClients(endValue,(const char **)&message->msg,message->len);
+				}
+				
+    			}
+    			else
+			{
+				sendUpstreamMsgToServer(&message->msg, message->len);   
+			}
+			free(upstreamDest);
+			upstreamDest = NULL;
+
+                    }
+                    else
+                    {
+	                sendUpstreamMsgToServer(&message->msg, message->len);                    	
                     }
                 }
             }
@@ -429,14 +435,13 @@ void *processUpstreamMessage()
             
 
 	    //nn_freemsg should not be done for parodus/tags/ CRUD requests as it is not received through nanomsg.
-	    
 	    if ((msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "parodus") == NULL)
 	    {
 		    if(nn_freemsg (message->msg) < 0)
 		    {
 		        ParodusError ("Failed to free msg\n");
 		    }
-         }
+            }
             
             ParodusPrint("Free for upstream decoded msg\n");
             wrp_free_struct(msg);
