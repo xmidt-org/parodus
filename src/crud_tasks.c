@@ -120,7 +120,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	case WRP_MSG_TYPE__DELETE:
 	    ParodusInfo( "DELETE request\n" );
 	    
-	    ret = deleteObject( );
+	    ret = deleteObject(reqMsg, &resp_msg );
 	    
 	    //WRP payload is NULL for delete requests
 	    resp_msg ->u.crud.payload = NULL;

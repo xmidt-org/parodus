@@ -546,8 +546,159 @@ int updateObject(  )
 	return 0;
 }
 
-int deleteObject(  )
-{
-	return 0;
-}
 
+int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
+{
+	char *destVal = NULL;
+	cJSON *paramArray = NULL, *json = NULL;
+	char *jsonData = NULL;
+	char *child_ptr,*obj[5], *out = NULL;
+	int i = 1, status =0, objlevel=1, found =0;
+	int itemSize = 0, delete_status = 0;
+	
+	status = readFromJSON(&jsonData);
+	if(status == 1)
+        {
+        	ParodusPrint("Data from JSON: %s\n", jsonData);
+        	json = cJSON_Parse( jsonData );
+        	if( !json ) 
+		{
+		    ParodusError( "Error before: [%s]\n", cJSON_GetErrorPtr() );
+		    (*response)->u.crud.status = -1;
+		    return -1;
+		} 
+		else
+		{
+			if(reqMsg->u.crud.dest !=NULL)
+			{
+			   destVal = strdup(reqMsg->u.crud.dest);
+			   ParodusInfo("destVal is %s\n", destVal);
+
+			    if( (destVal != NULL))
+			    {
+			    	child_ptr = strtok(destVal , "/");
+			    	
+			    	//Get the 1st object
+				obj[0] = strdup( child_ptr );
+				ParodusInfo( "parent is %s\n", obj[0] );
+				
+				while( child_ptr != NULL ) 
+				{
+				    child_ptr = strtok( NULL, "/" );
+				    if( child_ptr != NULL ) 
+				    {
+				        obj[i] = strdup( child_ptr );
+				        ParodusInfo( "child obj[%d]:%s\n", i, obj[i] );
+				        i++;
+				    }
+				}
+				
+                		objlevel = i;
+                		ParodusInfo( "Number of object level %d\n", objlevel );
+                		
+                		paramArray = cJSON_GetObjectItem( json, "tags" );
+                		
+				if( paramArray != NULL ) 
+				{
+					itemSize = cJSON_GetArraySize( paramArray );
+					if( itemSize == 0 ) 
+                    			{
+                    				ParodusInfo("Invalid delete, tags object is empty in json\n");
+                    				(*response)->u.crud.status = 400;
+                    				free(destVal);
+                    				return -1;
+                    			}
+                    			else
+                    			{
+                    				//top level tags object	
+                    				if( strcmp( cJSON_GetObjectItem( json, "tags" )->string, obj[objlevel - 1] ) == 0 ) 
+                    				{
+                    					ParodusInfo("Top level tags object delete not supported\n");
+                    					cJSON_DeleteItemFromObject(json,"tags");
+                    					(*response)->u.crud.status = 400;
+                    					free(destVal);
+                    					return -1;
+                    				}
+                    				else
+                    				{
+                    				    		
+                    				    //to traverse through total number of objects in json
+                    				    for( i = 0 ; i < itemSize ; i++ ) 
+                    				    {
+                    					
+                    					if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel - 1] ) == 0 )
+                    					{
+                    					
+                                    			      ParodusInfo("Delete: requested object found \n");	
+                            				      ParodusInfo("deleting from paramArray\n");
+                            				      cJSON_DeleteItemFromArray(paramArray, i);
+                                    			      found = 1;
+                                    			      (*response)->u.crud.status = 200;
+                                    			      break;
+                    					}
+                    					
+                    					if(found)
+                    					{
+                    						ParodusPrint("break, since param object is found\n");
+                    						break;
+                    					}
+                    				     }
+                    				     
+                    				     if(!found)
+                    				     {
+                    					ParodusError("requested object not found\n");
+                    					(*response)->u.crud.status = 400;
+                    					free(destVal);
+                    					return -1;
+                    						 
+                    				     }
+                    				   
+                    				   }
+                    			     }
+                    			}
+                    			else
+				  	{
+						ParodusError("Failed to DELETE object from json\n");
+						(*response)->u.crud.status = 400;
+						free(destVal);
+						return -1;
+					}
+					
+					free(destVal);
+                    		   }
+                    		   else
+				   {
+		
+					ParodusError("Unable to parse object details from DELETE request\n");
+					(*response)->u.crud.status = 400;
+					return -1;
+				   }
+			     }
+				
+			 }
+	}
+	else
+	{
+		ParodusInfo("Invalid delete, json file is empty\n");
+		(*response)->u.crud.status = 400;
+                return -1;
+	}	    
+	
+	out = cJSON_Print( json );
+	ParodusInfo("%s\n",out);
+	
+	delete_status = writeToJSON(out);
+	if(delete_status == 1)
+	{
+		ParodusInfo("Deleted Data is successfully updated to JSON\n");
+	}
+	else
+	{
+		ParodusError("Failed to update deleted data to JSON\n");
+	}
+            
+	cJSON_Delete( json );
+	free( out );
+	free( jsonData );
+       	return 0;
+}
