@@ -8,7 +8,7 @@
  */
 
 #include "subscription.h"
-
+#include "upstream.h"
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -81,6 +81,8 @@ void filter_clients_and_send(wrp_msg_t *wrp_event_msg)
     Subscription *sub = NULL;
     char *token;
     char *tempStr;
+    void *bytes;
+
     ParodusPrint("****** %s *******\n",__FUNCTION__);
     if(wrp_event_msg != NULL)
     {
@@ -92,6 +94,7 @@ void filter_clients_and_send(wrp_msg_t *wrp_event_msg)
             if(wrp_event_msg->u.event.dest != NULL)
             {
                 tempStr = strdup(wrp_event_msg->u.event.dest);
+                tempStr = strtok(tempStr, "/");
                 token = strtok(tempStr, ":");
                 if(token != NULL)
                 {
@@ -99,8 +102,9 @@ void filter_clients_and_send(wrp_msg_t *wrp_event_msg)
                     ParodusPrint("token is %s\n",token);
                     if(strstr(sub->regex, token) != NULL)
                     {
-                        ParodusPrint("%s registered for this event\n",sub->service_name);
-                        //TODO: send event to registered client
+                        ParodusInfo("%s registered for this event\n",sub->service_name);
+                        int size = wrp_struct_to( wrp_event_msg, WRP_BYTES, &bytes );
+                        sendMsgtoRegisteredClients(sub->service_name, (const char **)&bytes, size);
                     }
                 }
                 free(tempStr);
