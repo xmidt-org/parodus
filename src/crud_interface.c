@@ -103,6 +103,8 @@ void *CRUDHandlerTask()
 
 			ret = processCrudRequest(message->msg, &crud_response);
 			
+			wrp_free_struct(message->msg);
+			
 			if(ret == 0)
 			{
 			  ParodusInfo("CRUD processed successfully\n");
@@ -114,8 +116,7 @@ void *CRUDHandlerTask()
 			  ParodusInfo("Adding CRUD response to upstreamQ\n");
 			  addCRUDresponseToUpstreamQ(resp_bytes, resp_size);
 			  
-			   //free(crud_response);
-			   wrp_free_struct(crud_response);
+			  wrp_free_struct(crud_response);
                             
 			}
 			else

@@ -19,34 +19,35 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
     memset(resp_msg, 0, sizeof(wrp_msg_t));
     
     resp_msg->msg_type = reqMsg->msg_type;
-    resp_msg->u.crud.transaction_uuid = reqMsg->u.crud.transaction_uuid;
-    resp_msg->u.crud.source = reqMsg->u.crud.dest;
-    resp_msg->u.crud.dest = reqMsg->u.crud.source;
-    resp_msg ->u.crud.path =  reqMsg->u.crud.path;
+    resp_msg->u.crud.transaction_uuid = strdup(reqMsg->u.crud.transaction_uuid);
+    resp_msg->u.crud.source = strdup(reqMsg->u.crud.dest);
+    resp_msg->u.crud.dest = strdup(reqMsg->u.crud.source);
 
     switch( reqMsg->msg_type ) 
     {
     
-	case WRP_MSG_TYPE__CREATE:
-	    ParodusInfo( "CREATE request\n" );
-	    
-	    if(reqMsg->u.crud.dest !=NULL)
-		{
-			destVal = strdup(reqMsg->u.crud.dest);
-			strtok(destVal , "/");
-			destination = strtok(NULL , "");
-			ParodusInfo("destination %s\n",destination);
-			if(destination != NULL)
+		case WRP_MSG_TYPE__CREATE:
+			ParodusInfo( "CREATE request\n" );
+
+			if(reqMsg->u.crud.dest !=NULL)
 			{
-				if ( strcmp(destination,"parodus/subscribe")== 0) 
+				destVal = strdup(reqMsg->u.crud.dest);
+				strtok(destVal , "/");
+				destination = strtok(NULL , "");
+				ParodusInfo("destination %s\n",destination);
+				
+				if(destination != NULL)
 				{
-					//TODO handle error case
-					HandleSubscriberEvent(reqMsg,resp_msg);
-					sub_event = 1;
+					if ( strcmp(destination,"parodus/subscribe")== 0) 
+					{
+						//TODO handle error case
+						HandleSubscriberEvent(reqMsg,resp_msg);
+						sub_event = 1;
+					}
 				}
+				
+				free(destVal);
 			}
-			free(destVal);
-		}
 	    
 	    if(!sub_event)
 	    {
