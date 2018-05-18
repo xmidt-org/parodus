@@ -339,7 +339,7 @@ int find_servers (server_list_t *server_list)
 
 //--------------------------------------------------------------------
 // connect to current server
-static int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
+int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
 {
    noPollCtx *nopoll_ctx = ctx->nopoll_ctx;
    server_t *server = ctx->current_server;
