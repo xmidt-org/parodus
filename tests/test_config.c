@@ -130,12 +130,33 @@ void test_getParodusConfig()
     free(cfg.hw_model);
 }
 
-static int open_output_file (const char *fname)
+#ifdef FEATURE_DNS_QUERY
+const char *jwt_key_file_path = JWT_KEY_FILE_PATH;
+#else
+const char *jwt_key_file_path = "foo";
+#endif
+
+static FILE * open_output_file (const char *fname)
 {
-  int fd = open(fname, O_WRONLY | O_CREAT, 0666);
-  if (fd<0)
+  FILE *fd;
+  char *file_path;
+  int error;
+
+  file_path = (char *) malloc(strlen(fname) + strlen(jwt_key_file_path) + 1);
+  if (NULL == file_path) {
+      ParodusError("open_output_file() malloc failed\n");
+  }
+
+  strcpy(file_path, jwt_key_file_path);
+  strcat(file_path, fname);
+
+  errno = 0;
+  fd = fopen(file_path, "w+");
+  error = errno;
+
+  if (NULL == fd)
   {
-    ParodusError ("File %s open error\n", fname);
+    ParodusError ("File %s open error (%s)\n", file_path, strerror(error));
     abort ();
   }
   return fd;
@@ -143,17 +164,21 @@ static int open_output_file (const char *fname)
 
 void write_key_to_file (const char *fname, const char *buf)
 {
-  ssize_t nbytes;
+  ssize_t nbytes = -1;
   ssize_t buflen = strlen (buf);
-  int fd = open_output_file(fname);
-  nbytes = write(fd, buf, buflen);
+  FILE *fd = open_output_file(fname);
+  
+  if (fd) {
+    nbytes = fwrite(buf, sizeof(char), buflen, fd);
+  }
+  
   if (nbytes < 0)
   {
     ParodusError ("Write file %s error\n", fname);
-    close(fd);
+    fclose(fd);
     abort ();
   }
-  close(fd);
+  fclose(fd);
   ParodusInfo ("%d bytes written\n", nbytes);
 }
 
@@ -189,18 +214,34 @@ void test_parseCommandLine()
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
 		"--dns-txt-url=mydns.mycom.net",
-		"--jwt-public-key-file=../../tests/jwt_key.tst",
-		"--jwt-algo=RS256",
+        "--jwt-algo=RS256",
+        "--jwt-public-key-file=../../tests/jwt_key.tst", /* POSITION DEPENDENT */
 #endif
 		NULL
 	};
 	int argc = (sizeof (command) / sizeof (char *)) - 1;
-
     ParodusCfg parodusCfg;
+
+#ifdef FEATURE_DNS_QUERY
+    char *file_path;
+    #define JWT_PUBLIC "--jwt-public-key-file="
+
+    file_path = (char *) malloc(strlen(JWT_PUBLIC) + strlen("/jwt_key.tst") +
+                         strlen(jwt_key_file_path) + 1);
+    if (NULL == file_path) {
+        ParodusError("open_output_file() malloc failed\n");
+    }
+
+    strcpy(file_path, JWT_PUBLIC);
+    strcat(file_path, jwt_key_file_path);
+    strcat(file_path, "/jwt_key.tst");
+    command[argc-1] = file_path;
+#endif
+
     memset(&parodusCfg,0,sizeof(parodusCfg));
 
 #ifdef FEATURE_DNS_QUERY
-	write_key_to_file ("../../tests/jwt_key.tst", jwt_key);
+	write_key_to_file ("/jwt_key.tst", jwt_key);
 #endif
     create_token_script("/tmp/token.sh");
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), 0);
@@ -233,6 +274,7 @@ void test_parseCommandLine()
     assert_string_equal(parodusCfg.dns_txt_url, "mydns.mycom.net");
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
+    free(file_path);
 #endif
 
 }

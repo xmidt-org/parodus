@@ -110,7 +110,7 @@ unsigned int get_algo_mask (const char *algo_str)
 
 static FILE * open_input_file (const char *fname, int *file_size)
 {
-  FILE * fd = fopen(fname, O_RDONLY);
+  FILE * fd = fopen(fname, "r");
   if (NULL == fd)
   {
     ParodusError ("File %s open error\n", fname);
@@ -513,11 +513,13 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 			ParodusError ("Missing jwt algorithm argument\n");
 			return -1;
 		}
-		if ((0 != (cfg->jwt_algo & rsa_algorithms)) &&
-		    (0 == strlen (cfg->jwt_key)) ) {
-			ParodusError ("Missing jwt public key file argument\n");
-			return -1;
-		}
+
+		if (cfg->jwt_algo & rsa_algorithms) {
+             if  (!cfg->jwt_key || (0 == strlen (cfg->jwt_key)) ) {
+                ParodusError ("Missing jwt public key file argument\n");
+                return -1;
+            }
+        }
 		    
 	}
 	
