@@ -153,7 +153,7 @@ set(CLIST_SRC test_client_list.c ../src/client_list.c
  ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c 
  ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c 
  ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c 
- ../src/partners_check.c ../src/parodus_interface.c ../src/peer2peer.c ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c ${PARODUS_COMMON_SRC})
+ ../src/partners_check.c ../src/parodus_interface.c ../src/peer2peer.c ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c ../src/subscription.c ${PARODUS_COMMON_SRC})
 
 if (ENABLE_SESHAT)
 set(CLIST_SRC ${CLIST_SRC} ../src/seshat_interface.c)
@@ -163,7 +163,7 @@ endif (ENABLE_SESHAT)
  
 add_executable(test_client_list ${CLIST_SRC})
 #target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
-target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS} -lrebar-c)
 
 #-------------------------------------------------------------------------------
 #   test_service_alive
@@ -176,7 +176,7 @@ set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c
     ../src/nopoll_handlers.c ../src/config.c ../src/config_file.c ../src/connection.c
     ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c
     ../src/conn_interface.c ../src/partners_check.c ../src/parodus_interface.c
-    ../src/peer2peer.c ${PARODUS_COMMON_SRC})
+    ../src/peer2peer.c ../src/subscription.c ${PARODUS_COMMON_SRC})
 if (ENABLE_SESHAT)
 set(SVA_SRC ${SVA_SRC} ../src/seshat_interface.c)
 else()
@@ -185,7 +185,7 @@ endif (ENABLE_SESHAT)
 
 add_executable(test_service_alive ${SVA_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
-target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} -lrebar-c)
 
 
 #-------------------------------------------------------------------------------
@@ -238,8 +238,8 @@ target_link_libraries (test_config -lcmocka
 #-------------------------------------------------------------------------------
 add_test(NAME test_upstream COMMAND ${MEMORY_CHECK} ./test_upstream)
 add_executable(test_upstream test_upstream.c ../src/upstream.c ../src/string_helpers.c ../src/peer2peer.c
- ../src/parodus_interface.c)
-target_link_libraries (test_upstream -lcmocka ${PARODUS_COMMON_LIBS} )
+ ../src/parodus_interface.c ../src/subscription.c)
+target_link_libraries (test_upstream -lcmocka ${PARODUS_COMMON_LIBS} -lrebar-c)
 
 #-------------------------------------------------------------------------------
 #   test_downstream
@@ -317,7 +317,7 @@ set(TOKEN_SRC ../src/conn_interface.c ../src/config.c ../src/config_file.c
  ../src/thread_tasks.c ../src/time.c
  ../src/string_helpers.c ../src/mutex.c 
  ../src/token.c ../src/parodus_interface.c
- ../src/peer2peer.c
+ ../src/peer2peer.c ../src/subscription.c
  )
 
 if (ENABLE_SESHAT)
@@ -334,7 +334,7 @@ endif (FEATURE_DNS_QUERY)
 
 add_executable(test_token ${TOKEN_SRC} ) 
 #target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
-target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
+target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka -lrebar-c)
 
 #-------------------------------------------------------------------------------
 #   test_seshat_interface - registerWithSeshat
@@ -404,7 +404,4 @@ target_link_libraries (test_parodus_interface_ps ${PARODUS_COMMON_LIBS})
 #-------------------------------------------------------------------------------
 add_test(NAME test_subscription COMMAND ${MEMORY_CHECK} ./test_subscription)
 add_executable(test_subscription test_subscription.c ../src/subscription.c)
-target_link_libraries (test_subscription -lcmocka
- -Wl,--no-as-needed -lcimplog
- -lcjson -lrebar-c -ltrower-base64 -lssl -lcrypto -lrt -lm
-)
+ target_link_libraries (test_subscription -lcmocka -Wl,--no-as-needed -lcimplog -lcjson -lrebar-c -ltrower-base64 -lssl -lcrypto -lrt -lm -lwrp-c -lmsgpack)

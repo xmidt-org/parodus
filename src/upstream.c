@@ -29,6 +29,7 @@
 #include "client_list.h"
 #include "nopoll_helpers.h"
 #include "peer2peer.h"
+#include "subscription.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -351,7 +352,8 @@ void *processUpstreamMessage()
                         sendUpstreamMsgToServer(&message->msg, message->len);
                     }
 		    //PartnerId validation is not required for local messages
-                    sendToAllRegisteredClients(&message->msg, message->len);
+                    //sendToAllRegisteredClients(&message->msg, message->len);
+                    filter_clients_and_send(msg);
                     add_P2P_OutgoingMessage(&message->msg, message->len);
                 }
                 else

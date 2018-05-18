@@ -40,26 +40,29 @@
 #define CONTENT_TYPE_JSON  "application/json"
 
 static void sig_handler(int sig);
-static int main_loop(libpd_cfg_t *cfg);
+static int main_loop(libpd_cfg_t *cfg, bool isSubscribed);
 static void _help(char *, char *);
 static int wait_time = 60 * 1000; // One minute
-void subscribeToEvent(char *regex);
+void subscribeToEvent(char *regex, const char *service_name);
 libpd_instance_t hpd_instance;
 static char *mac_address;
 
 int main( int argc, char **argv)
 {
-    const char *option_string = "p:c:w:d:f:m:t:h::";
+    const char *option_string = "p:c:w:d:f:m:t:h:n:s:u::";
     static const struct option options[] = {
         { "help",         optional_argument, 0, 'h' },
         { "parodus-url",  required_argument, 0, 'p' },
         { "client-url",   required_argument, 0, 'c' },
-	{ "mac-address",  optional_argument, 0, 'm'},
+        { "mac-address",  optional_argument, 0, 'm'},
         { "wait-time",    required_argument, 0, 't'},
+        { "service-name", required_argument, 0, 'n'},
+        { "subscribe",    no_argument,       0, 's'},
+        { "un-subscribe", no_argument,       0, 'u'},
         { 0, 0, 0, 0 }
     };
 
-    libpd_cfg_t cfg = { .service_name = SERVICE_NAME,
+    libpd_cfg_t cfg = { .service_name = NULL,
                         .receive = true,
                         .keepalive_timeout_secs = 64,
                         .parodus_url = NULL,
@@ -69,6 +72,7 @@ int main( int argc, char **argv)
     int item = 0;
     int opt_index = 0;
     int rv = 0;
+    bool isSubscribed = false;
 
     signal(SIGTERM, sig_handler);
     signal(SIGINT, sig_handler);
@@ -107,6 +111,15 @@ int main( int argc, char **argv)
                     }
                 }
                 break;
+            case 'n':
+                cfg.service_name = strdup(optarg);
+                break;
+            case 's':
+                isSubscribed = true;
+                break;
+            case 'u':
+                isSubscribed = false;
+                break;
             case '?':
                 if (strchr(option_string, optopt)) {
                     printf("%s Option %c requires an argument!\n", argv[0], optopt);
@@ -126,12 +139,12 @@ int main( int argc, char **argv)
 
     if( (rv == 0) &&
         (NULL != cfg.parodus_url) &&
-        (NULL != cfg.client_url))
+        (NULL != cfg.client_url) && (NULL != cfg.service_name))
     { 
-	if (NULL == mac_address) {
-            mac_address = strdup("14cfe1234567");
-	}       
-        main_loop(&cfg);
+	    if (NULL == mac_address) {
+                mac_address = strdup("14cfe1234567");
+	    }
+        main_loop(&cfg, isSubscribed);
         rv = 0;
     } else {
         if ((NULL == cfg.parodus_url)) {
@@ -141,7 +154,11 @@ int main( int argc, char **argv)
         if ((NULL == cfg.client_url)) {
             debug_error("%s client_url not specified !\n", argv[0]);
             rv = -2;
-        }        
+        }
+        if((NULL == cfg.service_name)) {
+            debug_error("%s service_name not specified !\n", argv[0]);
+            rv = -3;
+        }       
      }
     
     if (rv != 0) {
@@ -184,7 +201,7 @@ static void sig_handler(int sig)
     }
 }
 
-void subscribeToEvent(char *regex){
+void subscribeToEvent(char *regex, const char *service_name){
 
 	wrp_msg_t *res_wrp_msg = NULL;
 	cJSON *response = NULL;
@@ -204,13 +221,13 @@ void subscribeToEvent(char *regex){
 		printf("In subscribeToEvent() - malloc Failed !!!");
 	}
 	
-	snprintf(source,127,"mac:%s/%s", mac_address, SERVICE_NAME);
+	snprintf(source,127,"mac:%s/%s", mac_address, service_name);
 	snprintf(dest,127,"mac:%s/%s/%s", mac_address, "parodus","subscribe");
 	printf("source is %s\n",source);
 	printf("dest is %s\n",dest);	
 	response = cJSON_CreateObject();
-	//cJSON_AddItemToObject(response, SERVICE_NAME, parameters = cJSON_CreateObject());
-	cJSON_AddStringToObject(response, SERVICE_NAME, regex);
+	//cJSON_AddItemToObject(response, service_name, parameters = cJSON_CreateObject());
+	cJSON_AddStringToObject(response, service_name, regex);
 
 	str = cJSON_PrintUnformatted(response);
     printf("Payload Response: %s\n", str);
@@ -247,7 +264,7 @@ void subscribeToEvent(char *regex){
 	}
 }
 
-static int main_loop(libpd_cfg_t *cfg)
+static int main_loop(libpd_cfg_t *cfg, bool isSubscribed)
 {
     int rv;
     wrp_msg_t *wrp_msg;
@@ -268,14 +285,17 @@ static int main_loop(libpd_cfg_t *cfg)
                 backoff_retry_time = 0;
             }
         } else {
-            printf("printer service registered with libparodus url %s\n", cfg->parodus_url);
+            printf("%s service registered with libparodus url %s\n", cfg->service_name, cfg->parodus_url);
             break;
         }
         libparodus_shutdown(&hpd_instance);
     }
 
-    //Subscribe to event
-    subscribeToEvent("node-change");
+    if(isSubscribed == true)
+    {
+        //Subscribe to event
+        subscribeToEvent("node-change", cfg->service_name);
+    }
 
     debug_print("starting the main loop...\n");
     while( true ) {

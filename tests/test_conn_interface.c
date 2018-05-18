@@ -163,6 +163,22 @@ void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size)
     UNUSED(resp_bytes); UNUSED(resp_size);
 }
 
+cJSON* get_Client_Subscriptions(char *service_name)
+{
+    UNUSED(service_name);
+    return NULL;
+}
+
+bool add_Client_Subscription(char *service_name, char *regex)
+{
+    UNUSED(service_name);
+    UNUSED(regex);
+    return true;
+}
+
+void init_subscription_list()
+{
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/

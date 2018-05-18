@@ -8,7 +8,7 @@
  */
 
 #include "subscription.h"
-
+#include "upstream.h"
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -54,6 +54,7 @@ cJSON* get_Client_Subscriptions(char *service_name)
     rebar_ll_node_t *node = NULL;
     Subscription *sub = NULL;
     cJSON * jsonArray = NULL;
+    int match_found = 0;
     
     ParodusPrint("****** %s *******\n",__FUNCTION__);
     if(service_name != NULL)
@@ -67,11 +68,19 @@ cJSON* get_Client_Subscriptions(char *service_name)
             if(strcmp(sub->service_name, service_name) == 0)
             {
                 cJSON_AddItemToArray(jsonArray, cJSON_CreateString(sub->regex));
+                match_found = 1;
             }
             node = node->next;
         }
     }
-    ParodusPrint("jsonArray = %s\n",cJSON_Print(jsonArray));
+    if(match_found == 0)
+    {
+        jsonArray = NULL;
+    }
+    else
+    {
+        ParodusPrint("jsonArray = %s\n",cJSON_Print(jsonArray));
+    }
     return jsonArray;
 }
 
@@ -81,6 +90,8 @@ void filter_clients_and_send(wrp_msg_t *wrp_event_msg)
     Subscription *sub = NULL;
     char *token;
     char *tempStr;
+    void *bytes;
+
     ParodusPrint("****** %s *******\n",__FUNCTION__);
     if(wrp_event_msg != NULL)
     {
@@ -92,6 +103,7 @@ void filter_clients_and_send(wrp_msg_t *wrp_event_msg)
             if(wrp_event_msg->u.event.dest != NULL)
             {
                 tempStr = strdup(wrp_event_msg->u.event.dest);
+                tempStr = strtok(tempStr, "/");
                 token = strtok(tempStr, ":");
                 if(token != NULL)
                 {
@@ -99,8 +111,9 @@ void filter_clients_and_send(wrp_msg_t *wrp_event_msg)
                     ParodusPrint("token is %s\n",token);
                     if(strstr(sub->regex, token) != NULL)
                     {
-                        ParodusPrint("%s registered for this event\n",sub->service_name);
-                        //TODO: send event to registered client
+                        ParodusInfo("%s registered for this event\n",sub->service_name);
+                        int size = wrp_struct_to( wrp_event_msg, WRP_BYTES, &bytes );
+                        sendMsgtoRegisteredClients(sub->service_name, (const char **)&bytes, size);
                     }
                 }
                 free(tempStr);
