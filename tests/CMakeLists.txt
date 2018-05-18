@@ -404,4 +404,4 @@ target_link_libraries (test_parodus_interface_ps ${PARODUS_COMMON_LIBS})
 #-------------------------------------------------------------------------------
 add_test(NAME test_subscription COMMAND ${MEMORY_CHECK} ./test_subscription)
 add_executable(test_subscription test_subscription.c ../src/subscription.c)
- target_link_libraries (test_subscription -lcmocka -Wl,--no-as-needed -lcimplog -lcjson -lrebar-c -ltrower-base64 -lssl -lcrypto -lrt -lm -lwrp-c -lmsgpack)
+ target_link_libraries (test_subscription -lcmocka -Wl,--no-as-needed -lcimplog -lcjson -lrebar-c -ltrower-base64 -lssl -lcrypto -lrt -lm -lwrp-c -lmsgpackc)
