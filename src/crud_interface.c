@@ -114,8 +114,7 @@ void *CRUDHandlerTask()
 			  ParodusInfo("Adding CRUD response to upstreamQ\n");
 			  addCRUDresponseToUpstreamQ(resp_bytes, resp_size);
 			  
-			   //free(crud_response);
-			   wrp_free_struct(crud_response);
+			  wrp_free_struct(crud_response);
                             
 			}
 			else
