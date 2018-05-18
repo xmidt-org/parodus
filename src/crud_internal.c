@@ -426,7 +426,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		objlevel = i;
 		ParodusPrint( "Number of object level %d\n", objlevel );
 		
-		if( (obj[2] !=NULL) && strstr( obj[2] , "tags") == NULL )
+		if((objlevel == 3 && ((obj[2] !=NULL) && strstr(obj[2] ,"tags") == NULL)) || ((objlevel == 4 && (strcmp(obj[2], "subscribe") == 0))))
 		{
 			if(strcmp(obj[2] , "subscribe") == 0)
 			{
