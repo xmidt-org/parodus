@@ -157,6 +157,28 @@ void initKeypress()
 {
     function_called();
 }
+
+void sendToAllRegisteredClients(void **resp_bytes, size_t resp_size)
+{
+    UNUSED(resp_bytes); UNUSED(resp_size);
+}
+
+cJSON* get_Client_Subscriptions(char *service_name)
+{
+    UNUSED(service_name);
+    return NULL;
+}
+
+bool add_Client_Subscription(char *service_name, char *regex)
+{
+    UNUSED(service_name);
+    UNUSED(regex);
+    return true;
+}
+
+void init_subscription_list()
+{
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -179,7 +201,7 @@ void test_createSocketConnection()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     expect_function_call(initKeypress);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
@@ -217,7 +239,7 @@ void test_createSocketConnection1()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
@@ -267,7 +289,7 @@ void test_createSocketConnection2()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
@@ -308,7 +330,7 @@ void err_createSocketConnection()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     

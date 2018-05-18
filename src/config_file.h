@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Comcast Cable Communications Management, LLC
+ * Copyright 2018 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,27 +12,23 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
-/**
- * @file spin_thread.h
- *
- * @description This file is used to define thread function
- *
- */
- 
-#ifndef _SPIN_THREAD_H_
-#define _SPIN_THREAD_H_
+
+#ifndef __CONFIG_FILE_H__
+#define __CONFIG_FILE_H__
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*----------------------------------------------------------------------------*/
-/*                             Function Prototypes                            */
-/*----------------------------------------------------------------------------*/
 
-void StartThread(void *(*start_routine) (void *), void *args);
+/*
+ Parses json config_disk_file and fills cfg, 
+ returns 0 on success
+ a negative number on errors.
+ */
+int processParodusCfg(ParodusCfg *cfg, char *config_disk_file);
 
 
 #ifdef __cplusplus
@@ -40,5 +36,3 @@ void StartThread(void *(*start_routine) (void *), void *args);
 #endif
 
 #endif
-
-

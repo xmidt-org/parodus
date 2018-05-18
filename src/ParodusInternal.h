@@ -43,6 +43,7 @@
 #include <nopoll.h>
 #include <nanomsg/nn.h>
 #include <nanomsg/pipeline.h>
+#include <nanomsg/pubsub.h>
 #include <wrp-c.h>
 
 #include "parodus_log.h"
@@ -95,6 +96,9 @@ int checkHostIp(char * serverIP);
 void parStrncpy(char *destStr, const char *srcStr, size_t destSize);
 
 char* getWebpaConveyHeader();
+
+void *CRUDHandlerTask();
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
 
 #ifdef __cplusplus
 }

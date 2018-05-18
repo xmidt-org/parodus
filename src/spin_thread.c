@@ -31,12 +31,12 @@
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-void StartThread(void *(*start_routine) (void *))
+void StartThread(void *(*start_routine) (void *), void *args)
 {
     int err = 0;
 	pthread_t threadId;
 
-	err = pthread_create(&threadId, NULL, start_routine, NULL);
+	err = pthread_create(&threadId, NULL, start_routine, args);
 	if (err != 0) 
 	{
 		ParodusError("Error creating thread :[%s]\n", strerror(err));
