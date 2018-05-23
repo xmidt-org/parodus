@@ -31,6 +31,9 @@ set (PARODUS_COMMON_LIBS ${PARODUS_COMMON_LIBS} -lucresolv -lresolv)
 add_definitions(-DJWT_KEY_FILE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
 endif (FEATURE_DNS_QUERY)
 
+add_definitions(-DTOKEN_TEST_FILE_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
+
+
 if(NOT DISABLE_VALGRIND)
 set (MEMORY_CHECK valgrind --leak-check=full --show-reachable=yes -v)
 endif ()
