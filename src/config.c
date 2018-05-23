@@ -570,18 +570,22 @@ void getAuthToken(ParodusCfg *cfg)
 	
 	if( cfg->token_read_script && strlen(cfg->token_read_script) !=0 && 
         cfg->token_acquisition_script && strlen(cfg->token_acquisition_script) !=0)
-    	{
+    {
 		execute_token_script(output,cfg->token_read_script,sizeof(output),cfg->hw_mac,cfg->hw_serial_number);
 		
-	    	if ((strlen(output) == 0))
-	    	{
-			ParodusError("Unable to get auth token\n");
+        if ((strlen(output) == 0))
+        {
+        ParodusError("Unable to get auth token\n");
 		}
 		else if(strcmp(output,"ERROR")==0)
 		{
 			ParodusInfo("Failed to read token from %s. Proceeding to create new token.\n",cfg->token_read_script);
 			//Call create/acquisition script
-			createNewAuthToken(cfg->webpa_auth_token, sizeof(cfg->webpa_auth_token));	
+            if (cfg->webpa_auth_token != NULL) {
+                free(cfg->webpa_auth_token);
+            }
+            cfg->webpa_auth_token = (char *) malloc(sizeof(char) * SIZE_OF_WEBPA_AUTH_TOKEN);
+			createNewAuthToken(cfg->webpa_auth_token, SIZE_OF_WEBPA_AUTH_TOKEN);
 		}
 		else
 		{
