@@ -568,7 +568,8 @@ void getAuthToken(ParodusCfg *cfg)
 	//local var to update cfg->webpa_auth_token only in success case
 	char output[4069] = {'\0'} ;
 	
-	if( strlen(cfg->token_read_script) !=0 && strlen(cfg->token_acquisition_script) !=0)
+	if( cfg->token_read_script && strlen(cfg->token_read_script) !=0 && 
+        cfg->token_acquisition_script && strlen(cfg->token_acquisition_script) !=0)
     	{
 		execute_token_script(output,cfg->token_read_script,sizeof(output),cfg->hw_mac,cfg->hw_serial_number);
 		
@@ -797,26 +798,26 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 
 void clean_up_parodus_cfg(ParodusCfg *cfg)
 {    
-    if (cfg->hw_model == NULL) free(cfg->hw_model);
-    if (cfg->hw_serial_number == NULL) free(cfg->hw_serial_number);
-    if (cfg->hw_manufacturer == NULL) free(cfg->hw_manufacturer);
-    if (cfg->hw_mac == NULL) free(cfg->hw_mac);
-    if (cfg->hw_last_reboot_reason == NULL) free(cfg->hw_last_reboot_reason);
-    if (cfg->fw_name == NULL) free(cfg->fw_name);
-    if (cfg->webpa_url == NULL) free(cfg->webpa_url);
-    if (cfg->webpa_path_url == NULL) free(cfg->webpa_path_url);
-    if (cfg->webpa_interface_used == NULL) free(cfg->webpa_interface_used);
-    if (cfg->webpa_protocol == NULL) free(cfg->webpa_protocol);
-    if (cfg->webpa_uuid == NULL) free(cfg->webpa_uuid);
-    if (cfg->local_url == NULL) free(cfg->local_url);
-    if (cfg->partner_id == NULL) free(cfg->partner_id);
+    if (cfg->hw_model != NULL) free(cfg->hw_model);
+    if (cfg->hw_serial_number != NULL) free(cfg->hw_serial_number);
+    if (cfg->hw_manufacturer != NULL) free(cfg->hw_manufacturer);
+    if (cfg->hw_mac != NULL) free(cfg->hw_mac);
+    if (cfg->hw_last_reboot_reason != NULL) free(cfg->hw_last_reboot_reason);
+    if (cfg->fw_name != NULL) free(cfg->fw_name);
+    if (cfg->webpa_url != NULL) free(cfg->webpa_url);
+    if (cfg->webpa_path_url != NULL) free(cfg->webpa_path_url);
+    if (cfg->webpa_interface_used != NULL) free(cfg->webpa_interface_used);
+    if (cfg->webpa_protocol != NULL) free(cfg->webpa_protocol);
+    if (cfg->webpa_uuid != NULL) free(cfg->webpa_uuid);
+    if (cfg->local_url != NULL) free(cfg->local_url);
+    if (cfg->partner_id != NULL) free(cfg->partner_id);
 #ifdef ENABLE_SESHAT
-    if (cfg->seshat_url == NULL) free(cfg->seshat_url);
+    if (cfg->seshat_url != NULL) free(cfg->seshat_url);
 #endif
-    if (cfg->dns_txt_url == NULL) free(cfg->dns_txt_url);
-    if (cfg->jwt_key == NULL) free(cfg->jwt_key);
-    if (cfg->cert_path == NULL) free(cfg->cert_path);
-    if (cfg->webpa_auth_token == NULL) free(cfg->webpa_auth_token);
-    if (cfg->token_acquisition_script == NULL) free(cfg->token_acquisition_script);
-    if (cfg->token_read_script == NULL) free(cfg->token_read_script);
+    if (cfg->dns_txt_url != NULL) free(cfg->dns_txt_url);
+    if (cfg->jwt_key != NULL) free(cfg->jwt_key);
+    if (cfg->cert_path != NULL) free(cfg->cert_path);
+    if (cfg->webpa_auth_token != NULL) free(cfg->webpa_auth_token);
+    if (cfg->token_acquisition_script != NULL) free(cfg->token_acquisition_script);
+    if (cfg->token_read_script != NULL) free(cfg->token_read_script);
 }
