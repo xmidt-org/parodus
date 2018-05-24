@@ -98,21 +98,43 @@ const char *rdk_logger_module_fetch(void)
 #ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig)
 {
-    ParodusInfo("Signal %d (%s) received!\n", sig, strerror(sig));
 
-    switch (sig) {
-        case SIGUSR1:
-        case SIGCHLD:
-        case SIGPIPE:
-        case SIGALRM:
-            signal(sig, sig_handler);/* reset it to this function */
-        case SIGUSR2:
-        break;
-
-        default:
-            clean_up_parodus_cfg(get_parodus_cfg());
-            exit(0);
-        break;
-    }
+	if ( sig == SIGINT ) 
+	{
+		signal(SIGINT, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGINT received!\n");
+		exit(0);
+	}
+	else if ( sig == SIGUSR1 ) 
+	{
+		signal(SIGUSR1, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGUSR1 received!\n");
+	}
+	else if ( sig == SIGUSR2 ) 
+	{
+		ParodusInfo("SIGUSR2 received!\n");
+	}
+	else if ( sig == SIGCHLD ) 
+	{
+		signal(SIGCHLD, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGHLD received!\n");
+	}
+	else if ( sig == SIGPIPE ) 
+	{
+		signal(SIGPIPE, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGPIPE received!\n");
+	}
+	else if ( sig == SIGALRM ) 
+	{
+		signal(SIGALRM, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGALRM received!\n");
+	}
+	else 
+	{
+		ParodusInfo("Signal %d received!\n", sig);
+        clean_up_parodus_cfg(get_parodus_cfg());
+		exit(0);
+	}
+	
 }
 #endif
