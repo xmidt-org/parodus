@@ -28,7 +28,6 @@
 #include <cjwt/cjwt.h>
 
 #define MAX_BUF_SIZE	128
-#define PROTOCOL_STR_LEN 1024
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -37,7 +36,6 @@
 static ParodusCfg parodusCfg;
 static unsigned int rsa_algorithms = 
 	(1<<alg_rs256) | (1<<alg_rs384) | (1<<alg_rs512);
-
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -108,47 +106,30 @@ unsigned int get_algo_mask (const char *algo_str)
 #undef BUFLEN
 }
 
-static FILE * open_input_file (const char *fname, int *file_size)
+static int open_input_file (const char *fname)
 {
-  FILE * fd = fopen(fname, "r");
-  if (NULL == fd)
+  int fd = open(fname, O_RDONLY);
+  if (fd<0)
   {
     ParodusError ("File %s open error\n", fname);
     abort ();
   }
-  
-  fseek(fd, 0, SEEK_END);
-  *file_size = ftell(fd);
-  fseek(fd, 0, SEEK_SET);
-  
   return fd;
 } 
 
-void read_key_from_file (const char *fname, char **data)
+void read_key_from_file (const char *fname, char *buf, size_t buflen)
 {
   ssize_t nbytes;
-  int file_size = 0;
-  
-  FILE * fd = open_input_file(fname, &file_size);
-  
-  if (NULL == (*data = (char *) malloc(sizeof(char) * file_size))) {
-    ParodusError ("Read file Out of memory\n", fname);
-    fclose(fd);
-    abort ();
-  }
-  
-  nbytes = fread(*data, sizeof(char), file_size, fd);
-  if (nbytes <= 0)
+  int fd = open_input_file(fname);
+  nbytes = read(fd, buf, buflen);
+  if (nbytes < 0)
   {
     ParodusError ("Read file %s error\n", fname);
-    free(*data);
-    fclose(fd);
+    close(fd);
     abort ();
   }
-  fclose(fd);
+  close(fd);
   ParodusInfo ("%d bytes read\n", nbytes);
-  
-  return;
 }
 
 static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
@@ -328,12 +309,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 		return -1;
 	} 
 	cfg->flags = 0;
+	parStrncpy (cfg->webpa_url, "", sizeof(cfg->webpa_url));
 	cfg->acquire_jwt = 0;
 	cfg->jwt_algo = 0;
+	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	optind = 1;  /* We need this if parseCommandLine is called again */
-    int option_index = 0;/* getopt_long stores the option index here. */
     while (1)
     {
+
+      /* getopt_long stores the option index here. */
+      int option_index = 0;
       c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46",
 				long_options, &option_index);
 
@@ -344,45 +329,41 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
       switch (c)
         {
         case 'm':
-          cfg->hw_model = strdup (optarg);
+          parStrncpy(cfg->hw_model, optarg,sizeof(cfg->hw_model));
           ParodusInfo("hw-model is %s\n",cfg->hw_model);
          break;
         
         case 's':
-          cfg->hw_serial_number = strdup (optarg);
+          parStrncpy(cfg->hw_serial_number,optarg,sizeof(cfg->hw_serial_number));
           ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
           break;
 
         case 'f':
-          cfg->hw_manufacturer = strdup (optarg);
+          parStrncpy(cfg->hw_manufacturer, optarg,sizeof(cfg->hw_manufacturer));
           ParodusInfo("hw_manufacturer is %s\n",cfg->hw_manufacturer);
           break;
 
         case 'd':
-        {
-            char mac[16];
-            if (parse_mac_address (&mac[0], optarg) == 0) {
-                cfg->hw_mac = strdup(mac);
-                ParodusInfo ("hw_mac is %s\n",cfg->hw_mac);
-            } else {
-                ParodusError ("Bad mac address %s\n", optarg);
-                return -1;
-            }
-        }
+					if (parse_mac_address (cfg->hw_mac, optarg) == 0) {
+            ParodusInfo ("hw_mac is %s\n",cfg->hw_mac);
+					} else {
+						ParodusError ("Bad mac address %s\n", optarg);
+						return -1;
+					}
           break;
 #ifdef ENABLE_SESHAT
          case 'e':
-           cfg->seshat_url = strdup (optarg);
+           parStrncpy(cfg->seshat_url, optarg,sizeof(cfg->seshat_url));
            ParodusInfo("seshat_url is %s\n",cfg->seshat_url);
           break;
 #endif
         case 'r':
-          cfg->hw_last_reboot_reason = strdup (optarg);
+          parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
           ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
           break;
 
         case 'n':
-          cfg->fw_name = strdup (optarg);
+          parStrncpy(cfg->fw_name, optarg,sizeof(cfg->fw_name));
           ParodusInfo("fw_name is %s\n",cfg->fw_name);
           break;
 
@@ -394,7 +375,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
        
          case 'u':
-			cfg->webpa_url = strdup (optarg);
+			parStrncpy(cfg->webpa_url, optarg,sizeof(cfg->webpa_url));
 			if (server_is_http (cfg->webpa_url, NULL) < 0) {
 				ParodusError ("Bad webpa url %s\n", optarg);
 				return -1;
@@ -417,25 +398,19 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'i':
-          cfg->webpa_interface_used = strdup (optarg);
+          parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
           ParodusInfo("webpa_interface_used is %s\n",cfg->webpa_interface_used);
           break;
           
         case 'l':
-          if (NULL != cfg->local_url) {// free default url 
-              free(cfg->local_url);
-          }
-          cfg->local_url = strdup (optarg);
+          parStrncpy(cfg->local_url, optarg,sizeof(cfg->local_url));
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
         case 'D':
           // like 'fabric' or 'test'
           // this parameter is used, along with the hw_mac parameter
           // to create the dns txt record id
-          if (NULL != cfg->dns_txt_url) {// free default url 
-              free(cfg->dns_txt_url);
-          }
-          cfg->dns_txt_url = strdup (optarg);
+          parStrncpy(cfg->dns_txt_url, optarg,sizeof(cfg->dns_txt_url));
           ParodusInfo("parodus dns-txt-url is %s\n",cfg->dns_txt_url);
           break;
 		 
@@ -456,22 +431,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("jwt_algo is %u\n",cfg->jwt_algo);
           break;
 		case 'k':
-          if (NULL != cfg->jwt_key) {// free default jwt_key 
-              free(cfg->jwt_key);
-          }
-          read_key_from_file (optarg, &cfg->jwt_key);
+          read_key_from_file (optarg, cfg->jwt_key, sizeof(cfg->jwt_key));
           ParodusInfo("jwt_key is %s\n",cfg->jwt_key);
           break;
         case 'p':
-          cfg->partner_id = strdup (optarg);
+          parStrncpy(cfg->partner_id, optarg,sizeof(cfg->partner_id));
           ParodusInfo("partner_id is %s\n",cfg->partner_id);
           break;
 
         case 'c':
-          if (NULL != cfg->cert_path) {// free default cert_path 
-              free(cfg->cert_path);
-          }            
-          cfg->cert_path = strdup (optarg);
+          parStrncpy(cfg->cert_path, optarg,sizeof(cfg->cert_path));
           ParodusInfo("cert_path is %s\n",cfg->cert_path);
           break;
 
@@ -486,16 +455,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'J':
-          cfg->token_acquisition_script = strdup (optarg);
+          parStrncpy(cfg->token_acquisition_script, optarg,sizeof(cfg->token_acquisition_script));
           break;
         
         case 'T':
-          cfg->token_read_script = strdup(optarg);
+          parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
           break;
 
         case '?':
-            ParodusError("Unrecognized option %s Aborting ...\n", argv[optind]);
-            return -1;
+          /* getopt_long already printed an error message. */
+          break;
 
         default:
            ParodusError("Enter Valid commands..\n");
@@ -503,7 +472,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         }
     }
 
-	if (cfg->webpa_url && (0 == strlen (cfg->webpa_url))) {
+	if (0 == strlen (cfg->webpa_url)) {
 		ParodusError ("Missing webpa url argument\n");
 		return -1;
 	}
@@ -513,13 +482,11 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 			ParodusError ("Missing jwt algorithm argument\n");
 			return -1;
 		}
-
-		if (cfg->jwt_algo & rsa_algorithms) {
-             if  (!cfg->jwt_key || (0 == strlen (cfg->jwt_key)) ) {
-                ParodusError ("Missing jwt public key file argument\n");
-                return -1;
-            }
-        }
+		if ((0 != (cfg->jwt_algo & rsa_algorithms)) &&
+		    (0 == strlen (cfg->jwt_key)) ) {
+			ParodusError ("Missing jwt public key file argument\n");
+			return -1;
+		}
 		    
 	}
 	
@@ -585,7 +552,7 @@ void getAuthToken(ParodusCfg *cfg)
 		else
 		{
 			ParodusInfo("update cfg->webpa_auth_token in success case\n");
-			cfg->webpa_auth_token = strdup(output);
+			parStrncpy(cfg->webpa_auth_token, output, sizeof(cfg->webpa_auth_token));
 		}
 	}
 	else
@@ -596,7 +563,6 @@ void getAuthToken(ParodusCfg *cfg)
 
 void setDefaultValuesToCfg(ParodusCfg *cfg)
 {
-    char protocol_str[PROTOCOL_STR_LEN];
     if(cfg == NULL)
     {
         ParodusError("cfg is NULL\n");
@@ -604,128 +570,125 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     }
     
     ParodusInfo("Setting default values to parodusCfg\n");
-    cfg->local_url = strdup (PARODUS_UPSTREAM);
+    parStrncpy(cfg->local_url, PARODUS_UPSTREAM, sizeof(cfg->local_url));
 
 	cfg->acquire_jwt = 0;
 
-    cfg->dns_txt_url = strdup (DNS_TXT_URL);
+    parStrncpy(cfg->dns_txt_url, DNS_TXT_URL, sizeof(cfg->dns_txt_url));
 
-    cfg->jwt_key = strdup ("\0");
+    parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
     
     cfg->jwt_algo = 0;
    
-    cfg->cert_path = NULL;
+    parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
 
     cfg->flags = 0;
     
-    cfg->webpa_path_url = strdup (WEBPA_PATH_URL);
+    parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
     
-    snprintf(protocol_str, PROTOCOL_STR_LEN, "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
-    cfg->webpa_protocol = strdup(protocol_str);
+    snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     ParodusInfo(" cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
     
-    cfg->webpa_uuid = strdup ("1234567-345456546");
+    parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 {
-    char protocol_str[PROTOCOL_STR_LEN];
-
     if(config == NULL)
     {
         ParodusError("config is NULL\n");
         return;
     }
     
-    if(config->hw_model && strlen (config->hw_model) !=0)
+    if(strlen (config->hw_model) !=0)
     {
-          cfg->hw_model = strdup (config->hw_model);
+          parStrncpy(cfg->hw_model, config->hw_model, sizeof(cfg->hw_model));
     }
     else
     {
         ParodusPrint("hw_model is NULL. read from tmp file\n");
     }
-    if( config->hw_serial_number && strlen(config->hw_serial_number) !=0)
+    if( strlen(config->hw_serial_number) !=0)
     {
-        cfg->hw_serial_number = strdup (config->hw_serial_number);
+        parStrncpy(cfg->hw_serial_number, config->hw_serial_number, sizeof(cfg->hw_serial_number));
     }
     else
     {
         ParodusPrint("hw_serial_number is NULL. read from tmp file\n");
     }
-    if(config->hw_manufacturer && strlen(config->hw_manufacturer) !=0)
+    if(strlen(config->hw_manufacturer) !=0)
     {
-        cfg->hw_manufacturer = strdup (config->hw_manufacturer);
+        parStrncpy(cfg->hw_manufacturer, config->hw_manufacturer,sizeof(cfg->hw_manufacturer));
     }
     else
     {
         ParodusPrint("hw_manufacturer is NULL. read from tmp file\n");
     }
-    if(config->hw_mac && strlen(config->hw_mac) !=0)
+    if(strlen(config->hw_mac) !=0)
     {
-       cfg->hw_mac = strdup (config->hw_mac);
+       parStrncpy(cfg->hw_mac, config->hw_mac,sizeof(cfg->hw_mac));
     }
     else
     {
         ParodusPrint("hw_mac is NULL. read from tmp file\n");
     }
-    if(config->hw_last_reboot_reason && strlen (config->hw_last_reboot_reason) !=0)
+    if(strlen (config->hw_last_reboot_reason) !=0)
     {
-         cfg->hw_last_reboot_reason = strdup (config->hw_last_reboot_reason);
+         parStrncpy(cfg->hw_last_reboot_reason, config->hw_last_reboot_reason,sizeof(cfg->hw_last_reboot_reason));
     }
     else
     {
         ParodusPrint("hw_last_reboot_reason is NULL. read from tmp file\n");
     }
-    if(config->fw_name && strlen(config->fw_name) !=0)
+    if(strlen(config->fw_name) !=0)
     {   
-        cfg->fw_name = strdup (config->fw_name);
+        parStrncpy(cfg->fw_name, config->fw_name,sizeof(cfg->fw_name));
     }
     else
     {
         ParodusPrint("fw_name is NULL. read from tmp file\n");
     }
-    if( config->webpa_url && strlen(config->webpa_url) !=0)
+    if( strlen(config->webpa_url) !=0)
     {
-        cfg->webpa_url = strdup (config->webpa_url);
+        parStrncpy(cfg->webpa_url, config->webpa_url,sizeof(cfg->webpa_url));
     }
     else
     {
         ParodusPrint("webpa_url is NULL. read from tmp file\n");
     }
-    if(config->webpa_interface_used && strlen(config->webpa_interface_used )!=0)
+    if(strlen(config->webpa_interface_used )!=0)
     {
-        cfg->webpa_interface_used = strdup (config->webpa_interface_used);
+        parStrncpy(cfg->webpa_interface_used, config->webpa_interface_used,sizeof(cfg->webpa_interface_used));
     }
     else
     {
         ParodusPrint("webpa_interface_used is NULL. read from tmp file\n");
     }
-    if( config->local_url && strlen(config->local_url) !=0)
+    if( strlen(config->local_url) !=0)
     {
-        cfg->local_url = strdup (config->local_url);
+        parStrncpy(cfg->local_url, config->local_url,sizeof(cfg->local_url));
     }
     else
     {
 		ParodusInfo("parodus local_url is NULL. adding default url\n");
-		cfg->local_url = strdup (PARODUS_UPSTREAM);
+		parStrncpy(cfg->local_url, PARODUS_UPSTREAM, sizeof(cfg->local_url));
         
     }
 
-    if( config->partner_id && strlen(config->partner_id) !=0)
+    if( strlen(config->partner_id) !=0)
     {
-        cfg->partner_id = strdup (config->partner_id);
+        parStrncpy(cfg->partner_id, config->partner_id,sizeof(cfg->partner_id));
     }
     else
     {
 		ParodusPrint("partner_id is NULL. read from tmp file\n");
     }
 #ifdef ENABLE_SESHAT
-    if( config->seshat_url && strlen(config->seshat_url) !=0)
+    if( strlen(config->seshat_url) !=0)
     {
-        cfg->seshat_url = strdup (config->seshat_url);
+        parStrncpy(cfg->seshat_url, config->seshat_url,sizeof(cfg->seshat_url));
     }
     else
     {
@@ -734,50 +697,50 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 #endif
 	cfg->acquire_jwt = config->acquire_jwt;
 
-     if( config->dns_txt_url && strlen(config->dns_txt_url) !=0)
+     if( strlen(config->dns_txt_url) !=0)
     {
-        cfg->dns_txt_url = strdup (config->dns_txt_url);
+        parStrncpy(cfg->dns_txt_url, config->dns_txt_url, sizeof(cfg->dns_txt_url));
     }
     else
     {
-        ParodusInfo("parodus dns-txt-url is NULL. adding default\n");
-        cfg->dns_txt_url = strdup (DNS_TXT_URL);
+	ParodusInfo("parodus dns-txt-url is NULL. adding default\n");
+	parStrncpy(cfg->dns_txt_url, DNS_TXT_URL, sizeof(cfg->dns_txt_url));
     }
 
-    if(config->jwt_key && strlen(config->jwt_key )!=0)
+    if(strlen(config->jwt_key )!=0)
     {
-        cfg->jwt_key = strdup (config->jwt_key);
+        parStrncpy(cfg->jwt_key, config->jwt_key,sizeof(cfg->jwt_key));
     }
     else
     {
-        cfg->jwt_key = strdup ("\0");
+        parStrncpy(cfg->jwt_key, "\0", sizeof(cfg->jwt_key));
         ParodusPrint("jwt_key is NULL. set to empty\n");
     }
 
 	cfg->jwt_algo = config->jwt_algo;        
 
-    if(config->cert_path && strlen(config->cert_path )!=0)
+    if(strlen(config->cert_path )!=0)
     {
-        cfg->cert_path = strdup (config->cert_path);
+        parStrncpy(cfg->cert_path, config->cert_path,sizeof(cfg->cert_path));
     }
     else
     {
-        cfg->cert_path = strdup ("\0");
+        parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
 
-    if(config->token_acquisition_script && strlen(config->token_acquisition_script )!=0)
+    if(strlen(config->token_acquisition_script )!=0)
     {
-          cfg->token_acquisition_script = strdup (config->token_acquisition_script);
+          parStrncpy(cfg->token_acquisition_script, config->token_acquisition_script,sizeof(cfg->token_acquisition_script));
     }
     else
     {
           ParodusPrint("token_acquisition_script is NULL. read from tmp file\n");
     }
         
-    if(config->token_read_script && strlen(config->token_read_script )!=0)
+    if(strlen(config->token_read_script )!=0)
     {
-          cfg->token_read_script = strdup (config->token_read_script);
+          parStrncpy(cfg->token_read_script, config->token_read_script,sizeof(cfg->token_read_script));
     }
     else
     {
@@ -787,36 +750,12 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     cfg->boot_time = config->boot_time;
     cfg->webpa_ping_timeout = config->webpa_ping_timeout;
     cfg->webpa_backoff_max = config->webpa_backoff_max;
-    cfg->webpa_path_url = strdup (WEBPA_PATH_URL);
-    snprintf(protocol_str, PROTOCOL_STR_LEN, "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
-    cfg->webpa_protocol = strdup (protocol_str);
+    parStrncpy(cfg->webpa_path_url, WEBPA_PATH_URL,sizeof(cfg->webpa_path_url));
+    snprintf(cfg->webpa_protocol, sizeof(cfg->webpa_protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
     ParodusInfo("cfg->webpa_protocol is %s\n", cfg->webpa_protocol);
-    cfg->webpa_uuid = strdup ("1234567-345456546");
+    parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
+    
 }
 
-void clean_up_parodus_cfg(ParodusCfg *cfg)
-{    
-    if (cfg->hw_model == NULL) free(cfg->hw_model);
-    if (cfg->hw_serial_number == NULL) free(cfg->hw_serial_number);
-    if (cfg->hw_manufacturer == NULL) free(cfg->hw_manufacturer);
-    if (cfg->hw_mac == NULL) free(cfg->hw_mac);
-    if (cfg->hw_last_reboot_reason == NULL) free(cfg->hw_last_reboot_reason);
-    if (cfg->fw_name == NULL) free(cfg->fw_name);
-    if (cfg->webpa_url == NULL) free(cfg->webpa_url);
-    if (cfg->webpa_path_url == NULL) free(cfg->webpa_path_url);
-    if (cfg->webpa_interface_used == NULL) free(cfg->webpa_interface_used);
-    if (cfg->webpa_protocol == NULL) free(cfg->webpa_protocol);
-    if (cfg->webpa_uuid == NULL) free(cfg->webpa_uuid);
-    if (cfg->local_url == NULL) free(cfg->local_url);
-    if (cfg->partner_id == NULL) free(cfg->partner_id);
-#ifdef ENABLE_SESHAT
-    if (cfg->seshat_url == NULL) free(cfg->seshat_url);
-#endif
-    if (cfg->dns_txt_url == NULL) free(cfg->dns_txt_url);
-    if (cfg->jwt_key == NULL) free(cfg->jwt_key);
-    if (cfg->cert_path == NULL) free(cfg->cert_path);
-    if (cfg->webpa_auth_token == NULL) free(cfg->webpa_auth_token);
-    if (cfg->token_acquisition_script == NULL) free(cfg->token_acquisition_script);
-    if (cfg->token_read_script == NULL) free(cfg->token_read_script);
-}
+

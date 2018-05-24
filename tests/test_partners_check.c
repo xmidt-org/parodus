@@ -51,13 +51,12 @@ void test_validate_partner_id_for_req()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    cfg.partner_id = strdup ("comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
     assert_int_equal(ret, 1);
-    free(cfg.partner_id);
     free(msg);
 }
 
@@ -69,13 +68,12 @@ void test_validate_partner_id_for_req_listNULL()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    cfg.partner_id = strdup ("comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
     assert_int_equal(ret, 1);
-    free(cfg.partner_id);
     free(msg);
 }
 
@@ -105,13 +103,12 @@ void err_validate_partner_id_for_req()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    cfg.partner_id = strdup ("comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
     int ret = validate_partner_id(msg, NULL); 
     assert_int_equal(ret, -1);
-    free(cfg.partner_id);
     free(msg);
 }
 
@@ -125,7 +122,7 @@ void test_validate_partner_id_for_event()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    cfg.partner_id = strdup ("comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -134,7 +131,6 @@ void test_validate_partner_id_for_event()
     int ret = validate_partner_id(msg, &list); 
     assert_int_equal(ret, 1);
     free(list);  
-    free(cfg.partner_id);
     free(msg);
 }
 
@@ -146,7 +142,7 @@ void test_validate_partner_id_for_event_listNULL()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    cfg.partner_id = strdup ("comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -161,7 +157,6 @@ void test_validate_partner_id_for_event_listNULL()
         free(list->partner_ids[i]);
     }
     free(list);
-    free(cfg.partner_id);
     free(msg);
 }
 
@@ -195,7 +190,7 @@ void test_validate_partner_id_for_event_withoutId()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    cfg.partner_id = strdup ("comcast");
+    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -212,7 +207,6 @@ void test_validate_partner_id_for_event_withoutId()
     }
     free(list);
     free(msg);
-    free(cfg.partner_id);
     free(partner_ids);
 }
 

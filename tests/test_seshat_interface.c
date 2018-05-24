@@ -87,7 +87,7 @@ int allow_insecure_conn(void)
 /*----------------------------------------------------------------------------*/
 void test_all_pass()
 {
-    g_config.local_url = strdup(URL);
+    parStrncpy(g_config.local_url, URL, sizeof(g_config.local_url));
 
     will_return(init_lib_seshat, 0);
     expect_function_call(init_lib_seshat);
@@ -104,7 +104,6 @@ void test_all_pass()
     expect_function_call(shutdown_seshat_lib);
 
     assert_true(__registerWithSeshat());
-    free(g_config.local_url);
     memset(&g_config, '\0', sizeof(g_config));
 }
 
@@ -152,7 +151,7 @@ void test_discover_fail()
 
 void test_discover_pass_but_lru_expected_fail()
 {
-    g_config.local_url = strdup(URL);
+    parStrncpy(g_config.local_url, URL, sizeof(g_config.local_url));
 
     will_return(init_lib_seshat, 0);
     expect_function_call(init_lib_seshat);
@@ -169,8 +168,6 @@ void test_discover_pass_but_lru_expected_fail()
     expect_function_call(shutdown_seshat_lib);
 
     assert_false(__registerWithSeshat());
-
-    free(g_config.local_url);
 }
 
 /*----------------------------------------------------------------------------*/

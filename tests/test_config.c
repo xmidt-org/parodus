@@ -58,20 +58,20 @@ void test_setParodusConfig()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
 
-    cfg.hw_model = strdup ("TG1682");
-    cfg.hw_serial_number = strdup ("Fer23u948590");
-    cfg.hw_manufacturer = strdup ("ARRISGroup,Inc.");
-    cfg.hw_mac = strdup ("123567892366");
-    cfg.hw_last_reboot_reason = strdup ("unknown");
-    cfg.fw_name = strdup ("2.364s2");
-    cfg.webpa_path_url = strdup ("/v1");
-    cfg.webpa_url = strdup ("http://127.0.0.1");
-    cfg.webpa_interface_used = strdup ("eth0");
-    cfg.webpa_protocol = strdup ("WebPA-1.6");
-    cfg.webpa_uuid = strdup ("1234567-345456546");
-    cfg.partner_id = strdup ("mycom");
+    parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
+    parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+    parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
+    parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+    parStrncpy(cfg.hw_last_reboot_reason , "unknown", sizeof(cfg.hw_last_reboot_reason));
+    parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
+    parStrncpy(cfg.webpa_path_url , "/v1", sizeof(cfg.webpa_path_url));
+    parStrncpy(cfg.webpa_url , "http://127.0.0.1", sizeof(cfg.webpa_url));
+    parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+    parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
+    parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
+    parStrncpy(cfg.partner_id , "mycom", sizeof(cfg.partner_id));
 #ifdef ENABLE_SESHAT
-    cfg.seshat_url = strdup ("ipc://tmp/seshat_service.url");
+    parStrncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", sizeof(cfg.seshat_url));
 #endif
     cfg.flags = 0;
     cfg.boot_time = 423457;
@@ -79,9 +79,9 @@ void test_setParodusConfig()
     cfg.webpa_backoff_max = 255;
 #ifdef FEATURE_DNS_QUERY
     cfg.acquire_jwt = 1;
-    cfg.dns_txt_url = strdup ("test");
+    parStrncpy(cfg.dns_txt_url, "test",sizeof(cfg.dns_txt_url));
     cfg.jwt_algo = 1025;
-    cfg.jwt_key = strdup ("key.txt");
+    parStrncpy(cfg.jwt_key, "key.txt",sizeof(cfg.jwt_key));
 #endif    
     set_parodus_cfg(&cfg);
 
@@ -111,8 +111,6 @@ void test_setParodusConfig()
     assert_int_equal( (int) cfg.jwt_algo, (int) temp->jwt_algo);
     assert_string_equal(cfg.jwt_key, temp->jwt_key);
 #endif
-    
-    clean_up_parodus_cfg(&cfg);
 }
 
 void test_getParodusConfig()
@@ -120,43 +118,20 @@ void test_getParodusConfig()
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
 
-    cfg.hw_model = strdup ("TG1682133");
+    parStrncpy(cfg.hw_model, "TG1682133",sizeof(cfg.hw_model));
     set_parodus_cfg(&cfg);
 
     ParodusCfg *temp = get_parodus_cfg();
 
     assert_string_equal(cfg.hw_model, temp->hw_model);
-    
-    free(cfg.hw_model);
 }
 
-#ifdef FEATURE_DNS_QUERY
-const char *jwt_key_file_path = JWT_KEY_FILE_PATH;
-#else
-const char *jwt_key_file_path = "foo";
-#endif
-
-static FILE * open_output_file (const char *fname)
+static int open_output_file (const char *fname)
 {
-  FILE *fd;
-  char *file_path;
-  int error;
-
-  file_path = (char *) malloc(strlen(fname) + strlen(jwt_key_file_path) + 1);
-  if (NULL == file_path) {
-      ParodusError("open_output_file() malloc failed\n");
-  }
-
-  strcpy(file_path, jwt_key_file_path);
-  strcat(file_path, fname);
-
-  errno = 0;
-  fd = fopen(file_path, "w+");
-  error = errno;
-
-  if (NULL == fd)
+  int fd = open(fname, O_WRONLY | O_CREAT, 0666);
+  if (fd<0)
   {
-    ParodusError ("File %s open error (%s)\n", file_path, strerror(error));
+    ParodusError ("File %s open error\n", fname);
     abort ();
   }
   return fd;
@@ -164,21 +139,17 @@ static FILE * open_output_file (const char *fname)
 
 void write_key_to_file (const char *fname, const char *buf)
 {
-  ssize_t nbytes = -1;
+  ssize_t nbytes;
   ssize_t buflen = strlen (buf);
-  FILE *fd = open_output_file(fname);
-  
-  if (fd) {
-    nbytes = fwrite(buf, sizeof(char), buflen, fd);
-  }
-  
+  int fd = open_output_file(fname);
+  nbytes = write(fd, buf, buflen);
   if (nbytes < 0)
   {
     ParodusError ("Write file %s error\n", fname);
-    fclose(fd);
+    close(fd);
     abort ();
   }
-  fclose(fd);
+  close(fd);
   ParodusInfo ("%d bytes written\n", nbytes);
 }
 
@@ -214,34 +185,18 @@ void test_parseCommandLine()
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
 		"--dns-txt-url=mydns.mycom.net",
-        "--jwt-algo=RS256",
-        "--jwt-public-key-file=../../tests/jwt_key.tst", /* POSITION DEPENDENT */
+		"--jwt-public-key-file=../../tests/jwt_key.tst",
+		"--jwt-algo=RS256",
 #endif
 		NULL
 	};
 	int argc = (sizeof (command) / sizeof (char *)) - 1;
+
     ParodusCfg parodusCfg;
-
-#ifdef FEATURE_DNS_QUERY
-    char *file_path;
-    #define JWT_PUBLIC "--jwt-public-key-file="
-
-    file_path = (char *) malloc(strlen(JWT_PUBLIC) + strlen("/jwt_key.tst") +
-                         strlen(jwt_key_file_path) + 1);
-    if (NULL == file_path) {
-        ParodusError("open_output_file() malloc failed\n");
-    }
-
-    strcpy(file_path, JWT_PUBLIC);
-    strcat(file_path, jwt_key_file_path);
-    strcat(file_path, "/jwt_key.tst");
-    command[argc-1] = file_path;
-#endif
-
     memset(&parodusCfg,0,sizeof(parodusCfg));
 
 #ifdef FEATURE_DNS_QUERY
-	write_key_to_file ("/jwt_key.tst", jwt_key);
+	write_key_to_file ("../../tests/jwt_key.tst", jwt_key);
 #endif
     create_token_script("/tmp/token.sh");
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), 0);
@@ -274,7 +229,6 @@ void test_parseCommandLine()
     assert_string_equal(parodusCfg.dns_txt_url, "mydns.mycom.net");
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
-    free(file_path);
 #endif
 
 }
@@ -338,30 +292,30 @@ void test_loadParodusCfg()
     Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     char protocol[32] = {'\0'};
 
-    Cfg->hw_model = strdup ("TG1682");
-    Cfg->hw_serial_number = strdup ("Fer23u948590");
-    Cfg->hw_manufacturer = strdup ("ARRISGroup,Inc.");
-    Cfg->hw_mac = strdup ("123567892366");
-    Cfg->hw_last_reboot_reason = strdup ("unknown");
-    Cfg->fw_name = strdup ("2.364s2");
-    Cfg->webpa_path_url = strdup ("/v1");
-    Cfg->webpa_url = strdup ("http://127.0.0.1");
-    Cfg->webpa_interface_used = strdup ("eth0");
+    parStrncpy(Cfg->hw_model, "TG1682", sizeof(Cfg->hw_model));
+    parStrncpy(Cfg->hw_serial_number, "Fer23u948590", sizeof(Cfg->hw_serial_number));
+    parStrncpy(Cfg->hw_manufacturer , "ARRISGroup,Inc.", sizeof(Cfg->hw_manufacturer));
+    parStrncpy(Cfg->hw_mac , "123567892366", sizeof(Cfg->hw_mac));
+    parStrncpy(Cfg->hw_last_reboot_reason , "unknown", sizeof(Cfg->hw_last_reboot_reason));
+    parStrncpy(Cfg->fw_name , "2.364s2", sizeof(Cfg->fw_name));
+    parStrncpy(Cfg->webpa_path_url , "/v1", sizeof(Cfg->webpa_path_url));
+    parStrncpy(Cfg->webpa_url , "http://127.0.0.1", sizeof(Cfg->webpa_url));
+    parStrncpy(Cfg->webpa_interface_used , "eth0", sizeof(Cfg->webpa_interface_used));
     snprintf(protocol, sizeof(protocol), "%s-%s", PROTOCOL_VALUE, GIT_COMMIT_TAG);
-    Cfg->webpa_protocol = strdup (protocol);
-    Cfg->local_url = strdup ("tcp://10.0.0.1:6000");
-    Cfg->partner_id = strdup ("shaw");
+    parStrncpy(Cfg->webpa_protocol , protocol, sizeof(Cfg->webpa_protocol));
+    parStrncpy(Cfg->local_url , "tcp://10.0.0.1:6000", sizeof(Cfg->local_url));
+    parStrncpy(Cfg->partner_id , "shaw", sizeof(Cfg->partner_id));
 #ifdef FEATURE_DNS_QUERY
 	Cfg->acquire_jwt = 1;
-    Cfg->dns_txt_url = strdup ("mydns");
+    parStrncpy(Cfg->dns_txt_url, "mydns",sizeof(Cfg->dns_txt_url));
     Cfg->jwt_algo = 1025;
-    Cfg->jwt_key = strdup ("AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
+    parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
 #endif
-    Cfg->token_acquisition_script = strdup ("/tmp/token.sh");
-    Cfg->token_read_script = strdup ("/tmp/token.sh");
-    Cfg->cert_path = strdup ("/etc/ssl.crt");
+    parStrncpy(Cfg->token_acquisition_script , "/tmp/token.sh", sizeof(Cfg->token_acquisition_script));
+    parStrncpy(Cfg->token_read_script , "/tmp/token.sh", sizeof(Cfg->token_read_script));
+    parStrncpy(Cfg->cert_path, "/etc/ssl.crt",sizeof(Cfg->cert_path));
 #ifdef ENABLE_SESHAT
-    Cfg->seshat_url = strdup ("ipc://tmp/seshat_service.url");
+    parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
 #endif
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
@@ -385,7 +339,6 @@ void test_loadParodusCfg()
 #ifdef ENABLE_SESHAT
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
 #endif
-    clean_up_parodus_cfg(Cfg);    
     free(Cfg);
 }
 
@@ -399,12 +352,14 @@ void test_loadParodusCfgNull()
 
     loadParodusCfg(cfg,&temp);
 
+    assert_string_equal(temp.hw_model, "");
+    assert_string_equal(temp.hw_serial_number, "");
+    assert_string_equal(temp.hw_manufacturer, "");
     assert_int_equal( (int) temp.flags,0);
     assert_string_equal( temp.webpa_path_url, WEBPA_PATH_URL);	
     assert_string_equal( temp.webpa_uuid,"1234567-345456546");
     assert_string_equal( temp.local_url, PARODUS_UPSTREAM);
 
-    clean_up_parodus_cfg(cfg);    
     free(cfg);
 }
 
@@ -414,20 +369,18 @@ void err_loadParodusCfg()
     loadParodusCfg(NULL,&cfg);
 }
 
-/* This test makes no sense ;-) 
 void test_parodusGitVersion()
 {
    FILE *fp;
-   char *version = (char *) malloc(256);
+   char version[32] = {'\0'};
    char *command = "git describe --tags --always";
    int n;
    size_t len;
    fp = popen(command,"r"); 
-   memset(version, 0, 2048);
-   while(fgets(version, 2048, fp) !=NULL)
+   while(fgets(version, 32, fp) !=NULL)
    {
    	len = strlen(version);
-  	if (len > 0) 
+  	if (len > 0 && version[len-1] == '\n') 
   	{
     		version[--len] = '\0';
   	}
@@ -438,9 +391,7 @@ void test_parodusGitVersion()
    printf ("GIT_COMMIT_TAG: %s\n", GIT_COMMIT_TAG);
    n = strcmp( version, GIT_COMMIT_TAG);
    assert_int_equal(n, 0);
-   free(version);
 }
-*/
 
 void test_setDefaultValuesToCfg()
 {
@@ -454,13 +405,10 @@ void test_setDefaultValuesToCfg()
     assert_string_equal(cfg->jwt_key, "\0");
     assert_int_equal( (int)cfg->jwt_algo, 0);
 #endif
-    assert_true(cfg->cert_path == NULL);
+    assert_string_equal(cfg->cert_path, "\0");
     assert_int_equal((int)cfg->flags, 0);
     assert_string_equal(cfg->webpa_path_url, WEBPA_PATH_URL);
     assert_string_equal(cfg->webpa_uuid, "1234567-345456546");
-    
-    clean_up_parodus_cfg(cfg);    
-    free(cfg);
 }
 
 void err_setDefaultValuesToCfg()
@@ -563,7 +511,7 @@ int main(void)
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
-       // cmocka_unit_test(test_parodusGitVersion),
+        cmocka_unit_test(test_parodusGitVersion),
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),
     };

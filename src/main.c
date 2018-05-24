@@ -132,7 +132,6 @@ static void sig_handler(int sig)
 	else 
 	{
 		ParodusInfo("Signal %d received!\n", sig);
-        clean_up_parodus_cfg(get_parodus_cfg());
 		exit(0);
 	}
 	
