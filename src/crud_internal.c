@@ -141,7 +141,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 			}
 
 			objlevel = i;
-			ParodusInfo( " Number of object level %d\n", objlevel );
+			ParodusInfo( "Number of object level %d\n", objlevel );
 
 			/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
 			if(objlevel == 4)
@@ -199,7 +199,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 							}
 							else
 							{
-								ParodusInfo("testObj not exists in json, adding it\n");
+								ParodusInfo("testObj doesnot exists in json, adding it\n");
 								cJSON *payloadObj = cJSON_CreateObject();
 
 								cJSON_AddItemToObject(tagObj, obj[objlevel -1], testObj1 = cJSON_CreateObject());
@@ -487,7 +487,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 							if( child_ptr != NULL )
 							{
 								obj[i] = strdup( child_ptr );
-								ParodusInfo( "child obj[%d]:%s\n", i, obj[i] );
+								ParodusPrint( "child obj[%d]:%s\n", i, obj[i] );
 								i++;
 							}
 						}
@@ -759,7 +759,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 										}
 										else
 										{
-											ParodusInfo("testObj not exists in json, adding it\n");
+											ParodusInfo("testObj doesnot exists in json, adding it\n");
 											cJSON_AddItemToObject(tagObj, obj[objlevel -1], testObj1 = cJSON_CreateObject());
 											cJSON_AddNumberToObject(testObj1, key, value);
 											cJSON_AddItemToObject(payloadObj, obj[objlevel -1], testObj1);
@@ -909,7 +909,7 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 							if( child_ptr != NULL )
 							{
 								obj[i] = strdup( child_ptr );
-								ParodusInfo( "child obj[%d]:%s\n", i, obj[i] );
+								ParodusPrint( "child obj[%d]:%s\n", i, obj[i] );
 								i++;
 							}
 						}

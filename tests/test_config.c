@@ -82,10 +82,10 @@ void test_setParodusConfig()
     parStrncpy(cfg.dns_txt_url, "test",sizeof(cfg.dns_txt_url));
     cfg.jwt_algo = 1025;
     parStrncpy(cfg.jwt_key, "key.txt",sizeof(cfg.jwt_key));
-#endif    
-    set_parodus_cfg(&cfg);
-
-    ParodusCfg *temp = get_parodus_cfg();
+#endif 
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+	ParodusCfg *temp = get_parodus_cfg();
 
     assert_string_equal(cfg.hw_model, temp->hw_model);
     assert_string_equal(cfg.hw_serial_number, temp->hw_serial_number);
@@ -111,6 +111,7 @@ void test_setParodusConfig()
     assert_int_equal( (int) cfg.jwt_algo, (int) temp->jwt_algo);
     assert_string_equal(cfg.jwt_key, temp->jwt_key);
 #endif
+	assert_string_equal(cfg.crud_config_file, temp->crud_config_file);
 }
 
 void test_getParodusConfig()
@@ -188,6 +189,7 @@ void test_parseCommandLine()
 		"--jwt-public-key-file=../../tests/jwt_key.tst",
 		"--jwt-algo=RS256",
 #endif
+		"--crud-config-file=parodus_cfg.json",
 		NULL
 	};
 	int argc = (sizeof (command) / sizeof (char *)) - 1;
@@ -230,7 +232,7 @@ void test_parseCommandLine()
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
 #endif
-
+	assert_string_equal(parodusCfg.crud_config_file, "parodus_cfg.json");
 }
 
 void test_parseCommandLineNull()
@@ -317,6 +319,7 @@ void test_loadParodusCfg()
 #ifdef ENABLE_SESHAT
     parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
 #endif
+	Cfg->crud_config_file = strdup("parodus_cfg.json");
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
 
@@ -339,6 +342,7 @@ void test_loadParodusCfg()
 #ifdef ENABLE_SESHAT
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
 #endif
+	assert_string_equal(tmpcfg.crud_config_file, "parodus_cfg.json");
     free(Cfg);
 }
 
@@ -359,7 +363,7 @@ void test_loadParodusCfgNull()
     assert_string_equal( temp.webpa_path_url, WEBPA_PATH_URL);	
     assert_string_equal( temp.webpa_uuid,"1234567-345456546");
     assert_string_equal( temp.local_url, PARODUS_UPSTREAM);
-
+	assert_null(temp.crud_config_file);
     free(cfg);
 }
 

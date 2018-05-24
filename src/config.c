@@ -299,6 +299,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"force-ipv6",              no_argument,       0, '6'},
         {"token-read-script",       required_argument, 0, 'T'},
 	{"token-acquisition-script",     required_argument, 0, 'J'},
+	{"crud-config-file",        required_argument, 0, 'C'},
         {0, 0, 0, 0}
     };
     int c;
@@ -313,13 +314,14 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->acquire_jwt = 0;
 	cfg->jwt_algo = 0;
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
+	cfg->crud_config_file = NULL;
 	optind = 1;  /* We need this if parseCommandLine is called again */
     while (1)
     {
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:C",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -462,6 +464,11 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
           break;
 
+		case 'C':
+		  cfg->crud_config_file = strdup(optarg);
+		  ParodusInfo("crud_config_file is %s\n", cfg->crud_config_file);
+		  break;
+
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -591,7 +598,8 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
-    
+    cfg->crud_config_file = strdup("parodus_cfg.json");
+	ParodusPrint("Default crud_config_file is %s\n", cfg->crud_config_file);
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
@@ -756,6 +764,14 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
+    if(config->crud_config_file != NULL)
+    {
+        cfg->crud_config_file = strdup(config->crud_config_file);
+    }
+    else
+    {
+        ParodusPrint("crud_config_file is NULL. set to empty\n");
+    }
 }
 
 

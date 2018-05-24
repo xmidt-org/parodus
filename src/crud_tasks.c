@@ -12,8 +12,6 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
     wrp_msg_t *resp_msg = NULL;
     char *str= NULL;
     int ret = -1;
-    char *destVal = NULL;
-    char *destination = NULL;
     
     resp_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
     memset(resp_msg, 0, sizeof(wrp_msg_t));

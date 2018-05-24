@@ -93,6 +93,7 @@ typedef struct
     char webpa_auth_token[4096];
     char token_acquisition_script[64];
     char token_read_script[64];
+	char *crud_config_file;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
