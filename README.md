@@ -1,6 +1,6 @@
 # parodus
 
-C implementation of the WebPA client coordinator
+C implementation of the XMiDT client coordinator
 
 [![Build Status](https://travis-ci.org/Comcast/parodus.svg?branch=master)](https://travis-ci.org/Comcast/parodus)
 [![codecov.io](http://codecov.io/github/Comcast/parodus/coverage.svg?branch=master)](http://codecov.io/github/Comcast/parodus?branch=master)
@@ -50,7 +50,7 @@ make test
 
 - /force-ipv6 -Forcefully connect parodus to ipv6 address (optional argument)
 
-- /token-read-script -Script to get webpa auth token for establishing secure connection (absolute path where that script is present) -optional argument 
+- /token-read-script -Script to get auth token for establishing secure connection (absolute path where that script is present) -optional argument
 
 - /token-acquisition-script -Script to create new auth token for establishing secure connection (absolute path where that script is present) -optional argument 
 
