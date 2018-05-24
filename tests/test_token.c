@@ -30,9 +30,6 @@
 #include "../src/connection.h"
 #include "../src/config.h"
 
-static char *token_test_file_path = TOKEN_TEST_FILE_PATH;
-
-
 const char *header  = "{	\"alg\":	\"RS256\",	\"typ\":	\"JWT\"}";
 
 time_t exp_time_good = 2147483647;    // 1/18/2038
@@ -603,26 +600,17 @@ void test_query_dns ()
 	assert_int_equal (ret, -1);
 }
 
-
-#define PUBKEY_FILE "pubkey4.pem"
-
 void test_allow_insecure_conn ()
 {
 	int insecure;
 	char port_buf[6] = "8080";
 	ParodusCfg *cfg = get_parodus_cfg();
-    
-    char *full_file_path;
-    
-    full_file_path = malloc(sizeof(char) *
-                    (strlen(token_test_file_path) + strlen("/") + 1));
-    sprintf(full_file_path, "%s/%s", token_test_file_path, PUBKEY_FILE);
-    
+
 	cfg->hw_mac = strdup ("aabbccddeeff");
 	cfg->dns_txt_url = strdup ("test.mydns.mycom.net");
 	cfg->jwt_algo = 1025;
 
-	read_key_from_file (full_file_path, &cfg->jwt_key);
+	read_key_from_file ("../../tests/pubkey4.pem", &cfg->jwt_key);
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
@@ -661,7 +649,7 @@ void test_allow_insecure_conn ()
 	cfg->dns_txt_url = strdup ("test.mydns.mycom.net");
 	cfg->jwt_algo = 4097;
     free(cfg->jwt_key);
-	read_key_from_file (full_file_path, &cfg->jwt_key);
+	read_key_from_file ("../../tests/pubkey4.pem", &cfg->jwt_key);
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);

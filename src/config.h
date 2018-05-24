@@ -100,8 +100,6 @@ typedef struct
 #define FLAGS_IPV4_ONLY (1 << 1)
 #define FLAGS_IPV6_IPV4 (FLAGS_IPV6_ONLY | FLAGS_IPV4_ONLY)
 
-#define SIZE_OF_WEBPA_AUTH_TOKEN 4096
-
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
