@@ -44,7 +44,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
     int matchFlag = 0, i = 0, count = 0;
     ParodusPrint("********* %s ********\n",__FUNCTION__);
     char *partnerId = get_parodus_cfg()->partner_id;
-    if(partnerId == NULL  || strlen(partnerId) <= 0)
+    if(strlen(partnerId) <= 0)
     {
         ParodusPrint("partner_id is not available to validate\n");
         return 0;

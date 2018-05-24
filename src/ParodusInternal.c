@@ -36,43 +36,42 @@ char* getWebpaConveyHeader()
     int  encodedDataSize = 1024;
     char * reconnect_reason = get_global_reconnect_reason();
     int i =0, j=0;
-    ParodusCfg *cfg = get_parodus_cfg();
 
-    if(cfg->hw_model && strlen(cfg->hw_model)!=0)
+    if(strlen(get_parodus_cfg()->hw_model)!=0)
     {
-	    cJSON_AddStringToObject(response, HW_MODELNAME, cfg->hw_model);
+	    cJSON_AddStringToObject(response, HW_MODELNAME, get_parodus_cfg()->hw_model);
     }
 
-    if(cfg->hw_serial_number && strlen(cfg->hw_serial_number)!=0)
+    if(strlen(get_parodus_cfg()->hw_serial_number)!=0)
     {
-	    cJSON_AddStringToObject(response, HW_SERIALNUMBER, cfg->hw_serial_number);
+	    cJSON_AddStringToObject(response, HW_SERIALNUMBER, get_parodus_cfg()->hw_serial_number);
     }
 
-    if(cfg->hw_manufacturer && strlen(cfg->hw_manufacturer)!=0)
+    if(strlen(get_parodus_cfg()->hw_manufacturer)!=0)
     {
-	    cJSON_AddStringToObject(response, HW_MANUFACTURER, cfg->hw_manufacturer);
+	    cJSON_AddStringToObject(response, HW_MANUFACTURER, get_parodus_cfg()->hw_manufacturer);
     }
 
-    if(cfg->fw_name && strlen(cfg->fw_name)!=0)
+    if(strlen(get_parodus_cfg()->fw_name)!=0)
     {
-	    cJSON_AddStringToObject(response, FIRMWARE_NAME, cfg->fw_name);
+	    cJSON_AddStringToObject(response, FIRMWARE_NAME, get_parodus_cfg()->fw_name);
     }
 
-    cJSON_AddNumberToObject(response, BOOT_TIME, cfg->boot_time);
+    cJSON_AddNumberToObject(response, BOOT_TIME, get_parodus_cfg()->boot_time);
 
-    if(cfg->webpa_protocol && strlen(cfg->webpa_protocol)!=0)
+    if(strlen(get_parodus_cfg()->webpa_protocol)!=0)
     {
-        cJSON_AddStringToObject(response, WEBPA_PROTOCOL, cfg->webpa_protocol);
+        cJSON_AddStringToObject(response, WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol);
     }
 
-    if(cfg->webpa_interface_used && strlen(cfg->webpa_interface_used)!=0)
+    if(strlen(get_parodus_cfg()->webpa_interface_used)!=0)
     {
-	    cJSON_AddStringToObject(response, WEBPA_INTERFACE, cfg->webpa_interface_used);
+	    cJSON_AddStringToObject(response, WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used);
     }	
 
-    if(cfg->hw_last_reboot_reason && strlen(cfg->hw_last_reboot_reason)!=0)
+    if(strlen(get_parodus_cfg()->hw_last_reboot_reason)!=0)
     {
-        cJSON_AddStringToObject(response, HW_LAST_REBOOT_REASON, cfg->hw_last_reboot_reason);
+        cJSON_AddStringToObject(response, HW_LAST_REBOOT_REASON, get_parodus_cfg()->hw_last_reboot_reason);
     }
     else
     {

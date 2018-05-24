@@ -59,41 +59,40 @@ extern "C" {
 
 #define ALLOW_NON_RSA_ALG	false
 
-    
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
 
 typedef struct
 {
-    char *hw_model;
-    char *hw_serial_number;
-    char *hw_manufacturer;
-    char *hw_mac;
-    char *hw_last_reboot_reason;
-    char *fw_name;
+    char hw_model[64];
+    char hw_serial_number[64];
+    char hw_manufacturer[64];
+    char hw_mac[64];
+    char hw_last_reboot_reason[64];
+    char fw_name[64];
     unsigned int boot_time;
     unsigned int webpa_ping_timeout;
-    char *webpa_url;
-    char *webpa_path_url;
+    char webpa_url[124];
+    char webpa_path_url[124];
     unsigned int webpa_backoff_max;
-    char *webpa_interface_used;
-    char *webpa_protocol;
-    char *webpa_uuid;
+    char webpa_interface_used[16];
+    char webpa_protocol[32];
+    char webpa_uuid[64];
     unsigned int flags;
-    char *local_url;
-    char *partner_id;
+    char local_url[124];
+    char partner_id[64];
 #ifdef ENABLE_SESHAT
-    char *seshat_url;
+    char seshat_url[128];
 #endif
-    char *dns_txt_url;
+    char dns_txt_url[64];
     unsigned int acquire_jwt;
     unsigned int jwt_algo;  // bit mask set for each allowed algorithm
-    char *jwt_key; // may be read in from a pem file
-    char *cert_path;
-    char *webpa_auth_token;
-    char *token_acquisition_script;
-    char *token_read_script;
+    char jwt_key[4096]; // may be read in from a pem file
+    char cert_path[64];
+    char webpa_auth_token[4096];
+    char token_acquisition_script[64];
+    char token_read_script[64];
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
@@ -122,17 +121,6 @@ void setDefaultValuesToCfg(ParodusCfg *cfg);
 void getAuthToken(ParodusCfg *cfg);
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
-
-/*
- Called on program exit
- */
-void clean_up_parodus_cfg(ParodusCfg *cfg);
-
-/* File Utility Function */
-/* Mallocs memory for the entire file, caller will have to call free(*data) */
-void read_key_from_file (const char *fname, char **data);
-
-
 void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
 

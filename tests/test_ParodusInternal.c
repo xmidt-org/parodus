@@ -57,17 +57,17 @@ void test_getWebpaConveyHeader()
 {
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    cfg.hw_model = strdup ("TG1682");
-    cfg.hw_serial_number = strdup ("Fer23u948590");
-    cfg.hw_manufacturer = strdup ("ARRISGroup,Inc.");
-    cfg.hw_mac = strdup ("123567892366");
-    cfg.hw_last_reboot_reason = strdup ("unknown");
-    cfg.fw_name = strdup ("2.364s2");
-    cfg.webpa_path_url = strdup ("/api/v2/device");
-    cfg.webpa_url = strdup ("localhost");
-    cfg.webpa_interface_used = strdup ("eth0");
-    cfg.webpa_protocol = strdup ("WebPA-1.6");
-    cfg.webpa_uuid = strdup ("1234567-345456546");
+    parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
+    parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+    parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
+    parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+    parStrncpy(cfg.hw_last_reboot_reason , "unknown", sizeof(cfg.hw_last_reboot_reason));
+    parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
+    parStrncpy(cfg.webpa_path_url , "/api/v2/device", sizeof(cfg.webpa_path_url));
+    parStrncpy(cfg.webpa_url , "localhost", sizeof(cfg.webpa_url));
+    parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+    parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
+    parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
     cfg.flags = 0;
     cfg.boot_time = 423457;
     cfg.webpa_ping_timeout = 30;
@@ -80,7 +80,6 @@ void test_getWebpaConveyHeader()
     will_return(nopoll_base64_encode, nopoll_true);
     expect_function_call(nopoll_base64_encode);
     getWebpaConveyHeader();
-    clean_up_parodus_cfg(&cfg);
 }
 
 void err_getWebpaConveyHeader()

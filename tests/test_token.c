@@ -142,7 +142,6 @@ cjwt_t jwt2;	// secure, payload good, but expired
 cjwt_t jwt3;	// insecure
 cjwt_t jwt4;	// missing endpoint
 
-
 // internal functions in token.c to be tested
 extern int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
 	char *port_buf, int port_buflen);
@@ -155,9 +154,9 @@ extern int get_rr_seq_num (const char *rr_ptr, int rrlen);
 extern int get_rr_seq_table (ns_msg *msg_handle, int num_rr_recs, rr_rec_t *seq_table);
 extern int assemble_jwt_from_dns (ns_msg *msg_handle, int num_rr_recs, char *jwt_ans);
 extern int query_dns(const char* dns_txt_record_id,char *jwt_ans);
+extern void read_key_from_file (const char *fname, char *buf, size_t buflen);
 extern const char *get_tok (const char *src, int delim, char *result, int resultsize);
 extern unsigned int get_algo_mask (const char *algo_str);
-
 
 int setup_test_jwts (void)
 {
@@ -606,11 +605,11 @@ void test_allow_insecure_conn ()
 	char port_buf[6] = "8080";
 	ParodusCfg *cfg = get_parodus_cfg();
 
-	cfg->hw_mac = strdup ("aabbccddeeff");
-	cfg->dns_txt_url = strdup ("test.mydns.mycom.net");
+	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
+	parStrncpy (cfg->dns_txt_url, "test.mydns.mycom.net", sizeof(cfg->dns_txt_url));
 	cfg->jwt_algo = 1025;
 
-	read_key_from_file ("../../tests/pubkey4.pem", &cfg->jwt_key);
+	read_key_from_file ("../../tests/pubkey4.pem", cfg->jwt_key, 4096);
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
@@ -620,8 +619,8 @@ void test_allow_insecure_conn ()
 		port_buf, sizeof(port_buf));
 	assert_int_equal (insecure, 0);
 
-    free(cfg->dns_txt_url);
-	cfg->dns_txt_url = strdup ("err5.mydns.mycom.net");
+	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
+	parStrncpy (cfg->dns_txt_url, "err5.mydns.mycom.net", sizeof(cfg->dns_txt_url));
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
@@ -631,11 +630,10 @@ void test_allow_insecure_conn ()
 		port_buf, sizeof(port_buf));
 	assert_int_equal (insecure, TOKEN_ERR_QUERY_DNS_FAIL);
 
-    free(cfg->dns_txt_url);
-	cfg->dns_txt_url = strdup ("test.mydns.mycom.net");
+	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
+	parStrncpy (cfg->dns_txt_url, "test.mydns.mycom.net", sizeof(cfg->dns_txt_url));
 	cfg->jwt_algo = 1024;
-    free(cfg->jwt_key);
-	cfg->jwt_key = strdup ("xxxxxxxxxx");
+	parStrncpy (cfg->jwt_key, "xxxxxxxxxx", sizeof(cfg->jwt_key));
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
@@ -645,11 +643,10 @@ void test_allow_insecure_conn ()
 		port_buf, sizeof(port_buf));
 	assert_int_equal (insecure, TOKEN_ERR_JWT_DECODE_FAIL);
 
-    free(cfg->dns_txt_url);
-	cfg->dns_txt_url = strdup ("test.mydns.mycom.net");
+	parStrncpy (cfg->hw_mac, "aabbccddeeff", sizeof(cfg->hw_mac));
+	parStrncpy (cfg->dns_txt_url, "test.mydns.mycom.net", sizeof(cfg->dns_txt_url));
 	cfg->jwt_algo = 4097;
-    free(cfg->jwt_key);
-	read_key_from_file ("../../tests/pubkey4.pem", &cfg->jwt_key);
+	read_key_from_file ("../../tests/pubkey4.pem", cfg->jwt_key, 4096);
 
 	will_return (__res_ninit, 0);
 	expect_function_call (__res_ninit);
@@ -658,7 +655,7 @@ void test_allow_insecure_conn ()
 	insecure = allow_insecure_conn (cfg->dns_txt_url, sizeof(cfg->dns_txt_url),
 		port_buf, sizeof(port_buf));
 	assert_int_equal (insecure, TOKEN_ERR_ALGO_NOT_ALLOWED);
-    clean_up_parodus_cfg(cfg);
+
 }
 
 void test_get_tok()
