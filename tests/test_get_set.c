@@ -13,55 +13,50 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-#include <stdarg.h>
-
-#include <CUnit/Basic.h>
-#include <stdbool.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <cmocka.h>
 #include <assert.h>
-#include <wrp-c.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <CUnit/Basic.h>
+#include <cmocka.h>
+#include <pthread.h>
+#include "../src/upstream.h"
 
-#include "../src/token.h"
-
-
+/*----------------------------------------------------------------------------*/
+/*                            File Scoped Variables                           */
+/*----------------------------------------------------------------------------*/
+UpStreamMsg *UpStreamMsgQ = NULL;
+pthread_mutex_t nano_mut;
+pthread_cond_t nano_con;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
 
-void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+UpStreamMsg * get_global_UpStreamMsgQ(void)
 {
-	(void)crudMsg;
-	return;
+    return UpStreamMsgQ;
 }
 
-void *CRUDHandlerTask()
+void set_global_UpStreamMsgQ(UpStreamMsg * UpStreamQ)
 {
-	return NULL;
+    UpStreamMsgQ = UpStreamQ;
 }
 
-void test_allow_insecure_conn ()
+pthread_cond_t *get_global_nano_con(void)
 {
-	int insecure;
-	char *server_Address = NULL;
-	char *port = NULL;
-	insecure = allow_insecure_conn (server_Address,(int) sizeof(server_Address),
-                port, (int) sizeof(port));
-	assert_int_equal (insecure, -1);
+    return &nano_con;
 }
+
+pthread_mutex_t *get_global_nano_mut(void)
+{
+    return &nano_mut;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/*                                   Tests                                    */
+/*----------------------------------------------------------------------------*/
+
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-
-int main(void)
-{
-    const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_allow_insecure_conn),
-    };
-
-    return cmocka_run_group_tests(tests, NULL, NULL);
-}
-
