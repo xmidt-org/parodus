@@ -191,6 +191,13 @@ target_link_libraries (test_config -lcmocka
 )
 
 #-------------------------------------------------------------------------------
+#   test_crud_interface
+#-------------------------------------------------------------------------------
+add_test(NAME test_crud_interface COMMAND ${MEMORY_CHECK} ./test_crud_interface)
+add_executable(test_crud_interface test_crud_interface.c ../src/crud_interface.c ../src/ParodusInternal.c)
+target_link_libraries (test_crud_interface -lcmocka ${PARODUS_COMMON_LIBS} )
+
+#-------------------------------------------------------------------------------
 #   test_upstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_upstream COMMAND ${MEMORY_CHECK} ./test_upstream)

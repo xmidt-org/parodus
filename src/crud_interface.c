@@ -38,7 +38,7 @@ pthread_cond_t crud_con=PTHREAD_COND_INITIALIZER;
 /*                             Internal variables                             */
 /*----------------------------------------------------------------------------*/
 
-static CrudMsg *crudMsgQ = NULL;
+CrudMsg *crudMsgQ = NULL;
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
@@ -84,11 +84,10 @@ void *CRUDHandlerTask()
 {
 	int ret = 0;
 	ssize_t resp_size = 0;
-	crudMsgQ = NULL;
 	void *resp_bytes;
 	wrp_msg_t *crud_response = NULL;
 
-	while(1)
+	while(FOREVER())
 	{
 		pthread_mutex_lock(&crud_mut);
 		ParodusPrint("Mutex lock in CRUD consumer thread\n");
