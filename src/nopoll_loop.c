@@ -88,21 +88,11 @@ void nopoll_loop_process_data (noPollCtx * ctx, noPollConn * conn)
 	if (msg == NULL)
 		return;
 
-	if(msg->op_code == NOPOLL_PING_FRAME)
-	{
-		/* Initialized ping msg handler */
-		if (conn->on_ping_msg)
-			conn->on_ping_msg (ctx, conn, msg, conn->on_ping_msg_data);
-		else if (ctx->on_ping_msg)
-			ctx->on_ping_msg (ctx, conn, msg, ctx->on_ping_msg_data);
-	}
-	else {
-		/* found message, notify it */
-	if (conn->on_msg)
+	/* found message, notify it */
+	if (conn->on_msg) 
 		conn->on_msg (ctx, conn, msg, conn->on_msg_data);
 	else if (ctx->on_msg)
 		ctx->on_msg (ctx, conn, msg, ctx->on_msg_data);
-	}
 
 	/* release message */
 	nopoll_msg_unref (msg);

@@ -653,19 +653,6 @@ void           nopoll_ctx_set_on_msg    (noPollCtx              * ctx,
 	return;
 }
 
-void           nopoll_ctx_set_on_ping_msg    (noPollCtx              * ctx,
-					 noPollOnMessageHandler   on_ping_msg,
-					 noPollPtr                user_data)
-{
-	nopoll_return_if_fail (ctx, ctx);
-
-	/* set new handler */
-	ctx->on_ping_msg      = on_ping_msg;
-	ctx->on_ping_msg_data = user_data;
-
-	return;
-}
-
 /** 
  * @brief Allows to configure the handler that will be used to let
  * user land code to define OpenSSL SSL_CTX object.
