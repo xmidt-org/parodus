@@ -2429,6 +2429,7 @@ int         __nopoll_conn_receive  (noPollConn * conn, char  * buffer, int  maxl
 {
 	int         nread;
 	int         bytes;
+	long        wait_usecs = 500;
 
 	if (conn->pending_buf_bytes > 0) {
 		nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "Calling with bytes we can reuse (%d), requested: %d",
@@ -5175,13 +5176,13 @@ nopoll_bool      nopoll_conn_wait_for_status_until_connection_ready (noPollConn 
 		}
 
 		conn->handshake->received_non_101 = nopoll_false;
-		nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "nopoll_conn_wait_for_status_until_connection_ready() response: message: %s" ,*message );
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_INFO, "nopoll_conn_wait_for_status_until_connection_ready() response: message: %s" ,*message );
 		return nopoll_false; /* retry with redirection URLs */
 	}
 	else if(conn->handshake->received_non_101 == nopoll_true && conn->handshake->httpStatus !=0)
 	{
 		*status = conn->handshake->httpStatus;
-		nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "nopoll_conn_wait_for_status_until_connection_ready() response: status: %d" ,*status );
+		nopoll_log (conn->ctx, NOPOLL_LEVEL_INFO, "nopoll_conn_wait_for_status_until_connection_ready() response: status: %d" ,*status );
 		return nopoll_false; /* retry as server returns error http code */
 	}
 	else if(result && message != NULL)
@@ -5192,7 +5193,7 @@ nopoll_bool      nopoll_conn_wait_for_status_until_connection_ready (noPollConn 
 	{
 		*message = nopoll_strdup_printf("Failure");
 	}
-	nopoll_log (conn->ctx, NOPOLL_LEVEL_DEBUG, "*****End nopoll_conn_wait_for_status_until_connection_ready ****");
+	nopoll_log (conn->ctx, NOPOLL_LEVEL_INFO, "*****End nopoll_conn_wait_for_status_until_connection_ready ****");
 
 	/* report if the connection is ok */
 	return result;
