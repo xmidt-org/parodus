@@ -45,10 +45,13 @@ echo "Generating configuration files for $PACKAGE, please wait...."
 echo; 
 
 touch NEWS README AUTHORS ChangeLog 
-if [ "${OS}" = "Darwin" ] ; then
-glibtoolize --force;
+if [ "${OS}" = "Linux" ] ; then
+   libtoolize --force;
+elif [ "${OS}" = "Darwin" ] ; then
+   glibtoolize --force;
 else
-libtoolize --force;
+   # by default, try libtoolize even if it is not uname or OS is not recognized.
+   libtoolize --force;
 fi
 aclocal $ACLOCAL_FLAGS; 
 autoheader --warnings=error

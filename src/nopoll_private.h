@@ -297,9 +297,10 @@ struct _noPollConn {
 	noPollPtr             hook;
 
 	/** 
-	 * @internal Mutex 
+	 * @internal Mutexes
 	 */
 	noPollPtr             ref_mutex;
+	noPollPtr             handshake_mutex;
 
 	/** 
 	 * @internal Variable to track pending bytes from previous
