@@ -230,7 +230,6 @@ target_link_libraries (test_thread_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_conn_interface COMMAND ${MEMORY_CHECK} ./test_conn_interface)
 set(CONIFC_SRC test_conn_interface.c 
-  test_get_set.c
   ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c 
   ../src/conn_interface.c 
   ../src/config.c 

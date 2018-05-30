@@ -347,6 +347,10 @@ void test_addCRUDresponseToUpstreamQ()
 }
 
 
+void test_addCRUDmsgToQueueAllocation()
+{
+	addCRUDmsgToQueue(NULL);
+}
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -356,6 +360,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_addCRUDmsgToQueueNULL),
         cmocka_unit_test(test_addCRUDmsgToQueue),
+        cmocka_unit_test(test_addCRUDmsgToQueueAllocation),
         cmocka_unit_test(err_CRUDHandlerTask),
         cmocka_unit_test(test_CRUDHandlerTask),
         cmocka_unit_test(test_CRUDHandlerTaskFailure),

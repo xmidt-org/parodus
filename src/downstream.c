@@ -128,15 +128,14 @@ void listenerOnMessage(void * msg, size_t msgSize)
                             temp= temp->next;
                         }
 
-			/* check Downstream dest for CRUD requests */
-			if(destFlag ==0 && strcmp("parodus", dest)==0)
-			{
-				ParodusPrint("Received CRUD request : dest : %s\n", dest);
-				addCRUDmsgToQueue(message);
-				destFlag =1;
-			}
-			
-                        //if any unknown dest received sending error response to server
+						/* check Downstream dest for CRUD requests */
+						if(destFlag ==0 && strcmp("parodus", dest)==0)
+						{
+							ParodusPrint("Received CRUD request : dest : %s\n", dest);
+							addCRUDmsgToQueue(message);
+							destFlag =1;
+						}
+						//if any unknown dest received sending error response to server
                         if(destFlag ==0)
                         {
                             ParodusError("Unknown dest:%s\n", dest);

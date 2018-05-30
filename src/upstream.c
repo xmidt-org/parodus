@@ -334,23 +334,20 @@ void *processUpstreamMessage()
             {
                 ParodusError("Error in msgpack decoding for upstream\n");
             }
-            
 
-	    //nn_freemsg should not be done for parodus/tags/ CRUD requests as it is not received through nanomsg.
-	    if ((msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "parodus") == NULL)
-	    {
-		    if(nn_freemsg (message->msg) < 0)
-		    {
-		        ParodusError ("Failed to free msg\n");
-		    }
-            }
-            
-            ParodusPrint("Free for upstream decoded msg\n");
-            wrp_free_struct(msg);
-            msg = NULL;
-            
-            free(message);
-            message = NULL;
+			//nn_freemsg should not be done for parodus/tags/ CRUD requests as it is not received through nanomsg.
+			if ((msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "parodus") == NULL)
+			{
+				if(nn_freemsg (message->msg) < 0)
+				{
+					ParodusError ("Failed to free msg\n");
+				}
+			}
+			ParodusPrint("Free for upstream decoded msg\n");
+			wrp_free_struct(msg);
+			msg = NULL;
+			free(message);
+			message = NULL;
         }
         else
         {
@@ -367,7 +364,6 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
 	size_t encodedSize;
-
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{

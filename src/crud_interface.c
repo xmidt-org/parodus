@@ -48,7 +48,7 @@ void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
 {
 	CrudMsg * crudMessage;
 	crudMessage = (CrudMsg *)malloc(sizeof(CrudMsg));
-	if(crudMessage)
+	if(crudMessage && crudMsg!=NULL)
 	{
 		crudMessage->msg = crudMsg;
 		crudMessage->next = NULL;

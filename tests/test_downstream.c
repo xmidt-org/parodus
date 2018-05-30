@@ -33,13 +33,14 @@
 ParodusMsg *ParodusMsgQ;
 pthread_mutex_t g_mutex;
 pthread_cond_t g_cond;
+int crud_test = 0;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
 void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
 {
 	UNUSED(crudMsg) ;
-	return;
+	function_called();
 }
 
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
@@ -67,13 +68,18 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length,
     function_called();
     *msg = (wrp_msg_t*) malloc(sizeof(wrp_msg_t));
     memset(*msg, 0, sizeof(wrp_msg_t));
-    (*msg)->msg_type = WRP_MSG_TYPE__REQ;
-    (*msg)->u.req.dest = (char *) malloc(sizeof(char) *100);
-    (*msg)->u.req.partner_ids = (partners_t *) malloc(sizeof(partners_t));
-    (*msg)->u.req.partner_ids->count = 1;
-    (*msg)->u.req.partner_ids->partner_ids[0] = (char *) malloc(sizeof(char) *64);
-    parStrncpy((*msg)->u.req.dest,"mac:1122334455/iot", 100);
-    parStrncpy((*msg)->u.req.partner_ids->partner_ids[0],"comcast", 64);
+	(*msg)->msg_type = WRP_MSG_TYPE__REQ;
+	(*msg)->u.req.dest = (char *) malloc(sizeof(char) *100);
+	(*msg)->u.req.partner_ids = (partners_t *) malloc(sizeof(partners_t));
+	(*msg)->u.req.partner_ids->count = 1;
+	(*msg)->u.req.partner_ids->partner_ids[0] = (char *) malloc(sizeof(char) *64);
+	parStrncpy((*msg)->u.req.dest,"mac:1122334455/iot", 100);
+	parStrncpy((*msg)->u.req.partner_ids->partner_ids[0],"comcast", 64);
+	if(crud_test)
+	{
+			(*msg)->msg_type = WRP_MSG_TYPE__CREATE;
+			parStrncpy((*msg)->u.req.dest,"mac:1122334455/parodus", 100);
+	}
     return (ssize_t) mock();
 }
 
@@ -196,6 +202,23 @@ void err_listenerOnMessageAllNull()
     listenerOnMessage(NULL, 0);
 }
 
+
+void test_listenerOnMessageCRUD()
+{
+	crud_test = 1;
+    will_return(wrp_to_struct, 2);
+    expect_function_calls(wrp_to_struct, 1);
+
+    will_return(get_numOfClients, 0);
+    expect_function_call(get_numOfClients);
+    will_return(validate_partner_id, 0);
+    expect_function_call(validate_partner_id);
+    will_return(get_global_node, (intptr_t)NULL);
+    expect_function_call(get_global_node);
+    expect_function_call(addCRUDmsgToQueue);
+    listenerOnMessage("Hello", 6);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -209,6 +232,7 @@ int main(void)
         cmocka_unit_test(err_listenerOnMessageServiceUnavailable),
         cmocka_unit_test(err_listenerOnMessageInvalidPartnerId),
         cmocka_unit_test(err_listenerOnMessageAllNull),
+        cmocka_unit_test(test_listenerOnMessageCRUD),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
