@@ -26,7 +26,7 @@
 #include "config.h"
 
 
-static int writeToJSON(char *data)
+int writeToJSON(char *data)
 {
 	FILE *fp;
 	fp = fopen(get_parodus_cfg()->crud_config_file , "w+");
@@ -40,7 +40,7 @@ static int writeToJSON(char *data)
 	return 1;
 }
 
-static int readFromJSON(char **data)
+int readFromJSON(char **data)
 {
 	FILE *fp;
 	int ch_count = 0;
@@ -307,7 +307,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 
 	if(strcmp(HW_MODELNAME, keyName)==0)
 	{
-		if(get_parodus_cfg()->hw_model ==NULL)
+		if((get_parodus_cfg()->hw_model !=NULL) && (strlen(get_parodus_cfg()->hw_model)==0))
 		{
 			ParodusError("retrieveFromMemory: hw_model value is NULL\n");
 			return -1;
@@ -317,7 +317,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(HW_SERIALNUMBER, keyName)==0)
 	{
-		if(get_parodus_cfg()->hw_serial_number ==NULL)
+		if((get_parodus_cfg()->hw_serial_number !=NULL) && (strlen(get_parodus_cfg()->hw_serial_number)==0))
 		{
 			ParodusError("retrieveFromMemory: hw_serial_number value is NULL\n");
 			return -1;
@@ -327,7 +327,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(HW_MANUFACTURER, keyName)==0)
 	{
-		if(get_parodus_cfg()->hw_manufacturer ==NULL)
+		if((get_parodus_cfg()->hw_manufacturer !=NULL) && (strlen(get_parodus_cfg()->hw_manufacturer)==0))
 		{
 			ParodusError("retrieveFromMemory: hw_manufacturer value is NULL\n");
 			return -1;
@@ -337,7 +337,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(HW_DEVICEMAC, keyName)==0)
 	{
-		if(get_parodus_cfg()->hw_mac ==NULL)
+		if((get_parodus_cfg()->hw_mac !=NULL) && (strlen(get_parodus_cfg()->hw_mac)==0))
 		{
 			ParodusError("retrieveFromMemory: hw_mac value is NULL\n");
 			return -1;
@@ -347,7 +347,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(HW_LAST_REBOOT_REASON, keyName)==0)
 	{
-		if(get_parodus_cfg()->hw_last_reboot_reason ==NULL)
+		if((get_parodus_cfg()->hw_last_reboot_reason !=NULL) && (strlen(get_parodus_cfg()->hw_last_reboot_reason)==0))
 		{
 			ParodusError("retrieveFromMemory: hw_last_reboot_reason value is NULL\n");
 			return -1;
@@ -355,9 +355,9 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->hw_last_reboot_reason);
 		cJSON_AddItemToObject( *jsonresponse, HW_LAST_REBOOT_REASON , cJSON_CreateString(get_parodus_cfg()->hw_last_reboot_reason));
 	}
-	else if(strcmp(FIRMWARE_NAME,keyName)==0)
+	else if(strcmp(FIRMWARE_NAME,keyName)==0) 
 	{
-		if(get_parodus_cfg()->fw_name ==NULL)
+		if((get_parodus_cfg()->fw_name !=NULL) && (strlen(get_parodus_cfg()->fw_name)==0))
 		{
 			ParodusError("retrieveFromMemory: fw_name value is NULL\n");
 			return -1;
@@ -367,7 +367,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(WEBPA_INTERFACE, keyName)==0)
 	{
-		if(get_parodus_cfg()->webpa_interface_used ==NULL)
+		if((get_parodus_cfg()->webpa_interface_used !=NULL)&& (strlen(get_parodus_cfg()->fw_name)==0))
 		{
 			ParodusError("retrieveFromMemory: webpa_interface_used value is NULL\n");
 			return -1;
@@ -377,7 +377,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(WEBPA_URL, keyName)==0)
 	{
-		if(get_parodus_cfg()->webpa_url ==NULL)
+		if((get_parodus_cfg()->webpa_url !=NULL) && (strlen(get_parodus_cfg()->webpa_url)==0))
 		{
 			ParodusError("retrieveFromMemory: webpa_url value is NULL\n");
 			return -1;
@@ -387,7 +387,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(WEBPA_PROTOCOL, keyName)==0)
 	{
-		if(get_parodus_cfg()->webpa_protocol ==NULL)
+		if((get_parodus_cfg()->webpa_protocol !=NULL)  && (strlen(get_parodus_cfg()->webpa_protocol)==0))
 		{
 			ParodusError("retrieveFromMemory: webpa_protocol value is NULL\n");
 			return -1;
@@ -397,7 +397,7 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(WEBPA_UUID, keyName)==0)
 	{
-		if(get_parodus_cfg()->webpa_uuid ==NULL)
+		if((get_parodus_cfg()->webpa_uuid !=NULL) && (strlen(get_parodus_cfg()->webpa_uuid)==0))
 		{
 			ParodusError("retrieveFromMemory: webpa_uuid value is NULL\n");
 			return -1;

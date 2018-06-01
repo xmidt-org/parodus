@@ -205,6 +205,13 @@ add_executable(test_crud_tasks test_crud_tasks.c ../src/crud_tasks.c )
 target_link_libraries (test_crud_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
+#   test_crud_internal
+#-------------------------------------------------------------------------------
+add_test(NAME test_crud_internal COMMAND ${MEMORY_CHECK} ./test_crud_internal)
+add_executable(test_crud_internal test_crud_internal.c ../src/config.c ../src/string_helpers.c ../src/crud_internal.c )
+target_link_libraries (test_crud_internal -lcmocka ${PARODUS_COMMON_LIBS} )
+
+#-------------------------------------------------------------------------------
 #   test_upstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_upstream COMMAND ${MEMORY_CHECK} ./test_upstream)

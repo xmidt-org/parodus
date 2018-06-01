@@ -22,3 +22,6 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response);
 int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response);
 int deleteObject(wrp_msg_t *reqMsg, wrp_msg_t **response);
 
+int writeToJSON(char *data);
+int readFromJSON(char **data);
+int retrieveFromMemory(char *keyName, cJSON **jsonresponse);
