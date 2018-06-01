@@ -145,7 +145,6 @@
  * @brief Portable definition for EWOULDBLOCK errno code.
  */
 #define NOPOLL_EWOULDBLOCK     EWOULDBLOCK
-#define NOPOLL_ETIMEDOUT       ETIMEDOUT
 #define NOPOLL_EINPROGRESS     EINPROGRESS
 #define NOPOLL_ENOTCONN        ENOTCONN
 #define NOPOLL_EAGAIN          EAGAIN
