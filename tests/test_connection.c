@@ -43,9 +43,13 @@ extern void free_header_info (header_info_t *header_info);
 extern char *build_extra_hdrs (header_info_t *header_info);
 extern void set_current_server (create_connection_ctx_t *ctx);
 extern void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize);
+extern void free_extra_headers (create_connection_ctx_t *ctx);
 extern void free_server_list (server_list_t *server_list);
+extern void free_server (server_t *server);
 extern int find_servers (server_list_t *server_list);
 extern int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6);
+extern int wait_connection_ready (create_connection_ctx_t *ctx);
+
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -59,6 +63,8 @@ pthread_mutex_t close_mut;
 // Mock values
 char *mock_server_addr;
 unsigned int mock_port;
+int mock_wait_status;
+char *mock_redirect;
 noPollConn connection1;
 noPollConn connection2;
 noPollConn connection3;
@@ -102,6 +108,17 @@ noPollConn * nopoll_conn_tls_new6 (noPollCtx  * ctx, noPollConnOpts * options, c
     //check_expected((intptr_t)ctx);
     //check_expected((intptr_t)host_ip);
     return (noPollConn *) (intptr_t)mock();
+}
+
+nopoll_bool  nopoll_conn_wait_until_connection_ready (noPollConn * conn,
+	int timeout, int *status, char * message)
+{
+    UNUSED(conn); UNUSED(timeout);
+    *status = mock_wait_status;
+    if (NULL != mock_redirect)
+        sprintf (message, "Redirect:%s", mock_redirect);
+    function_called();
+    return (nopoll_bool) mock();
 }
 
 int checkHostIp(char * serverIP)
@@ -497,6 +514,85 @@ void test_nopoll_connect ()
   assert_ptr_equal(NULL, get_global_conn());
 }
 
+// Return codes for wait_connection_ready
+#define WAIT_SUCCESS	0
+#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
+#define WAIT_FAIL 	2
+
+void test_wait_connection_ready ()
+{
+  create_connection_ctx_t ctx;
+  ParodusCfg Cfg;
+  const char *expected_extra_headers =
+      "\r\nAuthorization: Bearer Auth---"
+      "\r\nX-WebPA-Device-Name: mac:123567892366"
+      "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+      "\r\nUser-Agent: WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)"
+      "\r\nX-WebPA-Convey: WebPA-1.6 (TG1682)";
+
+  memset(&ctx,0,sizeof(ctx));
+  set_server_list_null (&ctx.server_list);
+
+  mock_wait_status = 0;
+  mock_redirect = NULL;
+  
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  assert_int_equal (wait_connection_ready (&ctx), WAIT_SUCCESS);
+  
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  assert_int_equal (wait_connection_ready (&ctx), WAIT_FAIL);
+  
+  mock_wait_status = 307;
+  mock_redirect = "mydns.mycom.net";
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  assert_int_equal (wait_connection_ready (&ctx), WAIT_FAIL);
+  
+  mock_wait_status = 302;
+  mock_redirect = "https://mydns.mycom.net:8080";
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
+  assert_string_equal (ctx.server_list.redirect.server_addr, "mydns.mycom.net");
+  assert_int_equal (ctx.server_list.redirect.port, 8080);
+  assert_int_equal (0, ctx.server_list.redirect.allow_insecure);
+  assert_ptr_equal (ctx.current_server, &ctx.server_list.redirect);
+  free_server (&ctx.server_list.redirect);
+  
+  mock_wait_status = 303;
+  mock_redirect = "http://mydns.mycom.net";
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
+  assert_string_equal (ctx.server_list.redirect.server_addr, "mydns.mycom.net");
+  assert_int_equal (ctx.server_list.redirect.port, 80);
+  assert_int_equal (1, ctx.server_list.redirect.allow_insecure);
+  assert_ptr_equal (ctx.current_server, &ctx.server_list.redirect);
+  free_server (&ctx.server_list.redirect);
+  
+    mock_wait_status = 403;
+    memset(&Cfg, 0, sizeof(ParodusCfg));
+
+    parStrncpy (Cfg.webpa_auth_token, "Auth---", sizeof (Cfg.webpa_auth_token));
+    parStrncpy(Cfg.hw_model, "TG1682", sizeof(Cfg.hw_model));
+    parStrncpy(Cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(Cfg.hw_manufacturer));
+    parStrncpy(Cfg.hw_mac , "123567892366", sizeof(Cfg.hw_mac));
+    parStrncpy(Cfg.fw_name , "2.364s2", sizeof(Cfg.fw_name));
+    parStrncpy(Cfg.webpa_protocol , "WebPA-1.6", sizeof(Cfg.webpa_protocol));
+    set_parodus_cfg(&Cfg);
+  
+    init_header_info (&ctx.header_info);
+    will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+    expect_function_call (nopoll_conn_wait_until_connection_ready);
+    assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
+    
+    assert_string_equal (ctx.extra_headers, expected_extra_headers);
+    free_extra_headers (&ctx);
+    free_header_info (&ctx.header_info);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -519,7 +615,8 @@ int main(void)
         cmocka_unit_test(test_set_current_server),
         cmocka_unit_test(test_set_extra_headers),
         cmocka_unit_test(test_find_servers),
-        cmocka_unit_test(test_nopoll_connect)
+        cmocka_unit_test(test_nopoll_connect),
+        cmocka_unit_test(test_wait_connection_ready)
 
     };
 

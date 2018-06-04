@@ -291,7 +291,7 @@ void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize)
   ctx->extra_headers = build_extra_hdrs (&ctx->header_info);
 }
 
-static void free_extra_headers (create_connection_ctx_t *ctx)
+void free_extra_headers (create_connection_ctx_t *ctx)
 {
   FREE_PTR_VAR (ctx->extra_headers)
 }
@@ -392,7 +392,7 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
 #define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
 #define WAIT_FAIL 	2
 
-static int wait_connection_ready (create_connection_ctx_t *ctx)
+int wait_connection_ready (create_connection_ctx_t *ctx)
 {
   int wait_status;
   char redirectURL[128]={'\0'};
@@ -409,7 +409,7 @@ static int wait_connection_ready (create_connection_ctx_t *ctx)
 	    redirect_ptr += 9;
 	free_server (&ctx->server_list.redirect);
 	if (parse_server_url (redirect_ptr, &ctx->server_list.redirect) < 0) {
-	  ParodusError ("Redirect url error %\n", redirectURL);
+	  ParodusError ("Redirect url error %s\n", redirectURL);
 	  return WAIT_FAIL;
 	}
 	set_current_server (ctx); // set current server to redirect server
