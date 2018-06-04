@@ -35,9 +35,17 @@ int writeToJSON(char *data)
 		ParodusError("Failed to open file %s\n", get_parodus_cfg()->crud_config_file );
 		return 0;
 	}
-	fwrite(data, strlen(data), 1, fp);
-	fclose(fp);
-	return 1;
+	if(data !=NULL)
+	{
+		fwrite(data, strlen(data), 1, fp);
+		fclose(fp);
+		return 1;
+	}
+	else
+	{
+		ParodusError("WriteToJson failed, Data is NULL\n");
+		return 0;
+	}
 }
 
 int readFromJSON(char **data)
@@ -95,10 +103,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 			if( json == NULL )
 			{
 				parse_error = cJSON_GetErrorPtr();
-				if (parse_error != NULL)
-				{
-					ParodusError("Parse Error before: %s\n", parse_error);
-				}
+				ParodusError("Parse Error before: %s\n", parse_error);
 				(*response)->u.crud.status = 500;
 				return -1;
 			}
@@ -614,6 +619,12 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 						(*response)->u.crud.status = 400;
 						return -1;
 					}
+				}
+				else
+				{
+					ParodusError("Requested dest path is NULL\n");
+					(*response)->u.crud.status = 400;
+					return -1;
 				}
 
 				cJSON_Delete( jsonresponse );
