@@ -48,6 +48,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 		//WRP payload is NULL for failure cases
 		resp_msg ->u.crud.payload = NULL;
 		resp_msg ->u.crud.payload_size = 0;
+		*responseMsg = resp_msg;
 		return -1;
 	}
 
@@ -77,6 +78,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	    //WRP payload is NULL for failure cases
 	    resp_msg ->u.crud.payload = NULL;
 	    resp_msg ->u.crud.payload_size = 0;
+	    *responseMsg = resp_msg;
 	    return -1;
 	}
 
@@ -96,6 +98,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	else
 	{
 		ParodusError("Failed to update object \n");
+		*responseMsg = resp_msg;
 		return -1;
 	}
 	*responseMsg = resp_msg;
@@ -114,6 +117,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	else
 	{
 		ParodusError("Failed to delete object \n");
+		*responseMsg = resp_msg;
 		return -1;
 	}
 	*responseMsg = resp_msg;
@@ -121,6 +125,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 
 	default:
 	    ParodusInfo( "Unknown msgType for CRUD request\n" );
+	    *responseMsg = resp_msg;
 	    break;
      }
 

@@ -292,6 +292,32 @@ void test_CRUDHandlerTaskFailure()
     will_return(processCrudRequest, -1);
     expect_function_call(processCrudRequest);
     
+    
+    will_return(get_global_nano_mut, 0);
+    expect_function_call(get_global_nano_mut);
+	
+	will_return(pthread_mutex_lock, 0);
+    expect_function_call(pthread_mutex_lock);
+    
+    will_return(get_global_UpStreamMsgQ, 0);
+    expect_function_call(get_global_UpStreamMsgQ);
+    
+    will_return(set_global_UpStreamMsgQ, 0);
+    expect_function_call(set_global_UpStreamMsgQ);
+    
+    will_return(get_global_nano_con, 0);
+    expect_function_call(get_global_nano_con);
+    
+    will_return(pthread_cond_signal, 0);
+    expect_function_call(pthread_cond_signal);
+    
+    will_return(get_global_nano_mut, 0);
+    expect_function_call(get_global_nano_mut);
+    
+    will_return(pthread_mutex_unlock, 0);
+    expect_function_call(pthread_mutex_unlock);
+    
+    
 	CRUDHandlerTask();
 	
 	free(crudMsgQ);

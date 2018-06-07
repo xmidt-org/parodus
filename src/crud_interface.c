@@ -104,21 +104,18 @@ void *CRUDHandlerTask()
 			if(ret == 0)
 			{
 				ParodusInfo("CRUD processed successfully\n");
-
-				ParodusPrint("msgpack encode to send to upstream\n");
-				resp_size = wrp_struct_to( crud_response, WRP_BYTES, &resp_bytes );
-				ParodusPrint("Encoded CRUD resp_size :%lu\n", resp_size);
-
-				ParodusInfo("Adding CRUD response to upstreamQ\n");
-				addCRUDresponseToUpstreamQ(resp_bytes, resp_size);
-
-				wrp_free_struct(crud_response);
-
 			}
 			else
 			{
 				ParodusError("Failure in CRUD request processing !!\n");
 			}
+			ParodusPrint("msgpack encode to send to upstream\n");
+			resp_size = wrp_struct_to( crud_response, WRP_BYTES, &resp_bytes );
+			ParodusPrint("Encoded CRUD resp_size :%lu\n", resp_size);
+
+			ParodusInfo("Adding CRUD response to upstreamQ\n");
+			addCRUDresponseToUpstreamQ(resp_bytes, resp_size);
+			wrp_free_struct(crud_response);
 		}
 		else
 		{

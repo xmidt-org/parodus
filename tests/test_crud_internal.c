@@ -55,7 +55,7 @@ void test_writeToJSON()
 		fclose(fp);
 	}
 	if(cfg.crud_config_file !=NULL)
-	free(cfg.crud_config_file);
+		free(cfg.crud_config_file);
 }
 
 void test_readFromJSON_Failure()
@@ -73,29 +73,25 @@ void test_readFromJSON()
 	char *testdata = NULL;
 	char *data = NULL;
 	int ch_count = 0;
-	
+
 	ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
     cfg.crud_config_file = strdup("parodus_cfg.json");
 	set_parodus_cfg(&cfg);
 	testdata = strdup("testData");
-	
 	write_ret = writeToJSON(testdata);
 	assert_int_equal (write_ret, 1);
-	
 	read_ret = readFromJSON(&data);
 
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
 	{
-		
 		fseek(fp, 0, SEEK_END);
 		ch_count = ftell(fp);
 		fseek(fp, 0, SEEK_SET);
 		data = (char *) malloc(sizeof(char) * (ch_count + 1));
 		fread(data, 1, ch_count,fp);
 		(data)[ch_count] ='\0';
-		
 		assert_string_equal (data, testdata);
 		assert_int_equal (read_ret, 1);
 
@@ -103,8 +99,8 @@ void test_readFromJSON()
 		fclose(fp);
 	}
 	if(cfg.crud_config_file !=NULL)
-	free(cfg.crud_config_file);
-	
+		free(cfg.crud_config_file);
+
 	if(data !=NULL)
 		free(data);
 	if(testdata !=NULL)
@@ -117,25 +113,21 @@ void test_retrieveFromMemory()
 	cJSON *jsonresponse;
 	ParodusCfg *cfg = NULL;
 	cfg= (ParodusCfg *) malloc(sizeof(ParodusCfg));
-
-     
+ 
     parStrncpy(cfg->hw_model, "X5001",sizeof(cfg->hw_model));
-    
     parStrncpy(cfg->hw_serial_number, "Fer23u948590",sizeof(cfg->hw_model));
     parStrncpy(cfg->hw_manufacturer, "ARRISGroup,Inc.", sizeof(cfg->hw_manufacturer));
-    parStrncpy(cfg->hw_mac, "123567892366",sizeof(cfg->hw_mac));	
-    parStrncpy(cfg->hw_last_reboot_reason, "unknown",sizeof(cfg->hw_last_reboot_reason));	
-    parStrncpy(cfg->fw_name, "TG1682_DEV_master_2016000000sdy", sizeof(cfg->fw_name));	
+    parStrncpy(cfg->hw_mac, "123567892366",sizeof(cfg->hw_mac));
+    parStrncpy(cfg->hw_last_reboot_reason, "unknown",sizeof(cfg->hw_last_reboot_reason));
+    parStrncpy(cfg->fw_name, "TG1682_DEV_master_2016000000sdy", sizeof(cfg->fw_name));
     cfg->webpa_ping_timeout=180;
-    parStrncpy(cfg->webpa_interface_used, "br0",sizeof(cfg->webpa_interface_used));	
+    parStrncpy(cfg->webpa_interface_used, "br0",sizeof(cfg->webpa_interface_used));   
     parStrncpy(cfg->webpa_url, "http://127.0.0.1", sizeof(cfg->webpa_url));
     parStrncpy(cfg->webpa_uuid, "1234567-345456546", sizeof(cfg->webpa_uuid));
     parStrncpy(cfg->webpa_protocol , "PARODUS-2.0", sizeof(cfg->webpa_protocol));
     cfg->webpa_backoff_max=0;
     cfg->boot_time=1234;
-    
 	set_parodus_cfg(cfg);
-		
 	ret = retrieveFromMemory("hw-model", &jsonresponse );
 	assert_int_equal (ret, 0);
 	ret = retrieveFromMemory("hw-serial-number", &jsonresponse );
@@ -163,7 +155,6 @@ void test_retrieveFromMemory()
 	ret = retrieveFromMemory("webpa-backoff-max", &jsonresponse );
 	assert_int_equal (ret, 0);
 	free(cfg);
-	
 }
 
 void test_retrieveFromMemoryFailure()
@@ -171,7 +162,6 @@ void test_retrieveFromMemoryFailure()
 	int ret = -1;
 	cJSON *jsonresponse;
 	ParodusCfg cfg;
-    
 	set_parodus_cfg(&cfg);
 	ret = retrieveFromMemory("hw-model", &jsonresponse );
 	assert_int_equal (ret, -1);
@@ -219,6 +209,7 @@ void test_createObjectInvalidReq()
     reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
     memset(reqMsg, 0, sizeof(wrp_msg_t));
 
+	reqMsg->msg_type = 5;
     reqMsg->u.crud.transaction_uuid = strdup("1234");
     reqMsg->u.crud.source = strdup("tag-update");
     reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
@@ -245,43 +236,40 @@ void test_createObjectInvalid_JsonEmpty()
 	FILE *fp;
 	int write_ret = -1;
 	wrp_msg_t *reqMsg = NULL;
-     reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-     memset(reqMsg, 0, sizeof(wrp_msg_t));
-     
-     wrp_msg_t *respMsg = NULL;
-     respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-     memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
 
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
 
 	ParodusCfg cfg;
-    memset(&cfg,0,sizeof(cfg));
-    cfg.crud_config_file = strdup("parodus_cfg.json");
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
 	set_parodus_cfg(&cfg);
 
 	write_ret = writeToJSON(NULL);
 	assert_int_equal (write_ret, 0);
+	reqMsg->msg_type = 5;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	respMsg->msg_type = 5;
+	ret = createObject(reqMsg, &respMsg);
 
-    
-     reqMsg->msg_type = 5;
-     reqMsg->u.crud.transaction_uuid = strdup("1234");
-     reqMsg->u.crud.source = strdup("tag-update");
-     reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
-     respMsg->msg_type = 5;
-     ret = createObject(reqMsg, &respMsg);
-	
-	 assert_int_equal (respMsg->u.crud.status, 400);
-	
-     assert_int_equal (ret, -1);
+	assert_int_equal (respMsg->u.crud.status, 400);
 
-    if(cfg.crud_config_file !=NULL)
+	assert_int_equal (ret, -1);
+
+	if(cfg.crud_config_file !=NULL)
 	free(cfg.crud_config_file);
-	
+
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
 	{
 		system("rm parodus_cfg.json");
 		fclose(fp);
-	}   
+	}
 	wrp_free_struct(reqMsg);
 	wrp_free_struct(respMsg);
 }
@@ -293,50 +281,43 @@ void test_createObjectInvalid_JsonNonEmpty()
 	FILE *fp;
 	int write_ret = -1;
 	char * testdata = NULL;
-	 wrp_msg_t *reqMsg = NULL;
-     reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-     memset(reqMsg, 0, sizeof(wrp_msg_t));
-     
-     wrp_msg_t *respMsg = NULL;
-     respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-     memset(respMsg, 0, sizeof(wrp_msg_t));
-
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
 
 	ParodusCfg cfg;
-    memset(&cfg,0,sizeof(cfg));
-    cfg.crud_config_file = strdup("parodus_cfg.json");
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
 	set_parodus_cfg(&cfg);
 
 	testdata = strdup("testData");	
 	write_ret = writeToJSON(testdata);
 	assert_int_equal (write_ret, 1);
 
-    
-     reqMsg->msg_type = 5;
-     reqMsg->u.crud.transaction_uuid = strdup("1234");
-     reqMsg->u.crud.source = strdup("tag-update");
-     reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	reqMsg->msg_type = 5;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	respMsg->msg_type = 5;
+	ret = createObject(reqMsg, &respMsg);
 
-   
-     respMsg->msg_type = 5;
-     ret = createObject(reqMsg, &respMsg);
-	
 	assert_int_equal (respMsg->u.crud.status, 500);
-	
-     assert_int_equal (ret, -1);
-    
+	assert_int_equal (ret, -1);
+
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
 	{
 		system("rm parodus_cfg.json");
 		fclose(fp);
-	}   
+	}
 	if(cfg.crud_config_file !=NULL)
-   free(cfg.crud_config_file);
-   
+		free(cfg.crud_config_file);
+
 	wrp_free_struct(reqMsg);
 	wrp_free_struct(respMsg);
-    
 }
 
 
@@ -346,45 +327,42 @@ void test_createObjectInvalid_JsonParseErr()
 	FILE *fp;
 	int write_ret = -1;
 	char * testdata = NULL;
-	 wrp_msg_t *reqMsg = NULL;
-     reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-     memset(reqMsg, 0, sizeof(wrp_msg_t));
-     
-     wrp_msg_t *respMsg = NULL;
-     respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-     memset(respMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
 
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
 
 	ParodusCfg cfg;
-    memset(&cfg,0,sizeof(cfg));
-    cfg.crud_config_file = strdup("parodus_cfg.json");
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
 	set_parodus_cfg(&cfg);
 
-	testdata = strdup("{testData:{");	
+	testdata = strdup("{testData:{");
 	write_ret = writeToJSON(testdata);
 	assert_int_equal (write_ret, 1);
 
-     reqMsg->msg_type = 5;
-     reqMsg->u.crud.transaction_uuid = strdup("1234");
-     reqMsg->u.crud.source = strdup("tag-update");
-     reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
-     respMsg->msg_type = 5;
-     ret = createObject(reqMsg, &respMsg);
-	
-	 assert_int_equal (respMsg->u.crud.status, 500);
-	
-     assert_int_equal (ret, -1);
+	reqMsg->msg_type = 5;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	respMsg->msg_type = 5;
+	ret = createObject(reqMsg, &respMsg);
 
-    
+	assert_int_equal (respMsg->u.crud.status, 500);
+	assert_int_equal (ret, -1);
+
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
 	{
 		system("rm parodus_cfg.json");
 		fclose(fp);
-	} 
+	}
 	if(cfg.crud_config_file !=NULL)
-   free(cfg.crud_config_file);
-     
+		free(cfg.crud_config_file);
+
 	wrp_free_struct(reqMsg);
 	wrp_free_struct(respMsg);
 }
@@ -394,19 +372,16 @@ void test_createObject_destNull()
     int ret = 0;
     int write_ret = -1;
     FILE *fp;
-    
     wrp_msg_t *reqMsg = NULL;
-    reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-    memset(reqMsg, 0, sizeof(wrp_msg_t));    
-    
+    reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+    memset(reqMsg, 0, sizeof(wrp_msg_t));
     wrp_msg_t *respMsg = NULL;
     respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-    memset(respMsg, 0, sizeof(wrp_msg_t));    
-    
+    memset(respMsg, 0, sizeof(wrp_msg_t));
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(cfg));
     cfg.crud_config_file = strdup("parodus_cfg.json");
-    set_parodus_cfg(&cfg);    
+    set_parodus_cfg(&cfg);
     write_ret = writeToJSON(NULL);
     assert_int_equal (write_ret, 0);    
     reqMsg->msg_type = 5;
@@ -414,24 +389,21 @@ void test_createObject_destNull()
     reqMsg->u.crud.source = strdup("tag-update");
     respMsg->msg_type = 5;
     ret = createObject(reqMsg, &respMsg);
-    
+
     assert_int_equal (respMsg->u.crud.status, 400);
     assert_int_equal (ret, -1);
-    
+
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
 	{
 		system("rm parodus_cfg.json");
 		fclose(fp);
-	}   
+	}
 	if(cfg.crud_config_file !=NULL)
-   free(cfg.crud_config_file);
-   
+   		free(cfg.crud_config_file);
 	wrp_free_struct(reqMsg);
 	wrp_free_struct(respMsg);
-
 }
-
 
 void test_createObject_JsonParse()
 {
@@ -676,96 +648,681 @@ void test_createObject_existingObj()
   
 } 
 
-void test_retrieveObjectInvalid_JsonEmpty()
+void test_retrieveObject_JsonEmpty()
 {
 	int ret = 0;
 	FILE *fp;
 	int write_ret = -1;
 	wrp_msg_t *reqMsg = NULL;
-     reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-     memset(reqMsg, 0, sizeof(wrp_msg_t));
-     
-     wrp_msg_t *respMsg = NULL;
-     respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-     memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
 
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
 
 	ParodusCfg cfg;
-    memset(&cfg,0,sizeof(cfg));
-    cfg.crud_config_file = strdup("parodus_cfg.json");
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
 	set_parodus_cfg(&cfg);
 
 	write_ret = writeToJSON(NULL);
 	assert_int_equal (write_ret, 0);
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
 
-    
-     reqMsg->msg_type = 6;
-     reqMsg->u.crud.transaction_uuid = strdup("1234");
-     reqMsg->u.crud.source = strdup("tag-update");
-     reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
-     respMsg->msg_type = 6;
-     ret = retrieveObject(reqMsg, &respMsg);
-	
-	 assert_int_equal (respMsg->u.crud.status, 500);
-	
-     assert_int_equal (ret, -1);
+	assert_int_equal (respMsg->u.crud.status, 500);
 
-    if(cfg.crud_config_file !=NULL)
-	free(cfg.crud_config_file);
-	
+	assert_int_equal (ret, -1);
+
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
 	{
 		system("rm parodus_cfg.json");
 		fclose(fp);
-	}   
+	}
 	wrp_free_struct(reqMsg);
 	wrp_free_struct(respMsg);
 }
 
 void test_retrieveObject_destNull()
 {
-    int ret = 0;
-    int write_ret = -1;
-    FILE *fp;
-    char *testdata;
-    
-    wrp_msg_t *reqMsg = NULL;
-    reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-    memset(reqMsg, 0, sizeof(wrp_msg_t));    
-    
-    wrp_msg_t *respMsg = NULL;
-    respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
-    memset(respMsg, 0, sizeof(wrp_msg_t));    
-    
-    ParodusCfg cfg;
-    memset(&cfg,0,sizeof(cfg));
-    cfg.crud_config_file = strdup("parodus_cfg.json");
-    set_parodus_cfg(&cfg); 
-    testdata=strdup("{\"tags\":{\"test\":{\"expires\":123}}}");   
-    write_ret = writeToJSON(testdata);
-    assert_int_equal (write_ret, 1);    
-    reqMsg->msg_type = 6;
-    reqMsg->u.crud.transaction_uuid = strdup("1234");
-    reqMsg->u.crud.source = strdup("tag-update");
-    respMsg->msg_type = 6;
-    ret = retrieveObject(reqMsg, &respMsg);
-    assert_int_equal (respMsg->u.crud.status, 400);
-    assert_int_equal (ret, -1);    
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata;
+
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(reqMsg, 0, sizeof(wrp_msg_t));    
+
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(respMsg, 0, sizeof(wrp_msg_t));    
+
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg); 
+	testdata=strdup("{\"tags\":{\"test\":{\"expires\":123}}}");   
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);    
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);    
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
 	{
 		system("rm parodus_cfg.json");
 		fclose(fp);
-	}   
+	}
 	if(cfg.crud_config_file !=NULL)
-     free(cfg.crud_config_file);
-   
-   	if(testdata!=NULL)
-   	 free(testdata);
+		free(cfg.crud_config_file);
+
+	if(testdata!=NULL)
+		free(testdata);
 	wrp_free_struct(reqMsg);
 	wrp_free_struct(respMsg);
 
+}
+
+void test_retrieveObjectWithNoConfigJson()
+{
+    int ret = 0;
+    wrp_msg_t *reqMsg = NULL;
+    wrp_msg_t *respMsg = NULL;
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(cfg));
+
+	respMsg = ( wrp_msg_t *)malloc(sizeof( wrp_msg_t ));
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+    reqMsg = ( wrp_msg_t *)malloc(sizeof( wrp_msg_t ));  
+    memset(reqMsg, 0, sizeof(wrp_msg_t));
+
+	reqMsg->msg_type = 6;
+    reqMsg->u.crud.transaction_uuid = strdup("1234");
+    reqMsg->u.crud.source = strdup("tag-update");
+    reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+    respMsg->msg_type = 6;
+    ret = retrieveObject(reqMsg, &respMsg);
+    assert_int_equal (respMsg->u.crud.status, 500);
+    assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void test_retrieveObject_JsonParseErr()
+{
+	int ret = 0;
+	FILE *fp;
+	int write_ret = -1;
+	char * testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+
+	testdata = strdup("{testData:{");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 500);
+	assert_int_equal (ret, -1);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+//
+void test_retrieveObject_tags()
+{
+  int ret = 0;
+  int write_ret = -1;
+  FILE *fp;
+  char *testdata = NULL;
+ 
+  wrp_msg_t *reqMsg = NULL;
+  reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+  memset(reqMsg, 0, sizeof(wrp_msg_t));    
+ 
+  wrp_msg_t *respMsg = NULL;
+  respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+  memset(respMsg, 0, sizeof(wrp_msg_t));    
+ 
+  ParodusCfg cfg;
+  memset(&cfg,0,sizeof(cfg));
+  cfg.crud_config_file = strdup("parodus_cfg.json");
+  set_parodus_cfg(&cfg);     
+  testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");  
+  write_ret = writeToJSON(testdata);
+  assert_int_equal (write_ret, 1);    
+  reqMsg->msg_type = 6;
+  reqMsg->u.crud.transaction_uuid = strdup("1234");
+  reqMsg->u.crud.source = strdup("tag-update");
+  reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+  
+  respMsg->msg_type = 6;
+  ret = retrieveObject(reqMsg, &respMsg);
+ 
+  assert_int_equal (respMsg->u.crud.status, 200);
+  assert_int_equal (ret, 0);
+ 
+  
+   fp = fopen(cfg.crud_config_file, "r");
+   if (fp != NULL)
+   {
+       system("rm parodus_cfg.json");
+       fclose(fp);
+   }  
+   if(cfg.crud_config_file !=NULL)
+   free(cfg.crud_config_file);
+   
+   wrp_free_struct(reqMsg);
+   wrp_free_struct(respMsg);
+  
+} 
+
+void test_retrieveObject_withNotags()
+{
+  int ret = 0;
+  int write_ret = -1;
+  FILE *fp;
+  char *testdata = NULL;
+ 
+  wrp_msg_t *reqMsg = NULL;
+  reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+  memset(reqMsg, 0, sizeof(wrp_msg_t));    
+ 
+  wrp_msg_t *respMsg = NULL;
+  respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+  memset(respMsg, 0, sizeof(wrp_msg_t));    
+ 
+  ParodusCfg cfg;
+  memset(&cfg,0,sizeof(cfg));
+  cfg.crud_config_file = strdup("parodus_cfg.json");
+  set_parodus_cfg(&cfg);     
+  testdata=strdup("{\"tags\":{}}}"); 
+  write_ret = writeToJSON(testdata);
+  assert_int_equal (write_ret, 1);    
+  reqMsg->msg_type = 6;
+  reqMsg->u.crud.transaction_uuid = strdup("1234");
+  reqMsg->u.crud.source = strdup("tag-update");
+  reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+  
+  respMsg->msg_type = 6;
+  ret = retrieveObject(reqMsg, &respMsg);
+ 
+  assert_int_equal (respMsg->u.crud.status, 400);
+  assert_int_equal (ret, -1);
+  
+   fp = fopen(cfg.crud_config_file, "r");
+   if (fp != NULL)
+   {
+       system("rm parodus_cfg.json");
+       fclose(fp);
+   }  
+   if(cfg.crud_config_file !=NULL)
+   free(cfg.crud_config_file);
+   
+   wrp_free_struct(reqMsg);
+   wrp_free_struct(respMsg);
+  
+} 
+
+void test_retrieveObject_testObj()
+{
+  int ret = 0;
+  int write_ret = -1;
+  FILE *fp;
+  char *testdata = NULL;
+ 
+  wrp_msg_t *reqMsg = NULL;
+  reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+  memset(reqMsg, 0, sizeof(wrp_msg_t));    
+ 
+  wrp_msg_t *respMsg = NULL;
+  respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+  memset(respMsg, 0, sizeof(wrp_msg_t));    
+ 
+  ParodusCfg cfg;
+  memset(&cfg,0,sizeof(cfg));
+  cfg.crud_config_file = strdup("parodus_cfg.json");
+  set_parodus_cfg(&cfg);     
+  testdata=strdup("{\"tags\":{\"test\":{\"expires\":152245}, \"test1\":{\"expires\":1522451870}}}"); 
+  write_ret = writeToJSON(testdata);
+  assert_int_equal (write_ret, 1);    
+  reqMsg->msg_type = 6;
+  reqMsg->u.crud.transaction_uuid = strdup("1234");
+  reqMsg->u.crud.source = strdup("tag-update");
+  reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags/test1");
+  
+  respMsg->msg_type = 6;
+  ret = retrieveObject(reqMsg, &respMsg);
+ 
+  assert_int_equal (respMsg->u.crud.status, 200);
+  assert_int_equal (ret, 0);
+ 
+  
+   fp = fopen(cfg.crud_config_file, "r");
+   if (fp != NULL)
+   {
+       system("rm parodus_cfg.json");
+       fclose(fp);
+   }  
+   if(cfg.crud_config_file !=NULL)
+   free(cfg.crud_config_file);
+   
+   wrp_free_struct(reqMsg);
+   wrp_free_struct(respMsg);
+  
+}
+
+void test_retrieveObject_nonexistObj()
+{
+  int ret = 0;
+  int write_ret = -1;
+  FILE *fp;
+  char *testdata = NULL;
+ 
+  wrp_msg_t *reqMsg = NULL;
+  reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+  memset(reqMsg, 0, sizeof(wrp_msg_t));    
+ 
+  wrp_msg_t *respMsg = NULL;
+  respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+  memset(respMsg, 0, sizeof(wrp_msg_t));    
+ 
+  ParodusCfg cfg;
+  memset(&cfg,0,sizeof(cfg));
+  cfg.crud_config_file = strdup("parodus_cfg.json");
+  set_parodus_cfg(&cfg);     
+  testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");  
+  write_ret = writeToJSON(testdata);
+  assert_int_equal (write_ret, 1);    
+  reqMsg->msg_type = 6;
+  reqMsg->u.crud.transaction_uuid = strdup("1234");
+  reqMsg->u.crud.source = strdup("tag-update");
+  reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags/test");
+  
+  respMsg->msg_type = 6;
+  ret = retrieveObject(reqMsg, &respMsg);
+ 
+  assert_int_equal (respMsg->u.crud.status, 400);
+  assert_int_equal (ret, -1);
+ 
+  
+   fp = fopen(cfg.crud_config_file, "r");
+   if (fp != NULL)
+   {
+       system("rm parodus_cfg.json");
+       fclose(fp);
+   }  
+   if(cfg.crud_config_file !=NULL)
+   free(cfg.crud_config_file);
+   
+   wrp_free_struct(reqMsg);
+   wrp_free_struct(respMsg);
+  
+}
+
+void test_updateObject_JsonEmpty()
+{
+	int ret = 0;
+	FILE *fp;
+	int write_ret = -1;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+
+	write_ret = writeToJSON(NULL);
+	assert_int_equal (write_ret, 0);
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags/test");
+	reqMsg->u.crud.payload = strdup("{ \"expires\" : 1522451}");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 201);
+
+	assert_int_equal (ret, 0);
+
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void test_updateObject_destNull()
+{
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata;
+
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(reqMsg, 0, sizeof(wrp_msg_t));    
+
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(respMsg, 0, sizeof(wrp_msg_t));    
+
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg); 
+	testdata=strdup("{\"tags\":{\"test\":{\"expires\":123}}}");   
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);    
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);    
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+
+	if(testdata!=NULL)
+		free(testdata);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+
+}
+
+void test_updateObjectWithNoConfigJson()
+{
+    int ret = 0;
+    wrp_msg_t *reqMsg = NULL;
+    wrp_msg_t *respMsg = NULL;
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+	
+	respMsg = ( wrp_msg_t *)malloc(sizeof( wrp_msg_t ));
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+    reqMsg = ( wrp_msg_t *)malloc(sizeof( wrp_msg_t ));  
+    memset(reqMsg, 0, sizeof(wrp_msg_t));
+
+	reqMsg->msg_type = 7;
+    reqMsg->u.crud.transaction_uuid = strdup("1234");
+    reqMsg->u.crud.source = strdup("tag-update");
+    reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags/test1");
+    reqMsg->u.crud.payload = strdup("{ \"expires\" : 1522451}");
+    respMsg->msg_type = 7;
+    ret = updateObject(reqMsg, &respMsg);
+    assert_int_equal (respMsg->u.crud.status, 201);
+    assert_int_equal (ret, 0);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void test_updateObject_JsonParseErr()
+{
+	int ret = 0;
+	FILE *fp;
+	int write_ret = -1;
+	char * testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+
+	testdata = strdup("{testData:{");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 500);
+	assert_int_equal (ret, -1);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+
+void test_deleteObject_JsonEmpty()
+{
+	int ret = 0;
+	FILE *fp;
+	int write_ret = -1;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+
+	write_ret = writeToJSON(NULL);
+	assert_int_equal (write_ret, 0);
+	reqMsg->msg_type = 8;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	respMsg->msg_type = 8;
+	ret = deleteObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 500);
+
+	assert_int_equal (ret, -1);
+
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void test_deleteObject_destNull()
+{
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata;
+
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(reqMsg, 0, sizeof(wrp_msg_t));    
+
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(respMsg, 0, sizeof(wrp_msg_t));    
+
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg); 
+	testdata=strdup("{\"tags\":{\"test\":{\"expires\":123}}}");   
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);    
+	reqMsg->msg_type = 8;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	respMsg->msg_type = 8;
+	ret = deleteObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);    
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+
+	if(testdata!=NULL)
+		free(testdata);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+
+}
+
+void test_deleteObjectWithNoConfigJson()
+{
+    int ret = 0;
+    wrp_msg_t *reqMsg = NULL;
+    wrp_msg_t *respMsg = NULL;
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(cfg));
+
+	respMsg = ( wrp_msg_t *)malloc(sizeof( wrp_msg_t ));
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+    reqMsg = ( wrp_msg_t *)malloc(sizeof( wrp_msg_t ));  
+    memset(reqMsg, 0, sizeof(wrp_msg_t));
+
+	reqMsg->msg_type = 8;
+    reqMsg->u.crud.transaction_uuid = strdup("1234");
+    reqMsg->u.crud.source = strdup("tag-update");
+    reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+    respMsg->msg_type = 8;
+    ret = deleteObject(reqMsg, &respMsg);
+    assert_int_equal (respMsg->u.crud.status, 500);
+    assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void test_deleteObject_JsonParseErr()
+{
+	int ret = 0;
+	FILE *fp;
+	int write_ret = -1;
+	char * testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+
+	testdata = strdup("{testData:{");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+
+	reqMsg->msg_type = 8;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("tag-update");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	respMsg->msg_type = 8;
+	ret = deleteObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 500);
+	assert_int_equal (ret, -1);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -781,6 +1338,7 @@ int main(void)
         cmocka_unit_test(test_readFromJSON),
         cmocka_unit_test(test_retrieveFromMemory),
         cmocka_unit_test(test_retrieveFromMemoryFailure),
+        
         cmocka_unit_test(test_createObjectInvalidReq),
         cmocka_unit_test(test_createObjectInvalid_JsonEmpty),
         cmocka_unit_test(test_createObjectInvalid_JsonNonEmpty),
@@ -791,8 +1349,25 @@ int main(void)
         cmocka_unit_test(test_createObject_withWrongPayload),
         cmocka_unit_test(test_createObject_multipleObjects),
         cmocka_unit_test(test_createObject_existingObj),
-        cmocka_unit_test(test_retrieveObjectInvalid_JsonEmpty),
+        
+        cmocka_unit_test(test_retrieveObject_JsonEmpty),
         cmocka_unit_test(test_retrieveObject_destNull),
+        cmocka_unit_test(test_retrieveObjectWithNoConfigJson),
+        cmocka_unit_test(test_retrieveObject_JsonParseErr),
+        cmocka_unit_test(test_retrieveObject_tags),
+        cmocka_unit_test(test_retrieveObject_withNotags),
+        cmocka_unit_test(test_retrieveObject_testObj),
+        cmocka_unit_test(test_retrieveObject_nonexistObj),
+        
+        cmocka_unit_test(test_updateObject_JsonEmpty),
+        cmocka_unit_test(test_updateObject_destNull),
+        cmocka_unit_test(test_updateObjectWithNoConfigJson),
+        cmocka_unit_test(test_updateObject_JsonParseErr),
+        
+        cmocka_unit_test(test_deleteObject_JsonEmpty),
+        cmocka_unit_test(test_deleteObject_destNull),
+        cmocka_unit_test(test_deleteObjectWithNoConfigJson),
+        cmocka_unit_test(test_deleteObject_JsonParseErr)
         
     };
 

@@ -533,7 +533,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 								{
 									ParodusError("itemSize is 0, tags object is empty in json\n");
 									(*response)->u.crud.status = 400;
-
+									return -1;
 								}
 								else
 								{
@@ -667,8 +667,12 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 
 	status = readFromJSON(&jsonData);
 	ParodusInfo("read status %d\n", status);
-
-	if(status)
+	if(status == 0)
+	{
+		ParodusInfo("Proceed creating CRUD config %s\n", get_parodus_cfg()->crud_config_file );
+		json = cJSON_Parse( jsonData );
+	}
+	else
 	{
 		if((jsonData !=NULL) && (strlen(jsonData)>0))
 		{
@@ -676,176 +680,158 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 			if( json == NULL )
 			{
 				parse_error = cJSON_GetErrorPtr();
-				if (parse_error != NULL)
-				{
-					ParodusError("Parse Error before: %s\n", parse_error);
-				}
+				ParodusError("Parse Error before: %s\n", parse_error);
 				(*response)->u.crud.status = 500;
 				return -1;
 			}
 			else
 			{
 				ParodusInfo("CRUD config json parse success\n");
+			}
+		}
+		else
+		{
+			ParodusInfo("CRUD config is empty, proceed creation of new object\n");
+			json = cJSON_Parse( jsonData );
+		}
+	}
 
-				if(reqMsg->u.crud.dest !=NULL)
+	if(reqMsg->u.crud.dest !=NULL)
+	{
+		destVal = strdup(reqMsg->u.crud.dest);
+		ParodusInfo("destVal is %s\n", destVal);
+
+		if( (destVal != NULL))
+		{
+			child_ptr = strtok(destVal , "/");
+
+			/* Get the 1st object */
+			obj[0] = strdup( child_ptr );
+			ParodusPrint( "parent is %s\n", obj[0] );
+
+			free(destVal);
+
+			while( child_ptr != NULL )
+			{
+				child_ptr = strtok( NULL, "/" );
+				if( child_ptr != NULL )
 				{
-					destVal = strdup(reqMsg->u.crud.dest);
-					ParodusInfo("destVal is %s\n", destVal);
+					obj[i] = strdup( child_ptr );
+					ParodusPrint( "child obj[%d]:%s\n", i, obj[i] );
+					i++;
+				}
+			}
 
-					if( (destVal != NULL))
+			objlevel = i;
+			ParodusInfo( "Number of object level %d\n", objlevel );
+
+			/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
+			if(objlevel == 4)
+			{
+				if(reqMsg->u.crud.payload != NULL)
+				{
+					ParodusInfo("reqMsg->u.crud.payload is %s\n", (char *)reqMsg->u.crud.payload);
+					jsonPayload = cJSON_Parse( reqMsg->u.crud.payload );
+					if(jsonPayload !=NULL)
 					{
-						child_ptr = strtok(destVal , "/");
+						jsonPayloadSize = cJSON_GetArraySize( jsonPayload );
+						ParodusPrint( "jsonPayloadSize is %d\n", jsonPayloadSize );
+					}
+					if(jsonPayloadSize)
+					{
+						cJSON* res_obj = cJSON_CreateObject();
+						cJSON *payloadObj = cJSON_CreateObject();
+						key = cJSON_GetArrayItem( jsonPayload, 0 )->string;
+						value = cJSON_GetArrayItem( jsonPayload, 0 )->valueint;
+						ParodusInfo("key:%s value:%d\n", key, value);
 
-						/* Get the 1st object */
-						obj[0] = strdup( child_ptr );
-						ParodusPrint( "parent is %s\n", obj[0] );
-
-						free(destVal);
-
-						while( child_ptr != NULL )
+						//check tags object exists
+						cJSON *tagObj = cJSON_GetObjectItem( json, "tags" );
+						if(tagObj !=NULL)
 						{
-							child_ptr = strtok( NULL, "/" );
-							if( child_ptr != NULL )
+							ParodusInfo("tag obj exists in json\n");
+
+							//check requested test object exists under tags
+							cJSON *testObj = cJSON_GetObjectItem( tagObj, obj[objlevel -1] );
+							if(testObj !=NULL)
 							{
-								obj[i] = strdup( child_ptr );
-								ParodusPrint( "child obj[%d]:%s\n", i, obj[i] );
-								i++;
-							}
-						}
+								jsontagitemSize = cJSON_GetArraySize( tagObj );
+								ParodusPrint( "jsontagitemSize is %d\n", jsontagitemSize );
 
-						objlevel = i;
-						ParodusInfo( "Number of object level %d\n", objlevel );
-
-						/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
-						if(objlevel == 4)
-						{
-							if(reqMsg->u.crud.payload != NULL)
-							{
-								ParodusInfo("reqMsg->u.crud.payload is %s\n", (char *)reqMsg->u.crud.payload);
-								jsonPayload = cJSON_Parse( reqMsg->u.crud.payload );
-								if(jsonPayload !=NULL)
+								//traverse through each test objects to find match
+								for( i = 0 ; j < jsontagitemSize ; j++ )
 								{
-									jsonPayloadSize = cJSON_GetArraySize( jsonPayload );
-									ParodusPrint( "jsonPayloadSize is %d\n", jsonPayloadSize );
-								}
-								if(jsonPayloadSize)
-								{
-									cJSON* res_obj = cJSON_CreateObject();
-									cJSON *payloadObj = cJSON_CreateObject();
-									key = cJSON_GetArrayItem( jsonPayload, 0 )->string;
-									value = cJSON_GetArrayItem( jsonPayload, 0 )->valueint;
-									ParodusInfo("key:%s value:%d\n", key, value);
-
-									//check tags object exists
-									cJSON *tagObj = cJSON_GetObjectItem( json, "tags" );
-									if(tagObj !=NULL)
+									testkey = cJSON_GetArrayItem( tagObj, j )->string;
+									ParodusPrint("testkey is %s\n", testkey);
+									if( strcmp( testkey, obj[objlevel -1] ) == 0 )
 									{
-										ParodusInfo("tag obj exists in json\n");
-
-										//check requested test object exists under tags
-										cJSON *testObj = cJSON_GetObjectItem( tagObj, obj[objlevel -1] );
-										if(testObj !=NULL)
-										{
-											jsontagitemSize = cJSON_GetArraySize( tagObj );
-											ParodusPrint( "jsontagitemSize is %d\n", jsontagitemSize );
-
-											//traverse through each test objects to find match
-											for( i = 0 ; j < jsontagitemSize ; j++ )
-											{
-												testkey = cJSON_GetArrayItem( tagObj, j )->string;
-												ParodusPrint("testkey is %s\n", testkey);
-												if( strcmp( testkey, obj[objlevel -1] ) == 0 )
-												{
-													ParodusInfo( "testObj already exists in json. Update it\n" );
-													cJSON_ReplaceItemInObject(testObj,key,cJSON_CreateNumber(value));
-													cJSON_AddItemToObject(payloadObj, obj[objlevel -1] , testObj);
-													(*response)->u.crud.status = 200;
-													break;
-												}
-												else
-												{
-													ParodusPrint("testObj not found, iterating..\n");
-												}
-											}
-										}
-										else
-										{
-											ParodusInfo("testObj doesnot exists in json, adding it\n");
-											cJSON_AddItemToObject(tagObj, obj[objlevel -1], testObj1 = cJSON_CreateObject());
-											cJSON_AddNumberToObject(testObj1, key, value);
-											cJSON_AddItemToObject(payloadObj, obj[objlevel -1], testObj1);
-											(*response)->u.crud.status = 201;
-										}
+										ParodusInfo( "testObj already exists in json. Update it\n" );
+										cJSON_ReplaceItemInObject(testObj,key,cJSON_CreateNumber(value));
+										cJSON_AddItemToObject(payloadObj, obj[objlevel -1] , testObj);
+										(*response)->u.crud.status = 200;
+										break;
 									}
 									else
 									{
-										ParodusInfo("tagObj doesnot exists in json, adding it\n");
-										cJSON_AddItemToObject(res_obj , "tags", parameters = cJSON_CreateObject());
-										cJSON_AddItemToObject(parameters, obj[objlevel -1], testObj1 = cJSON_CreateObject());
-										cJSON_AddNumberToObject(testObj1, key, value);
-										(*response)->u.crud.status = 201;
+										ParodusPrint("testObj not found, iterating..\n");
 									}
-
-									cJSON_AddItemToObject(res_obj , "tags", tagObj);
-									out = cJSON_PrintUnformatted(res_obj );
-									ParodusInfo("out : %s\n",out);
-
-									cJSON_Delete(res_obj);
-									res_obj = NULL;
-									update_status = writeToJSON(out);
-
-									if(out !=NULL)
-									{
-										free( out );
-										out = NULL;
-									}
-									cJSON_Delete( jsonPayload );
-									jsonPayload = NULL;
-
-									if(update_status == 1)
-									{
-										ParodusInfo("Data is successfully added to JSON\n");
-									}
-									else
-									{
-										ParodusError("Failed to add data to JSON\n");
-										(*response)->u.crud.status = 500;
-										return -1;
-									}
-								}
-								else
-								{
-									ParodusError("Invalid UPDATE request, payload is not json\n");
-									(*response)->u.crud.status = 400;
-									return -1;
 								}
 							}
 							else
 							{
-								ParodusError("Invalid UPDATE request, payload is NULL\n");
-								(*response)->u.crud.status = 400;
-								return -1;
+								ParodusInfo("testObj doesnot exists in json, adding it\n");
+								cJSON_AddItemToObject(tagObj, obj[objlevel -1], testObj1 = cJSON_CreateObject());
+								cJSON_AddNumberToObject(testObj1, key, value);
+								cJSON_AddItemToObject(payloadObj, obj[objlevel -1], testObj1);
+								(*response)->u.crud.status = 201;
 							}
 						}
 						else
 						{
-							//  Return error for request format other than /tag/${name}
-							ParodusError("Invalid UPDATE request\n");
-							(*response)->u.crud.status = 400;
-							return -1;
+							ParodusInfo("tagObj doesnot exists in json, adding it\n");
+							cJSON_AddItemToObject(res_obj , "tags", parameters = cJSON_CreateObject());
+							cJSON_AddItemToObject(parameters, obj[objlevel -1], testObj1 = cJSON_CreateObject());
+							cJSON_AddNumberToObject(testObj1, key, value);
+							(*response)->u.crud.status = 201;
 						}
 
+						cJSON_AddItemToObject(res_obj , "tags", tagObj);
+						out = cJSON_PrintUnformatted(res_obj );
+						ParodusInfo("out : %s\n",out);
+
+						cJSON_Delete(res_obj);
+						res_obj = NULL;
+						update_status = writeToJSON(out);
+
+						if(out !=NULL)
+						{
+							free( out );
+							out = NULL;
+						}
+						cJSON_Delete( jsonPayload );
+						jsonPayload = NULL;
+
+						if(update_status == 1)
+						{
+							ParodusInfo("Data is successfully added to JSON\n");
+						}
+						else
+						{
+							ParodusError("Failed to add data to JSON\n");
+							(*response)->u.crud.status = 500;
+							return -1;
+						}
 					}
 					else
 					{
-						ParodusError("Unable to parse object details from UPDATE request\n");
+						ParodusError("Invalid UPDATE request, payload is not json\n");
 						(*response)->u.crud.status = 400;
 						return -1;
 					}
 				}
 				else
 				{
-					ParodusError("Requested dest path is NULL\n");
+					ParodusError("Invalid UPDATE request, payload is NULL\n");
 					(*response)->u.crud.status = 400;
 					return -1;
 				}
@@ -853,15 +839,15 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		}
 		else
 		{
-			ParodusError("CRUD config %s is empty\n", get_parodus_cfg()->crud_config_file);
-			(*response)->u.crud.status = 500;
+			ParodusError("Unable to parse object details from UPDATE request\n");
+			(*response)->u.crud.status = 400;
 			return -1;
 		}
 	}
 	else
 	{
-		ParodusError("CRUD config %s is not available\n", get_parodus_cfg()->crud_config_file);
-		(*response)->u.crud.status = 500;
+		ParodusError("Requested dest path is NULL\n");
+		(*response)->u.crud.status = 400;
 		return -1;
 	}
 
@@ -999,6 +985,12 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 					(*response)->u.crud.status = 400;
 					return -1;
 				   }
+				}
+				else
+				{
+					ParodusError("Requested dest path is NULL\n");
+					(*response)->u.crud.status = 400;
+					return -1;
 				}
 			}
 		}
