@@ -951,11 +951,6 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 											break;
 										}
 
-										if(found)
-										{
-											ParodusPrint("break, since param object is found\n");
-											break;
-										}
 									}
 
 									if(!found)
@@ -1008,7 +1003,7 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		return -1;
 	}
 	out = cJSON_Print( json );
-	ParodusInfo("%s\n",out);
+	ParodusPrint("%s\n",out);
 	delete_status = writeToJSON(out);
 	if(delete_status == 1)
 	{
