@@ -123,9 +123,7 @@ struct _noPollCtx {
 	 */
 	noPollOnMessageHandler on_msg;
 	noPollPtr              on_msg_data;
-	
-	noPollOnMessageHandler on_ping_msg;
-	noPollPtr              on_ping_msg_data;
+
 	/** 
 	 * @internal Basic fake support for protocol version, by
 	 * default: 13, due to RFC6455 standard
@@ -234,9 +232,13 @@ struct _noPollConn {
 	 */
 	noPollOnMessageHandler on_msg;
 	noPollPtr              on_msg_data;
-	
+
+	/**
+	 * @internal Reference to the defined on ping message handling.
+	 */
 	noPollOnMessageHandler on_ping_msg;
-	noPollPtr              on_ping_msg_data;
+    noPollPtr              on_ping_msg_data;
+
 	/** 
 	 * @internal Reference to defined on ready handling.
 	 */
@@ -297,9 +299,10 @@ struct _noPollConn {
 	noPollPtr             hook;
 
 	/** 
-	 * @internal Mutex 
+	 * @internal Mutexes
 	 */
 	noPollPtr             ref_mutex;
+	noPollPtr             handshake_mutex;
 
 	/** 
 	 * @internal Variable to track pending bytes from previous
