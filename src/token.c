@@ -73,12 +73,12 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-/* none */
+time_t jwt_expiration = (time_t) -1;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-/* none */
+void init_jwt_expiration (void);
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -92,6 +92,7 @@ extern int __res_nquery(res_state statp,
 	   int class, int type,	/* class and type of query */
 	   u_char *answer,	/* buffer to put answer */
 	   int anslen);		/* size of answer buffer */
+#endif
 
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
@@ -110,6 +111,8 @@ static void show_times (time_t exp_time, time_t cur_time)
 		(int)exp_time, exp_buf+4, (int)cur_time, cur_buf+4);
 }
 
+#ifdef FEATURE_DNS_QUERY
+
 // returns 1 if insecure, 0 if secure, < 0 if error
 int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
 	char *port_buf, int port_buflen)
@@ -119,6 +122,7 @@ int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
 	time_t exp_time, cur_time;
 	int http_match;
 
+	init_jwt_expiration ();
 	if (!claims) {
 		ParodusError ("Private claims not found in jwt\n");
 		return TOKEN_ERR_INVALID_JWT_CONTENT;
@@ -149,6 +153,7 @@ int analyze_jwt (const cjwt_t *jwt, char *url_buf, int url_buflen,
 		ParodusError ("Invalid endpoint claim in JWT\n");
 		return TOKEN_ERR_BAD_ENDPOINT;
 	}
+	jwt_expiration = exp_time;
 	ParodusInfo ("JWT is_http strncmp: %d\n", http_match);
 
 	return http_match;
@@ -474,6 +479,25 @@ static void get_dns_txt_record_id (char *buf)
 }
 #endif
 
+void init_jwt_expiration (void)
+{
+	jwt_expiration = (time_t) -1;
+}
+
+int jwt_has_expired (void)
+{
+	int cur_time;
+	
+	if (jwt_expiration == (time_t) -1)
+		return (int) false;
+	cur_time = time(NULL);	
+	if (jwt_expiration >= time(NULL))
+		return (int) false;
+	ParodusError ("JWT Expired\n");
+	show_times (jwt_expiration, cur_time);
+	return (int) true; 
+}
+
 int allow_insecure_conn(char *url_buf, int url_buflen,
 	char *port_buf, int port_buflen)
 {
@@ -482,7 +506,8 @@ int allow_insecure_conn(char *url_buf, int url_buflen,
 	char *jwt_token, *key;
 	cjwt_t *jwt = NULL;
 	char dns_txt_record_id[TXT_REC_ID_MAXSIZE];
-	
+
+	init_jwt_expiration ();
 	jwt_token = malloc (NS_MAXBUF);
 	if (NULL == jwt_token) {
 		ParodusError ("Unable to allocate jwt_token in allow_insecure_conn\n");
@@ -542,6 +567,7 @@ end:
   (void) port_buf;
   (void) port_buflen;
   int insecure = TOKEN_NO_DNS_QUERY;
+	init_jwt_expiration ();
 #endif
 	ParodusPrint ("Allow Insecure %d\n", insecure);
 	return insecure;
