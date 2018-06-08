@@ -434,7 +434,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 #define CONN_WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
 #define CONN_WAIT_RETRY_DNS 	2
 
-static int connect_and_wait (create_connection_ctx_t *ctx)
+int connect_and_wait (create_connection_ctx_t *ctx)
 {
   unsigned int force_flags = get_parodus_cfg()->flags;
   int is_ipv6 = true;
@@ -484,7 +484,7 @@ static int connect_and_wait (create_connection_ctx_t *ctx)
 // Tries to connect until
 // a) success, or
 // b) need to requery dns
-static int keep_trying_to_connect (create_connection_ctx_t *ctx, 
+int keep_trying_to_connect (create_connection_ctx_t *ctx, 
 	int max_retry_sleep,
 	int query_dns_status)
 {

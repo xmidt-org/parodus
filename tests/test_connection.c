@@ -49,6 +49,10 @@ extern void free_server (server_t *server);
 extern int find_servers (server_list_t *server_list);
 extern int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6);
 extern int wait_connection_ready (create_connection_ctx_t *ctx);
+extern int connect_and_wait (create_connection_ctx_t *ctx);
+extern int keep_trying_to_connect (create_connection_ctx_t *ctx, 
+	int max_retry_sleep,
+	int query_dns_status);
 
 
 /*----------------------------------------------------------------------------*/
@@ -118,6 +122,25 @@ nopoll_bool  nopoll_conn_wait_until_connection_ready (noPollConn * conn,
     if (NULL != mock_redirect)
         sprintf (message, "Redirect:%s", mock_redirect);
     function_called();
+    return (nopoll_bool) mock();
+}
+
+nopoll_bool nopoll_conn_is_ok (noPollConn * conn)
+{
+    UNUSED(conn);
+    function_called ();
+    return (nopoll_bool) mock();
+}
+
+void nopoll_conn_close (noPollConn *conn)
+{
+    UNUSED(conn);
+}
+
+int nopoll_conn_ref_count (noPollConn *conn)
+{
+    UNUSED(conn);
+    function_called ();
     return (nopoll_bool) mock();
 }
 
@@ -593,6 +616,180 @@ void test_wait_connection_ready ()
     free_header_info (&ctx.header_info);
 }
 
+// Return codes for connect_and_wait
+#define CONN_WAIT_SUCCESS	0
+#define CONN_WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
+#define CONN_WAIT_RETRY_DNS 	2
+
+void test_connect_and_wait ()
+{
+  create_connection_ctx_t ctx;
+  noPollCtx test_nopoll_ctx;
+  server_t test_server;
+  ParodusCfg Cfg;
+  char *test_extra_headers =
+      "\r\nAuthorization: Bearer SER_MAC Fer23u948590 123567892366"
+      "\r\nX-WebPA-Device-Name: mac:123567892366"
+      "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+      "\r\nUser-Agent: WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)"
+      "\r\nX-WebPA-Convey: WebPA-1.6 (TG1682)";
+
+  memset(&Cfg, 0, sizeof(ParodusCfg));
+  parStrncpy (Cfg.webpa_url, "http://mydns.mycom.net:8080", sizeof(Cfg.webpa_url));
+
+  memset(&ctx,0,sizeof(ctx));
+  ctx.nopoll_ctx = &test_nopoll_ctx;
+  ctx.current_server = &test_server;
+  ctx.extra_headers = test_extra_headers;
+
+  Cfg.flags = FLAGS_IPV4_ONLY;
+  set_parodus_cfg(&Cfg);
+
+  test_server.allow_insecure = 1;
+  test_server.server_addr = "mydns.mycom.net";
+  test_server.port = 8080;
+  will_return (nopoll_conn_new_opts, NULL);
+  expect_function_call (nopoll_conn_new_opts);
+  will_return (checkHostIp, 0);
+  expect_function_call (checkHostIp);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
+  
+  Cfg.flags = 0;
+  set_parodus_cfg(&Cfg);
+
+  will_return (nopoll_conn_new_opts, &connection1);
+  expect_function_call (nopoll_conn_new_opts);
+  will_return (nopoll_conn_is_ok, nopoll_false);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
+
+  will_return (nopoll_conn_new_opts, &connection1);
+  expect_function_call (nopoll_conn_new_opts);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_SUCCESS);
+
+  Cfg.flags = FLAGS_IPV6_ONLY;
+  set_parodus_cfg(&Cfg);
+
+  test_server.allow_insecure = 0;
+  will_return (nopoll_conn_tls_new6, NULL);
+  expect_function_call (nopoll_conn_tls_new6);
+  will_return (checkHostIp, 0);
+  expect_function_call (checkHostIp);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
+  
+  Cfg.flags = 0;
+  set_parodus_cfg(&Cfg);
+
+  will_return (nopoll_conn_tls_new6, NULL);
+  expect_function_call (nopoll_conn_tls_new6);
+  will_return (checkHostIp, 0);
+  expect_function_call (checkHostIp);
+  will_return (nopoll_conn_tls_new, NULL);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (checkHostIp, 0);
+  expect_function_call (checkHostIp);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
+
+  will_return (nopoll_conn_tls_new6, &connection1);
+  expect_function_call (nopoll_conn_tls_new6);
+  will_return (nopoll_conn_is_ok, nopoll_false);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  will_return (nopoll_conn_tls_new, NULL);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (checkHostIp, 0);
+  expect_function_call (checkHostIp);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
+
+  will_return (nopoll_conn_tls_new6, &connection1);
+  expect_function_call (nopoll_conn_tls_new6);
+  will_return (nopoll_conn_is_ok, nopoll_false);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_SUCCESS);
+  
+  Cfg.flags = FLAGS_IPV4_ONLY;
+  set_parodus_cfg(&Cfg);
+
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  mock_wait_status = 307;
+  mock_redirect = "mydns.mycom.net";
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
+
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  mock_wait_status = 302;
+  mock_redirect = "https://mydns.mycom.net";
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_ACTION_RETRY);
+}
+
+void test_keep_trying ()
+{
+  int rtn;	
+  create_connection_ctx_t ctx;
+  noPollCtx test_nopoll_ctx;
+  server_t test_server;
+  ParodusCfg Cfg;
+  char *test_extra_headers =
+      "\r\nAuthorization: Bearer SER_MAC Fer23u948590 123567892366"
+      "\r\nX-WebPA-Device-Name: mac:123567892366"
+      "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
+      "\r\nUser-Agent: WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)"
+      "\r\nX-WebPA-Convey: WebPA-1.6 (TG1682)";
+
+  memset(&Cfg, 0, sizeof(ParodusCfg));
+  parStrncpy (Cfg.webpa_url, "http://mydns.mycom.net:8080", sizeof(Cfg.webpa_url));
+
+  memset(&ctx,0,sizeof(ctx));
+  ctx.nopoll_ctx = &test_nopoll_ctx;
+  ctx.current_server = &test_server;
+  ctx.extra_headers = test_extra_headers;
+
+  test_server.allow_insecure = 1;
+  test_server.server_addr = "mydns.mycom.net";
+  test_server.port = 8080;
+
+  Cfg.flags = 0;
+  set_parodus_cfg(&Cfg);
+
+  will_return (nopoll_conn_new_opts, &connection1);
+  expect_function_call (nopoll_conn_new_opts);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  rtn = keep_trying_to_connect (&ctx, 30, -1);
+  assert_int_equal (rtn, true);
+
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -616,7 +813,9 @@ int main(void)
         cmocka_unit_test(test_set_extra_headers),
         cmocka_unit_test(test_find_servers),
         cmocka_unit_test(test_nopoll_connect),
-        cmocka_unit_test(test_wait_connection_ready)
+        cmocka_unit_test(test_wait_connection_ready),
+        cmocka_unit_test(test_connect_and_wait),
+        cmocka_unit_test(test_keep_trying)
 
     };
 
