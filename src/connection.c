@@ -104,7 +104,7 @@ int createNopollConnection(noPollCtx *ctx)
     char port[8];
     char server_Address[256];
     char *jwt_server_url= NULL;
-    char redirectURL[128]={'\0'};
+    char *redirectURL = NULL;
     int status=0;
 	int allow_insecure = -1;
 	int jwt_status = INITIAL_CJWT_RETRY;
@@ -250,17 +250,16 @@ int createNopollConnection(noPollCtx *ctx)
 				backoffRetryTime = (int) pow(2, c) -1;
 			}
 
-			if(!nopoll_conn_wait_until_connection_ready(get_global_conn(), 10, &status, redirectURL)) 
+			if(!nopoll_conn_wait_for_status_until_connection_ready(get_global_conn(), 10, &status, &redirectURL))
 			{
 				
 				if(status == 307 || status == 302 || status == 303)    // only when there is a http redirect
 				{
-					char *redirect_ptr = redirectURL;
 					ParodusError("Received temporary redirection response message %s\n", redirectURL);
 					// Extract server Address and port from the redirectURL
-					if (strncmp (redirect_ptr, "Redirect:", 9) == 0)
-						redirect_ptr += 9;
-					allow_insecure = parse_webpa_url (redirect_ptr,
+					if (strncmp (redirectURL, "Redirect:", 9) == 0)
+						redirectURL += 9;
+					allow_insecure = parse_webpa_url (redirectURL,
 						server_Address, (int) sizeof(server_Address),
 						port, (int) sizeof(port));
 					if (allow_insecure < 0) {
@@ -422,6 +421,12 @@ int createNopollConnection(noPollCtx *ctx)
 	if (NULL != jwt_server_url)
 	{
 		free (jwt_server_url);
+	}
+
+	if(redirectURL != NULL)
+	{
+		free(redirectURL);
+		redirectURL = NULL;
 	}
 
 	if (NULL != extra_headers)

@@ -29,6 +29,7 @@
 /*----------------------------------------------------------------------------*/
 volatile unsigned int heartBeatTimer;
 bool LastReasonStatus;
+int closeReason = 0;
 pthread_mutex_t close_mut;
 bool close_retry;
 /*----------------------------------------------------------------------------*/
@@ -79,6 +80,15 @@ int nopoll_msg_get_payload_size(noPollMsg *msg)
 {
     (void) msg;
     return 1;
+}
+
+int nopoll_conn_get_close_status (noPollConn * conn)
+{
+	(void) conn;
+	if(closeReason)
+		return 1006;
+	else
+		return 0;
 }
 
 int nopoll_conn_send_frame (noPollConn * conn, nopoll_bool fin, nopoll_bool masked,
@@ -140,7 +150,7 @@ void *a1(void *in)
 
     set_global_reconnect_status(true);
     listenerOnCloseMessage(NULL, NULL, NULL);
-
+    closeReason = 1;
     set_global_reconnect_status(true);
     listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
 
