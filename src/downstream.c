@@ -192,6 +192,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 case WRP_MSG_TYPE__SVC_ALIVE:
                 case WRP_MSG_TYPE__UNKNOWN:
                 default:
+                        wrp_free_struct(message);
                     break;
             }
         }
