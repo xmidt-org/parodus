@@ -25,6 +25,7 @@
 #include "connection.h"
 #include "nopoll_helpers.h"
 #include "nopoll_handlers.h"
+#include "time.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -32,6 +33,10 @@
 
 #define MAX_SEND_SIZE (60 * 1024)
 #define FLUSH_WAIT_TIME (2000000LL)
+
+struct timespec connStuck_start,connStuck_end;
+struct timespec *connStuck_startPtr = &connStuck_start;
+struct timespec *connStuck_endPtr = &connStuck_end;
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
@@ -49,6 +54,7 @@ void setMessageHandlers()
 void sendMessage(noPollConn *conn, void *msg, size_t len)
 {
     int bytesWritten = 0;
+    static int connErr=0;
 
     ParodusInfo("sendMessage length %zu\n", len);
     if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
@@ -64,6 +70,23 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
     else
     {
         ParodusError("Failed to send msg upstream as connection is not OK\n");
+		if (connErr == 0)
+		{
+			getCurrentTime(connStuck_startPtr);
+			ParodusInfo("Conn got stuck, initialized the first timer\n");
+			connErr = 1;
+		}
+		else
+		{
+			getCurrentTime(connStuck_endPtr);
+			ParodusPrint("checking timeout difference:%ld\n", timeValDiff(connStuck_startPtr, connStuck_endPtr));
+			if( timeValDiff(connStuck_startPtr, connStuck_endPtr) >= (10*60*1000))
+			{
+				ParodusError("conn got stuck for over 10 minutes; crashing service.\n");
+				kill(getpid(),SIGTERM);
+			}
+
+		}
     }
 }
 

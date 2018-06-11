@@ -836,6 +836,13 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 					return -1;
 				}
 			}
+			else
+			{
+				//  Return error for request format other than /tag/${name}
+				ParodusError("Invalid UPDATE request\n");
+				(*response)->u.crud.status = 400;
+				return -1;
+			}
 		}
 		else
 		{

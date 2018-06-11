@@ -105,13 +105,15 @@ void setGlobalRedirectUrl (char *redirect_url)
 	g_redirect_url = redirect_url;
 }
 
-nopoll_bool nopoll_conn_wait_until_connection_ready (noPollConn * conn, int timeout, int *status, char * message)
+nopoll_bool nopoll_conn_wait_for_status_until_connection_ready (noPollConn * conn, int timeout, int *status, char **message)
 {
     UNUSED(timeout); UNUSED(message);
     UNUSED(conn);
     *status = getGlobalHttpStatus();
+    *message = (char *)malloc(128);
+
     if (NULL != g_redirect_url)
-		parStrncpy (message, g_redirect_url, 128);
+		parStrncpy (*message, g_redirect_url, 128);
     function_called();
     return (nopoll_bool) mock();
 }
@@ -276,8 +278,8 @@ void test_createSecureConnection()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -332,8 +334,8 @@ void test_createConnection()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -487,8 +489,8 @@ void test_createConnectionConnNull()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -626,8 +628,8 @@ void test_createConnNull_JWT_NULL()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -701,8 +703,8 @@ void test_createConnectionConnNotOk()
     expect_function_call(nopoll_conn_is_ok);
 	setGlobalHttpStatus(0);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(nopoll_conn_close);
 
@@ -722,8 +724,8 @@ void test_createConnectionConnNotOk()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 	
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -798,8 +800,8 @@ void test_createConnNotOk_JWT_NULL()
     expect_function_call(nopoll_conn_is_ok);
 	setGlobalHttpStatus(0);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(nopoll_conn_close);
 
@@ -819,8 +821,8 @@ void test_createConnNotOk_JWT_NULL()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 	
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -896,8 +898,8 @@ void test_createConnectionConnRedirect()
 	setGlobalHttpStatus(307);
     setGlobalRedirectUrl ("Redirect:http://10.0.0.12");
 	
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(nopoll_conn_close);
 
@@ -914,8 +916,8 @@ void test_createConnectionConnRedirect()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -967,8 +969,8 @@ void test_createIPv4Connection()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -1017,8 +1019,8 @@ void test_createIPv6Connection()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -1094,8 +1096,8 @@ void test_createIPv6toIPv4Connection()
     will_return(nopoll_conn_is_ok,nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -1173,8 +1175,8 @@ void test_createFallbackRedirectionConn()
     setGlobalHttpStatus(307);
     setGlobalRedirectUrl ("Redirect:https://10.0.0.25");
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(nopoll_conn_close);
 
@@ -1195,8 +1197,8 @@ void test_createFallbackRedirectionConn()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 
@@ -1251,8 +1253,8 @@ void test_createIPv6FallbackRedirectConn()
     setGlobalHttpStatus(307);
     setGlobalRedirectUrl ("Redirect:https://10.0.0.50");
 
-	will_return(nopoll_conn_wait_until_connection_ready, nopoll_false);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+	will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(nopoll_conn_close);
 
@@ -1273,8 +1275,8 @@ void test_createIPv6FallbackRedirectConn()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    will_return(nopoll_conn_wait_until_connection_ready, nopoll_true);
-    expect_function_call(nopoll_conn_wait_until_connection_ready);
+    will_return(nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+    expect_function_call(nopoll_conn_wait_for_status_until_connection_ready);
 
     expect_function_call(setMessageHandlers);
 

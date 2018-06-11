@@ -136,6 +136,7 @@ void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,
 {
     UNUSED(ctx);
     UNUSED(user_data);
+    UNUSED(conn);
 
     noPollPtr payload = NULL;
     payload = (noPollPtr ) nopoll_msg_get_payload(msg);
@@ -145,9 +146,7 @@ void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,
         ParodusInfo("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
         if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 
         {
-            nopoll_conn_send_frame (conn, nopoll_true, nopoll_true, NOPOLL_PONG_FRAME, strlen(payload), payload, 0);
             heartBeatTimer = 0;
-            ParodusPrint("Sent Pong frame and reset HeartBeat Timer\n");
         }
     }
 }
@@ -156,16 +155,20 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
 {
     UNUSED(ctx);
     UNUSED(conn);
+    UNUSED(user_data);
+    int closeStatus;
+    char * defaultReason = "SSL_Socket_Close";
 
     ParodusPrint("listenerOnCloseMessage(): mutex lock in producer thread\n");
 
-    if((user_data != NULL) && (strstr(user_data, "SSL_Socket_Close") != NULL) && !get_global_reconnect_status())
+    closeStatus = nopoll_conn_get_close_status (conn);
+    if( closeStatus == 1006 && !get_global_reconnect_status())
     {
-    	ParodusInfo("Reconnect detected, setting Reconnect reason as Server close\n");
-        set_global_reconnect_reason("Server_closed_connection");
+	ParodusInfo("Reconnect detected, setting default Reconnect reason %s\n",defaultReason);
+        set_global_reconnect_reason(defaultReason);
         set_global_reconnect_status(true);
     }
-    else if ((user_data == NULL) && !get_global_reconnect_status())
+    else if(!get_global_reconnect_status())
     {
     	ParodusInfo("Reconnect detected, setting Reconnect reason as Unknown\n");
         set_global_reconnect_reason("Unknown");
