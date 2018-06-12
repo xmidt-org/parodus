@@ -151,7 +151,7 @@ set(CLIST_SRC test_client_list.c ../src/client_list.c
  ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c 
  ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c 
  ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c 
- ../src/partners_check.c ${PARODUS_COMMON_SRC})
+ ../src/partners_check.c ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c ${PARODUS_COMMON_SRC})
 
 if (ENABLE_SESHAT)
 set(CLIST_SRC ${CLIST_SRC} ../src/seshat_interface.c)
@@ -191,6 +191,27 @@ target_link_libraries (test_config -lcmocka
 )
 
 #-------------------------------------------------------------------------------
+#   test_crud_interface
+#-------------------------------------------------------------------------------
+add_test(NAME test_crud_interface COMMAND ${MEMORY_CHECK} ./test_crud_interface)
+add_executable(test_crud_interface test_crud_interface.c ../src/crud_interface.c ../src/ParodusInternal.c)
+target_link_libraries (test_crud_interface -lcmocka ${PARODUS_COMMON_LIBS} )
+
+#-------------------------------------------------------------------------------
+#   test_crud_tasks
+#-------------------------------------------------------------------------------
+add_test(NAME test_crud_tasks COMMAND ${MEMORY_CHECK} ./test_crud_tasks)
+add_executable(test_crud_tasks test_crud_tasks.c ../src/crud_tasks.c )
+target_link_libraries (test_crud_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
+
+#-------------------------------------------------------------------------------
+#   test_crud_internal
+#-------------------------------------------------------------------------------
+add_test(NAME test_crud_internal COMMAND ${MEMORY_CHECK} ./test_crud_internal)
+add_executable(test_crud_internal test_crud_internal.c ../src/config.c ../src/string_helpers.c ../src/crud_internal.c )
+target_link_libraries (test_crud_internal -lcmocka ${PARODUS_COMMON_LIBS} )
+
+#-------------------------------------------------------------------------------
 #   test_upstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_upstream COMMAND ${MEMORY_CHECK} ./test_upstream)
@@ -223,6 +244,7 @@ target_link_libraries (test_thread_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_conn_interface COMMAND ${MEMORY_CHECK} ./test_conn_interface)
 set(CONIFC_SRC test_conn_interface.c 
+  ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c 
   ../src/conn_interface.c 
   ../src/config.c 
   ../src/token.c

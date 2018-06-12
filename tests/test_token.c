@@ -24,6 +24,7 @@
 #include <cmocka.h>
 #include <assert.h>
 #include <cjwt/cjwt.h>
+#include <wrp-c.h>
 
 #include "../src/token.h"
 #include "../src/ParodusInternal.h"
@@ -157,6 +158,17 @@ extern int query_dns(const char* dns_txt_record_id,char *jwt_ans);
 extern void read_key_from_file (const char *fname, char *buf, size_t buflen);
 extern const char *get_tok (const char *src, int delim, char *result, int resultsize);
 extern unsigned int get_algo_mask (const char *algo_str);
+
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	(void)crudMsg;
+	return;
+}
+
+void *CRUDHandlerTask()
+{
+	return NULL;
+}
 
 int setup_test_jwts (void)
 {

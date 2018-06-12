@@ -22,6 +22,7 @@
 #include <setjmp.h>
 #include <cmocka.h>
 #include <assert.h>
+#include <wrp-c.h>
 
 #include "../src/token.h"
 
@@ -29,6 +30,17 @@
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
+
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	(void)crudMsg;
+	return;
+}
+
+void *CRUDHandlerTask()
+{
+	return NULL;
+}
 
 void test_allow_insecure_conn ()
 {

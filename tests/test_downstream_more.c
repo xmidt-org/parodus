@@ -58,7 +58,7 @@ static test_t tests[] = {
 
             .r.msg_type = WRP_MSG_TYPE__CREATE,
             .r.u.crud.transaction_uuid = "c2bb1f16-09c8-11e7-93ae-92361f002671",
-            .r.u.crud.source = "fake-client1",
+            .r.u.crud.source = "fake-client1/iot",
             .r.u.crud.dest = "fake-server1",
             .r.u.crud.partner_ids = NULL,
             .r.u.crud.headers = NULL,
@@ -88,7 +88,7 @@ static test_t tests[] = {
 
             .r.msg_type = WRP_MSG_TYPE__RETREIVE,
             .r.u.crud.transaction_uuid = "c2bb1f16-09c8-11e7-93ae-92361f002671",
-            .r.u.crud.source = "fake-client2",
+            .r.u.crud.source = "fake-client2/iot",
             .r.u.crud.dest = "fake-server2",
             .r.u.crud.partner_ids = NULL,
             .r.u.crud.headers = NULL,
@@ -118,7 +118,7 @@ static test_t tests[] = {
 
             .r.msg_type = WRP_MSG_TYPE__UPDATE,
             .r.u.crud.transaction_uuid = "c2bb1f16-09c8-11e7-93ae-92361f002671",
-            .r.u.crud.source = "fake-client3",
+            .r.u.crud.source = "fake-client3/iot",
             .r.u.crud.dest = "fake-server3",
             .r.u.crud.partner_ids = NULL,
             .r.u.crud.headers = NULL,
@@ -148,7 +148,7 @@ static test_t tests[] = {
 
             .r.msg_type = WRP_MSG_TYPE__DELETE,
             .r.u.crud.transaction_uuid = "c2bb1f16-09c8-11e7-93ae-92361f002671",
-            .r.u.crud.source = "fake-client4",
+            .r.u.crud.source = "fake-client4/iot",
             .r.u.crud.dest = "fake-server4",
             .r.u.crud.partner_ids = NULL,
             .r.u.crud.headers = NULL,
@@ -180,6 +180,12 @@ static uint8_t i;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	(void)crudMsg;
+	return;
+}
+
 int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
 {
     (void) msg; (void) partnerIds;

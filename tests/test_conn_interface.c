@@ -36,6 +36,10 @@ ParodusMsg *ParodusMsgQ;
 extern bool close_retry;
 extern pthread_mutex_t close_mut;
 extern volatile unsigned int heartBeatTimer;
+pthread_mutex_t nano_mut;
+pthread_cond_t nano_con;
+
+ 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -157,6 +161,27 @@ void initKeypress()
 {
     function_called();
 }
+
+UpStreamMsg * get_global_UpStreamMsgQ(void)
+{
+    return UpStreamMsgQ;
+}
+
+void set_global_UpStreamMsgQ(UpStreamMsg * UpStreamQ)
+{
+    UpStreamMsgQ = UpStreamQ;
+}
+
+pthread_cond_t *get_global_nano_con(void)
+{
+    return &nano_con;
+}
+
+pthread_mutex_t *get_global_nano_mut(void)
+{
+    return &nano_mut;
+}
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -179,7 +204,7 @@ void test_createSocketConnection()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     expect_function_call(initKeypress);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
@@ -217,7 +242,7 @@ void test_createSocketConnection1()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
@@ -267,7 +292,7 @@ void test_createSocketConnection2()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
@@ -308,7 +333,7 @@ void err_createSocketConnection()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     

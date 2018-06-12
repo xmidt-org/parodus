@@ -42,6 +42,9 @@ extern size_t metaPackSize;
 extern UpStreamMsg *UpStreamMsgQ;
 int numLoops = 1;
 wrp_msg_t *temp = NULL;
+extern pthread_mutex_t nano_mut;
+extern pthread_cond_t nano_con;
+static int crud_test = 0;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -141,7 +144,19 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length, const enum wrp_fo
 {
     UNUSED(bytes); UNUSED(length); UNUSED(fmt);
     function_called();
-    *msg = temp;
+    if(crud_test)
+    {
+		wrp_msg_t *resp_msg = NULL;
+		resp_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+		memset(resp_msg, 0, sizeof(wrp_msg_t));
+		resp_msg->msg_type = 5;
+		resp_msg->u.crud.source = strdup("mac:14xxx/tags");
+		*msg = resp_msg;
+    }
+	else
+	{
+		*msg = temp;
+	}
     return (ssize_t)mock();
 }
 
@@ -282,8 +297,6 @@ void test_processUpstreamMessage()
     expect_function_call(sendMessage);
 
     expect_function_call(wrp_free_struct);
-    will_return(nn_freemsg,1);
-    expect_function_call(nn_freemsg);
 
     processUpstreamMessage();
     free(temp);
@@ -319,8 +332,6 @@ void test_processUpstreamMessageInvalidPartner()
     expect_function_call(sendMessage);
 
     expect_function_call(wrp_free_struct);
-    will_return(nn_freemsg,1);
-    expect_function_call(nn_freemsg);
     processUpstreamMessage();
     free(temp);
     free(UpStreamMsgQ->next);
@@ -377,8 +388,6 @@ void test_processUpstreamMessageRegMsg()
     expect_function_call(get_numOfClients);
 
     expect_function_call(wrp_free_struct);
-    will_return(nn_freemsg,1);
-    expect_function_call(nn_freemsg);
 
     processUpstreamMessage();
     free(temp);
@@ -419,8 +428,6 @@ void test_processUpstreamMessageRegMsgNoClients()
     expect_function_call(addToList);
 
     expect_function_call(wrp_free_struct);
-    will_return(nn_freemsg,1);
-    expect_function_call(nn_freemsg);
 
     processUpstreamMessage();
     free(temp);
@@ -453,8 +460,6 @@ void err_processUpstreamMessageDecodeErr()
     will_return(wrp_to_struct, -1);
     expect_function_call(wrp_to_struct);
     expect_function_call(wrp_free_struct);
-    will_return(nn_freemsg,1);
-    expect_function_call(nn_freemsg);
     processUpstreamMessage();
     free(temp);
     free(UpStreamMsgQ);
@@ -477,8 +482,6 @@ void err_processUpstreamMessageMetapackFailure()
     expect_function_call(wrp_to_struct);
 
     expect_function_call(wrp_free_struct);
-    will_return(nn_freemsg,1);
-    expect_function_call(nn_freemsg);
     processUpstreamMessage();
     free(temp);
     free(UpStreamMsgQ);
@@ -540,8 +543,6 @@ void err_processUpstreamMessageRegMsg()
     expect_function_call(addToList);
 
     expect_function_call(wrp_free_struct);
-    will_return(nn_freemsg,1);
-    expect_function_call(nn_freemsg);
 
     processUpstreamMessage();
     free(temp);
@@ -574,6 +575,56 @@ void err_sendUpstreamMsgToServer()
     sendUpstreamMsgToServer(NULL, 110);
 }
 
+void test_get_global_UpStreamMsgQ()
+{
+    assert_ptr_equal(UpStreamMsgQ, get_global_UpStreamMsgQ());
+}
+
+void test_set_global_UpStreamMsgQ()
+{
+	static UpStreamMsg *UpStreamQ;
+    UpStreamQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamQ->msg = "First Message";
+    UpStreamQ->len = 13;
+    UpStreamQ->next = NULL;
+    set_global_UpStreamMsgQ(UpStreamQ);
+    assert_string_equal(UpStreamQ->msg, (char *)get_global_UpStreamMsgQ()->msg);
+    assert_int_equal(UpStreamQ->len, get_global_UpStreamMsgQ()->len);
+    free(UpStreamQ->next);
+    free(UpStreamQ);
+}
+
+void test_get_global_nano_con()
+{
+    assert_ptr_equal(&nano_con, get_global_nano_con());
+}
+
+void test_get_global_nano_mut()
+{
+    assert_ptr_equal(&nano_mut, get_global_nano_mut());
+}
+
+void test_processUpstreamMsgCrud_nnfree()
+{
+    numLoops = 1;
+    crud_test = 1;
+    metaPackSize = 0;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = NULL;
+
+    will_return(wrp_to_struct, 12);
+    expect_function_call(wrp_to_struct);
+	will_return(nn_freemsg, 0);
+    expect_function_call(nn_freemsg);
+    expect_function_call(wrp_free_struct);
+    processUpstreamMessage();
+    free(UpStreamMsgQ);
+}
+
+
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -597,6 +648,11 @@ int main(void)
         cmocka_unit_test(err_processUpstreamMessageRegMsg),
         cmocka_unit_test(test_sendUpstreamMsgToServer),
         cmocka_unit_test(err_sendUpstreamMsgToServer),
+        cmocka_unit_test(test_get_global_UpStreamMsgQ),
+        cmocka_unit_test(test_set_global_UpStreamMsgQ),
+        cmocka_unit_test(test_get_global_nano_con),
+        cmocka_unit_test(test_get_global_nano_mut),
+        cmocka_unit_test(test_processUpstreamMsgCrud_nnfree),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
