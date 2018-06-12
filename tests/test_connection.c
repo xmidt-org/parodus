@@ -788,6 +788,54 @@ void test_keep_trying ()
   rtn = keep_trying_to_connect (&ctx, 30, -1);
   assert_int_equal (rtn, true);
 
+  test_server.allow_insecure = 0;
+  Cfg.flags = FLAGS_IPV4_ONLY;
+  set_parodus_cfg(&Cfg);
+
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  mock_wait_status = 302;
+  mock_redirect = "https://mydns.mycom.net";
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  rtn = keep_trying_to_connect (&ctx, 30, 0);
+  assert_int_equal (rtn, true);
+
+  will_return (nopoll_conn_tls_new, NULL);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (checkHostIp, 0);
+  expect_function_call (checkHostIp);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  rtn = keep_trying_to_connect (&ctx, 30, 0);
+  assert_int_equal (rtn, true);
+
+  mock_redirect = "mydns.mycom.net";
+
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  rtn = keep_trying_to_connect (&ctx, 30, -1);
+  assert_int_equal (rtn, false);
 }
 
 /*----------------------------------------------------------------------------*/
