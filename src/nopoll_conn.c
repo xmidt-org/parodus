@@ -1001,7 +1001,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		SSL_set_fd (conn->ssl, conn->session);
 
 		/* do the initial connect connect */
-		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "connecting to remote TLS site %s:%s", conn->host, conn->port);
+		nopoll_log (ctx, NOPOLL_LEVEL_INFO, "connecting to remote TLS site %s:%s", conn->host, conn->port);
 		iterator = 0;
 		while (SSL_connect (conn->ssl) <= 0) {
 		
@@ -1071,7 +1071,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 
 		} /* end while */
 
-		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "Client TLS handshake finished, configuring I/O handlers");
+		nopoll_log (ctx, NOPOLL_LEVEL_INFO, "Client TLS handshake finished, configuring I/O handlers");
 
 		/* check remote certificate (if it is present) */
 		server_cert = SSL_get_peer_certificate (conn->ssl);
@@ -1122,7 +1122,7 @@ noPollConn * __nopoll_conn_new_common (noPollCtx       * ctx,
 		conn->receive = nopoll_conn_tls_receive;
 		conn->send    = nopoll_conn_tls_send;
 
-		nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "TLS I/O handlers configured");
+		nopoll_log (ctx, NOPOLL_LEVEL_INFO, "TLS I/O handlers configured");
 		conn->tls_on = nopoll_true;
 	} /* end if */
 
