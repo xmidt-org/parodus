@@ -164,6 +164,15 @@ void setMessageHandlers()
 
 int allow_insecure_conn (char **server_addr, unsigned int *port)
 {
+  int rtn;
+	
+  function_called ();
+  rtn = (int) mock();
+  if (rtn < 0) {
+    *server_addr = NULL;
+    return rtn;
+  }
+  
   if (NULL != mock_server_addr) {
     size_t len = strlen(mock_server_addr) + 1;
     *server_addr = malloc (len);
@@ -173,9 +182,7 @@ int allow_insecure_conn (char **server_addr, unsigned int *port)
   }
 
   *port = mock_port;
-		
-  function_called ();
-  return (int) mock();
+  return rtn;		
 }
 
 /*----------------------------------------------------------------------------*/
@@ -407,7 +414,9 @@ void test_find_servers ()
   ParodusCfg cfg;
   server_list_t server_list;
   server_t *default_server = &server_list.defaults;
+#ifdef FEATURE_DNS_QUERY
   server_t *jwt_server = &server_list.jwt;
+#endif
   
   memset(&cfg,0,sizeof(cfg));
   set_server_list_null (&server_list);
@@ -838,6 +847,140 @@ void test_keep_trying ()
   assert_int_equal (rtn, false);
 }
 
+void test_create_nopoll_connection()
+{
+  int rtn;
+  ParodusCfg cfg;
+  noPollCtx test_nopoll_ctx;
+
+  memset(&cfg,0,sizeof(cfg));
+  cfg.flags = 0;
+  parStrncpy (cfg.webpa_url, "mydns.mycom.net:8080", sizeof(cfg.webpa_url));
+  cfg.boot_time = 25;
+  parStrncpy (cfg.hw_last_reboot_reason, "Test reason", sizeof(cfg.hw_last_reboot_reason));
+  cfg.webpa_backoff_max = 30;
+  parStrncpy (cfg.webpa_auth_token, "Auth---", sizeof (cfg.webpa_auth_token));
+  parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
+  parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
+  parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+  parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
+  parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
+  set_parodus_cfg(&cfg);
+  rtn = createNopollConnection (&test_nopoll_ctx);
+  assert_int_equal (rtn, nopoll_false);
+
+  parStrncpy (cfg.webpa_url, "http://mydns.mycom.net:8080", sizeof(cfg.webpa_url));
+  set_parodus_cfg(&cfg);
+
+  will_return (nopoll_conn_new_opts, &connection1);
+  expect_function_call (nopoll_conn_new_opts);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  rtn = createNopollConnection (&test_nopoll_ctx);
+  assert_int_equal (rtn, nopoll_true);
+
+  parStrncpy (cfg.webpa_url, "https://mydns.mycom.net:8080", sizeof(cfg.webpa_url));
+  cfg.flags = 0;
+  set_parodus_cfg(&cfg);
+
+  will_return (nopoll_conn_tls_new6, &connection1);
+  expect_function_call (nopoll_conn_tls_new6);
+  will_return (nopoll_conn_is_ok, nopoll_false);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  rtn = createNopollConnection (&test_nopoll_ctx);
+  assert_int_equal (rtn, nopoll_true);
+
+  will_return (nopoll_conn_tls_new6, &connection1);
+  expect_function_call (nopoll_conn_tls_new6);
+  will_return (nopoll_conn_is_ok, nopoll_false);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  mock_wait_status = 302;
+  mock_redirect = "https://mydns.mycom.net";
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+
+  will_return (nopoll_conn_tls_new6, &connection1);
+  expect_function_call (nopoll_conn_tls_new6);
+  will_return (nopoll_conn_is_ok, nopoll_false);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  rtn = createNopollConnection (&test_nopoll_ctx);
+  assert_int_equal (rtn, nopoll_true);
+
+#ifdef FEATURE_DNS_QUERY
+  cfg.acquire_jwt = 1;
+  cfg.flags = FLAGS_IPV4_ONLY;
+  set_parodus_cfg(&cfg);
+  
+  will_return (allow_insecure_conn, -1);
+  expect_function_call (allow_insecure_conn);
+  will_return (nopoll_conn_tls_new, NULL);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (checkHostIp, 0);
+  expect_function_call (checkHostIp);
+  mock_server_addr = "mydns.myjwtcom.net";
+  mock_port = 80;
+  will_return (allow_insecure_conn, 0);
+  expect_function_call (allow_insecure_conn);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  rtn = createNopollConnection (&test_nopoll_ctx);
+  assert_int_equal (rtn, nopoll_true);
+    
+  cfg.flags = 0;
+  set_parodus_cfg(&cfg);
+
+  will_return (allow_insecure_conn, -1);
+  expect_function_call (allow_insecure_conn);
+  will_return (nopoll_conn_tls_new6, &connection1);
+  expect_function_call (nopoll_conn_tls_new6);
+  will_return (nopoll_conn_is_ok, nopoll_false);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  mock_wait_status = 0;
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_until_connection_ready);
+  rtn = createNopollConnection (&test_nopoll_ctx);
+  assert_int_equal (rtn, nopoll_true);
+#endif
+
+}
+
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -863,8 +1006,8 @@ int main(void)
         cmocka_unit_test(test_nopoll_connect),
         cmocka_unit_test(test_wait_connection_ready),
         cmocka_unit_test(test_connect_and_wait),
-        cmocka_unit_test(test_keep_trying)
-
+        cmocka_unit_test(test_keep_trying),
+	cmocka_unit_test(test_create_nopoll_connection)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

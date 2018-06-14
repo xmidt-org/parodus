@@ -34,9 +34,8 @@ void test_allow_insecure_conn ()
 {
 	int insecure;
 	char *server_Address = NULL;
-	char *port = NULL;
-	insecure = allow_insecure_conn (server_Address,(int) sizeof(server_Address),
-                port, (int) sizeof(port));
+	unsigned int port = 0;
+	insecure = allow_insecure_conn (&server_Address, &port);
 	assert_int_equal (insecure, -1);
 }
 
