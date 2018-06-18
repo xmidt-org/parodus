@@ -100,6 +100,9 @@ void *CRUDHandlerTask()
 			ParodusPrint("Mutex unlock in CRUD consumer thread\n");
 
 			ret = processCrudRequest(message->msg, &crud_response);
+			wrp_free_struct(message->msg);
+			free(message);
+			message = NULL;
 
 			if(ret == 0)
 			{

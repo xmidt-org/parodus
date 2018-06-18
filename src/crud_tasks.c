@@ -40,6 +40,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 			ParodusInfo("Payload Response: %s\n", str);
 			resp_msg ->u.crud.payload_size = strlen(str);
 		}
+		cJSON_Delete( payloadObj );
 	}
 	else
 	{
@@ -70,6 +71,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	    	ParodusInfo("Payload Response: %s\n", str);
 			resp_msg ->u.crud.payload_size = strlen((resp_msg)->u.crud.payload);
 	    }
+	    cJSON_Delete( payloadObj );
 	}
 	else
 	{
