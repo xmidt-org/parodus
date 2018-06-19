@@ -234,7 +234,7 @@ void err_sendMessageConnNull()
     expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
     will_return(nopoll_conn_is_ok, nopoll_false);
     expect_function_call(nopoll_conn_is_ok);
-    
+
     sendMessage(NULL, "Hello Parodus!", len);
 }
 

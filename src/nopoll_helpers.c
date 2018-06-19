@@ -57,6 +57,7 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
     static int connErr=0;
 
     ParodusInfo("sendMessage length %zu\n", len);
+
     if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
     {
         //bytesWritten = nopoll_conn_send_binary(conn, msg, len);
@@ -66,10 +67,11 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
         {
             ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
         }
+	connErr = 0;
     }
     else
     {
-        ParodusError("Failed to send msg upstream as connection is not OK\n");
+                ParodusError("Failed to send msg upstream as connection is not OK\n");
 		if (connErr == 0)
 		{
 			getCurrentTime(connStuck_startPtr);
