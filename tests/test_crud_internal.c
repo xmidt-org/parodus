@@ -874,7 +874,7 @@ void test_retrieveObject_tags()
 	reqMsg->msg_type = 6;
 	reqMsg->u.crud.transaction_uuid = strdup("1234");
 	reqMsg->u.crud.source = strdup("tag-update");
-	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags/");
 	respMsg->msg_type = 6;
 	ret = retrieveObject(reqMsg, &respMsg);
 
@@ -1080,7 +1080,7 @@ void test_retrieveObject_readOnlyObj()
 	assert_int_equal (write_ret, 1);
 	reqMsg->msg_type = 6;
 	reqMsg->u.crud.transaction_uuid = strdup("1234");
-	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/hw-model");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/hw-model/");
 	respMsg->msg_type = 6;
 	ret = retrieveObject(reqMsg, &respMsg);
 	assert_int_equal (respMsg->u.crud.status, 200);

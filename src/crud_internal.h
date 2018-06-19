@@ -17,6 +17,7 @@
 #include <wrp-c.h>
 #include <stdlib.h>
 
+#define MAX_OBJECT_COUNT 5
 int createObject( wrp_msg_t *reqMsg, wrp_msg_t **response );
 int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response);
 int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response);
