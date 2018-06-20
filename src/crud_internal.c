@@ -27,6 +27,7 @@
 
 static void freeObjArray(char *(*obj)[], int size);
 static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[]);
+static char* strdupptr( const char *s, const char *e );
 
 int writeToJSON(char *data)
 {
@@ -134,13 +135,20 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 	if(reqMsg->u.crud.dest !=NULL)
 	{
 		ParodusInfo("reqMsg->u.crud.dest is %s\n", reqMsg->u.crud.dest);
+
 		objlevel = parse_dest_elements_to_string(reqMsg, &obj);
+		if(objlevel < 0)
+		{
+			(*response)->u.crud.status = 400;
+			cJSON_Delete( json);
+			return -1;
+		}
+
+		ParodusInfo( "Number of object level %d\n", objlevel	 );
 		for( i = 0; i <= objlevel; i++ )
 		{
 			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
 		}
-
-		ParodusInfo( "Number of object level %d\n", objlevel );
 
 		/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
 		if(objlevel == 4)
@@ -440,13 +448,20 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	if(reqMsg->u.crud.dest !=NULL)
 	{
 		ParodusInfo("reqMsg->u.crud.dest is %s\n", reqMsg->u.crud.dest);
+
 		objlevel = parse_dest_elements_to_string(reqMsg, &obj);
+		if(objlevel < 0)
+		{
+			(*response)->u.crud.status = 400;
+			cJSON_Delete( json);
+			return -1;
+		}
+
+		ParodusInfo( "Number of object level %d\n", objlevel );
 		for( i = 0; i <= objlevel; i++ )
 		{
 			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
 		}
-
-		ParodusInfo( "Number of object level %d\n", objlevel );
 
 		if(objlevel == 3 && ((obj[3] !=NULL) && strstr(obj[3] ,"tags") == NULL))
 		{
@@ -682,12 +697,18 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	{
 		ParodusInfo("reqMsg->u.crud.dest is %s\n", reqMsg->u.crud.dest);
 		objlevel = parse_dest_elements_to_string(reqMsg, &obj);
+		if(objlevel < 0)
+		{
+			(*response)->u.crud.status = 400;
+			cJSON_Delete( json);
+			return -1;
+		}
+
+		ParodusInfo( "Number of object level %d\n", objlevel );
 		for( i = 0; i <= objlevel; i++ )
 		{
 			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
 		}
-
-		ParodusInfo( "Number of object level %d\n", objlevel );
 
 		/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
 		if(objlevel == 4)
@@ -873,12 +894,19 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 				{
 					ParodusInfo("reqMsg->u.crud.dest is %s\n", reqMsg->u.crud.dest);
 					objlevel = parse_dest_elements_to_string(reqMsg, &obj);
+					if(objlevel < 0)
+					{
+						(*response)->u.crud.status = 400;
+						cJSON_Delete( json);
+						return -1;
+					}
+
+					ParodusInfo( "Number of object level %d\n", objlevel );
 					for( i = 0; i <= objlevel; i++ )
 					{
 						ParodusInfo("obj[%d] is %s \n", i, obj[i]);
 					}
 
-					ParodusInfo( "Number of object level %d\n", objlevel );
 					paramArray = cJSON_GetObjectItem( json, "tags" );
 					if( paramArray != NULL )
 					{
@@ -982,7 +1010,7 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 
 static void freeObjArray(char *(*obj)[], int size){
 	int i;
-	for (i = 0; i < size; i++)
+	for (i = 0; i <= size; i++)
 	{
 		ParodusPrint("Freeing Object: %s\n",(*obj)[i]);
 		free((*obj)[i]);
@@ -993,7 +1021,12 @@ static void freeObjArray(char *(*obj)[], int size){
 static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[])
 {
 		int i =0, rv = -1;
-		for( i = 0; i < MAX_OBJECT_COUNT; i++ )
+		char *start = NULL, *end = NULL;
+
+		/* To extract dest elements till wrp application field (mac:44aaf59b18xx/parodus/tags)
+		and store it in obj array */
+
+		for( i = 0; i <= WRP_ID_ELEMENT__APPLICATION; i++ )
 		{
 			(*obj)[i] =  wrp_get_msg_dest_element(i, reqMsg);
 			if((*obj)[i] ==NULL)
@@ -1003,5 +1036,43 @@ static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[])
 			ParodusPrint("(*obj)[%d] is %s \n", i, (*obj)[i]);
 			rv = i;
 		}
+
+	   /* To break down individual dest elements from application field if any.
+	   e.g. application element tags/test to tags and test & store it in obj array. */
+
+		start = (*obj)[rv];
+		end = strchr(start, '/');
+		if (NULL != end)
+		{
+			(*obj)[rv] = strdupptr(start, end);
+			ParodusPrint("obj[%d] is %s\n", rv, (*obj)[rv]);
+
+			start = end;
+			start++;
+
+			end = strchr(start, '/');
+			if (NULL == end)
+			{
+				rv = rv+1;
+				(*obj)[rv] = strdup(start);
+				ParodusPrint("obj[%d] is %s\n", rv, (*obj)[rv]);
+			}
+			else
+			{
+				ParodusError("Unsupported dest format for CRUD\n");
+				freeObjArray(obj, rv);
+				rv = -1;
+			}
+		}
+
 		return rv;
+}
+
+static char* strdupptr( const char *s, const char *e )
+{
+    if (s == e) {
+        return NULL;
+    }
+
+    return strndup(s, (size_t) (((uintptr_t)e) - ((uintptr_t)s)));
 }
