@@ -262,7 +262,6 @@ void test_CRUDHandlerTask()
 	CRUDHandlerTask();
 	
     free(crudMsgQ);
-    wrp_free_struct(crud_msg);
 	
 }
 
@@ -321,7 +320,6 @@ void test_CRUDHandlerTaskFailure()
 	CRUDHandlerTask();
 	
 	free(crudMsgQ);
-    wrp_free_struct(crud_msg);
 	
 }
 

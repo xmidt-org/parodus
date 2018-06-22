@@ -25,6 +25,9 @@
 #include "crud_internal.h"
 #include "config.h"
 
+static void freeObjArray(char *(*obj)[], int size);
+static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[]);
+static char* strdupptr( const char *s, const char *e );
 
 int writeToJSON(char *data)
 {
@@ -71,12 +74,11 @@ int readFromJSON(char **data)
 
 int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 {
-	char *destVal = NULL;
 	char *out = NULL;
 	cJSON *parameters = NULL;
 	cJSON *json, *jsonPayload = NULL;
-	char *child_ptr,*obj[5];
-	int objlevel = 1, i = 1, j=0;
+	char *obj[5];
+	int objlevel = 0, i = 0, j=0;
 	char *jsonData = NULL;
 	cJSON *testObj1 = NULL;
 	char *resPayload = NULL;
@@ -104,6 +106,11 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 			{
 				parse_error = cJSON_GetErrorPtr();
 				ParodusError("Parse Error before: %s\n", parse_error);
+				if(jsonData !=NULL)
+				{
+					free( jsonData );
+					jsonData = NULL;
+				}
 				(*response)->u.crud.status = 500;
 				return -1;
 			}
@@ -119,56 +126,46 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 		}
 	}
 
+	if(jsonData !=NULL)
+	{
+		free( jsonData );
+		jsonData = NULL;
+	}
+
 	if(reqMsg->u.crud.dest !=NULL)
 	{
-		destVal = strdup(reqMsg->u.crud.dest);
-		ParodusInfo("destVal is %s\n", destVal);
+		ParodusInfo("reqMsg->u.crud.dest is %s\n", reqMsg->u.crud.dest);
 
-		if( (destVal != NULL))
+		objlevel = parse_dest_elements_to_string(reqMsg, &obj);
+		if(objlevel < 0)
 		{
-			child_ptr = strtok(destVal , "/");
+			(*response)->u.crud.status = 400;
+			cJSON_Delete( json);
+			return -1;
+		}
 
-			/* Get the 1st object */
-			obj[0] = strdup( child_ptr );
-			ParodusPrint( "parent is %s\n", obj[0] );
+		ParodusInfo( "Number of object level %d\n", objlevel	 );
+		for( i = 0; i <= objlevel; i++ )
+		{
+			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
+		}
 
-			free(destVal);
-
-			while( child_ptr != NULL)
+		/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
+		if(objlevel == 4)
+		{
+			if(reqMsg->u.crud.payload != NULL)
 			{
-				child_ptr = strtok( NULL, "/" );
-				if( child_ptr != NULL)
+				ParodusInfo("reqMsg->u.crud.payload is %s\n", (char *)reqMsg->u.crud.payload);
+				jsonPayload = cJSON_Parse( reqMsg->u.crud.payload );
+				if(jsonPayload !=NULL)
 				{
-					obj[i] = strdup( child_ptr );
-					ParodusPrint( "child obj[%d]:%s\n", i, obj[i] );
-					i++;
-				}
-			}
-
-			objlevel = i;
-			ParodusInfo( "Number of object level %d\n", objlevel );
-
-			/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
-			if(objlevel == 4)
-			{
-				if(reqMsg->u.crud.payload != NULL)
-				{
-					ParodusInfo("reqMsg->u.crud.payload is %s\n", (char *)reqMsg->u.crud.payload);
-
-					jsonPayload = cJSON_Parse( reqMsg->u.crud.payload );
-					if(jsonPayload !=NULL)
-					{
-						jsonPayloadSize = cJSON_GetArraySize( jsonPayload );
-						ParodusPrint( "jsonPayloadSize is %d\n", jsonPayloadSize );
-					}
-
+					jsonPayloadSize = cJSON_GetArraySize( jsonPayload );
+					ParodusPrint( "jsonPayloadSize is %d\n", jsonPayloadSize );
 					if(jsonPayloadSize)
 					{
 						cJSON* res_obj = cJSON_CreateObject();
-
 						key= cJSON_GetArrayItem( jsonPayload, 0 )->string;
 						value = cJSON_GetArrayItem( jsonPayload, 0 )->valueint;
-
 						ParodusInfo("key:%s value:%d\n", key, value);
 
 						//check tags object exists
@@ -177,20 +174,17 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 						{
 							ParodusInfo("tag obj exists in json\n");
 							//check requested test object exists under tags
-							cJSON *testObj = cJSON_GetObjectItem( tagObj, obj[objlevel -1] );
-
+							cJSON *testObj = cJSON_GetObjectItem( tagObj, obj[objlevel] );
 							if(testObj !=NULL)
 							{
 								jsontagitemSize = cJSON_GetArraySize( tagObj );
 								ParodusPrint( "jsontagitemSize is %d\n", jsontagitemSize );
-
 								//traverse through each test objects to find match
-								for( i = 0 ; j < jsontagitemSize ; j++ )
+								for( j = 0 ; j < jsontagitemSize ; j++ )
 								{
 									testkey = cJSON_GetArrayItem( tagObj, j )->string;
 									ParodusPrint("testkey is %s\n", testkey);
-
-									if( strcmp( testkey, obj[objlevel -1] ) == 0 )
+									if( strcmp( testkey, obj[objlevel] ) == 0 )
 									{
 										ParodusError( "Create is not allowed. testObj %s is already exists in json\n", testkey );
 										(*response)->u.crud.status = 409;
@@ -206,37 +200,30 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 							{
 								ParodusInfo("testObj doesnot exists in json, adding it\n");
 								cJSON *payloadObj = cJSON_CreateObject();
-
-								cJSON_AddItemToObject(tagObj, obj[objlevel -1], testObj1 = cJSON_CreateObject());
+								cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
 								cJSON_AddNumberToObject(testObj1, key, value);
 
-								cJSON_AddItemToObject(payloadObj, obj[objlevel -1], testObj1);
+								cJSON_AddItemToObject(payloadObj, obj[objlevel], testObj1);
 								resPayload = cJSON_PrintUnformatted(payloadObj);
 								(*response)->u.crud.payload = resPayload;
 								(*response)->u.crud.status = 201;
-
 							}
-
 						}
 						else
 						{
 							ParodusInfo("tagObj doesnot exists in json, adding it\n");
 							cJSON_AddItemToObject(res_obj , "tags", parameters = cJSON_CreateObject());
-							cJSON_AddItemToObject(parameters, obj[objlevel -1], testObj1 = cJSON_CreateObject());
+							cJSON_AddItemToObject(parameters, obj[objlevel], testObj1 = cJSON_CreateObject());
 							cJSON_AddNumberToObject(testObj1, key, value);
 
 							resPayload = cJSON_PrintUnformatted(parameters);
 							(*response)->u.crud.payload = resPayload;
 							(*response)->u.crud.status = 201;
-		
 						}
 
 						cJSON_AddItemToObject(res_obj , "tags", tagObj);
 						out = cJSON_PrintUnformatted(res_obj );
 						ParodusInfo("out : %s\n",out);
-
-						cJSON_Delete(res_obj);
-						res_obj = NULL;
 
 						create_status = writeToJSON(out);
 						if(out !=NULL)
@@ -246,6 +233,14 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 						}
 						cJSON_Delete( jsonPayload );
 						jsonPayload = NULL;
+						cJSON_Delete(json);
+						json = NULL;
+
+						if(res_obj != NULL)
+						{
+							free(res_obj);
+						}
+						freeObjArray(&obj, objlevel);
 
 						if(create_status == 1)
 						{
@@ -260,31 +255,40 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 					}
 					else
 					{
-						ParodusError("Invalid CREATE request, payload is not json\n");
+						ParodusError("Invalid CREATE request, payload size is 0\n");
 						(*response)->u.crud.status = 400;
+						freeObjArray(&obj, objlevel);
+						cJSON_Delete( jsonPayload );
+						jsonPayload = NULL;
+						cJSON_Delete( json);
 						return -1;
 					}
 				}
 				else
 				{
-					ParodusError("Invalid CREATE request, payload is NULL\n");
+					ParodusError("Invalid CREATE request, payload is not json\n");
 					(*response)->u.crud.status = 400;
+					freeObjArray(&obj, objlevel);
+					cJSON_Delete( json);
 					return -1;
 				}
 			}
 			else
 			{
-				//  Return error for request format other than /tag/${name}
-				ParodusError("Invalid CREATE request\n");
+				ParodusError("Invalid CREATE request, payload is NULL\n");
 				(*response)->u.crud.status = 400;
+				freeObjArray(&obj, objlevel);
+				cJSON_Delete( json );
 				return -1;
 			}
-
 		}
 		else
 		{
-			ParodusError("Unable to parse object details from CREATE request\n");
+			//  Return error for request format other than /tag/${name}
+			ParodusError("Invalid CREATE request\n");
 			(*response)->u.crud.status = 400;
+			freeObjArray(&obj, objlevel);
+			cJSON_Delete( json );
 			return -1;
 		}
 	}
@@ -292,15 +296,9 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 	{
 		ParodusError("Requested dest path is NULL\n");
 		(*response)->u.crud.status = 400;
+		cJSON_Delete( json );
 		return -1;
 	}
-
-	if(jsonData !=NULL)
-	{
-		free( jsonData );
-		jsonData = NULL;
-	}
-
 	return 0;
 }
 
@@ -437,224 +435,212 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 
 int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 {
-	char *destVal = NULL;
 	cJSON *paramArray = NULL;
 	cJSON *json = NULL, *childObj = NULL, *subitemObj =NULL;
 	char *jsonData = NULL;
-	char *child_ptr,*obj[5];
-	int objlevel = 1, i = 1, j=0, found = 0, status;
+	char *obj[5];
+	int objlevel = 0, i = 0, j=0, found = 0, status;
 	cJSON *inMemResponse = NULL;
 	int inMemStatus = -1, itemSize =0;
 	char *str1 = NULL;
 	const char *parse_error = NULL;
 
-	cJSON *jsonresponse = cJSON_CreateObject();
-
-	status = readFromJSON(&jsonData);
-	ParodusInfo("read status %d\n", status);
-
-	if(status)
+	if(reqMsg->u.crud.dest !=NULL)
 	{
-		if((jsonData !=NULL) && (strlen(jsonData)>0))
-		{
-			json = cJSON_Parse( jsonData );
-			if( json == NULL )
-			{
-				parse_error = cJSON_GetErrorPtr();
-				if (parse_error != NULL)
-				{
-					ParodusError("Parse Error before: %s\n", parse_error);
-				}
+		ParodusInfo("reqMsg->u.crud.dest is %s\n", reqMsg->u.crud.dest);
 
-				(*response)->u.crud.status = 500;
-				return -1;
+		objlevel = parse_dest_elements_to_string(reqMsg, &obj);
+		if(objlevel < 0)
+		{
+			(*response)->u.crud.status = 400;
+			cJSON_Delete( json);
+			return -1;
+		}
+
+		ParodusInfo( "Number of object level %d\n", objlevel );
+		for( i = 0; i <= objlevel; i++ )
+		{
+			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
+		}
+
+		if(objlevel == 3 && ((obj[3] !=NULL) && strstr(obj[3] ,"tags") == NULL))
+		{
+			inMemStatus = retrieveFromMemory(obj[3], &inMemResponse );
+
+			if(inMemStatus == 0)
+			{
+				ParodusInfo("inMemory retrieve returns success \n");
+				char *inmem_str = cJSON_PrintUnformatted( inMemResponse );
+				ParodusInfo( "inMemResponse: %s\n", inmem_str );
+				(*response)->u.crud.status = 200;
+				(*response)->u.crud.payload = inmem_str;
+				cJSON_Delete( inMemResponse );
+				freeObjArray(&obj, objlevel);
 			}
 			else
 			{
-				ParodusInfo("CRUD config json parse success\n");
-
-				if(reqMsg->u.crud.dest !=NULL)
-				{
-					destVal = strdup(reqMsg->u.crud.dest);
-					ParodusInfo("destVal is %s\n", destVal);
-
-					if( (destVal != NULL))
-					{
-						child_ptr = strtok(destVal , "/");
-
-						//Get the 1st object
-						obj[0] = strdup( child_ptr );
-						ParodusPrint( "parent is %s\n", obj[0] );
-
-						while( child_ptr != NULL )
-						{
-							child_ptr = strtok( NULL, "/" );
-							if( child_ptr != NULL )
-							{
-								obj[i] = strdup( child_ptr );
-								ParodusPrint( "child obj[%d]:%s\n", i, obj[i] );
-								i++;
-							}
-						}
-
-						objlevel = i;
-						ParodusPrint( "Number of object level %d\n", objlevel );
-
-						if(objlevel == 3 && ((obj[2] !=NULL) && strstr(obj[2] ,"tags") == NULL))
-						{
-							inMemStatus = retrieveFromMemory(obj[2], &inMemResponse );
-
-							if(inMemStatus == 0)
-							{
-								ParodusInfo("inMemory retrieve returns success \n");
-								char *inmem_str = cJSON_PrintUnformatted( inMemResponse );
-								ParodusInfo( "inMemResponse: %s\n", inmem_str );
-								(*response)->u.crud.status = 200;
-								(*response)->u.crud.payload = inmem_str;
-								cJSON_Delete( inMemResponse );
-							}
-							else
-							{
-								ParodusError("Failed to retrieve inMemory value \n");
-								(*response)->u.crud.status = 400;
-								free(destVal);
-								return -1;
-							}
-						}
-						else
-						{
-							ParodusInfo("Processing CRUD external tag request \n");
-							paramArray = cJSON_GetObjectItem( json, "tags" );
-
-							if( paramArray != NULL )
-							{
-								itemSize = cJSON_GetArraySize( paramArray );
-								if( itemSize == 0 )
-								{
-									ParodusError("itemSize is 0, tags object is empty in json\n");
-									(*response)->u.crud.status = 400;
-									return -1;
-								}
-								else
-								{
-									//To retrieve top level tags object
-									if( strcmp( cJSON_GetObjectItem( json, "tags" )->string, obj[objlevel - 1] ) == 0 )
-									{
-										ParodusInfo("top level tags object\n");
-										cJSON_AddItemToObject( jsonresponse, obj[objlevel - 1] , childObj = cJSON_CreateObject());
-										//To add test objects to jsonresponse
-										for( i = 0; i < itemSize; i++ )
-										{
-											cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
-											int subitemSize = cJSON_GetArraySize( subitem );
-											cJSON_AddItemToObject( childObj, cJSON_GetArrayItem( paramArray, i )->string, subitemObj = cJSON_CreateObject() );
-											//To add subitem objects to jsonresponse
-											for( j = 0 ; j < subitemSize ; j++ )
-											{
-												ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, j )->string, cJSON_GetArrayItem( subitem, j )->valueint );
-												cJSON_AddItemToObject( subitemObj, cJSON_GetArrayItem( subitem, j )->string, cJSON_CreateNumber(cJSON_GetArrayItem( subitem, j )->valueint));
-											}
-
-										}
-										cJSON *tagObj = cJSON_GetObjectItem( jsonresponse, "tags" );
-									    str1 = cJSON_PrintUnformatted( tagObj );
-										ParodusInfo( "jsonResponse %s\n", str1 );
-										(*response)->u.crud.status = 200;
-										(*response)->u.crud.payload = str1;
-									}
-									else
-									{
-										//To traverse through total number of test objects in json
-										for( i = 0 ; i < itemSize ; i++ )
-										{
-											cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
-
-											if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel - 1] ) == 0 )
-											{
-
-												//retrieve test object value
-												ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, 0)->string, cJSON_GetArrayItem( subitem, 0 )->valueint );
-
-												cJSON_AddItemToObject( jsonresponse, cJSON_GetArrayItem( subitem, 0 )->string , cJSON_CreateNumber(cJSON_GetArrayItem( subitem, 0 )->valueint));
-
-												ParodusInfo("Retrieve: requested object found \n");
-												found = 1;
-												break;
-
-											}
-											else
-											{
-												ParodusPrint("retrieve object not found, traversing\n");
-											}
-										}
-
-										if(!found)
-										{
-											ParodusError("Unable to retrieve requested object\n");
-											(*response)->u.crud.status = 400;
-											free(destVal);
-											return -1;
-										}
-
-										char *str1 = cJSON_PrintUnformatted( jsonresponse );
-										ParodusInfo( "jsonResponse %s\n", str1 );
-										(*response)->u.crud.status = 200;
-										(*response)->u.crud.payload = str1;
-									}
-							     }
-							}
-							else
-							{
-								ParodusError("Failed to RETRIEVE object from json\n");
-								(*response)->u.crud.status = 400;
-								free(destVal);
-								return -1;
-							}
-						}
-						free(destVal);
-					}
-					else
-					{
-						ParodusError("Unable to parse object details from RETRIEVE request\n");
-						(*response)->u.crud.status = 400;
-						return -1;
-					}
-				}
-				else
-				{
-					ParodusError("Requested dest path is NULL\n");
-					(*response)->u.crud.status = 400;
-					return -1;
-				}
-
-				cJSON_Delete( jsonresponse );
+				ParodusError("Failed to retrieve inMemory value \n");
+				(*response)->u.crud.status = 400;
+				cJSON_Delete( inMemResponse );
+				freeObjArray(&obj, objlevel);
+				return -1;
 			}
 		}
 		else
 		{
-			ParodusError("CRUD config %s is empty\n", get_parodus_cfg()->crud_config_file);
-			(*response)->u.crud.status = 500;
-			return -1;
+			ParodusInfo("Processing CRUD external tag request \n");
+
+			status = readFromJSON(&jsonData);
+			ParodusInfo("read status %d\n", status);
+
+			if(status)
+			{
+				if((jsonData !=NULL) && (strlen(jsonData)>0))
+				{
+					json = cJSON_Parse( jsonData );
+					if(jsonData !=NULL)
+					{
+						free( jsonData );
+						jsonData = NULL;
+					}
+					if( json == NULL )
+					{
+						parse_error = cJSON_GetErrorPtr();
+						if (parse_error != NULL)
+						{
+							ParodusError("Parse Error before: %s\n", parse_error);
+						}
+						(*response)->u.crud.status = 500;
+						freeObjArray(&obj, objlevel);
+						return -1;
+					}
+					else
+					{
+						ParodusInfo("CRUD config json parse success\n");
+						cJSON *jsonresponse = cJSON_CreateObject();
+						paramArray = cJSON_GetObjectItem( json, "tags" );
+						if( paramArray != NULL )
+						{
+							itemSize = cJSON_GetArraySize( paramArray );
+							if( itemSize == 0 )
+							{
+								ParodusError("itemSize is 0, tags object is empty in json\n");
+								(*response)->u.crud.status = 400;
+								cJSON_Delete( jsonresponse );
+								cJSON_Delete( json );
+								freeObjArray(&obj, objlevel);
+								return -1;
+							}
+							else
+							{
+								//To retrieve top level tags object
+								if( strcmp( cJSON_GetObjectItem( json, "tags" )->string, obj[objlevel] ) == 0 )
+								{
+									ParodusInfo("top level tags object\n");
+									cJSON_AddItemToObject( jsonresponse, obj[objlevel ] , childObj = cJSON_CreateObject());
+									//To add test objects to jsonresponse
+									for( i = 0; i < itemSize; i++ )
+									{
+										cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
+										int subitemSize = cJSON_GetArraySize( subitem );
+										cJSON_AddItemToObject( childObj, cJSON_GetArrayItem( paramArray, i )->string, subitemObj = cJSON_CreateObject() );
+										//To add subitem objects to jsonresponse
+										for( j = 0 ; j < subitemSize ; j++ )
+										{
+											ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, j )->string, cJSON_GetArrayItem( subitem, j )->valueint );
+											cJSON_AddItemToObject( subitemObj, cJSON_GetArrayItem( subitem, j )->string, cJSON_CreateNumber(cJSON_GetArrayItem( subitem, j )->valueint));
+										}
+									}
+									cJSON *tagObj = cJSON_GetObjectItem( jsonresponse, "tags" );
+									str1 = cJSON_PrintUnformatted( tagObj );
+									ParodusInfo( "jsonResponse %s\n", str1 );
+									(*response)->u.crud.status = 200;
+									(*response)->u.crud.payload = str1;
+								}
+								else
+								{
+									//To traverse through total number of test objects in json
+									for( i = 0 ; i < itemSize ; i++ )
+									{
+										cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
+										if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel] ) == 0 )
+										{
+											//retrieve test object value
+											ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, 0)->string, cJSON_GetArrayItem( subitem, 0 )->valueint );
+											cJSON_AddItemToObject( jsonresponse, cJSON_GetArrayItem( subitem, 0 )->string , cJSON_CreateNumber(cJSON_GetArrayItem( subitem, 0 )->valueint));
+											ParodusInfo("Retrieve: requested object found \n");
+											found = 1;
+											break;
+										}
+										else
+										{
+											ParodusPrint("retrieve object not found, traversing\n");
+										}
+									}
+									if(!found)
+									{
+										ParodusError("Unable to retrieve requested object\n");
+										(*response)->u.crud.status = 400;
+										cJSON_Delete( jsonresponse );
+										cJSON_Delete( json );
+										freeObjArray(&obj, objlevel);
+										return -1;
+									}
+
+									char *str1 = cJSON_PrintUnformatted( jsonresponse );
+									ParodusInfo( "jsonResponse %s\n", str1 );
+									(*response)->u.crud.status = 200;
+									(*response)->u.crud.payload = str1;
+								}
+							}
+						}
+						else
+						{
+							ParodusError("Failed to RETRIEVE object from json\n");
+							(*response)->u.crud.status = 400;
+							cJSON_Delete( jsonresponse );
+							cJSON_Delete( json );
+							freeObjArray(&obj, objlevel);
+							return -1;
+						}
+						cJSON_Delete( jsonresponse );
+						cJSON_Delete( json );
+					}
+				}
+				else
+				{
+					ParodusError("CRUD config %s is empty\n", get_parodus_cfg()->crud_config_file);
+					(*response)->u.crud.status = 500;
+					freeObjArray(&obj, objlevel);
+					return -1;
+				}
+			}
+			else
+			{
+				ParodusError("CRUD config %s is not available\n", get_parodus_cfg()->crud_config_file);
+				(*response)->u.crud.status = 500;
+				freeObjArray(&obj, objlevel);
+				return -1;
+			}
+			freeObjArray(&obj, objlevel);
 		}
 	}
 	else
 	{
-		ParodusError("CRUD config %s is not available\n", get_parodus_cfg()->crud_config_file);
-		(*response)->u.crud.status = 500;
+		ParodusError("Requested dest path is NULL\n");
+		(*response)->u.crud.status = 400;
 		return -1;
 	}
 	return 0;
 }
 
-
 int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 {
-	char *destVal = NULL;
 	char *out = NULL;
 	cJSON *parameters = NULL;
 	cJSON *json, *jsonPayload = NULL;
-	char *child_ptr,*obj[5];
-	int objlevel = 1, i = 1, j=0;
+	char *obj[5];
+	int objlevel = 0, i = 0, j=0;
 	char *jsonData = NULL;
 	cJSON *testObj1 = NULL;
 	int update_status = 0, jsonPayloadSize =0;
@@ -681,6 +667,11 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 			{
 				parse_error = cJSON_GetErrorPtr();
 				ParodusError("Parse Error before: %s\n", parse_error);
+				if(jsonData !=NULL)
+				{
+					free( jsonData );
+					jsonData = NULL;
+				}
 				(*response)->u.crud.status = 500;
 				return -1;
 			}
@@ -696,47 +687,40 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		}
 	}
 
+	if(jsonData !=NULL)
+	{
+		free( jsonData );
+		jsonData = NULL;
+	}
+
 	if(reqMsg->u.crud.dest !=NULL)
 	{
-		destVal = strdup(reqMsg->u.crud.dest);
-		ParodusInfo("destVal is %s\n", destVal);
-
-		if( (destVal != NULL))
+		ParodusInfo("reqMsg->u.crud.dest is %s\n", reqMsg->u.crud.dest);
+		objlevel = parse_dest_elements_to_string(reqMsg, &obj);
+		if(objlevel < 0)
 		{
-			child_ptr = strtok(destVal , "/");
+			(*response)->u.crud.status = 400;
+			cJSON_Delete( json);
+			return -1;
+		}
 
-			/* Get the 1st object */
-			obj[0] = strdup( child_ptr );
-			ParodusPrint( "parent is %s\n", obj[0] );
+		ParodusInfo( "Number of object level %d\n", objlevel );
+		for( i = 0; i <= objlevel; i++ )
+		{
+			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
+		}
 
-			free(destVal);
-
-			while( child_ptr != NULL )
+		/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
+		if(objlevel == 4)
+		{
+			if(reqMsg->u.crud.payload != NULL)
 			{
-				child_ptr = strtok( NULL, "/" );
-				if( child_ptr != NULL )
+				ParodusInfo("reqMsg->u.crud.payload is %s\n", (char *)reqMsg->u.crud.payload);
+				jsonPayload = cJSON_Parse( reqMsg->u.crud.payload );
+				if(jsonPayload !=NULL)
 				{
-					obj[i] = strdup( child_ptr );
-					ParodusPrint( "child obj[%d]:%s\n", i, obj[i] );
-					i++;
-				}
-			}
-
-			objlevel = i;
-			ParodusInfo( "Number of object level %d\n", objlevel );
-
-			/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
-			if(objlevel == 4)
-			{
-				if(reqMsg->u.crud.payload != NULL)
-				{
-					ParodusInfo("reqMsg->u.crud.payload is %s\n", (char *)reqMsg->u.crud.payload);
-					jsonPayload = cJSON_Parse( reqMsg->u.crud.payload );
-					if(jsonPayload !=NULL)
-					{
-						jsonPayloadSize = cJSON_GetArraySize( jsonPayload );
-						ParodusPrint( "jsonPayloadSize is %d\n", jsonPayloadSize );
-					}
+					jsonPayloadSize = cJSON_GetArraySize( jsonPayload );
+					ParodusPrint( "jsonPayloadSize is %d\n", jsonPayloadSize );
 					if(jsonPayloadSize)
 					{
 						cJSON* res_obj = cJSON_CreateObject();
@@ -752,7 +736,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 							ParodusInfo("tag obj exists in json\n");
 
 							//check requested test object exists under tags
-							cJSON *testObj = cJSON_GetObjectItem( tagObj, obj[objlevel -1] );
+							cJSON *testObj = cJSON_GetObjectItem( tagObj, obj[objlevel] );
 							if(testObj !=NULL)
 							{
 								jsontagitemSize = cJSON_GetArraySize( tagObj );
@@ -763,11 +747,11 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 								{
 									testkey = cJSON_GetArrayItem( tagObj, j )->string;
 									ParodusPrint("testkey is %s\n", testkey);
-									if( strcmp( testkey, obj[objlevel -1] ) == 0 )
+									if( strcmp( testkey, obj[objlevel] ) == 0 )
 									{
 										ParodusInfo( "testObj already exists in json. Update it\n" );
 										cJSON_ReplaceItemInObject(testObj,key,cJSON_CreateNumber(value));
-										cJSON_AddItemToObject(payloadObj, obj[objlevel -1] , testObj);
+										cJSON_AddItemToObject(payloadObj, obj[objlevel] , testObj);
 										(*response)->u.crud.status = 200;
 										break;
 									}
@@ -780,9 +764,9 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 							else
 							{
 								ParodusInfo("testObj doesnot exists in json, adding it\n");
-								cJSON_AddItemToObject(tagObj, obj[objlevel -1], testObj1 = cJSON_CreateObject());
+								cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
 								cJSON_AddNumberToObject(testObj1, key, value);
-								cJSON_AddItemToObject(payloadObj, obj[objlevel -1], testObj1);
+								cJSON_AddItemToObject(payloadObj, obj[objlevel], testObj1);
 								(*response)->u.crud.status = 201;
 							}
 						}
@@ -790,8 +774,9 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 						{
 							ParodusInfo("tagObj doesnot exists in json, adding it\n");
 							cJSON_AddItemToObject(res_obj , "tags", parameters = cJSON_CreateObject());
-							cJSON_AddItemToObject(parameters, obj[objlevel -1], testObj1 = cJSON_CreateObject());
+							cJSON_AddItemToObject(parameters, obj[objlevel], testObj1 = cJSON_CreateObject());
 							cJSON_AddNumberToObject(testObj1, key, value);
+							cJSON_AddItemToObject(payloadObj, obj[objlevel], testObj1);
 							(*response)->u.crud.status = 201;
 						}
 
@@ -799,8 +784,6 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 						out = cJSON_PrintUnformatted(res_obj );
 						ParodusInfo("out : %s\n",out);
 
-						cJSON_Delete(res_obj);
-						res_obj = NULL;
 						update_status = writeToJSON(out);
 
 						if(out !=NULL)
@@ -810,7 +793,9 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 						}
 						cJSON_Delete( jsonPayload );
 						jsonPayload = NULL;
-
+						cJSON_Delete(json);
+						json = NULL;
+						freeObjArray(&obj, objlevel);
 						if(update_status == 1)
 						{
 							ParodusInfo("Data is successfully added to JSON\n");
@@ -824,30 +809,40 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 					}
 					else
 					{
-						ParodusError("Invalid UPDATE request, payload is not json\n");
+						ParodusError("Invalid UPDATE request, payload size is 0\n");
 						(*response)->u.crud.status = 400;
+						freeObjArray(&obj, objlevel);
+						cJSON_Delete( jsonPayload );
+						jsonPayload = NULL;
+						cJSON_Delete( json);
 						return -1;
 					}
 				}
 				else
 				{
-					ParodusError("Invalid UPDATE request, payload is NULL\n");
+					ParodusError("Invalid UPDATE request, payload is not json\n");
 					(*response)->u.crud.status = 400;
+					freeObjArray(&obj, objlevel);
+					cJSON_Delete( json);
 					return -1;
 				}
 			}
 			else
 			{
-				//  Return error for request format other than /tag/${name}
-				ParodusError("Invalid UPDATE request\n");
+				ParodusError("Invalid UPDATE request, payload is NULL\n");
 				(*response)->u.crud.status = 400;
+				freeObjArray(&obj, objlevel);
+				cJSON_Delete( json );
 				return -1;
 			}
 		}
 		else
 		{
-			ParodusError("Unable to parse object details from UPDATE request\n");
+			//  Return error for request format other than /tag/${name}
+			ParodusError("Invalid UPDATE request\n");
 			(*response)->u.crud.status = 400;
+			freeObjArray(&obj, objlevel);
+			cJSON_Delete( json );
 			return -1;
 		}
 	}
@@ -855,13 +850,8 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	{
 		ParodusError("Requested dest path is NULL\n");
 		(*response)->u.crud.status = 400;
+		cJSON_Delete( json );
 		return -1;
-	}
-
-	if(jsonData !=NULL)
-	{
-		free( jsonData );
-		jsonData = NULL;
 	}
 	return 0;
 }
@@ -869,11 +859,10 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 
 int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 {
-	char *destVal = NULL;
 	cJSON *paramArray = NULL, *json = NULL;
 	char *jsonData = NULL;
-	char *child_ptr,*obj[5], *out = NULL;
-	int i = 1, status =0, objlevel=1, found =0;
+	char *obj[5], *out = NULL;
+	int i = 0, status =0, objlevel=0, found =0;
 	int itemSize = 0, delete_status = 0;
 	const char *parse_error = NULL;
 
@@ -883,6 +872,11 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		if((jsonData !=NULL) && (strlen(jsonData)>0))
 		{
 			json = cJSON_Parse( jsonData );
+			if(jsonData !=NULL)
+			{
+				free( jsonData );
+				jsonData = NULL;
+			}
 			if( json == NULL )
 			{
 			    parse_error = cJSON_GetErrorPtr();
@@ -898,100 +892,86 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 				ParodusInfo("CRUD config json parse success\n");
 				if(reqMsg->u.crud.dest !=NULL)
 				{
-					destVal = strdup(reqMsg->u.crud.dest);
-					ParodusInfo("destVal is %s\n", destVal);
-
-					if( (destVal != NULL))
+					ParodusInfo("reqMsg->u.crud.dest is %s\n", reqMsg->u.crud.dest);
+					objlevel = parse_dest_elements_to_string(reqMsg, &obj);
+					if(objlevel < 0)
 					{
-						child_ptr = strtok(destVal , "/");
-						//Get the 1st object
-						obj[0] = strdup( child_ptr );
-						ParodusInfo( "parent is %s\n", obj[0] );
-						while( child_ptr != NULL )
+						(*response)->u.crud.status = 400;
+						cJSON_Delete( json);
+						return -1;
+					}
+
+					ParodusInfo( "Number of object level %d\n", objlevel );
+					for( i = 0; i <= objlevel; i++ )
+					{
+						ParodusInfo("obj[%d] is %s \n", i, obj[i]);
+					}
+
+					paramArray = cJSON_GetObjectItem( json, "tags" );
+					if( paramArray != NULL )
+					{
+						itemSize = cJSON_GetArraySize( paramArray );
+						if( itemSize == 0 )
 						{
-							child_ptr = strtok( NULL, "/" );
-							if( child_ptr != NULL )
-							{
-								obj[i] = strdup( child_ptr );
-								ParodusPrint( "child obj[%d]:%s\n", i, obj[i] );
-								i++;
-							}
+							ParodusInfo("Invalid delete, tags object is empty in json\n");
+							(*response)->u.crud.status = 400;
+							freeObjArray(&obj, objlevel);
+							cJSON_Delete( json );
+							return -1;
 						}
-						objlevel = i;
-						ParodusInfo( "Number of object level %d\n", objlevel );
-						paramArray = cJSON_GetObjectItem( json, "tags" );
-						if( paramArray != NULL )
+						else
 						{
-							itemSize = cJSON_GetArraySize( paramArray );
-							if( itemSize == 0 )
+							//top level tags object
+							if( strcmp( cJSON_GetObjectItem( json, "tags" )->string, obj[objlevel] ) == 0 )
 							{
-								ParodusInfo("Invalid delete, tags object is empty in json\n");
+								ParodusInfo("Top level tags object delete not supported\n");
 								(*response)->u.crud.status = 400;
-								free(destVal);
+								freeObjArray(&obj, objlevel);
+								cJSON_Delete( json );
 								return -1;
 							}
 							else
 							{
-								//top level tags object
-								if( strcmp( cJSON_GetObjectItem( json, "tags" )->string, obj[objlevel - 1] ) == 0 )
+								//to traverse through total number of objects in json
+								for( i = 0 ; i < itemSize ; i++ )
 								{
-									ParodusInfo("Top level tags object delete not supported\n");
-									cJSON_DeleteItemFromObject(json,"tags");
-									(*response)->u.crud.status = 400;
-									free(destVal);
-									return -1;
+									if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel] ) == 0 )
+									{
+										ParodusInfo("Delete: requested object found \n");
+										ParodusInfo("deleting from paramArray\n");
+										cJSON_DeleteItemFromArray(paramArray, i);
+										found = 1;
+										(*response)->u.crud.status = 200;
+										break;
+									}
 								}
-								else
+
+								if(!found)
 								{
-
-									//to traverse through total number of objects in json
-									for( i = 0 ; i < itemSize ; i++ )
-									{
-
-										if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel - 1] ) == 0 )
-										{
-											ParodusInfo("Delete: requested object found \n");
-											ParodusInfo("deleting from paramArray\n");
-											cJSON_DeleteItemFromArray(paramArray, i);
-											found = 1;
-											(*response)->u.crud.status = 200;
-											break;
-										}
-
-									}
-
-									if(!found)
-									{
-										ParodusError("requested object not found\n");
-										(*response)->u.crud.status = 400;
-										free(destVal);
-										return -1;
-									}
-
+									ParodusError("requested object not found\n");
+									(*response)->u.crud.status = 400;
+									freeObjArray(&obj, objlevel);
+									cJSON_Delete( json );
+									return -1;
 								}
 							}
 						}
-						else
-						{
-							ParodusError("Failed to DELETE object from json\n");
-							(*response)->u.crud.status = 400;
-							free(destVal);
-							return -1;
-						}
-						free(destVal);
-				   }
-				   else
-				   {
-
-					ParodusError("Unable to parse object details from DELETE request\n");
-					(*response)->u.crud.status = 400;
-					return -1;
-				   }
+					}
+					else
+					{
+						ParodusError("Failed to DELETE object from json\n");
+						(*response)->u.crud.status = 400;
+						freeObjArray(&obj, objlevel);
+						cJSON_Delete( json );
+						return -1;
+					}
+					freeObjArray(&obj, objlevel);
 				}
 				else
 				{
 					ParodusError("Requested dest path is NULL\n");
 					(*response)->u.crud.status = 400;
+					cJSON_Delete( json );
 					return -1;
 				}
 			}
@@ -1021,7 +1001,78 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		ParodusError("Failed to update deleted data to JSON\n");
 	}
 	cJSON_Delete( json );
-	free( out );
-	free( jsonData );
+	if(out !=NULL)
+	{
+		free( out );
+	}
 	return 0;
+}
+
+static void freeObjArray(char *(*obj)[], int size){
+	int i;
+	for (i = 0; i <= size; i++)
+	{
+		ParodusPrint("Freeing Object: %s\n",(*obj)[i]);
+		free((*obj)[i]);
+		(*obj)[i] = NULL;
+	}
+}
+
+static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[])
+{
+		int i =0, rv = -1;
+		char *start = NULL, *end = NULL;
+
+		/* To extract dest elements till wrp application field (mac:44aaf59b18xx/parodus/tags)
+		and store it in obj array */
+
+		for( i = 0; i <= WRP_ID_ELEMENT__APPLICATION; i++ )
+		{
+			(*obj)[i] =  wrp_get_msg_dest_element(i, reqMsg);
+			if((*obj)[i] ==NULL)
+			{
+				break;
+			}
+			ParodusPrint("(*obj)[%d] is %s \n", i, (*obj)[i]);
+			rv = i;
+		}
+
+	   /* To break down individual dest elements from application field if any.
+	   e.g. application element tags/test to tags and test & store it in obj array. */
+
+		start = (*obj)[rv];
+		end = strchr(start, '/');
+		if (NULL != end)
+		{
+			(*obj)[rv] = strdupptr(start, end);
+			ParodusPrint("obj[%d] is %s\n", rv, (*obj)[rv]);
+
+			start = end;
+			start++;
+
+			end = strchr(start, '/');
+			if (NULL == end)
+			{
+				rv = rv+1;
+				(*obj)[rv] = strdup(start);
+				ParodusPrint("obj[%d] is %s\n", rv, (*obj)[rv]);
+			}
+			else
+			{
+				ParodusError("Unsupported dest format for CRUD\n");
+				freeObjArray(obj, rv);
+				rv = -1;
+			}
+		}
+
+		return rv;
+}
+
+static char* strdupptr( const char *s, const char *e )
+{
+    if (s == e) {
+        return NULL;
+    }
+
+    return strndup(s, (size_t) (((uintptr_t)e) - ((uintptr_t)s)));
 }
