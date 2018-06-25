@@ -336,7 +336,11 @@ void *processUpstreamMessage()
             }
 
 			//nn_freemsg should not be done for parodus/tags/ CRUD requests as it is not received through nanomsg.
-			if ((msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "parodus") == NULL)
+			if ((msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "parodus") != NULL)
+			{
+				free(message->msg);
+			}
+			else
 			{
 				if(nn_freemsg (message->msg) < 0)
 				{

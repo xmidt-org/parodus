@@ -26,6 +26,7 @@
 #include "config.h"
 
 static void freeObjArray(char *(*obj)[], int size);
+static int writeIntoCrudJson(cJSON *res_obj, char * object, cJSON *objValue, int freeFlag);
 static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[]);
 static char* strdupptr( const char *s, const char *e );
 
@@ -70,15 +71,42 @@ int readFromJSON(char **data)
 	fclose(fp);
 	return 1;
 }
+/*
+*	@res_obj 	json object to add it in crud config json file
+*	@object 	parent json obj name i.e tags
+*	@objValue	child json obj to be added to parent i.e test
+*	@freeFlag	Based on this flag, writeIntoCrudJson decides to do free/cjson_delete for the json object
+*/
+int writeIntoCrudJson(cJSON *res_obj, char * object, cJSON *objValue, int freeFlag)
+{
+	char *out = NULL;
+	int write_status = 0;
+	cJSON_AddItemToObject(res_obj , object, objValue);
+	out = cJSON_PrintUnformatted(res_obj );
+	ParodusPrint("out : %s\n",out);
 
+	write_status = writeToJSON(out);
+
+	if(out !=NULL)
+	{
+		free( out );
+	}
+	if(res_obj !=NULL && freeFlag)
+	{
+		cJSON_Delete(res_obj);
+	}
+	else if(res_obj != NULL)
+	{
+		free(res_obj);
+	}
+	return write_status;
+}
 
 int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 {
-	char *out = NULL;
-	cJSON *parameters = NULL;
 	cJSON *json, *jsonPayload = NULL;
 	char *obj[5];
-	int objlevel = 0, i = 0, j=0;
+	int objlevel = 0, j=0;
 	char *jsonData = NULL;
 	cJSON *testObj1 = NULL;
 	char *resPayload = NULL;
@@ -90,7 +118,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 	ParodusInfo("Processing createObject\n");
 
 	status = readFromJSON(&jsonData);
-	ParodusInfo("read status %d\n", status);
+	ParodusPrint("read status %d\n", status);
 
 	if(status == 0)
 	{
@@ -145,10 +173,6 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 		}
 
 		ParodusInfo( "Number of object level %d\n", objlevel	 );
-		for( i = 0; i <= objlevel; i++ )
-		{
-			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
-		}
 
 		/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
 		if(objlevel == 4)
@@ -163,7 +187,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 					ParodusPrint( "jsonPayloadSize is %d\n", jsonPayloadSize );
 					if(jsonPayloadSize)
 					{
-						cJSON* res_obj = cJSON_CreateObject();
+						cJSON* res_obj = NULL;
 						key= cJSON_GetArrayItem( jsonPayload, 0 )->string;
 						value = cJSON_GetArrayItem( jsonPayload, 0 )->valueint;
 						ParodusInfo("key:%s value:%d\n", key, value);
@@ -188,7 +212,12 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 									{
 										ParodusError( "Create is not allowed. testObj %s is already exists in json\n", testkey );
 										(*response)->u.crud.status = 409;
-										break;
+										cJSON_Delete( jsonPayload );
+										jsonPayload = NULL;
+										cJSON_Delete(json);
+										json = NULL;
+										freeObjArray(&obj, objlevel);
+										return -1;
 									}
 									else
 									{
@@ -199,52 +228,52 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 							else
 							{
 								ParodusInfo("testObj doesnot exists in json, adding it\n");
-								cJSON *payloadObj = cJSON_CreateObject();
+								res_obj = cJSON_CreateObject();
+								//To add into crud json config file
 								cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
 								cJSON_AddNumberToObject(testObj1, key, value);
 
-								cJSON_AddItemToObject(payloadObj, obj[objlevel], testObj1);
+								//To add into response payload
+								cJSON *payloadObj = cJSON_CreateObject();
+								cJSON * tmpObj = NULL;
+								cJSON_AddItemToObject(payloadObj, obj[objlevel], tmpObj = cJSON_CreateObject());
+								cJSON_AddNumberToObject(tmpObj, key, value);
 								resPayload = cJSON_PrintUnformatted(payloadObj);
+								cJSON_Delete( payloadObj );
 								(*response)->u.crud.payload = resPayload;
+								(*response)->u.crud.payload_size = strlen(resPayload);
 								(*response)->u.crud.status = 201;
+								//Pass freeflag as 0 if you add new child obj to parent obj i.e test obj creation
+								create_status = writeIntoCrudJson(res_obj,"tags", tagObj, 0);
 							}
 						}
 						else
 						{
 							ParodusInfo("tagObj doesnot exists in json, adding it\n");
-							cJSON_AddItemToObject(res_obj , "tags", parameters = cJSON_CreateObject());
-							cJSON_AddItemToObject(parameters, obj[objlevel], testObj1 = cJSON_CreateObject());
+							//To add into crud json config file
+							res_obj = cJSON_CreateObject();
+							tagObj = cJSON_CreateObject();
+							cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
 							cJSON_AddNumberToObject(testObj1, key, value);
 
-							resPayload = cJSON_PrintUnformatted(parameters);
+							//To add into response payload
+							resPayload = cJSON_PrintUnformatted(tagObj);
 							(*response)->u.crud.payload = resPayload;
+							(*response)->u.crud.payload_size = strlen(resPayload);
 							(*response)->u.crud.status = 201;
+							//Pass freeflag as 1 if you create new parent json object i.e tag obj creation
+							create_status = writeIntoCrudJson(res_obj,"tags", tagObj, 1);
 						}
 
-						cJSON_AddItemToObject(res_obj , "tags", tagObj);
-						out = cJSON_PrintUnformatted(res_obj );
-						ParodusInfo("out : %s\n",out);
-
-						create_status = writeToJSON(out);
-						if(out !=NULL)
-						{
-							free( out );
-							out = NULL;
-						}
 						cJSON_Delete( jsonPayload );
 						jsonPayload = NULL;
 						cJSON_Delete(json);
 						json = NULL;
-
-						if(res_obj != NULL)
-						{
-							free(res_obj);
-						}
 						freeObjArray(&obj, objlevel);
 
 						if(create_status == 1)
 						{
-							ParodusInfo("Data is successfully added to JSON\n");
+							ParodusPrint("Data is successfully added to JSON\n");
 						}
 						else
 						{
@@ -458,10 +487,6 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		}
 
 		ParodusInfo( "Number of object level %d\n", objlevel );
-		for( i = 0; i <= objlevel; i++ )
-		{
-			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
-		}
 
 		if(objlevel == 3 && ((obj[3] !=NULL) && strstr(obj[3] ,"tags") == NULL))
 		{
@@ -491,7 +516,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 			ParodusInfo("Processing CRUD external tag request \n");
 
 			status = readFromJSON(&jsonData);
-			ParodusInfo("read status %d\n", status);
+			ParodusPrint("read status %d\n", status);
 
 			if(status)
 			{
@@ -636,11 +661,9 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 
 int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 {
-	char *out = NULL;
-	cJSON *parameters = NULL;
 	cJSON *json, *jsonPayload = NULL;
 	char *obj[5];
-	int objlevel = 0, i = 0, j=0;
+	int objlevel = 0, j=0;
 	char *jsonData = NULL;
 	cJSON *testObj1 = NULL;
 	int update_status = 0, jsonPayloadSize =0;
@@ -649,10 +672,8 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	const char *parse_error = NULL;
 	int status =0;
 
-	ParodusInfo("Processing updateObject\n");
-
 	status = readFromJSON(&jsonData);
-	ParodusInfo("read status %d\n", status);
+	ParodusPrint("read status %d\n", status);
 	if(status == 0)
 	{
 		ParodusInfo("Proceed creating CRUD config %s\n", get_parodus_cfg()->crud_config_file );
@@ -705,10 +726,6 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		}
 
 		ParodusInfo( "Number of object level %d\n", objlevel );
-		for( i = 0; i <= objlevel; i++ )
-		{
-			ParodusInfo("obj[%d] is %s \n", i, obj[i]);
-		}
 
 		/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
 		if(objlevel == 4)
@@ -724,7 +741,6 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 					if(jsonPayloadSize)
 					{
 						cJSON* res_obj = cJSON_CreateObject();
-						cJSON *payloadObj = cJSON_CreateObject();
 						key = cJSON_GetArrayItem( jsonPayload, 0 )->string;
 						value = cJSON_GetArrayItem( jsonPayload, 0 )->valueint;
 						ParodusInfo("key:%s value:%d\n", key, value);
@@ -743,7 +759,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 								ParodusPrint( "jsontagitemSize is %d\n", jsontagitemSize );
 
 								//traverse through each test objects to find match
-								for( i = 0 ; j < jsontagitemSize ; j++ )
+								for( j = 0 ; j < jsontagitemSize ; j++ )
 								{
 									testkey = cJSON_GetArrayItem( tagObj, j )->string;
 									ParodusPrint("testkey is %s\n", testkey);
@@ -751,8 +767,9 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 									{
 										ParodusInfo( "testObj already exists in json. Update it\n" );
 										cJSON_ReplaceItemInObject(testObj,key,cJSON_CreateNumber(value));
-										cJSON_AddItemToObject(payloadObj, obj[objlevel] , testObj);
 										(*response)->u.crud.status = 200;
+										//Pass freeflag as 0 if you add new child obj to parent obj i.e test obj creation
+										update_status = writeIntoCrudJson(res_obj,"tags",tagObj,0);
 										break;
 									}
 									else
@@ -766,31 +783,23 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 								ParodusInfo("testObj doesnot exists in json, adding it\n");
 								cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
 								cJSON_AddNumberToObject(testObj1, key, value);
-								cJSON_AddItemToObject(payloadObj, obj[objlevel], testObj1);
 								(*response)->u.crud.status = 201;
+								//Pass freeflag as 0 if you add new child obj to parent obj i.e test obj creation
+								update_status = writeIntoCrudJson(res_obj,"tags",tagObj,0);
 							}
 						}
 						else
 						{
 							ParodusInfo("tagObj doesnot exists in json, adding it\n");
-							cJSON_AddItemToObject(res_obj , "tags", parameters = cJSON_CreateObject());
-							cJSON_AddItemToObject(parameters, obj[objlevel], testObj1 = cJSON_CreateObject());
+
+							tagObj = cJSON_CreateObject();
+							cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
 							cJSON_AddNumberToObject(testObj1, key, value);
-							cJSON_AddItemToObject(payloadObj, obj[objlevel], testObj1);
 							(*response)->u.crud.status = 201;
+							//Pass freeflag as 1 if you create new parent json object i.e tag obj creation
+							update_status = writeIntoCrudJson(res_obj,"tags",tagObj,1);
 						}
 
-						cJSON_AddItemToObject(res_obj , "tags", tagObj);
-						out = cJSON_PrintUnformatted(res_obj );
-						ParodusInfo("out : %s\n",out);
-
-						update_status = writeToJSON(out);
-
-						if(out !=NULL)
-						{
-							free( out );
-							out = NULL;
-						}
 						cJSON_Delete( jsonPayload );
 						jsonPayload = NULL;
 						cJSON_Delete(json);
@@ -798,7 +807,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 						freeObjArray(&obj, objlevel);
 						if(update_status == 1)
 						{
-							ParodusInfo("Data is successfully added to JSON\n");
+							ParodusPrint("Data is successfully added to JSON\n");
 						}
 						else
 						{
@@ -902,11 +911,6 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 					}
 
 					ParodusInfo( "Number of object level %d\n", objlevel );
-					for( i = 0; i <= objlevel; i++ )
-					{
-						ParodusInfo("obj[%d] is %s \n", i, obj[i]);
-					}
-
 					paramArray = cJSON_GetObjectItem( json, "tags" );
 					if( paramArray != NULL )
 					{
@@ -938,7 +942,6 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 									if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel] ) == 0 )
 									{
 										ParodusInfo("Delete: requested object found \n");
-										ParodusInfo("deleting from paramArray\n");
 										cJSON_DeleteItemFromArray(paramArray, i);
 										found = 1;
 										(*response)->u.crud.status = 200;
@@ -989,12 +992,12 @@ int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		(*response)->u.crud.status = 500;
 		return -1;
 	}
-	out = cJSON_Print( json );
+	out = cJSON_PrintUnformatted( json );
 	ParodusPrint("%s\n",out);
 	delete_status = writeToJSON(out);
 	if(delete_status == 1)
 	{
-		ParodusInfo("Deleted Data is successfully updated to JSON\n");
+		ParodusPrint("Deleted Data is successfully updated to JSON\n");
 	}
 	else
 	{
@@ -1044,8 +1047,11 @@ static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[])
 		end = strchr(start, '/');
 		if (NULL != end)
 		{
-			(*obj)[rv] = strdupptr(start, end);
-			ParodusPrint("obj[%d] is %s\n", rv, (*obj)[rv]);
+			char *testElem = NULL;
+			char *tagElem = NULL;
+
+			tagElem = strdupptr(start, end);
+			ParodusPrint("tagElem is %s\n",tagElem);
 
 			start = end;
 			start++;
@@ -1053,15 +1059,27 @@ static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[])
 			end = strchr(start, '/');
 			if (NULL == end)
 			{
-				rv = rv+1;
-				(*obj)[rv] = strdup(start);
-				ParodusPrint("obj[%d] is %s\n", rv, (*obj)[rv]);
+				testElem = strdup(start);
+				ParodusPrint("testElem is %s\n", testElem);
 			}
 			else
 			{
 				ParodusError("Unsupported dest format for CRUD\n");
 				freeObjArray(obj, rv);
 				rv = -1;
+			}
+
+			if(rv != -1)
+			{
+				//Reuse array of pointer
+				free((*obj)[rv]);
+				(*obj)[rv] = NULL;
+				(*obj)[rv] = tagElem;
+				(*obj)[++rv] = testElem;
+			}
+			else if (tagElem != NULL)
+			{
+				free(tagElem);
 			}
 		}
 
