@@ -54,7 +54,7 @@ target_link_libraries (test_networking ${PARODUS_COMMON_LIBS})
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_helpers COMMAND ${MEMORY_CHECK} ./test_nopoll_helpers)
-add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/time.c)
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
 target_link_libraries (test_nopoll_helpers -Wl,--no-as-needed -lrt -lcmocka -lcimplog -lnopoll)
 
 #-------------------------------------------------------------------------------

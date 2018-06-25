@@ -55,6 +55,7 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
 {
     int bytesWritten = 0;
     static int connErr=0;
+    long timeDiff = 0;
 
     ParodusInfo("sendMessage length %zu\n", len);
 
@@ -81,8 +82,10 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
 		else
 		{
 			getCurrentTime(connStuck_endPtr);
-			ParodusPrint("checking timeout difference:%ld\n", timeValDiff(connStuck_startPtr, connStuck_endPtr));
-			if( timeValDiff(connStuck_startPtr, connStuck_endPtr) >= (10*60*1000))
+			timeDiff = timeValDiff(connStuck_startPtr, connStuck_endPtr);
+			ParodusPrint("checking timeout difference:%ld\n", timeDiff);
+
+			if( timeDiff >= (10*60*1000))
 			{
 				ParodusError("conn got stuck for over 10 minutes; crashing service.\n");
 				kill(getpid(),SIGTERM);
