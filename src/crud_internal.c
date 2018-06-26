@@ -174,8 +174,8 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 
 		ParodusInfo( "Number of object level %d\n", objlevel	 );
 
-		/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
-		if(objlevel == 4)
+		/* Valid request will be mac:14cfexxxx/parodus/tag/${name} which is objlevel 4 */
+		if(objlevel == 4 && ((obj[2] != NULL) && (strcmp(obj[2] ,  "parodus") == 0) ) && ((obj[3] != NULL) &&(strcmp(obj[3] ,  "tag") == 0 )))
 		{
 			if(reqMsg->u.crud.payload != NULL)
 			{
@@ -313,7 +313,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 		}
 		else
 		{
-			//  Return error for request format other than /tag/${name}
+			//  Return error for request format other than parodus/tag/${name}
 			ParodusError("Invalid CREATE request\n");
 			(*response)->u.crud.status = 400;
 			freeObjArray(&obj, objlevel);
@@ -584,38 +584,51 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 								}
 								else
 								{
-									//To traverse through total number of test objects in json
-									for( i = 0 ; i < itemSize ; i++ )
+									if ((obj[3] !=NULL) && (strcmp(obj[3] ,  "tag") == 0))
 									{
-										cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
-										if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel] ) == 0 )
+										//To traverse through total number of test objects in json
+										for( i = 0 ; i < itemSize ; i++ )
 										{
-											//retrieve test object value
-											ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, 0)->string, cJSON_GetArrayItem( subitem, 0 )->valueint );
-											cJSON_AddItemToObject( jsonresponse, cJSON_GetArrayItem( subitem, 0 )->string , cJSON_CreateNumber(cJSON_GetArrayItem( subitem, 0 )->valueint));
-											ParodusInfo("Retrieve: requested object found \n");
-											found = 1;
-											break;
+											cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
+											if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel] ) == 0 )
+											{
+												//retrieve test object value
+												ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, 0)->string, cJSON_GetArrayItem( subitem, 0 )->valueint );
+												cJSON_AddItemToObject( jsonresponse, cJSON_GetArrayItem( subitem, 0 )->string , cJSON_CreateNumber(cJSON_GetArrayItem( subitem, 0 )->valueint));
+												ParodusInfo("Retrieve: requested object found \n");
+												found = 1;
+												break;
+											}
+											else
+											{
+												ParodusPrint("retrieve object not found, traversing\n");
+											}
 										}
-										else
+										if(!found)
 										{
-											ParodusPrint("retrieve object not found, traversing\n");
+											ParodusError("Unable to retrieve requested object\n");
+											(*response)->u.crud.status = 400;
+											cJSON_Delete( jsonresponse );
+											cJSON_Delete( json );
+											freeObjArray(&obj, objlevel);
+											return -1;
 										}
+
+										char *str1 = cJSON_PrintUnformatted( jsonresponse );
+										ParodusInfo( "jsonResponse %s\n", str1 );
+										(*response)->u.crud.status = 200;
+										(*response)->u.crud.payload = str1;
 									}
-									if(!found)
+									else
 									{
-										ParodusError("Unable to retrieve requested object\n");
+										//  Return error for request format other than parodus/tag/${name}
+										ParodusError("Invalid RETRIEVE request\n");
 										(*response)->u.crud.status = 400;
 										cJSON_Delete( jsonresponse );
 										cJSON_Delete( json );
 										freeObjArray(&obj, objlevel);
 										return -1;
 									}
-
-									char *str1 = cJSON_PrintUnformatted( jsonresponse );
-									ParodusInfo( "jsonResponse %s\n", str1 );
-									(*response)->u.crud.status = 200;
-									(*response)->u.crud.payload = str1;
 								}
 							}
 						}
@@ -727,8 +740,8 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 
 		ParodusInfo( "Number of object level %d\n", objlevel );
 
-		/* Valid request will be mac:14cfexxxx/parodus/tags/${name} which is objlevel 4 */
-		if(objlevel == 4)
+		/* Valid request will be mac:14cfexxxx/parodus/tag/${name} which is objlevel 4 */
+		if(objlevel == 4 && ((obj[2] != NULL) && (strcmp(obj[2] ,  "parodus") == 0) ) && ((obj[3] != NULL) &&(strcmp(obj[3] ,  "tag") == 0 )))
 		{
 			if(reqMsg->u.crud.payload != NULL)
 			{
@@ -847,7 +860,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		}
 		else
 		{
-			//  Return error for request format other than /tag/${name}
+			//  Return error for request format other than parodus/tag/${name}
 			ParodusError("Invalid UPDATE request\n");
 			(*response)->u.crud.status = 400;
 			freeObjArray(&obj, objlevel);
