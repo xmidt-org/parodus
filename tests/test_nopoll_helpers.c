@@ -96,6 +96,26 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
     UNUSED(ctx); UNUSED(conn); UNUSED(user_data);
 }
 
+void getCurrentTime(struct timespec *timer)
+{
+    (void) timer;
+    function_called();
+}
+
+long timeValDiff(struct timespec *starttime, struct timespec *finishtime)
+{
+    (void) starttime; (void) finishtime;
+    function_called();
+    return (long) mock();
+}
+
+int kill(pid_t pid, int sig)
+{
+    UNUSED(pid); UNUSED(sig);
+    function_called();
+    return (int) mock();
+}
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -202,6 +222,69 @@ void test_sendMessage()
     sendMessage(conn, "Hello Parodus!", len);
 }
 
+void connStuck_sendMessage()
+{
+   int len = strlen("Hello Parodus!");
+
+    /* Initialize the timer when connection gets stuck */
+    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
+    will_return(nopoll_conn_is_ok, nopoll_false);
+    expect_function_call(nopoll_conn_is_ok);
+
+    expect_function_call(getCurrentTime);
+    sendMessage(NULL, "Hello Parodus!", len);
+
+    /* When connection recovers within 10 mins, it should be able to re-connect */
+    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
+    will_return(nopoll_conn_is_ok, nopoll_false);
+    expect_function_call(nopoll_conn_is_ok);
+
+    expect_function_call(getCurrentTime);
+
+    will_return(timeValDiff, 5*60*1000);
+    expect_function_call(timeValDiff);
+
+    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)conn);
+    will_return(nopoll_conn_is_ok, nopoll_true);
+    expect_function_call(nopoll_conn_is_ok);
+
+    expect_value(nopoll_conn_is_ready, (intptr_t)conn, (intptr_t)conn);
+    will_return(nopoll_conn_is_ready, nopoll_true);
+    expect_function_call(nopoll_conn_is_ready);
+
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
+    expect_value(__nopoll_conn_send_common, length, len);
+    will_return(__nopoll_conn_send_common, len);
+    expect_function_calls(__nopoll_conn_send_common, 1);
+
+    sendMessage(conn, "Hello Parodus!", len);
+
+    /* When timer exceeds more than 10 mins kill the process */
+    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
+    will_return(nopoll_conn_is_ok, nopoll_false);
+    expect_function_call(nopoll_conn_is_ok);
+
+    sendMessage(NULL, "Hello Parodus!", len);
+
+    expect_function_call(getCurrentTime);
+
+    sendMessage(NULL, "Hello Parodus!", len);
+
+    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
+    will_return(nopoll_conn_is_ok, nopoll_false);
+    expect_function_call(nopoll_conn_is_ok);
+
+    expect_function_call(getCurrentTime);
+
+    will_return(timeValDiff, 10*60*1000);
+    expect_function_call(timeValDiff);
+
+    will_return(kill, 1);
+    expect_function_call(kill);
+
+    sendMessage(NULL, "Hello Parodus!", len);
+}
+
 void err_sendMessage()
 {
     int len = strlen("Hello Parodus!");
@@ -235,6 +318,8 @@ void err_sendMessageConnNull()
     will_return(nopoll_conn_is_ok, nopoll_false);
     expect_function_call(nopoll_conn_is_ok);
 
+    expect_function_call(getCurrentTime);
+
     sendMessage(NULL, "Hello Parodus!", len);
 }
 
@@ -258,6 +343,7 @@ int main(void)
         cmocka_unit_test(err_sendResponseFlushWrites),
         cmocka_unit_test(err_sendResponseConnNull),
         cmocka_unit_test(test_sendMessage),
+        cmocka_unit_test(connStuck_sendMessage),
         cmocka_unit_test(err_sendMessage),
         cmocka_unit_test(err_sendMessageConnNull),
         cmocka_unit_test(test_reportLog),
