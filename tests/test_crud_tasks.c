@@ -92,8 +92,6 @@ void test_processCrudRequestCreate()
     will_return(createObject, 0);
     expect_function_call(createObject);
     
-    will_return(cJSON_Parse, 0);
-    expect_function_call(cJSON_Parse);
     ret = processCrudRequest(reqMsg, &response);
     assert_int_equal(ret, 0);
 
@@ -134,8 +132,6 @@ void test_processCrudRequestRetrieve()
     reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/tags");
     will_return(retrieveObject, 0);
     expect_function_call(retrieveObject);
-    will_return(cJSON_Parse, 0);
-    expect_function_call(cJSON_Parse);
     ret = processCrudRequest(reqMsg, &response);
     assert_int_equal(ret, 0);
 

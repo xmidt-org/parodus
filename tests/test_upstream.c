@@ -295,7 +295,8 @@ void test_processUpstreamMessage()
     expect_function_call(appendEncodedData);
 
     expect_function_call(sendMessage);
-
+    will_return(nn_freemsg, 0);
+    expect_function_call(nn_freemsg);
     expect_function_call(wrp_free_struct);
 
     processUpstreamMessage();
@@ -330,7 +331,8 @@ void test_processUpstreamMessageInvalidPartner()
     expect_function_call(appendEncodedData);
 
     expect_function_call(sendMessage);
-
+    will_return(nn_freemsg, 0);
+    expect_function_call(nn_freemsg);
     expect_function_call(wrp_free_struct);
     processUpstreamMessage();
     free(temp);
@@ -386,7 +388,8 @@ void test_processUpstreamMessageRegMsg()
 
     will_return(get_numOfClients, 1);
     expect_function_call(get_numOfClients);
-
+    will_return(nn_freemsg, 0);
+    expect_function_call(nn_freemsg);
     expect_function_call(wrp_free_struct);
 
     processUpstreamMessage();
@@ -426,7 +429,8 @@ void test_processUpstreamMessageRegMsgNoClients()
 
     will_return(addToList, 0);
     expect_function_call(addToList);
-
+    will_return(nn_freemsg, 0);
+    expect_function_call(nn_freemsg);
     expect_function_call(wrp_free_struct);
 
     processUpstreamMessage();
@@ -456,9 +460,10 @@ void err_processUpstreamMessageDecodeErr()
     temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
     memset(temp,0,sizeof(wrp_msg_t));
     temp->msg_type = 3;
-
     will_return(wrp_to_struct, -1);
     expect_function_call(wrp_to_struct);
+    will_return(nn_freemsg, 0);
+    expect_function_call(nn_freemsg);
     expect_function_call(wrp_free_struct);
     processUpstreamMessage();
     free(temp);
@@ -480,7 +485,8 @@ void err_processUpstreamMessageMetapackFailure()
 
     will_return(wrp_to_struct, 15);
     expect_function_call(wrp_to_struct);
-
+	will_return(nn_freemsg, 0);
+	expect_function_call(nn_freemsg);
     expect_function_call(wrp_free_struct);
     processUpstreamMessage();
     free(temp);
@@ -541,7 +547,8 @@ void err_processUpstreamMessageRegMsg()
 
     will_return(addToList, -1);
     expect_function_call(addToList);
-
+	will_return(nn_freemsg, 0);
+	expect_function_call(nn_freemsg);
     expect_function_call(wrp_free_struct);
 
     processUpstreamMessage();

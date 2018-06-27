@@ -10,7 +10,6 @@
 int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 {
 	wrp_msg_t *resp_msg = NULL;
-    char *str= NULL;
     int ret = -1;
 
     resp_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );  
@@ -29,20 +28,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 
 	ret = createObject( reqMsg, &resp_msg );
 
-	if(ret == 0)
-	{
-		cJSON *payloadObj = cJSON_Parse( (resp_msg)->u.crud.payload );
-		str = cJSON_PrintUnformatted(payloadObj);
-
-		resp_msg ->u.crud.payload = (void *)str;
-		if(str !=NULL)
-		{
-			ParodusInfo("Payload Response: %s\n", str);
-			resp_msg ->u.crud.payload_size = strlen(str);
-		}
-		cJSON_Delete( payloadObj );
-	}
-	else
+	if(ret != 0)
 	{
 		ParodusError("Failed to create object in config JSON\n");
 
@@ -60,20 +46,7 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	ParodusInfo( "RETREIVE request\n" );
 
 	ret = retrieveObject( reqMsg, &resp_msg );
-	if(ret == 0)
-	{
-	    cJSON *payloadObj = cJSON_Parse( (resp_msg)->u.crud.payload );
-	    str = cJSON_PrintUnformatted(payloadObj);
-
-	    resp_msg ->u.crud.payload = (void *)str;
-	    if((resp_msg)->u.crud.payload !=NULL)
-	    {
-	    	ParodusInfo("Payload Response: %s\n", str);
-			resp_msg ->u.crud.payload_size = strlen((resp_msg)->u.crud.payload);
-	    }
-	    cJSON_Delete( payloadObj );
-	}
-	else
+	if(ret != 0)
 	{
 	    ParodusError("Failed to retrieve object \n");
 
