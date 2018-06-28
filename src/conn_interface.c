@@ -37,7 +37,7 @@
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
-
+#include <time.h>
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -55,17 +55,18 @@ pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-
+void timespec_diff(struct timespec *start, struct timespec *stop,
+                   struct timespec *result);
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 
 void createSocketConnection(void (* initKeypress)())
 {
-    int intTimer=0;	
     //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
     bool seshat_registered = false;
+    unsigned int webpa_ping_timeout_ms = 1000 * get_parodus_cfg()->webpa_ping_timeout;
     
     //loadParodusCfg(tmpCfg,get_parodus_cfg());
 #ifdef FEATURE_DNS_QUERY
@@ -103,14 +104,24 @@ void createSocketConnection(void (* initKeypress)())
     
     do
     {
-        nopoll_loop_wait(ctx, 5000000);
-        intTimer = intTimer + 5;
+        struct timespec start, stop, diff;
+        int time_taken_ms;
 
-        if(heartBeatTimer >= get_parodus_cfg()->webpa_ping_timeout) 
+        clock_gettime(CLOCK_REALTIME, &start);
+        nopoll_loop_wait(ctx, 5000000);
+        clock_gettime(CLOCK_REALTIME, &stop);
+
+        timespec_diff(&start, &stop, &diff);
+        time_taken_ms = diff.tv_sec * 1000 + (diff.tv_nsec / 1000000);
+
+        // ParodusInfo("nopoll_loop_wait() time %d msec\n", time_taken_ms);
+
+        if(heartBeatTimer >= webpa_ping_timeout_ms)
         {
+            ParodusInfo("heartBeatTimer %d webpa_ping_timeout_ms %d\n", heartBeatTimer, webpa_ping_timeout_ms);
             if(!close_retry) 
             {
-                ParodusError("ping wait time > %d. Terminating the connection with WebPA server and retrying\n", get_parodus_cfg()->webpa_ping_timeout);
+                ParodusError("ping wait time > %d . Terminating the connection with WebPA server and retrying\n", webpa_ping_timeout_ms / 1000);
                 ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
                 set_global_reconnect_reason("Ping_Miss");
                 set_global_reconnect_status(true);
@@ -124,11 +135,8 @@ void createSocketConnection(void (* initKeypress)())
             }
             heartBeatTimer = 0;
         }
-        else if(intTimer >= 30)
-        {
-            ParodusPrint("heartBeatTimer %d\n",heartBeatTimer);
-            heartBeatTimer += HEARTBEAT_RETRY_SEC;	
-            intTimer = 0;		
+        else {
+            heartBeatTimer += time_taken_ms;
         }
 
         if( false == seshat_registered ) {
@@ -147,5 +155,21 @@ void createSocketConnection(void (* initKeypress)())
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
+}
+
+
+
+void timespec_diff(struct timespec *start, struct timespec *stop,
+                   struct timespec *diff)
+{
+    if ((stop->tv_nsec - start->tv_nsec) < 0) {
+        diff->tv_sec = stop->tv_sec - start->tv_sec - 1;
+        diff->tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000UL;
+    } else {
+        diff->tv_sec = stop->tv_sec - start->tv_sec;
+        diff->tv_nsec = stop->tv_nsec - start->tv_nsec;
+    }
+
+    return;
 }
 
