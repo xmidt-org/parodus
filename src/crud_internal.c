@@ -314,13 +314,47 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 								res_obj = cJSON_CreateObject();
 								//To add into crud json config file
 								cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
-								cJSON_AddNumberToObject(testObj1, key, value);
+
+								for (i =0 ; i < jsonPayloadSize ; i++)
+								{
+									if (cJSON_Number == cJSON_GetArrayItem( jsonPayload, i )->type)
+									{
+										cJSON_AddNumberToObject(testObj1, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valueint);
+									}
+									else if (cJSON_String == cJSON_GetArrayItem( jsonPayload, i )->type)
+									{
+										cJSON_AddStringToObject(testObj1, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+									}
+									else
+									{
+										ParodusError("Invalid Type in request payload\n");
+										(*response)->u.crud.status = 400;
+										cJSON_Delete( jsonPayload );
+										jsonPayload = NULL;
+										cJSON_Delete(json);
+										json = NULL;
+										freeObjArray(&obj, objlevel);
+										return -1;
+									}
+								}
 
 								//To add into response payload
 								cJSON *payloadObj = cJSON_CreateObject();
 								cJSON * tmpObj = NULL;
 								cJSON_AddItemToObject(payloadObj, obj[objlevel], tmpObj = cJSON_CreateObject());
-								cJSON_AddNumberToObject(tmpObj, key, value);
+
+								for (i =0 ; i < jsonPayloadSize ; i++)
+								{
+									if (cJSON_Number == cJSON_GetArrayItem( jsonPayload, i )->type)
+									{
+										cJSON_AddNumberToObject(tmpObj, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valueint);
+									}
+									else
+									{
+										cJSON_AddStringToObject(tmpObj, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+									}
+								}
+
 								resPayload = cJSON_PrintUnformatted(payloadObj);
 								cJSON_Delete( payloadObj );
 								(*response)->u.crud.payload = resPayload;
@@ -337,7 +371,29 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 							res_obj = cJSON_CreateObject();
 							tagObj = cJSON_CreateObject();
 							cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
-							cJSON_AddNumberToObject(testObj1, key, value);
+
+							for (i =0 ; i < jsonPayloadSize ; i++)
+							{
+								if (cJSON_Number == cJSON_GetArrayItem( jsonPayload, i )->type)
+								{
+									cJSON_AddNumberToObject(testObj1, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valueint);
+								}
+								else if (cJSON_String == cJSON_GetArrayItem( jsonPayload, i )->type)
+								{
+									cJSON_AddStringToObject(testObj1, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+								}
+								else
+								{
+									ParodusError("Invalid Type in request payload\n");
+									(*response)->u.crud.status = 400;
+									cJSON_Delete( jsonPayload );
+									jsonPayload = NULL;
+									cJSON_Delete(json);
+									json = NULL;
+									freeObjArray(&obj, objlevel);
+									return -1;
+								}
+							}
 
 							//To add into response payload
 							resPayload = cJSON_PrintUnformatted(tagObj);
@@ -655,8 +711,16 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 										//To add subitem objects to jsonresponse
 										for( j = 0 ; j < subitemSize ; j++ )
 										{
-											ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, j )->string, cJSON_GetArrayItem( subitem, j )->valueint );
-											cJSON_AddItemToObject( subitemObj, cJSON_GetArrayItem( subitem, j )->string, cJSON_CreateNumber(cJSON_GetArrayItem( subitem, j )->valueint));
+											if (cJSON_Number == cJSON_GetArrayItem( subitem, j )->type)
+											{
+												ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, j )->string, cJSON_GetArrayItem( subitem, j )->valueint );
+												cJSON_AddItemToObject( subitemObj, cJSON_GetArrayItem( subitem, j )->string, cJSON_CreateNumber(cJSON_GetArrayItem( subitem, j )->valueint));
+											}
+											else
+											{
+												ParodusPrint( " %s : %s \n", cJSON_GetArrayItem( subitem, j )->string, cJSON_GetArrayItem( subitem, j )->valuestring );
+												cJSON_AddItemToObject( subitemObj, cJSON_GetArrayItem( subitem, j )->string, cJSON_CreateString(cJSON_GetArrayItem( subitem, j )->valuestring));
+											}
 										}
 									}
 									cJSON *tagObj = cJSON_GetObjectItem( jsonresponse, "tags" );
@@ -673,11 +737,24 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 										for( i = 0 ; i < itemSize ; i++ )
 										{
 											cJSON* subitem = cJSON_GetArrayItem( paramArray, i );
+											int subitemSize = cJSON_GetArraySize( subitem );
 											if( strcmp( cJSON_GetArrayItem( paramArray, i )->string, obj[objlevel] ) == 0 )
 											{
-												//retrieve test object value
-												ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, 0)->string, cJSON_GetArrayItem( subitem, 0 )->valueint );
-												cJSON_AddItemToObject( jsonresponse, cJSON_GetArrayItem( subitem, 0 )->string , cJSON_CreateNumber(cJSON_GetArrayItem( subitem, 0 )->valueint));
+												//To add subitem objects to jsonresponse
+												for( j = 0 ; j < subitemSize ; j++ )
+												{
+													//retrieve test object value
+													if (cJSON_Number == cJSON_GetArrayItem( subitem, j )->type)
+													{
+														ParodusPrint( " %s : %d \n", cJSON_GetArrayItem( subitem, j )->string, cJSON_GetArrayItem( subitem, j )->valueint );
+														cJSON_AddItemToObject( jsonresponse, cJSON_GetArrayItem( subitem, j )->string , cJSON_CreateNumber(cJSON_GetArrayItem( subitem, j )->valueint));
+													}
+													else
+													{
+														ParodusPrint( " %s : %s \n", cJSON_GetArrayItem( subitem, j )->string, cJSON_GetArrayItem( subitem, j )->valuestring );
+														cJSON_AddItemToObject( jsonresponse, cJSON_GetArrayItem( subitem, j )->string , cJSON_CreateString(cJSON_GetArrayItem( subitem, j )->valuestring));
+													}
+												}
 												ParodusInfo("Retrieve: requested object found \n");
 												found = 1;
 												break;
@@ -945,7 +1022,34 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 									if( strcmp( testkey, obj[objlevel] ) == 0 )
 									{
 										ParodusInfo( "testObj already exists in json. Update it\n" );
-										cJSON_ReplaceItemInObject(testObj,key,cJSON_CreateNumber(value));
+										//Removes existing test object from json and adding new object
+										cJSON_DeleteItemFromArray(tagObj, j);
+										cJSON *testObj2 = cJSON_CreateObject();
+										cJSON_AddItemToObject(tagObj, obj[objlevel], testObj2 = cJSON_CreateObject());
+										for (i =0 ; i < jsonPayloadSize ; i++)
+										{
+											if (cJSON_Number == cJSON_GetArrayItem( jsonPayload, i )->type)
+											{
+												ParodusPrint("%s %d\n", cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valueint);
+												cJSON_AddNumberToObject(testObj2, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valueint);
+											}
+											else if (cJSON_String == cJSON_GetArrayItem( jsonPayload, i )->type)
+											{
+												ParodusPrint("%s %s\n", cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+												cJSON_AddStringToObject(testObj2, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+											}
+											else
+											{
+												ParodusError("Invalid Type in request payload\n");
+												(*response)->u.crud.status = 400;
+												cJSON_Delete( jsonPayload );
+												jsonPayload = NULL;
+												cJSON_Delete(json);
+												json = NULL;
+												freeObjArray(&obj, objlevel);
+												return -1;
+											}
+										}
 										(*response)->u.crud.status = 200;
 										//Pass freeflag as 0 if you add new child obj to parent obj i.e test obj creation
 										update_status = writeIntoCrudJson(res_obj,"tags",tagObj,0);
@@ -961,7 +1065,29 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 							{
 								ParodusInfo("testObj doesnot exists in json, adding it\n");
 								cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
-								cJSON_AddNumberToObject(testObj1, key, value);
+
+								for (i =0 ; i < jsonPayloadSize ; i++)
+								{
+									if (cJSON_Number == cJSON_GetArrayItem( jsonPayload, i )->type)
+									{
+										cJSON_AddNumberToObject(testObj1, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valueint);
+									}
+									else if (cJSON_String == cJSON_GetArrayItem( jsonPayload, i )->type)
+									{
+										cJSON_AddStringToObject(testObj1, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+									}
+									else
+									{
+										ParodusError("Invalid Type in request payload\n");
+										(*response)->u.crud.status = 400;
+										cJSON_Delete( jsonPayload );
+										jsonPayload = NULL;
+										cJSON_Delete(json);
+										json = NULL;
+										freeObjArray(&obj, objlevel);
+										return -1;
+									}
+								}
 								(*response)->u.crud.status = 201;
 								//Pass freeflag as 0 if you add new child obj to parent obj i.e test obj creation
 								update_status = writeIntoCrudJson(res_obj,"tags",tagObj,0);
@@ -973,7 +1099,29 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 
 							tagObj = cJSON_CreateObject();
 							cJSON_AddItemToObject(tagObj, obj[objlevel], testObj1 = cJSON_CreateObject());
-							cJSON_AddNumberToObject(testObj1, key, value);
+
+							for (i =0 ; i < jsonPayloadSize ; i++)
+							{
+								if (cJSON_Number == cJSON_GetArrayItem( jsonPayload, i )->type)
+								{
+									cJSON_AddNumberToObject(testObj1, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valueint);
+								}
+								else if (cJSON_String == cJSON_GetArrayItem( jsonPayload, i )->type)
+								{
+									cJSON_AddStringToObject(testObj1, cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+								}
+								else
+								{
+									ParodusError("Invalid Type in request payload\n");
+									(*response)->u.crud.status = 400;
+									cJSON_Delete( jsonPayload );
+									jsonPayload = NULL;
+									cJSON_Delete(json);
+									json = NULL;
+									freeObjArray(&obj, objlevel);
+									return -1;
+								}
+							}
 							(*response)->u.crud.status = 201;
 							//Pass freeflag as 1 if you create new parent json object i.e tag obj creation
 							update_status = writeIntoCrudJson(res_obj,"tags",tagObj,1);
