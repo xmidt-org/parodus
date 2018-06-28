@@ -106,7 +106,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 {
 	cJSON *json, *jsonPayload = NULL;
 	char *obj[5];
-	int objlevel = 0, j=0;
+	int objlevel = 0, j=0, i =0;
 	char *jsonData = NULL;
 	cJSON *testObj1 = NULL;
 	char *resPayload = NULL;
@@ -114,6 +114,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 	int value, status, jsonPayloadSize =0;
 	char *key = NULL, *testkey = NULL;
 	const char*parse_error =NULL;
+	int expireFlag = 0;
 
 	ParodusInfo("Processing createObject\n");
 
@@ -172,7 +173,7 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 			return -1;
 		}
 
-		ParodusInfo( "Number of object level %d\n", objlevel	 );
+		ParodusInfo( "Number of object level %d\n", objlevel);
 
 		/* Valid request will be mac:14cfexxxx/parodus/tag/${name} which is objlevel 4 */
 		if(objlevel == 4 && ((obj[2] != NULL) && (strcmp(obj[2] ,  "parodus") == 0) ) && ((obj[3] != NULL) &&(strcmp(obj[3] ,  "tag") == 0 )))
@@ -188,9 +189,91 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 					if(jsonPayloadSize)
 					{
 						cJSON* res_obj = NULL;
-						key= cJSON_GetArrayItem( jsonPayload, 0 )->string;
-						value = cJSON_GetArrayItem( jsonPayload, 0 )->valueint;
-						ParodusInfo("key:%s value:%d\n", key, value);
+
+						/* checking the mandatory field "expires" key in request payload */
+						for (i =0 ; i < jsonPayloadSize ; i++)
+						{
+							key= cJSON_GetArrayItem( jsonPayload, i )->string;
+
+							if (key && (cJSON_Number == cJSON_GetArrayItem( jsonPayload, i )->type))
+							{
+								value = cJSON_GetArrayItem( jsonPayload, i )->valueint;
+								ParodusPrint("key:%s value:%d\n", key, value);
+								if(strcmp(key, "expires") == 0 )
+								{
+									ParodusPrint("Found expires key \n");
+									if(!value)
+									{
+										ParodusError("Invalid request. Incorrect expires value\n");
+										(*response)->u.crud.status = 400;
+										cJSON_Delete( jsonPayload );
+										jsonPayload = NULL;
+										cJSON_Delete(json);
+										json = NULL;
+										freeObjArray(&obj, objlevel);
+										return -1;
+									}
+									else
+									{
+										expireFlag = 1;
+										break;
+									}
+								}
+								else
+								{
+									ParodusPrint("expires key not found in payload, iterating ..\n");
+								}
+							}
+						}
+
+						if(!expireFlag )
+						{
+							ParodusError("Invalid request. Numeric expires value is mandatory in payload\n");
+							(*response)->u.crud.status = 400;
+							cJSON_Delete( jsonPayload );
+							jsonPayload = NULL;
+							cJSON_Delete(json);
+							json = NULL;
+							freeObjArray(&obj, objlevel);
+							return -1;
+						}
+
+						/* checking for proper string values in request payload */
+						for (i =0 ; i < jsonPayloadSize ; i++)
+						{
+							if(cJSON_GetArrayItem( jsonPayload, i )->string != NULL && strlen(cJSON_GetArrayItem( jsonPayload, i )->string) == 0)
+							{
+								ParodusError("Invalid Request. Key is NULL in request payload\n");
+								(*response)->u.crud.status = 400;
+								cJSON_Delete( jsonPayload );
+								jsonPayload = NULL;
+								cJSON_Delete(json);
+								json = NULL;
+								freeObjArray(&obj, objlevel);
+								return -1;
+							}
+							else
+							{
+								if (cJSON_String == cJSON_GetArrayItem( jsonPayload, i )->type)
+								{
+									if(cJSON_GetArrayItem( jsonPayload, i )->valuestring != NULL && strlen(cJSON_GetArrayItem( jsonPayload, i )->valuestring) == 0)
+									{
+										ParodusError("Invalid request. Object value is NULL\n");
+										(*response)->u.crud.status = 400;
+										cJSON_Delete( jsonPayload );
+										jsonPayload = NULL;
+										cJSON_Delete(json);
+										json = NULL;
+										freeObjArray(&obj, objlevel);
+										return -1;
+									}
+									else
+									{
+										ParodusPrint("key:%s value:%s\n", cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+									}
+								}
+							}
+						}
 
 						//check tags object exists
 						cJSON *tagObj = cJSON_GetObjectItem( json, "tags" );
@@ -676,7 +759,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 {
 	cJSON *json, *jsonPayload = NULL;
 	char *obj[5];
-	int objlevel = 0, j=0;
+	int objlevel = 0, j=0, i =0;
 	char *jsonData = NULL;
 	cJSON *testObj1 = NULL;
 	int update_status = 0, jsonPayloadSize =0;
@@ -684,6 +767,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	char *key = NULL, *testkey = NULL;
 	const char *parse_error = NULL;
 	int status =0;
+	int expireFlag = 0;
 
 	status = readFromJSON(&jsonData);
 	ParodusPrint("read status %d\n", status);
@@ -754,9 +838,91 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 					if(jsonPayloadSize)
 					{
 						cJSON* res_obj = cJSON_CreateObject();
-						key = cJSON_GetArrayItem( jsonPayload, 0 )->string;
-						value = cJSON_GetArrayItem( jsonPayload, 0 )->valueint;
-						ParodusInfo("key:%s value:%d\n", key, value);
+
+						/* checking the mandatory field "expires" key in request payload */
+						for (i =0 ; i < jsonPayloadSize ; i++)
+						{
+							key= cJSON_GetArrayItem( jsonPayload, i )->string;
+
+							if (key && (cJSON_Number == cJSON_GetArrayItem( jsonPayload, i )->type))
+							{
+								value = cJSON_GetArrayItem( jsonPayload, i )->valueint;
+								ParodusPrint("key:%s value:%d\n", key, value);
+								if(strcmp(key, "expires") == 0 )
+								{
+									ParodusPrint("Found expires key \n");
+									if(!value)
+									{
+										ParodusError("Invalid request. Incorrect expires value\n");
+										(*response)->u.crud.status = 400;
+										cJSON_Delete( jsonPayload );
+										jsonPayload = NULL;
+										cJSON_Delete(json);
+										json = NULL;
+										freeObjArray(&obj, objlevel);
+										return -1;
+									}
+									else
+									{
+										expireFlag = 1;
+										break;
+									}
+								}
+								else
+								{
+									ParodusPrint("expires key not found in payload, iterating ..\n");
+								}
+							}
+						}
+
+						if(!expireFlag )
+						{
+							ParodusError("Invalid request. Numeric expires value is mandatory in payload\n");
+							(*response)->u.crud.status = 400;
+							cJSON_Delete( jsonPayload );
+							jsonPayload = NULL;
+							cJSON_Delete(json);
+							json = NULL;
+							freeObjArray(&obj, objlevel);
+							return -1;
+						}
+
+						/* checking for proper string values in request payload */
+						for (i =0 ; i < jsonPayloadSize ; i++)
+						{
+							if(cJSON_GetArrayItem( jsonPayload, i )->string != NULL && strlen(cJSON_GetArrayItem( jsonPayload, i )->string) == 0)
+							{
+								ParodusError("Invalid Request. Key is NULL in request payload\n");
+								(*response)->u.crud.status = 400;
+								cJSON_Delete( jsonPayload );
+								jsonPayload = NULL;
+								cJSON_Delete(json);
+								json = NULL;
+								freeObjArray(&obj, objlevel);
+								return -1;
+							}
+							else
+							{
+								if (cJSON_String == cJSON_GetArrayItem( jsonPayload, i )->type)
+								{
+									if(cJSON_GetArrayItem( jsonPayload, i )->valuestring != NULL && strlen(cJSON_GetArrayItem( jsonPayload, i )->valuestring) == 0)
+									{
+										ParodusError("Invalid request. Object value is NULL\n");
+										(*response)->u.crud.status = 400;
+										cJSON_Delete( jsonPayload );
+										jsonPayload = NULL;
+										cJSON_Delete(json);
+										json = NULL;
+										freeObjArray(&obj, objlevel);
+										return -1;
+									}
+									else
+									{
+										ParodusPrint("key:%s value:%s\n", cJSON_GetArrayItem( jsonPayload, i )->string, cJSON_GetArrayItem( jsonPayload, i )->valuestring);
+									}
+								}
+							}
+						}
 
 						//check tags object exists
 						cJSON *tagObj = cJSON_GetObjectItem( json, "tags" );
