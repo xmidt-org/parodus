@@ -115,7 +115,7 @@ int createNopollConnection(noPollCtx *ctx)
     //Retry Backoff count shall start at c=2 & calculate 2^c - 1.
 	int c=2;
     char *conveyHeader = NULL;
-    char device_id[32]={'\0'};
+    char device_id[36]={'\0'};
     char user_agent[512]={'\0'};
     char * extra_headers = NULL;
     unsigned int fallback = FLAGS_IPV6_ONLY;
