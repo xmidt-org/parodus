@@ -78,7 +78,7 @@ pthread_mutex_t *get_global_nano_mut(void)
 
 void packMetaData()
 {
-    char boot_time[256]={'\0'};
+    static char boot_time[256]={'\0'};
     //Pack the metadata initially to reuse for every upstream msg sending to server
     ParodusPrint("-------------- Packing metadata ----------------\n");
     sprintf(boot_time, "%d", get_parodus_cfg()->boot_time);
