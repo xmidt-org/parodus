@@ -336,7 +336,7 @@ void *processUpstreamMessage()
             }
 
 			//nn_freemsg should not be done for parodus/tags/ CRUD requests as it is not received through nanomsg.
-			if ((msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "parodus") != NULL)
+			if ((msg && (msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "parodus") != NULL))
 			{
 				free(message->msg);
 			}
@@ -348,7 +348,9 @@ void *processUpstreamMessage()
 				}
 			}
 			ParodusPrint("Free for upstream decoded msg\n");
-			wrp_free_struct(msg);
+			if (msg) {
+                wrp_free_struct(msg);
+            }
 			msg = NULL;
 			free(message);
 			message = NULL;
