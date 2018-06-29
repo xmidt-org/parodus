@@ -329,6 +329,8 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 									{
 										ParodusError("Invalid Type in request payload\n");
 										(*response)->u.crud.status = 400;
+										cJSON_Delete(res_obj);
+										res_obj = NULL;
 										cJSON_Delete( jsonPayload );
 										jsonPayload = NULL;
 										cJSON_Delete(json);
@@ -386,6 +388,10 @@ int createObject( wrp_msg_t *reqMsg , wrp_msg_t **response)
 								{
 									ParodusError("Invalid Type in request payload\n");
 									(*response)->u.crud.status = 400;
+									cJSON_Delete(res_obj);
+									res_obj = NULL;
+									cJSON_Delete(tagObj);
+									tagObj = NULL;
 									cJSON_Delete( jsonPayload );
 									jsonPayload = NULL;
 									cJSON_Delete(json);
@@ -838,7 +844,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	char *obj[5];
 	int objlevel = 0, j=0, i =0;
 	char *jsonData = NULL;
-	cJSON *testObj1 = NULL;
+	cJSON *testObj1 = NULL, *testObj2 = NULL;
 	int update_status = 0, jsonPayloadSize =0;
 	int jsontagitemSize = 0, value =0;
 	char *key = NULL, *testkey = NULL;
@@ -914,8 +920,6 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 					ParodusPrint( "jsonPayloadSize is %d\n", jsonPayloadSize );
 					if(jsonPayloadSize)
 					{
-						cJSON* res_obj = cJSON_CreateObject();
-
 						/* checking the mandatory field "expires" key in request payload */
 						for (i =0 ; i < jsonPayloadSize ; i++)
 						{
@@ -1000,7 +1004,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 								}
 							}
 						}
-
+						cJSON* res_obj = cJSON_CreateObject();
 						//check tags object exists
 						cJSON *tagObj = cJSON_GetObjectItem( json, "tags" );
 						if(tagObj !=NULL)
@@ -1024,7 +1028,6 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 										ParodusInfo( "testObj already exists in json. Update it\n" );
 										//Removes existing test object from json and adding new object
 										cJSON_DeleteItemFromArray(tagObj, j);
-										cJSON *testObj2 = cJSON_CreateObject();
 										cJSON_AddItemToObject(tagObj, obj[objlevel], testObj2 = cJSON_CreateObject());
 										for (i =0 ; i < jsonPayloadSize ; i++)
 										{
@@ -1042,6 +1045,8 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 											{
 												ParodusError("Invalid Type in request payload\n");
 												(*response)->u.crud.status = 400;
+												cJSON_Delete(res_obj);
+												res_obj = NULL;
 												cJSON_Delete( jsonPayload );
 												jsonPayload = NULL;
 												cJSON_Delete(json);
@@ -1080,6 +1085,8 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 									{
 										ParodusError("Invalid Type in request payload\n");
 										(*response)->u.crud.status = 400;
+										cJSON_Delete(res_obj);
+										res_obj = NULL;
 										cJSON_Delete( jsonPayload );
 										jsonPayload = NULL;
 										cJSON_Delete(json);
@@ -1114,6 +1121,10 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 								{
 									ParodusError("Invalid Type in request payload\n");
 									(*response)->u.crud.status = 400;
+									cJSON_Delete(tagObj);
+									tagObj = NULL;
+									cJSON_Delete(res_obj);
+									res_obj = NULL;
 									cJSON_Delete( jsonPayload );
 									jsonPayload = NULL;
 									cJSON_Delete(json);
