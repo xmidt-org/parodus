@@ -348,7 +348,9 @@ void *processUpstreamMessage()
 				}
 			}
 			ParodusPrint("Free for upstream decoded msg\n");
-			wrp_free_struct(msg);
+			if (msg) {
+                wrp_free_struct(msg);
+            }
 			msg = NULL;
 			free(message);
 			message = NULL;
