@@ -121,3 +121,17 @@ char* getWebpaConveyHeader()
 
     return NULL;
 }
+
+void timespec_diff(struct timespec *start, struct timespec *stop,
+                   struct timespec *diff)
+{
+    if ((stop->tv_nsec - start->tv_nsec) < 0) {
+        diff->tv_sec = stop->tv_sec - start->tv_sec - 1;
+        diff->tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000UL;
+    } else {
+        diff->tv_sec = stop->tv_sec - start->tv_sec;
+        diff->tv_nsec = stop->tv_nsec - start->tv_nsec;
+    }
+
+    return;
+}
