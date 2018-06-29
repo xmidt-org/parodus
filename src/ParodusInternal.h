@@ -99,6 +99,9 @@ char* getWebpaConveyHeader();
 void *CRUDHandlerTask();
 void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
 
+void timespec_diff(struct timespec *start, struct timespec *stop,
+                   struct timespec *result);
+
 #ifdef __cplusplus
 }
 #endif

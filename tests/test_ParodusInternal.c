@@ -95,6 +95,38 @@ void err_getWebpaConveyHeader()
     getWebpaConveyHeader();
 }
 
+/*
+*	Test function to verify timespec_diff function
+*	Verifys when the time diff is positive ie stop time > start time
+*/
+void test_timespec_diff()
+{
+    struct timespec start, stop, diff;
+    int time_taken_ms;
+    clock_gettime(CLOCK_REALTIME, &start);
+    sleep(1);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    timespec_diff(&start, &stop, &diff);
+    time_taken_ms = diff.tv_sec * 1000 + (diff.tv_nsec / 1000000);
+    assert_int_equal(time_taken_ms, 1000);
+}
+
+/*
+*	Test function to verify timespec_diff function
+*	Verifys when the time diff is negative ie stop time < start time
+*/
+void test_timespec_diff1()
+{
+    struct timespec start, stop, diff;
+    int time_taken_ms;
+    clock_gettime(CLOCK_REALTIME, &start);
+    sleep(1);
+    clock_gettime(CLOCK_REALTIME, &stop);
+    timespec_diff(&stop, &start, &diff);
+    time_taken_ms = diff.tv_sec * 1000 + (diff.tv_nsec / 1000000);
+    assert_int_equal(time_taken_ms, -1001);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -103,6 +135,8 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_getWebpaConveyHeader),
         cmocka_unit_test(err_getWebpaConveyHeader),
+        cmocka_unit_test(test_timespec_diff),
+        cmocka_unit_test(test_timespec_diff1),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

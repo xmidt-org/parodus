@@ -182,6 +182,19 @@ pthread_mutex_t *get_global_nano_mut(void)
     return &nano_mut;
 }
 
+/*
+* Mock func to calculate time diff between start and stop time
+* This timespec_diff retuns 1 sec as diff time
+*/
+void timespec_diff(struct timespec *start, struct timespec *stop,
+                   struct timespec *diff)
+{
+   UNUSED(start);
+   UNUSED(stop);
+   diff->tv_sec = 1;
+   diff->tv_nsec = 1000;
+}
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -261,9 +274,8 @@ void test_createSocketConnection1()
     
 }
 
-void test_createSocketConnection2()
+void test_PingMissIntervalTime()
 {
-#if 0
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(ParodusCfg));
@@ -278,7 +290,8 @@ void test_createSocketConnection2()
     parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
     parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
-    cfg.webpa_ping_timeout = 1;
+    //Max ping timeout is 6 sec
+    cfg.webpa_ping_timeout = 6;
     set_parodus_cfg(&cfg);
     
     pthread_mutex_lock (&close_mut);
@@ -294,6 +307,7 @@ void test_createSocketConnection2()
     expect_function_call(packMetaData);
 
     expect_function_calls(StartThread, 5);
+    //Increment ping interval time to 1 sec for each nopoll_loop_wait call
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
@@ -302,7 +316,7 @@ void test_createSocketConnection2()
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
     expect_function_calls(nopoll_loop_wait, 7);
-    
+    //Expecting Ping miss after 6 sec
     expect_function_call(set_global_reconnect_reason);
     will_return(get_global_conn, (intptr_t)NULL);
     expect_function_call(set_global_reconnect_status);
@@ -317,7 +331,6 @@ void test_createSocketConnection2()
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
     createSocketConnection(NULL);
-#endif
     
 }
 
@@ -363,7 +376,7 @@ int main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_createSocketConnection),
         cmocka_unit_test(test_createSocketConnection1),
-        cmocka_unit_test(test_createSocketConnection2),
+        cmocka_unit_test(test_PingMissIntervalTime),
         cmocka_unit_test(err_createSocketConnection),
     };
 
