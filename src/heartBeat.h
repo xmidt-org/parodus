@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Comcast Cable Communications Management, LLC
+ * Copyright 2018 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
  *
  */
 /**
- * @file connection.c
+ * @file heartBeat.h
  *
- * @description This decribes functions required to manage WebSocket client connections.
+ * @description This decribes functions required to manage heartBeatTimer.
  *
  */
 
@@ -30,11 +30,13 @@
 extern "C" {
 #endif
 
-
+// Get value of heartBeatTimer
 unsigned int get_heartBeatTimer();
 
+// Reset value of heartBeatTimer to 0
 void reset_heartBeatTimer();
 
+// Increment value of heartBeatTimer to desired value
 void increment_heartBeatTimer(unsigned int inc_time_ms);
 
 #ifdef __cplusplus

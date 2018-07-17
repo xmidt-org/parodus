@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Comcast Cable Communications Management, LLC
+ * Copyright 2018 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
  *
  */
 /**
- * @file connection.c
+ * @file heartBeat.c
  *
- * @description This decribes functions required to manage WebSocket client connections.
+ * @description This decribes functions required to manage heartBeatTimer.
  *
  */
 
@@ -27,7 +27,7 @@ volatile unsigned int heartBeatTimer = 0;
 
 pthread_mutex_t heartBeat_mut=PTHREAD_MUTEX_INITIALIZER;
 
-
+// Get value of heartBeatTimer
 unsigned int get_heartBeatTimer() 
 {
 	unsigned int tmp = 0;
@@ -37,7 +37,7 @@ unsigned int get_heartBeatTimer()
 	return tmp;
 }
 
-
+// Reset value of heartBeatTimer to 0
 void reset_heartBeatTimer() 
 {
 	pthread_mutex_lock (&heartBeat_mut);
@@ -45,6 +45,7 @@ void reset_heartBeatTimer()
 	pthread_mutex_unlock (&heartBeat_mut);
 }
 
+// Increment value of heartBeatTimer to desired value
 void increment_heartBeatTimer(unsigned int inc_time_ms) 
 {
 	pthread_mutex_lock (&heartBeat_mut);
