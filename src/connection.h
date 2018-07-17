@@ -35,7 +35,6 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 
 extern bool close_retry;
-extern volatile unsigned int heartBeatTimer;
 extern pthread_mutex_t close_mut;
 
 /*----------------------------------------------------------------------------*/

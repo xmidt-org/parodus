@@ -109,7 +109,7 @@ target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS} )
 #   test_nopoll_handlers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers)
-add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c)
+add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c ../src/heartBeat.c)
 target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm)
 
 
@@ -117,7 +117,7 @@ target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-
 #   test_nopoll_handlers_fragment
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers_fragment COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers_fragment)
-add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c)
+add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c ../src/heartBeat.c)
 target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm -lcmocka)
 
 #-------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog 
 add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
 #add_executable(test_connection test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC}) 
 #target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
-set(CONN_SRC test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC})
+set(CONN_SRC test_connection.c ../src/connection.c ../src/heartBeat.c ${PARODUS_COMMON_SRC})
 add_executable(test_connection ${CONN_SRC})
 #target_link_libraries (test_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka)
 target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
@@ -137,7 +137,7 @@ target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
 #add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
 #target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
-add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
+add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c ../src/heartBeat.c) 
 #target_link_libraries (test_createConnection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka )
 target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
 
@@ -149,7 +149,7 @@ add_test(NAME test_client_list COMMAND ${MEMORY_CHECK} ./test_client_list)
 #target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 set(CLIST_SRC test_client_list.c ../src/client_list.c 
  ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c 
- ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c 
+ ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/heartBeat.c
  ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c 
  ../src/partners_check.c ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c ${PARODUS_COMMON_SRC})
 
@@ -169,7 +169,7 @@ target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 add_test(NAME test_service_alive COMMAND ${MEMORY_CHECK} ./test_service_alive)
 #add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
-set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
+set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ../src/heartBeat.c ${PARODUS_COMMON_SRC})
 if (ENABLE_SESHAT)
 set(SVA_SRC ${SVA_SRC} ../src/seshat_interface.c)
 else()
@@ -250,6 +250,7 @@ set(CONIFC_SRC test_conn_interface.c
   ../src/token.c
   ../src/string_helpers.c 
   ../src/mutex.c
+  ../src/heartBeat.c
 )
 if (ENABLE_SESHAT)
 set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface.c)
@@ -286,7 +287,7 @@ set(TOKEN_SRC ../src/conn_interface.c ../src/config.c
  ../src/networking.c
  ../src/thread_tasks.c ../src/time.c
  ../src/string_helpers.c ../src/mutex.c 
- ../src/token.c
+ ../src/token.c ../src/heartBeat.c
  )
 
 if (ENABLE_SESHAT)

@@ -34,10 +34,12 @@
 #include "service_alive.h"
 #include "seshat_interface.h"
 #include "crud_interface.h"
+#include "heartBeat.h"
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
 #include <time.h>
+
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -49,7 +51,6 @@
 /*----------------------------------------------------------------------------*/
 
 bool close_retry = false;
-volatile unsigned int heartBeatTimer = 0;
 pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
@@ -67,6 +68,7 @@ void createSocketConnection(void (* initKeypress)())
     noPollCtx *ctx;
     bool seshat_registered = false;
     unsigned int webpa_ping_timeout_ms = 1000 * get_parodus_cfg()->webpa_ping_timeout;
+    unsigned int heartBeatTimer = 0;
     
     //loadParodusCfg(tmpCfg,get_parodus_cfg());
 #ifdef FEATURE_DNS_QUERY
@@ -115,7 +117,7 @@ void createSocketConnection(void (* initKeypress)())
         time_taken_ms = diff.tv_sec * 1000 + (diff.tv_nsec / 1000000);
 
         // ParodusInfo("nopoll_loop_wait() time %d msec\n", time_taken_ms);
-
+	heartBeatTimer = get_heartBeatTimer();
         if(heartBeatTimer >= webpa_ping_timeout_ms)
         {
             ParodusInfo("heartBeatTimer %d webpa_ping_timeout_ms %d\n", heartBeatTimer, webpa_ping_timeout_ms);
@@ -133,10 +135,10 @@ void createSocketConnection(void (* initKeypress)())
             {			
                 ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
             }
-            heartBeatTimer = 0;
+            reset_heartBeatTimer();
         }
         else {
-            heartBeatTimer += time_taken_ms;
+            increment_heartBeatTimer(time_taken_ms);
         }
 
         if( false == seshat_registered ) {
