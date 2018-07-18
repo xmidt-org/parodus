@@ -28,6 +28,7 @@
 #include "nopoll_helpers.h"
 #include "mutex.h"
 #include "spin_thread.h"
+#include "heartBeat.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -441,7 +442,7 @@ int createNopollConnection(noPollCtx *ctx)
 	close_retry = false;
 	pthread_mutex_unlock (&close_mut);
 	ParodusPrint("createNopollConnection(): close_mut unlock\n");
-	heartBeatTimer = 0;
+	reset_heartBeatTimer();
 	// Reset connErr flag on successful connection
 	connErr = 0;
 	set_global_reconnect_reason("webpa_process_starts");

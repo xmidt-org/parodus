@@ -27,6 +27,7 @@
 #include "../src/conn_interface.h"
 #include "../src/connection.h"
 #include "../src/config.h"
+#include "../src/heartBeat.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -35,7 +36,6 @@ UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
 extern bool close_retry;
 extern pthread_mutex_t close_mut;
-extern volatile unsigned int heartBeatTimer;
 pthread_mutex_t nano_mut;
 pthread_cond_t nano_con;
 
@@ -339,7 +339,7 @@ void err_createSocketConnection()
     pthread_mutex_lock (&close_mut);
     close_retry = true;
     pthread_mutex_unlock (&close_mut);
-    heartBeatTimer = 0;
+    reset_heartBeatTimer();
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)NULL);

@@ -24,6 +24,7 @@
 #include "ParodusInternal.h"
 #include "nopoll_handlers.h"
 #include "connection.h"
+#include "heartBeat.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -146,7 +147,7 @@ void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,
         ParodusInfo("Ping received with payload %s, opcode %d\n",(char *)payload, nopoll_msg_opcode(msg));
         if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 
         {
-            heartBeatTimer = 0;
+            reset_heartBeatTimer();
         }
     }
 }
