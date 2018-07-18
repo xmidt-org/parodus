@@ -644,6 +644,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 				ParodusInfo( "inMemResponse: %s\n", inmem_str );
 				(*response)->u.crud.status = 200;
 				(*response)->u.crud.payload = inmem_str;
+				(*response)->u.crud.payload_size = strlen(inmem_str);
 				cJSON_Delete( inMemResponse );
 				freeObjArray(&obj, objlevel);
 			}
@@ -734,6 +735,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 									ParodusInfo( "jsonResponse %s\n", str1 );
 									(*response)->u.crud.status = 200;
 									(*response)->u.crud.payload = str1;
+									(*response)->u.crud.payload_size = strlen(str1);
 								}
 								else
 								{
@@ -784,6 +786,7 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 										ParodusInfo( "jsonResponse %s\n", str1 );
 										(*response)->u.crud.status = 200;
 										(*response)->u.crud.payload = str1;
+										(*response)->u.crud.payload_size = strlen(str1);
 									}
 									else
 									{

@@ -78,7 +78,9 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length,
 	if(crud_test)
 	{
 			(*msg)->msg_type = WRP_MSG_TYPE__CREATE;
-			parStrncpy((*msg)->u.req.dest,"mac:1122334455/parodus", 100);
+			parStrncpy((*msg)->u.crud.dest,"mac:1122334455/parodus", 100);
+			(*msg)->u.crud.source = "tag-update";
+			(*msg)->u.crud.transaction_uuid = "1234";
 	}
     return (ssize_t) mock();
 }

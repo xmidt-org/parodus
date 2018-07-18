@@ -97,12 +97,23 @@ void listenerOnMessage(void * msg, size_t msgSize)
                       
                     destVal = strdup(((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
                               ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest)));
-                              
-                              
+
                     if( (destVal != NULL) && (ret >= 0) )
                     {
-                        strtok(destVal , "/");
-                        parStrncpy(dest,strtok(NULL , "/"), sizeof(dest));
+						char *newDest = NULL;
+						char *tempDest = strtok(destVal , "/");
+						if(tempDest != NULL)
+						{
+							newDest = strtok(NULL , "/");
+						}
+						if(newDest != NULL)
+						{
+							parStrncpy(dest,newDest, sizeof(dest));
+						}
+						else
+						{
+							parStrncpy(dest,destVal, sizeof(dest));
+						}
                         ParodusInfo("Received downstream dest as :%s and transaction_uuid :%s\n", dest, 
                             ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid : 
                             ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
@@ -132,7 +143,18 @@ void listenerOnMessage(void * msg, size_t msgSize)
 						if(destFlag ==0 && strcmp("parodus", dest)==0)
 						{
 							ParodusPrint("Received CRUD request : dest : %s\n", dest);
-							addCRUDmsgToQueue(message);
+							if ((message->u.crud.source == NULL) || (message->u.crud.transaction_uuid == NULL))
+							{
+								ParodusError("Invalid request\n");
+								response = cJSON_CreateObject();
+								cJSON_AddNumberToObject(response, "statusCode", 400);
+								cJSON_AddStringToObject(response, "message", "Invalid Request");
+								ret = -1;
+							}
+							else
+							{
+								addCRUDmsgToQueue(message);
+							}
 							destFlag =1;
 						}
 						//if any unknown dest received sending error response to server
@@ -160,8 +182,15 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         }
                         else
                         {
-                            resp_msg ->u.crud.source =           message->u.crud.dest;
-                            resp_msg ->u.crud.dest =             message->u.crud.source;
+                            resp_msg ->u.crud.source = message->u.crud.dest;
+							if(message->u.crud.source !=NULL)
+							{
+								resp_msg ->u.crud.dest = message->u.crud.source;
+							}
+							else
+							{
+								resp_msg ->u.crud.dest = "unknown";
+							}
                             resp_msg ->u.crud.transaction_uuid = message->u.crud.transaction_uuid;
                             resp_msg ->u.crud.path =             message->u.crud.path;
                         }
