@@ -479,6 +479,29 @@ void test_parse_webpa_url ()
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "80");
+    assert_int_equal (parse_webpa_url ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
+		addr_buf, 80, port_buf, 8), 0);
+	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
+	assert_string_equal (port_buf, "8080");
+    assert_int_equal (parse_webpa_url ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+		addr_buf, 80, port_buf, 8), 0);
+	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
+	assert_string_equal (port_buf, "443");
+    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
+		addr_buf, 80, port_buf, 8), 1);
+	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
+	assert_string_equal (port_buf, "8080");
+    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+		addr_buf, 80, port_buf, 8), 1);
+	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
+	assert_string_equal (port_buf, "80");
+    assert_int_equal (parse_webpa_url ("http://2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+		addr_buf, 80, port_buf, 8), -1);
+    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa",
+		addr_buf, 80, port_buf, 8), -1);
+    assert_int_equal (parse_webpa_url ("[2001:558:fc18:2:f816:3eff:fe7f:6efa",
+		addr_buf, 80, port_buf, 8), -1);
+
 		
 }
 

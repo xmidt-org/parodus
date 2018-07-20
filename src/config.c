@@ -210,6 +210,9 @@ int parse_webpa_url(const char *full_url,
 	char *end_port;
 	size_t server_len;
 	int http_match;
+	char *closeBracket = NULL;
+	char *openBracket = NULL;
+	char *checkPort = NULL;
 
 	ParodusInfo ("full url: %s\n", full_url);
 	http_match = server_is_http (full_url, &server_ptr);
@@ -222,6 +225,45 @@ int parse_webpa_url(const char *full_url,
 	// If there's a '/' on end, null it out
 	if ((server_len>0) && (server_addr[server_len-1] == '/'))
 		server_addr[server_len-1] = '\0';
+
+    openBracket = strchr(server_addr,'[');
+    if(openBracket != NULL){
+        //Remove [ from server address
+        char *remove = server_addr;
+        remove++;
+        parStrncpy (server_addr, remove, server_addr_buflen);
+        closeBracket = strchr(server_addr,']');
+        if(closeBracket != NULL){
+            //Remove ] by making it as null
+            *closeBracket = '\0';
+            closeBracket++;
+            checkPort = strchr(closeBracket,':');
+            if (NULL == checkPort) {
+                if (http_match)
+                    parStrncpy (port_buf, "80", port_buflen);
+                else
+                    parStrncpy (port_buf, "443", port_buflen);
+
+                end_port = strchr (server_addr, '/');
+                if (NULL != end_port) {
+                    *end_port = '\0'; // terminate server address with null
+                }
+            } else {
+                checkPort++;
+                end_port = strchr (checkPort, '/');
+                if (NULL != end_port)
+                    *end_port = '\0'; // terminate port with null
+                parStrncpy (port_buf, checkPort, port_buflen);
+            }
+
+        }else{
+            ParodusError("Invalid url %s\n", full_url);
+            return -1;
+        }
+    }else if (strchr(server_addr,']') != NULL ){
+		ParodusError("Invalid url %s\n", full_url);
+		return -1;
+	}else{
 	// Look for ':'
 	port_val = strchr (server_addr, ':');
 
@@ -244,6 +286,7 @@ int parse_webpa_url(const char *full_url,
 			*end_port = '\0'; // terminate port with null
 		parStrncpy (port_buf, port_val, port_buflen);
 	}
+    }
 	ParodusInfo ("server %s, port %s, http_match %d\n", 
 		server_addr, port_buf, http_match);
 	return http_match;
