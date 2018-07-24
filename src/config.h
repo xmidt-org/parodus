@@ -49,6 +49,8 @@ extern "C" {
 #define WEBPA_BACKOFF_MAX       "webpa-backoff-max"
 #define PARTNER_ID              "partner-id"
 #define CERT_PATH               "ssl-cert-path"
+#define CLOUD_STATUS            "cloud-status"
+#define CLOUD_DISCONNECT        "cloud-disconnect"
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                  "/api/v2/device"
@@ -94,6 +96,8 @@ typedef struct
     char token_acquisition_script[64];
     char token_read_script[64];
 	char *crud_config_file;
+	char *cloud_status;
+	char *cloud_disconnect;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)

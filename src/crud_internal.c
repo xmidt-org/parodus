@@ -582,6 +582,24 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->webpa_uuid);
 		cJSON_AddItemToObject( *jsonresponse, WEBPA_UUID , cJSON_CreateString(get_parodus_cfg()->webpa_uuid));
 	}
+	else if(strcmp(CLOUD_STATUS, keyName)==0)
+	{
+		if(get_parodus_cfg()->cloud_status ==NULL)
+		{
+			ParodusError("retrieveFromMemory: cloud_status value is NULL\n");
+			return -1;
+		}
+		else if((get_parodus_cfg()->cloud_status !=NULL) && (strlen(get_parodus_cfg()->cloud_status)==0))
+		{
+			ParodusError("retrieveFromMemory: cloud_status value is empty\n");
+			return -1;
+		}
+		else
+		{
+			ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n", keyName, get_parodus_cfg()->cloud_status);
+			cJSON_AddItemToObject( *jsonresponse, CLOUD_STATUS , cJSON_CreateString(get_parodus_cfg()->cloud_status));
+		}
+	}
 	else if(strcmp(BOOT_TIME, keyName)==0)
 	{
 		ParodusInfo("retrieveFromMemory: keyName:%s value:%d\n",keyName,get_parodus_cfg()->boot_time);
