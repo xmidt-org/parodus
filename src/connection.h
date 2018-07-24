@@ -57,6 +57,8 @@ void set_global_reconnect_reason(char *reason);
 bool get_global_reconnect_status();
 void set_global_reconnect_status(bool status);
 
+int get_cloud_disconnect_time();
+void set_cloud_disconnect_time(int disconnTime);
 #ifdef __cplusplus
 }
 #endif

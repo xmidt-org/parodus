@@ -24,11 +24,14 @@
 #include "crud_tasks.h"
 #include "crud_internal.h"
 #include "config.h"
+#include "connection.h"
 
 static void freeObjArray(char *(*obj)[], int size);
 static int writeIntoCrudJson(cJSON *res_obj, char * object, cJSON *objValue, int freeFlag);
 static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[]);
 static char* strdupptr( const char *s, const char *e );
+static int ConnDisconnectFromCloud(char *reason);
+static int validateDisconnectString(char *reason);
 
 int writeToJSON(char *data)
 {
@@ -870,8 +873,9 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	int jsontagitemSize = 0, value =0;
 	char *key = NULL, *testkey = NULL;
 	const char *parse_error = NULL;
-	int status =0;
+	int status =0, valid =0;
 	int expireFlag = 0;
+	int disconnStatus = 0;
 
 	status = readFromJSON(&jsonData);
 	ParodusPrint("read status %d\n", status);
@@ -1206,12 +1210,119 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		}
 		else
 		{
-			//  Return error for request format other than parodus/tag/${name}
-			ParodusError("Invalid UPDATE request\n");
-			(*response)->u.crud.status = 400;
-			freeObjArray(&obj, objlevel);
-			cJSON_Delete( json );
-			return -1;
+			//Checks for parodus/cloud-disconnect request with objlevel = 3
+			if(objlevel == 3 && ((obj[3] != NULL) && (strcmp(obj[3] ,  "cloud-disconnect") == 0)))
+			{
+				if(reqMsg->u.crud.payload != NULL)
+				{
+					jsonPayload = cJSON_Parse( reqMsg->u.crud.payload );
+					if(jsonPayload !=NULL)
+					{
+						if((cJSON_GetObjectItem( jsonPayload, "disconnection-reason" )) !=NULL)
+						{
+							if (cJSON_String == cJSON_GetObjectItem( jsonPayload, "disconnection-reason" )->type)
+							{
+								if(cJSON_GetObjectItem( jsonPayload, "disconnection-reason" )->valuestring != NULL && strlen(cJSON_GetObjectItem( jsonPayload, "disconnection-reason" )->valuestring) == 0)
+								{
+									ParodusError("Invalid cloud-disconnect request. disconnect reason is NULL\n");
+									(*response)->u.crud.status = 400;
+									cJSON_Delete( jsonPayload );
+									jsonPayload = NULL;
+									cJSON_Delete(json);
+									json = NULL;
+									freeObjArray(&obj, objlevel);
+									return -1;
+								}
+								else
+								{
+									//check disconnection reason is character string of [a-zA-Z0-9 ]*
+
+									valid = validateDisconnectString(cJSON_GetObjectItem( jsonPayload,"disconnection-reason" )->valuestring);
+									if(valid >0)
+									{
+										//set the disconnection-reason value to in-memory
+										get_parodus_cfg()->cloud_disconnect = strdup(cJSON_GetObjectItem( jsonPayload,"disconnection-reason" )->valuestring);
+										ParodusInfo("get_parodus_cfg()->cloud_disconnect value set as %s\n", get_parodus_cfg()->cloud_disconnect);
+									}
+									else
+									{
+										ParodusError("Invalid cloud-disconnect request. disconnect reason is not alphanumeric\n");
+										(*response)->u.crud.status = 400;
+										cJSON_Delete( jsonPayload );
+										jsonPayload = NULL;
+										cJSON_Delete(json);
+										json = NULL;
+										freeObjArray(&obj, objlevel);
+										return -1;
+									}
+								}
+							}
+							else
+							{
+								ParodusError("Invalid cloud-disconnect request, disconnect reason is not string\n");
+								(*response)->u.crud.status = 400;
+								cJSON_Delete( jsonPayload );
+								jsonPayload = NULL;
+								cJSON_Delete(json);
+								json = NULL;
+								freeObjArray(&obj, objlevel);
+								return -1;
+							}
+						}
+						else
+						{
+							ParodusError("Invalid cloud-disconnect request, disconnection-reason not found\n");
+							(*response)->u.crud.status = 400;
+							freeObjArray(&obj, objlevel);
+							cJSON_Delete( jsonPayload );
+							jsonPayload = NULL;
+							cJSON_Delete( json);
+							return -1;
+						}
+						cJSON_Delete( jsonPayload );
+						jsonPayload = NULL;
+					}
+					else
+					{
+						ParodusError("Invalid cloud-disconnect request, payload is not json\n");
+						(*response)->u.crud.status = 400;
+						freeObjArray(&obj, objlevel);
+						cJSON_Delete( json);
+						return -1;
+					}
+				}
+				else
+				{
+					ParodusInfo("cloud-disconnect failed as payload is NULL\n");
+					(*response)->u.crud.status = 400;
+					freeObjArray(&obj, objlevel);
+					return -1;
+				}
+				char *reason = strdup(get_parodus_cfg()->cloud_disconnect);
+				disconnStatus = ConnDisconnectFromCloud(reason);
+				freeObjArray(&obj, objlevel);
+				cJSON_Delete( json );
+				if (disconnStatus >0)
+				{
+					ParodusInfo("Sending update response for cloud-disconnect\n");
+					(*response)->u.crud.status = 200;
+				}
+				else
+				{
+					ParodusInfo("Failure in disconnecting from cloud ..\n");
+					(*response)->u.crud.status = 500;
+					return -1;
+				}
+			}
+			else
+			{
+				//  Return error for request format other than parodus/tag/${name}
+				ParodusError("Invalid UPDATE request\n");
+				(*response)->u.crud.status = 400;
+				freeObjArray(&obj, objlevel);
+				cJSON_Delete( json );
+				return -1;
+			}
 		}
 	}
 	else
@@ -1224,6 +1335,24 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	return 0;
 }
 
+static int ConnDisconnectFromCloud(char *disconn_reason)
+{
+	if(!close_retry)
+	{
+		ParodusInfo("Reconnect detected, setting reason %s for Reconnect\n", disconn_reason);
+		set_global_reconnect_reason(disconn_reason);
+		set_global_reconnect_status(true);
+		pthread_mutex_lock (&close_mut);
+		close_retry = true;
+		pthread_mutex_unlock (&close_mut);
+	}
+	else
+	{
+		ParodusInfo("close_retry is %d, connection close and retrying is already in progress\n", close_retry);
+		return -1;
+	}
+	return 1;
+}
 
 int deleteObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 {
@@ -1467,4 +1596,30 @@ static char* strdupptr( const char *s, const char *e )
     }
 
     return strndup(s, (size_t) (((uintptr_t)e) - ((uintptr_t)s)));
+}
+
+static int validateDisconnectString(char *reason)
+{
+	int k=0, rv =1;
+	if(reason !=NULL && strlen(reason) >0 )
+	{
+		for( k = 0; k < (int)strlen(reason); k++ )
+		{
+			if ((isalpha(reason[k])) || ((isdigit(reason[k])) != 0))
+			{
+				ParodusPrint("disconnection string is valid\n");
+			}
+			else
+			{
+				ParodusError("disconnection string is Invalid\n");
+				rv = -1;
+				break;
+			}
+		}
+	}
+	else
+	{
+		rv = -1;
+	}
+	return rv;
 }

@@ -150,9 +150,23 @@ void createSocketConnection(void (* initKeypress)())
             ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
             close_and_unref_connection(get_global_conn());
             set_global_conn(NULL);
+
+            get_parodus_cfg()->cloud_status = "offline";
+            ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
+            if(get_parodus_cfg()->cloud_disconnect !=NULL)
+            {
+				ParodusPrint("get_parodus_cfg()->cloud_disconnect is %s\n", get_parodus_cfg()->cloud_disconnect);
+				set_cloud_disconnect_time(5);
+				ParodusInfo("Waiting for %d minutes for reconnecting .. \n", get_cloud_disconnect_time());
+
+				sleep( get_cloud_disconnect_time() * 60 );
+				ParodusInfo("get_parodus_cfg()->cloud_disconnect reset after %d minutes\n", get_cloud_disconnect_time());
+				free(get_parodus_cfg()->cloud_disconnect);
+				get_parodus_cfg()->cloud_disconnect = NULL;
+            }
             createNopollConnection(ctx);
-        }		
-    } while(!close_retry);
+        }
+       } while(!close_retry);
 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
