@@ -243,11 +243,6 @@ int parse_webpa_url(const char *full_url,
                     parStrncpy (port_buf, "80", port_buflen);
                 else
                     parStrncpy (port_buf, "443", port_buflen);
-
-                end_port = strchr (server_addr, '/');
-                if (NULL != end_port) {
-                    *end_port = '\0'; // terminate server address with null
-                }
             } else {
                 checkPort++;
                 end_port = strchr (checkPort, '/');
@@ -272,7 +267,6 @@ int parse_webpa_url(const char *full_url,
 			parStrncpy (port_buf, "80", port_buflen);
 		else
 			parStrncpy (port_buf, "443", port_buflen);
-
 		end_port = strchr (server_addr, '/');
 		if (NULL != end_port) {
 			*end_port = '\0'; // terminate server address with null
