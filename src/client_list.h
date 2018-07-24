@@ -50,6 +50,7 @@ int sendAuthStatus(reg_list_item_t *new_node);
 
 int deleteFromList(char* service_name);
 int get_numOfClients();
+int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize);
 
 reg_list_item_t * get_global_node(void);
 

@@ -25,7 +25,7 @@
 #define _UPSTREAM_H_
 
 #include <pthread.h>
-
+#include <wrp-c.h>
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -33,7 +33,7 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 #define METADATA_COUNT 					12
-
+#define CLOUD_STATUS_FORMAT				"parodus/cloud-status"
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -71,7 +71,7 @@ pthread_mutex_t *get_global_nano_mut(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
-
+static char *get_src_dest_from_sub_req(char *upstreamDest);
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
@@ -191,11 +191,18 @@ void *processUpstreamMessage()
 {		
     int rv=-1, rc = -1;	
     int msgType;
-    wrp_msg_t *msg;	
+    wrp_msg_t *msg,*retrieve_msg = NULL;
     void *bytes;
     reg_list_item_t *temp = NULL;
     int matchFlag = 0;
     int status = -1;
+    char *destVal = NULL;
+    char *upstreamDest = NULL;
+    char *upstreamSrc = NULL;
+    char *serviceName = NULL;
+    char *subsSource = NULL;
+    char *crudDest = NULL;
+    int sendStatus =-1;
 
     while(FOREVER())
     {
@@ -319,17 +326,81 @@ void *processUpstreamMessage()
                 }
                 else
                 {
-                    //Sending to server for msgTypes 3, 5, 6, 7, 8.
-                    if( WRP_MSG_TYPE__REQ == msgType ) {
-                        ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", 
-                                      msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
-                    } else {
-                        ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s status: %d\n", 
-                                      msgType, msg->u.crud.dest, msg->u.crud.transaction_uuid, msg->u.crud.status );
-                    }
-                    sendUpstreamMsgToServer(&message->msg, message->len);
-                }
-            }
+					//Sending to server for msgTypes 3, 5, 6, 7, 8.
+					if( WRP_MSG_TYPE__REQ == msgType )
+					{
+						ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
+					}
+					else
+					{
+						ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s status: %d\n",msgType, msg->u.crud.dest, msg->u.crud.transaction_uuid, msg->u.crud.status );
+						if(WRP_MSG_TYPE__RETREIVE == msgType && msg->u.crud.dest !=NULL && msg->u.crud.source != NULL)
+						{
+							destVal = strdup(msg->u.crud.dest);
+							upstreamDest = get_src_dest_from_sub_req(destVal);
+							upstreamSrc = strdup(msg->u.crud.source);
+							subsSource = get_src_dest_from_sub_req(upstreamSrc);
+
+							/*  Handle cloud-status retrieve request here
+								Expecting dest format as mac:xxxxxxxxxxxx/parodus/cloud-status
+								Strip dest field to get "parodus/cloud-status"
+							*/
+							if(upstreamDest != NULL && strcmp(upstreamDest,CLOUD_STATUS_FORMAT)== 0)
+							{
+								retrieve_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+								memset(retrieve_msg, 0, sizeof(wrp_msg_t));
+								retrieve_msg->msg_type = msg->msg_type;
+								retrieve_msg->u.crud.transaction_uuid = strdup(msg->u.crud.transaction_uuid);
+								retrieve_msg->u.crud.source = strdup(msg->u.crud.source);
+								retrieve_msg->u.crud.dest = strdup(msg->u.crud.dest);
+								addCRUDmsgToQueue(retrieve_msg);
+							}
+							else if(subsSource != NULL && strcmp(subsSource,CLOUD_STATUS_FORMAT)==0 && strncmp(msg->u.crud.dest,"mac:", 4)==0)
+							{
+								/*  Handle cloud-status retrieve response here to send it to registered client
+									Expecting src format as mac:xxxxxxxxxxxx/parodus/cloud-status and dest as mac:
+									Strip src field to get "parodus/cloud-status"
+								*/
+								crudDest = strdup(msg->u.crud.dest);
+								serviceName = get_src_dest_from_sub_req(crudDest);
+								if ( serviceName != NULL)
+								{
+									//Send Client cloud-status response back to registered client
+									ParodusInfo("Sending cloud-status response to %s client\n",serviceName);
+									sendStatus=sendMsgtoRegisteredClients(serviceName,(const char **)&message->msg,message->len);
+									if(sendStatus ==1)
+									{
+										ParodusInfo("Send upstreamMsg successfully to registered client %s\n", serviceName);
+									}
+									else
+									{
+										ParodusError("Failed to send upstreamMsg to registered client %s\n", serviceName);
+									}
+								}
+								else
+								{
+									ParodusError("serviceName is NULL,not sending cloud-status response to client\n");
+								}
+								free(crudDest);
+								crudDest = NULL;
+							}
+							else
+							{
+								ParodusInfo("sendUpstreamMsgToServer \n");
+								sendUpstreamMsgToServer(&message->msg, message->len);
+							}
+							free(upstreamSrc);
+							upstreamSrc = NULL;
+							free(destVal);
+							destVal = NULL;
+						}
+						else
+						{
+							sendUpstreamMsgToServer(&message->msg, message->len);
+						}
+					}
+            	}
+           	}
             else
             {
                 ParodusError("Error in msgpack decoding for upstream\n");
@@ -388,4 +459,22 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		ParodusError("Failed to send upstream as metadata packing is not successful\n");
 	}
 
+}
+
+/*
+	Internal function to parse wrp src/dest
+*/
+static char *get_src_dest_from_sub_req(char *upstreamDest)
+{
+	char * endValue = NULL;
+	char * tempValue = NULL;
+	if(upstreamDest !=NULL)
+	{
+		tempValue = strtok(upstreamDest , "/");
+		if(tempValue !=NULL)
+		{
+			endValue = strtok(NULL , "");
+		}
+	}
+	return endValue;
 }
