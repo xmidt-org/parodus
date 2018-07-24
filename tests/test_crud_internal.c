@@ -29,6 +29,21 @@
 #include "../src/crud_tasks.h"
 #include "../src/config.h"
 #include "../src/crud_internal.h"
+#include "../src/connection.h"
+
+bool close_retry;
+bool LastReasonStatus;
+pthread_mutex_t close_mut;
+
+void set_global_reconnect_reason(char *reason)
+{
+	UNUSED(reason);
+}
+
+void set_global_reconnect_status(bool status)
+{
+	UNUSED(status);
+}
 
 void test_writeToJSON_Failure()
 {
@@ -1420,7 +1435,6 @@ void test_retrieveObject_invalid()
 	memset(&cfg,0,sizeof(cfg));
 	cfg.crud_config_file = strdup("parodus_cfg.json");
 	set_parodus_cfg(&cfg);
-	//testdata=strdup("{\"test\":{}}}");
 	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
 	write_ret = writeToJSON(testdata);
 	assert_int_equal (write_ret, 1);
@@ -1474,6 +1488,130 @@ void test_retrieveObject_readOnlyObj()
 	ret = retrieveObject(reqMsg, &respMsg);
 	assert_int_equal (respMsg->u.crud.status, 200);
 	assert_int_equal (ret, 0);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void test_retrieveObject_cloud_status()
+{
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.cloud_status = strdup("online");
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/cloud-status");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 200);
+	assert_int_equal (ret, 0);
+	assert_string_equal(get_parodus_cfg()->cloud_status, "online");
+	assert_int_equal (respMsg->u.crud.payload_size, 25);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_retrieveObject_cloud_statusNULL()
+{
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.cloud_status = NULL;
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/cloud-status");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	assert_int_equal (respMsg->u.crud.payload_size, 0);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_retrieveObject_cloud_statusEmpty()
+{
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.cloud_status = "";
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/cloud-status");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	assert_int_equal (respMsg->u.crud.payload_size, 0);
 
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
@@ -2657,6 +2795,10 @@ int main(void)
         cmocka_unit_test(test_retrieveObject_readOnlyObj),
         cmocka_unit_test(test_retrieveObject_readOnlyFailure),
         
+        cmocka_unit_test(test_retrieveObject_cloud_status),
+        cmocka_unit_test(err_retrieveObject_cloud_statusNULL),
+        cmocka_unit_test(err_retrieveObject_cloud_statusEmpty),
+
         cmocka_unit_test(test_updateObject_JsonEmpty),
         cmocka_unit_test(test_updateObject_destNull),
         cmocka_unit_test(test_updateObjectWithNoConfigJson),
