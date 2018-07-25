@@ -1515,7 +1515,7 @@ void test_retrieveObject_cloud_status()
 	memset(respMsg, 0, sizeof(wrp_msg_t));
 	ParodusCfg cfg;
 	memset(&cfg,0,sizeof(cfg));
-	cfg.cloud_status = strdup("online");
+	cfg.cloud_status = CLOUD_STATUS_ONLINE;
 	cfg.crud_config_file = strdup("parodus_cfg.json");
 	set_parodus_cfg(&cfg);
 	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
@@ -1528,7 +1528,7 @@ void test_retrieveObject_cloud_status()
 	ret = retrieveObject(reqMsg, &respMsg);
 	assert_int_equal (respMsg->u.crud.status, 200);
 	assert_int_equal (ret, 0);
-	assert_string_equal(get_parodus_cfg()->cloud_status, "online");
+	assert_string_equal(get_parodus_cfg()->cloud_status, CLOUD_STATUS_ONLINE);
 	assert_int_equal (respMsg->u.crud.payload_size, 25);
 
 	fp = fopen(cfg.crud_config_file, "r");
@@ -3021,7 +3021,6 @@ int main(void)
         cmocka_unit_test(test_deleteObject_NonExistObj),
         cmocka_unit_test(test_deleteObject_withTagsEmpty),
         cmocka_unit_test(test_deleteObject_tagsFailure)
-        
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -282,7 +282,7 @@ void test_createSocketConnection1()
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
     createSocketConnection(NULL);
-    assert_string_equal(get_parodus_cfg()->cloud_status, "offline");
+    assert_string_equal(get_parodus_cfg()->cloud_status, CLOUD_STATUS_OFFLINE);
     
 }
 

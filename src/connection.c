@@ -430,7 +430,7 @@ int createNopollConnection(noPollCtx *ctx)
 		ParodusInfo("Connected to server\n");
 	}
 	
-	get_parodus_cfg()->cloud_status = "online";
+	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
 	
 	if (NULL != jwt_server_url)

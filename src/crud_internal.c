@@ -876,6 +876,7 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 	int status =0, valid =0;
 	int expireFlag = 0;
 	int disconnStatus = 0;
+	char *disconn_str = NULL;
 
 	status = readFromJSON(&jsonData);
 	ParodusPrint("read status %d\n", status);
@@ -1218,11 +1219,12 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 					jsonPayload = cJSON_Parse( reqMsg->u.crud.payload );
 					if(jsonPayload !=NULL)
 					{
-						if((cJSON_GetObjectItem( jsonPayload, "disconnection-reason" )) !=NULL)
+						if((cJSON_GetObjectItem( jsonPayload, CLOUD_DISCONNECT_REASON )) !=NULL)
 						{
-							if (cJSON_String == cJSON_GetObjectItem( jsonPayload, "disconnection-reason" )->type)
+							if (cJSON_String == cJSON_GetObjectItem( jsonPayload, CLOUD_DISCONNECT_REASON )->type)
 							{
-								if(cJSON_GetObjectItem( jsonPayload, "disconnection-reason" )->valuestring != NULL && strlen(cJSON_GetObjectItem( jsonPayload, "disconnection-reason" )->valuestring) == 0)
+								disconn_str = cJSON_GetObjectItem( jsonPayload, CLOUD_DISCONNECT_REASON )->valuestring;
+								if (disconn_str != NULL && strlen(disconn_str) == 0)
 								{
 									ParodusError("Invalid cloud-disconnect request. disconnect reason is NULL\n");
 									(*response)->u.crud.status = 400;
@@ -1237,12 +1239,13 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 								{
 									//check disconnection reason is character string of [a-zA-Z0-9 ]*
 
-									valid = validateDisconnectString(cJSON_GetObjectItem( jsonPayload,"disconnection-reason" )->valuestring);
+									valid = validateDisconnectString(disconn_str);
 									if(valid >0)
 									{
-										//set the disconnection-reason value to in-memory
-										get_parodus_cfg()->cloud_disconnect = strdup(cJSON_GetObjectItem( jsonPayload,"disconnection-reason" )->valuestring);
-										ParodusInfo("get_parodus_cfg()->cloud_disconnect value set as %s\n", get_parodus_cfg()->cloud_disconnect);
+										//set the disconnection reason value to in-memory
+										set_cloud_disconnect_reason(get_parodus_cfg(), disconn_str);
+										ParodusInfo("set cloud-disconnect reason as %s \n", get_parodus_cfg()->cloud_disconnect);
+
 									}
 									else
 									{

@@ -413,7 +413,7 @@ void test_setDefaultValuesToCfg()
     assert_int_equal((int)cfg->flags, 0);
     assert_string_equal(cfg->webpa_path_url, WEBPA_PATH_URL);
     assert_string_equal(cfg->webpa_uuid, "1234567-345456546");
-    assert_string_equal(cfg->cloud_status, "offline");
+    assert_string_equal(cfg->cloud_status, CLOUD_STATUS_OFFLINE);
 }
 
 void err_setDefaultValuesToCfg()

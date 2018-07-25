@@ -71,7 +71,7 @@ pthread_mutex_t *get_global_nano_mut(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
-static char *get_src_dest_from_sub_req(char *upstreamDest);
+static char *get_src_dest_from_req(char *upstreamDest);
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
@@ -337,9 +337,9 @@ void *processUpstreamMessage()
 						if(WRP_MSG_TYPE__RETREIVE == msgType && msg->u.crud.dest !=NULL && msg->u.crud.source != NULL)
 						{
 							destVal = strdup(msg->u.crud.dest);
-							upstreamDest = get_src_dest_from_sub_req(destVal);
+							upstreamDest = get_src_dest_from_req(destVal);
 							upstreamSrc = strdup(msg->u.crud.source);
-							subsSource = get_src_dest_from_sub_req(upstreamSrc);
+							subsSource = get_src_dest_from_req(upstreamSrc);
 
 							/*  Handle cloud-status retrieve request here
 								Expecting dest format as mac:xxxxxxxxxxxx/parodus/cloud-status
@@ -362,7 +362,7 @@ void *processUpstreamMessage()
 									Strip src field to get "parodus/cloud-status"
 								*/
 								crudDest = strdup(msg->u.crud.dest);
-								serviceName = get_src_dest_from_sub_req(crudDest);
+								serviceName = get_src_dest_from_req(crudDest);
 								if ( serviceName != NULL)
 								{
 									//Send Client cloud-status response back to registered client
@@ -463,17 +463,19 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 
 /*
 	Internal function to parse wrp src/dest
+	(e.g parodus/cloud-status parsing from mac:44aaf59b18xx/parodus/cloud-status)
 */
-static char *get_src_dest_from_sub_req(char *upstreamDest)
+static char *get_src_dest_from_req(char *upstreamDest)
 {
 	char * endValue = NULL;
 	char * tempValue = NULL;
 	if(upstreamDest !=NULL)
 	{
-		tempValue = strtok(upstreamDest , "/");
+		tempValue = strchr(upstreamDest , '/');
 		if(tempValue !=NULL)
 		{
-			endValue = strtok(NULL , "");
+			tempValue++;
+			endValue = tempValue;
 		}
 	}
 	return endValue;
