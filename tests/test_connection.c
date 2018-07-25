@@ -34,7 +34,6 @@
 
 bool close_retry;
 bool LastReasonStatus;
-volatile unsigned int heartBeatTimer;
 pthread_mutex_t close_mut;
 
 /*----------------------------------------------------------------------------*/
