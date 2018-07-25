@@ -39,6 +39,30 @@
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
+static void parse_partner_id(char *partnerId, char ***partnersList, int *retCount)
+{
+    char *token;
+    int i = 0, j = 0, count = 0;
+    ParodusPrint("********* %s ********\n",__FUNCTION__);
+    while(partnerId[i] != '\0')
+    {
+        if(partnerId[i] == ',')
+        {
+            count++;
+        }
+        i++;
+    }
+    ParodusPrint("count = %d\n", count+1);
+    *partnersList = (char **)malloc(sizeof(char *) * count+1);
+    while ((token = strsep(&partnerId, ",")) != NULL)
+    {
+        ParodusPrint("token=%s\n", token);
+        (*partnersList)[j] = strdup(token);
+        j++;
+    }
+    *retCount = count+1;
+}
+
 int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
 {
     int matchFlag = 0, i = 0, count = 0;
