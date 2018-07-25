@@ -86,7 +86,11 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_log_set_handler (ctx, __report_log, NULL);
     #endif
 
-    createNopollConnection(ctx);
+    if(!createNopollConnection(ctx))
+    {
+		ParodusError("Unrecovered error, terminating the process\n");
+		abort();
+    }
     packMetaData();
     
     UpStreamMsgQ = NULL;
