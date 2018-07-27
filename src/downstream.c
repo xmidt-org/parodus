@@ -90,7 +90,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                     if(ret < 0)
                     {
                         response = cJSON_CreateObject();
-                        cJSON_AddNumberToObject(response, "statusCode", 430);
+                        cJSON_AddNumberToObject(response, "statusCode", 403);
                         cJSON_AddStringToObject(response, "message", "Invalid partner_id");
                     } 
 
