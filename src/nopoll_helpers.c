@@ -136,7 +136,7 @@ void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg
     
     if (level == NOPOLL_LEVEL_DEBUG) 
     {
-        //ParodusPrint("%s\n", log_msg);
+        ParodusInfo("%s\n", log_msg);
     }
     if (level == NOPOLL_LEVEL_INFO) 
     {
@@ -144,7 +144,7 @@ void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg
     }
     if (level == NOPOLL_LEVEL_WARNING) 
     {
-        ParodusPrint("%s\n", log_msg);
+        ParodusInfo("%s\n", log_msg);
     }
     if (level == NOPOLL_LEVEL_CRITICAL) 
     {
