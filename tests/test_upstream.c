@@ -70,6 +70,21 @@ int get_numOfClients()
     function_called();
     return (int)mock();
 }
+
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	(void)crudMsg;
+	function_called();
+	return;
+}
+
+int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
+{
+	UNUSED(dest); UNUSED(Msg); UNUSED(msgSize);
+	function_called();
+	return (int)mock();
+}
+
 void sendMessage(noPollConn *conn, void *msg, size_t len)
 {
     (void) conn; (void) msg; (void) len;
@@ -628,9 +643,76 @@ void test_processUpstreamMsgCrud_nnfree()
     expect_function_call(wrp_free_struct);
     processUpstreamMessage();
     free(UpStreamMsgQ);
+    crud_test = 0;
 }
 
+void test_processUpstreamMsg_cloud_status()
+{
+    numLoops = 1;
+    metaPackSize = 20;
+	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->msg = "First Message";
+	UpStreamMsgQ->len = 13;
+	UpStreamMsgQ->next= NULL;
+	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	memset(temp,0,sizeof(wrp_msg_t));
+	temp->msg_type = 6;
+	temp->u.crud.dest = "mac:14cfe2142xxx/parodus/cloud-status";
+	temp->u.crud.source = "mac:14cfe2142xxx/config";
+	temp->u.crud.transaction_uuid = "123";
 
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+
+	expect_function_call(addCRUDmsgToQueue);
+
+	will_return(nn_freemsg, 0);
+	expect_function_call(nn_freemsg);
+	expect_function_call(wrp_free_struct);
+    processUpstreamMessage();
+    free(temp);
+    free(UpStreamMsgQ);
+    UpStreamMsgQ = NULL;
+}
+
+void test_processUpstreamMsg_sendToClient()
+{
+    numLoops = 2;
+    metaPackSize = 20;
+	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->msg = strdup("First Message");
+	UpStreamMsgQ->len = 13;
+	UpStreamMsgQ->next= NULL;
+	UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = strdup("Second Message");
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+
+	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	memset(temp,0,sizeof(wrp_msg_t));
+	temp->msg_type = 6;
+	temp->u.crud.dest = strdup("mac:14cfe2142xxx/config");
+	temp->u.crud.source = strdup("mac:14cfe2142xxx/parodus/cloud-status");
+	temp->u.crud.transaction_uuid = strdup("123");
+
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+
+	will_return(sendMsgtoRegisteredClients, 1);
+	expect_function_call(sendMsgtoRegisteredClients);
+
+	expect_function_call(wrp_free_struct);
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+	will_return(sendMsgtoRegisteredClients, 0);
+	expect_function_call(sendMsgtoRegisteredClients);
+
+	expect_function_call(wrp_free_struct);
+	processUpstreamMessage();
+    free(temp);
+    free(UpStreamMsgQ);
+    UpStreamMsgQ = NULL;
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -660,6 +742,8 @@ int main(void)
         cmocka_unit_test(test_get_global_nano_con),
         cmocka_unit_test(test_get_global_nano_mut),
         cmocka_unit_test(test_processUpstreamMsgCrud_nnfree),
+        cmocka_unit_test(test_processUpstreamMsg_cloud_status),
+        cmocka_unit_test(test_processUpstreamMsg_sendToClient),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

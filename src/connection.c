@@ -42,6 +42,7 @@
 
 char deviceMAC[32]={'\0'};
 static char *reconnect_reason = "webpa_process_starts";
+static int cloud_disconnect_max_time = 5;
 static noPollConn *g_conn = NULL;
 static bool LastReasonStatus = false;
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
@@ -83,6 +84,17 @@ void set_global_reconnect_status(bool status)
 {
     LastReasonStatus = status;
 }
+
+int get_cloud_disconnect_time()
+{
+   return cloud_disconnect_max_time;
+}
+
+void set_cloud_disconnect_time(int disconnTime)
+{
+    cloud_disconnect_max_time = disconnTime;
+}
+
 
 // If IPv6 conn failed to connect then fallback to IPv4 conn or vice-versa
 static void toggleIPFlag (unsigned int *ptrFallback)
@@ -418,6 +430,8 @@ int createNopollConnection(noPollCtx *ctx)
 		ParodusInfo("Connected to server\n");
 	}
 	
+	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
+	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
 	
 	if (NULL != jwt_server_url)
 	{

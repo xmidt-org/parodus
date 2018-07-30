@@ -224,3 +224,31 @@ int deleteFromList(char* service_name)
 	ParodusError("Could not find the entry to delete from list\n");
 	return -1;
 }
+
+/*
+*@dest : Client destination to send message
+*@Msg:	Msg to send it to client (No free done here), user responsibilites to free the msg
+*@msgSize : Total size of the msg to send to client
+*/
+int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
+{
+	int bytes =0;
+	reg_list_item_t *temp = NULL;
+	temp = get_global_node();
+	//Checking for individual clients & Sending msg to registered client
+	while (NULL != temp)
+	{
+		ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
+		// Sending message to registered clients
+		if( strcmp(dest, temp->service_name) == 0)
+		{
+			bytes = nn_send(temp->sock, *Msg, msgSize, 0);
+			ParodusInfo("sent downstream message to reg_client '%s'\n", temp->url);
+			ParodusPrint("downstream bytes sent:%d\n", bytes);
+			return 1;
+		}
+		ParodusPrint("checking the next item in the list\n");
+		temp= temp->next;
+	}
+	return 0;
+}

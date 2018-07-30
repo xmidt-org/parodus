@@ -51,6 +51,16 @@ void set_parodus_cfg(ParodusCfg *cfg)
     memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
 }
 
+void set_cloud_disconnect_reason(ParodusCfg *cfg, char *disconn_reason)
+{
+    cfg->cloud_disconnect = strdup(disconn_reason);
+}
+
+void reset_cloud_disconnect_reason(ParodusCfg *cfg)
+{
+	cfg->cloud_disconnect = NULL;
+}
+
 static void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
 
 const char *get_tok (const char *src, int delim, char *result, int resultsize)
@@ -352,6 +362,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->jwt_algo = 0;
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	cfg->crud_config_file = NULL;
+	cfg->cloud_status = NULL;
+	cfg->cloud_disconnect = NULL;
 	optind = 1;  /* We need this if parseCommandLine is called again */
     while (1)
     {
@@ -637,6 +649,8 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     cfg->crud_config_file = strdup("parodus_cfg.json");
 	ParodusPrint("Default crud_config_file is %s\n", cfg->crud_config_file);
+	cfg->cloud_status = CLOUD_STATUS_OFFLINE;
+	ParodusInfo("Default cloud_status is %s\n", cfg->cloud_status);
 }
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)

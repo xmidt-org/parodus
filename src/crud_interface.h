@@ -42,8 +42,6 @@ typedef struct CrudMsg__
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-//void *CRUDHandlerTask();
-//void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
 void addCRUDresponseToUpstreamQ(void *response_bytes, ssize_t response_size);
 
 #ifdef __cplusplus

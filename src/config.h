@@ -49,6 +49,11 @@ extern "C" {
 #define WEBPA_BACKOFF_MAX       "webpa-backoff-max"
 #define PARTNER_ID              "partner-id"
 #define CERT_PATH               "ssl-cert-path"
+#define CLOUD_STATUS            "cloud-status"
+#define CLOUD_DISCONNECT        "cloud-disconnect"
+#define CLOUD_STATUS_ONLINE     "online"
+#define CLOUD_STATUS_OFFLINE    "offline"
+#define CLOUD_DISCONNECT_REASON "disconnection-reason"
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                  "/api/v2/device"
@@ -94,6 +99,8 @@ typedef struct
     char token_acquisition_script[64];
     char token_read_script[64];
 	char *crud_config_file;
+	char *cloud_status;
+	char *cloud_disconnect;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
@@ -124,7 +131,8 @@ void getAuthToken(ParodusCfg *cfg);
 ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
-
+void set_cloud_disconnect_reason(ParodusCfg *cfg, char *disconn_reason);
+void reset_cloud_disconnect_reason(ParodusCfg *cfg);
 /**
  * parse a webpa url. Extract the server address, the port
  * and return whether it's secure or not

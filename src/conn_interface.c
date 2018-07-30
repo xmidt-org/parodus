@@ -45,6 +45,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
+#define CLOUD_RECONNECT_TIME                       		5		/* Cloud disconnect max time in minutes */
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -154,9 +155,23 @@ void createSocketConnection(void (* initKeypress)())
             ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
             close_and_unref_connection(get_global_conn());
             set_global_conn(NULL);
+
+            get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
+            ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
+            if(get_parodus_cfg()->cloud_disconnect !=NULL)
+            {
+				ParodusPrint("get_parodus_cfg()->cloud_disconnect is %s\n", get_parodus_cfg()->cloud_disconnect);
+				set_cloud_disconnect_time(CLOUD_RECONNECT_TIME);
+				ParodusInfo("Waiting for %d minutes for reconnecting .. \n", get_cloud_disconnect_time());
+
+				sleep( get_cloud_disconnect_time() * 60 );
+				ParodusInfo("cloud-disconnect reason reset after %d minutes\n", get_cloud_disconnect_time());
+				free(get_parodus_cfg()->cloud_disconnect);
+				reset_cloud_disconnect_reason(get_parodus_cfg());
+            }
             createNopollConnection(ctx);
-        }		
-    } while(!close_retry);
+        }
+       } while(!close_retry);
 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
