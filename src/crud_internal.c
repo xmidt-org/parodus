@@ -1537,7 +1537,7 @@ static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[])
 
 		for( i = 0; i <= WRP_ID_ELEMENT__APPLICATION; i++ )
 		{
-			(*obj)[i] =  wrp_get_msg_dest_element(i, reqMsg);
+			(*obj)[i] =  wrp_get_msg_element(i, reqMsg, DEST);
 			if((*obj)[i] ==NULL)
 			{
 				break;
