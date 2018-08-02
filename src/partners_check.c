@@ -74,7 +74,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
     ParodusPrint("********* %s ********\n",__FUNCTION__);
     char *temp = get_parodus_cfg()->partner_id;
     ParodusPrint("temp = %s\n",temp);
-    if(strlen(temp) > 0)
+    if(temp[0] != '\0' && strlen(temp) > 0)
     {
         partnerId = strdup(temp);
     }
@@ -101,12 +101,14 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
                             break;
                         }
                     }
+                    /* Commandline input partner_ids matched with partner_ids from request */
                     if(matchFlag == 1)
                     {
                         break;
                     }
                 }
 
+                /* Commandline input partner_ids not matching with partner_ids from request, appending to request partner_ids*/
                 if(matchFlag != 1)
                 {
                     (*partnerIds) = (partners_t *) malloc(sizeof(partners_t) + (sizeof(char *) * (count+partnersList->count)));
@@ -161,6 +163,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
                     }
                 }
 
+                /* Commandline input partner_ids not matching with partner_ids from request, ignoring request*/
                 if(matchFlag != 1)
                 {
                     ParodusError("Invalid partner_id %s\n",temp);
