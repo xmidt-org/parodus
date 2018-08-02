@@ -37,6 +37,13 @@ endif ()
 link_directories ( ${LIBRARY_DIR} )
 
 #-------------------------------------------------------------------------------
+#   test_heartBeatTimer
+#-------------------------------------------------------------------------------
+add_test(NAME test_heartBeatTimer COMMAND ${MEMORY_CHECK} ./test_heartBeatTimer)
+add_executable(test_heartBeatTimer test_heartBeatTimer.c ../src/heartBeat.c)
+target_link_libraries (test_heartBeatTimer ${PARODUS_COMMON_LIBS} -lcmocka)
+
+#-------------------------------------------------------------------------------
 #   test_mutex
 #-------------------------------------------------------------------------------
 add_test(NAME test_mutex COMMAND ${MEMORY_CHECK} ./test_mutex)
