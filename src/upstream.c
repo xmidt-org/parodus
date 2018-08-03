@@ -71,7 +71,7 @@ pthread_mutex_t *get_global_nano_mut(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal Functions                             */
 /*----------------------------------------------------------------------------*/
-static char *get_src_dest_from_req(char *upstreamDest);
+
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
@@ -196,12 +196,9 @@ void *processUpstreamMessage()
     reg_list_item_t *temp = NULL;
     int matchFlag = 0;
     int status = -1;
-    char *destVal = NULL;
-    char *upstreamDest = NULL;
-    char *upstreamSrc = NULL;
     char *serviceName = NULL;
-    char *subsSource = NULL;
-    char *crudDest = NULL;
+    char *destService, *destApplication =NULL;
+    char *sourceService, *sourceApplication =NULL;
     int sendStatus =-1;
 
     while(FOREVER())
@@ -336,16 +333,15 @@ void *processUpstreamMessage()
 						ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s status: %d\n",msgType, msg->u.crud.dest, msg->u.crud.transaction_uuid, msg->u.crud.status );
 						if(WRP_MSG_TYPE__RETREIVE == msgType && msg->u.crud.dest !=NULL && msg->u.crud.source != NULL)
 						{
-							destVal = strdup(msg->u.crud.dest);
-							upstreamDest = get_src_dest_from_req(destVal);
-							upstreamSrc = strdup(msg->u.crud.source);
-							subsSource = get_src_dest_from_req(upstreamSrc);
-
+							destService = wrp_get_msg_element(WRP_ID_ELEMENT__SERVICE, msg, DEST);
+							destApplication = wrp_get_msg_element(WRP_ID_ELEMENT__APPLICATION, msg, DEST);
+							sourceService = wrp_get_msg_element(WRP_ID_ELEMENT__SERVICE, msg, SOURCE);
+							sourceApplication = wrp_get_msg_element(WRP_ID_ELEMENT__APPLICATION, msg, SOURCE);
 							/*  Handle cloud-status retrieve request here
 								Expecting dest format as mac:xxxxxxxxxxxx/parodus/cloud-status
-								Strip dest field to get "parodus/cloud-status"
+								Parse dest field and check destService is "parodus" and destApplication is "cloud-status"
 							*/
-							if(upstreamDest != NULL && strcmp(upstreamDest,CLOUD_STATUS_FORMAT)== 0)
+							if(destService != NULL && destApplication != NULL && strcmp(destService,"parodus")== 0 && strcmp(destApplication,"cloud-status")== 0)
 							{
 								retrieve_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
 								memset(retrieve_msg, 0, sizeof(wrp_msg_t));
@@ -355,14 +351,13 @@ void *processUpstreamMessage()
 								retrieve_msg->u.crud.dest = strdup(msg->u.crud.dest);
 								addCRUDmsgToQueue(retrieve_msg);
 							}
-							else if(subsSource != NULL && strcmp(subsSource,CLOUD_STATUS_FORMAT)==0 && strncmp(msg->u.crud.dest,"mac:", 4)==0)
+							else if(sourceService != NULL && sourceApplication != NULL && strcmp(sourceService,"parodus")== 0 && strcmp(sourceApplication,"cloud-status")== 0 && strncmp(msg->u.crud.dest,"mac:", 4)==0)
 							{
 								/*  Handle cloud-status retrieve response here to send it to registered client
 									Expecting src format as mac:xxxxxxxxxxxx/parodus/cloud-status and dest as mac:
-									Strip src field to get "parodus/cloud-status"
+									Parse src field and check sourceService is "parodus" and sourceApplication is "cloud-status"
 								*/
-								crudDest = strdup(msg->u.crud.dest);
-								serviceName = get_src_dest_from_req(crudDest);
+								serviceName = wrp_get_msg_element(WRP_ID_ELEMENT__SERVICE, msg, DEST);
 								if ( serviceName != NULL)
 								{
 									//Send Client cloud-status response back to registered client
@@ -376,23 +371,39 @@ void *processUpstreamMessage()
 									{
 										ParodusError("Failed to send upstreamMsg to registered client %s\n", serviceName);
 									}
+									free(serviceName);
+									serviceName = NULL;
 								}
 								else
 								{
 									ParodusError("serviceName is NULL,not sending cloud-status response to client\n");
 								}
-								free(crudDest);
-								crudDest = NULL;
 							}
 							else
 							{
 								ParodusInfo("sendUpstreamMsgToServer \n");
 								sendUpstreamMsgToServer(&message->msg, message->len);
 							}
-							free(upstreamSrc);
-							upstreamSrc = NULL;
-							free(destVal);
-							destVal = NULL;
+							if(sourceService !=NULL)
+							{
+								free(sourceService);
+								sourceService = NULL;
+							}
+							if(sourceApplication !=NULL)
+							{
+								free(sourceApplication);
+								sourceApplication = NULL;
+							}
+							if(destService !=NULL)
+							{
+								free(destService);
+								destService = NULL;
+							}
+							if(destApplication !=NULL)
+							{
+								free(destApplication);
+								destApplication = NULL;
+							}
 						}
 						else
 						{
@@ -459,24 +470,4 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		ParodusError("Failed to send upstream as metadata packing is not successful\n");
 	}
 
-}
-
-/*
-	Internal function to parse wrp src/dest
-	(e.g parodus/cloud-status parsing from mac:44aaf59b18xx/parodus/cloud-status)
-*/
-static char *get_src_dest_from_req(char *upstreamDest)
-{
-	char * endValue = NULL;
-	char * tempValue = NULL;
-	if(upstreamDest !=NULL)
-	{
-		tempValue = strchr(upstreamDest , '/');
-		if(tempValue !=NULL)
-		{
-			tempValue++;
-			endValue = tempValue;
-		}
-	}
-	return endValue;
 }
