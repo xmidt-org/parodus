@@ -1,0 +1,1 @@
+echo -n SER_MAC $1 $2
