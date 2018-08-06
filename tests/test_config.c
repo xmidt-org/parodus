@@ -30,11 +30,15 @@
 extern int parse_mac_address (char *target, const char *arg);
 extern int server_is_http (const char *full_url,
 	const char **server_ptr);
-extern int parse_webpa_url(const char *full_url, 
+extern int parse_webpa_url__(const char *full_url, 
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
+extern int parse_webpa_url (const char *full_url,
+	char **server_addr, unsigned int *port);
 extern unsigned int get_algo_mask (const char *algo_str);
 extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
+extern void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
+extern void createNewAuthToken(char *newToken, size_t len);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -454,59 +458,87 @@ void test_server_is_http ()
 	
 }
 
-void test_parse_webpa_url ()
+void test_parse_webpa_url__ ()
 {
 	char addr_buf[80];
 	char port_buf[8];
-	assert_int_equal (parse_webpa_url ("mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), -1);
-	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("https://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "8080");
-	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/",
+	assert_int_equal (parse_webpa_url__ ("https://mydns.mycom.net/",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "443");
-	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/api/v2/",
+	assert_int_equal (parse_webpa_url__ ("https://mydns.mycom.net/api/v2/",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "443");
-	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("http://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "8080");
-	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net",
+	assert_int_equal (parse_webpa_url__ ("http://mydns.mycom.net",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "80");
-    assert_int_equal (parse_webpa_url ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
+    assert_int_equal (parse_webpa_url__ ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "8080");
-    assert_int_equal (parse_webpa_url ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+    assert_int_equal (parse_webpa_url__ ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "443");
-    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
+    assert_int_equal (parse_webpa_url__ ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "8080");
-    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+    assert_int_equal (parse_webpa_url__ ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "80");
-    assert_int_equal (parse_webpa_url ("http://2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+    assert_int_equal (parse_webpa_url__ ("http://2001:558:fc18:2:f816:3eff:fe7f:6efa]",
 		addr_buf, 80, port_buf, 8), -1);
-    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa",
+    assert_int_equal (parse_webpa_url__ ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa",
 		addr_buf, 80, port_buf, 8), -1);
-    assert_int_equal (parse_webpa_url ("[2001:558:fc18:2:f816:3eff:fe7f:6efa",
+    assert_int_equal (parse_webpa_url__ ("[2001:558:fc18:2:f816:3eff:fe7f:6efa",
 		addr_buf, 80, port_buf, 8), -1);
-	assert_int_equal (parse_webpa_url ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080/api/v2/",
+	assert_int_equal (parse_webpa_url__ ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080/api/v2/",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "8080");
 		
+}
+
+void test_parse_webpa_url ()
+{
+	char *addr;
+	unsigned int port;
+	assert_int_equal (parse_webpa_url ("mydns.mycom.net:8080",
+		&addr, &port), -1);
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net:8080",
+		&addr, &port), 0);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 8080);
+	free (addr);
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/",
+		&addr, &port), 0);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 443);
+	free (addr);
+	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net:8080",
+		&addr, &port), 1);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 8080);
+	free (addr);
+	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net",
+		&addr, &port), 1);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 80);
+	free(addr);
 }
 
 void test_get_algo_mask ()
@@ -521,6 +553,46 @@ void test_get_algo_mask ()
 #endif	
 }
 
+void test_execute_token_script()
+{
+  char *cmd1 = "../../tests/return_ser_mac.bsh";
+  char *cmd2 = "nosuch";
+  char token[32];
+  
+  memset (token, '\0', sizeof(token));
+  execute_token_script (token, cmd1, sizeof(token), "mac123", "ser456");
+  assert_string_equal (token, "SER_MAC ser456 mac123");
+  
+  memset (token, '\0', sizeof(token));
+  execute_token_script (token, cmd2, sizeof(token), "mac123", "ser456");
+  assert_string_equal (token, "");
+}
+
+void test_new_auth_token ()
+{
+  char token[64];
+  ParodusCfg cfg;
+  memset(&cfg,0,sizeof(cfg));
+
+  parStrncpy (cfg.token_acquisition_script, "../../tests/return_success.bsh",
+	sizeof(cfg.token_acquisition_script));
+  parStrncpy (cfg.token_read_script, "../../tests/return_ser_mac.bsh",
+	sizeof(cfg.token_read_script));
+  parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+  parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+	
+  set_parodus_cfg(&cfg);
+  createNewAuthToken (token, sizeof(token));
+  assert_string_equal (token, "SER_MAC Fer23u948590 123567892366");
+  
+  memset (token, 0, sizeof(token));
+  parStrncpy (cfg.token_acquisition_script, "../../tests/return_failure.bsh",
+	sizeof(cfg.token_acquisition_script));
+  set_parodus_cfg(&cfg);
+  createNewAuthToken (token, sizeof(token));
+  assert_string_equal (token, "");  
+	
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -538,13 +610,16 @@ int main(void)
         cmocka_unit_test(test_parse_mac_address),
         cmocka_unit_test(test_get_algo_mask),
         cmocka_unit_test(test_server_is_http),
+        cmocka_unit_test(test_parse_webpa_url__),
         cmocka_unit_test(test_parse_webpa_url),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
-        cmocka_unit_test(test_parodusGitVersion),
+        //cmocka_unit_test(test_parodusGitVersion),
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),
+        cmocka_unit_test(test_execute_token_script),
+        cmocka_unit_test(test_new_auth_token)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

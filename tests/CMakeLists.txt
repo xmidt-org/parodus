@@ -131,22 +131,22 @@ target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog 
 #   test_connection
 #-------------------------------------------------------------------------------
 add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
-#add_executable(test_connection test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC}) 
-#target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
-set(CONN_SRC test_connection.c ../src/connection.c ../src/heartBeat.c ${PARODUS_COMMON_SRC})
-add_executable(test_connection ${CONN_SRC})
-#target_link_libraries (test_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka)
+set (CONN_SRC ../src/connection.c 
+  ../src/string_helpers.c ../src/mutex.c ../src/time.c 
+  ../src/config.c ../src/spin_thread.c  ../src/heartBeat.c)
+#set(CONN_SRC ../src/connection.c ${PARODUS_COMMON_SRC})
+add_executable(test_connection test_connection.c ${CONN_SRC})
 target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
 #-------------------------------------------------------------------------------
-add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
+#add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
 #add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
 #target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
-add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c ../src/heartBeat.c) 
+#add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c ../src/heartBeat.c) 
 #target_link_libraries (test_createConnection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka )
-target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
+#target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
 
 #-------------------------------------------------------------------------------
 #   test_client_list
