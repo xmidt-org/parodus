@@ -327,6 +327,7 @@ void *processUpstreamMessage()
 					if( WRP_MSG_TYPE__REQ == msgType )
 					{
 						ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
+						sendUpstreamMsgToServer(&message->msg, message->len);
 					}
 					else
 					{
