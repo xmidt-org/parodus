@@ -320,6 +320,39 @@ void test_processUpstreamMessage()
     free(UpStreamMsgQ);
 }
 
+void test_processUpstreamReqMessage()
+{
+    numLoops = 1;
+    metaPackSize = 20;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = "Second Message";
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 3;
+
+    will_return(wrp_to_struct, 12);
+    expect_function_call(wrp_to_struct);
+
+    will_return(appendEncodedData, 100);
+    expect_function_call(appendEncodedData);
+
+    expect_function_call(sendMessage);
+    will_return(nn_freemsg, 0);
+    expect_function_call(nn_freemsg);
+    expect_function_call(wrp_free_struct);
+
+    processUpstreamMessage();
+    free(temp);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
+}
+
 void test_processUpstreamMessageInvalidPartner()
 {
     numLoops = 1;
@@ -728,6 +761,7 @@ int main(void)
         cmocka_unit_test(err_handleUpstreamBindFailure),
         cmocka_unit_test(err_handleUpstreamSockFailure),
         cmocka_unit_test(test_processUpstreamMessage),
+        cmocka_unit_test(test_processUpstreamReqMessage),
         cmocka_unit_test(test_processUpstreamMessageInvalidPartner),
         cmocka_unit_test(test_processUpstreamMessageRegMsg),
         cmocka_unit_test(test_processUpstreamMessageRegMsgNoClients),
