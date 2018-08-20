@@ -49,6 +49,7 @@ extern "C" {
 #define WEBPA_BACKOFF_MAX       "webpa-backoff-max"
 #define PARTNER_ID              "partner-id"
 #define CERT_PATH               "ssl-cert-path"
+#define BOOT_RETRY_WAIT         "boot-time-retry-wait"
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                  "/api/v2/device"
@@ -93,6 +94,7 @@ typedef struct
     char webpa_auth_token[4096];
     char token_acquisition_script[64];
     char token_read_script[64];
+    unsigned int boot_retry_wait;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
