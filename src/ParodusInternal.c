@@ -87,6 +87,10 @@ char* getWebpaConveyHeader()
      	ParodusError("Failed to GET Reconnect reason value\n");
     }
 	
+	if(get_parodus_cfg()->boot_retry_wait > 0)
+	{
+	    cJSON_AddNumberToObject(response, BOOT_RETRY_WAIT, get_parodus_cfg()->boot_retry_wait);
+	}
     buffer = cJSON_PrintUnformatted(response);
     ParodusInfo("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
 

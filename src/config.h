@@ -54,6 +54,7 @@ extern "C" {
 #define CLOUD_STATUS_ONLINE     "online"
 #define CLOUD_STATUS_OFFLINE    "offline"
 #define CLOUD_DISCONNECT_REASON "disconnection-reason"
+#define BOOT_RETRY_WAIT         "boot-time-retry-wait"
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                  "/api/v2/device"
@@ -101,6 +102,7 @@ typedef struct
 	char *crud_config_file;
 	char *cloud_status;
 	char *cloud_disconnect;
+	unsigned int boot_retry_wait;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
