@@ -387,6 +387,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
         {"token-read-script",       required_argument, 0, 'T'},
+        {"boot-time-retry-wait",    required_argument, 0, 'w'},
 	{"token-acquisition-script",     required_argument, 0, 'J'},
 	{"crud-config-file",        required_argument, 0, 'C'},
         {0, 0, 0, 0}
@@ -412,7 +413,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:J:46:C",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -462,8 +463,6 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
         case 'b':
           cfg->boot_time = parse_num_arg (optarg, "boot-time");
-          if (cfg->boot_time == (unsigned int) -1)
-			return -1;
           ParodusInfo("boot_time is %d\n",cfg->boot_time);
           break;
        
@@ -553,6 +552,11 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         
         case 'T':
           parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
+          break;
+
+        case 'w':
+          cfg->boot_retry_wait = parse_num_arg (optarg, "boot-time-retry-wait");
+          ParodusInfo("boot_retry_wait is %d\n",cfg->boot_retry_wait);
           break;
 
 		case 'C':
