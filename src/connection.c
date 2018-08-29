@@ -30,6 +30,8 @@
 #include "spin_thread.h"
 #include "ParodusInternal.h"
 #include "heartBeat.h"
+#include <sys/types.h>
+#include <sys/socket.h>
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -528,6 +530,34 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 
 
 //--------------------------------------------------------------------
+static void show_socket_buf_sizes (void)
+{
+  int fd = nopoll_conn_socket (get_global_conn());
+  socklen_t rcv_buf_size;
+  socklen_t send_buf_size;
+  socklen_t optsize;
+  int err;
+
+  optsize = sizeof(rcv_buf_size);
+  err = getsockopt (fd, SOL_SOCKET, SO_RCVBUF, &rcv_buf_size, &optsize);
+  if (err != 0) {
+    ParodusError ("getsockopt error %d\n", errno);
+    rcv_buf_size = -1;
+  }
+
+  optsize = sizeof(send_buf_size);
+  err = getsockopt (fd, SOL_SOCKET, SO_SNDBUF, &send_buf_size, &optsize);
+  if (err != 0) {
+    ParodusError ("getsockopt error %d\n", errno);
+    send_buf_size = -1;
+  }
+
+  ParodusInfo ("Socket rcv buf size=%u, send_buf_size=%u\n",
+    rcv_buf_size, send_buf_size);
+
+}
+
+//--------------------------------------------------------------------
 
 /**
  * @brief createNopollConnection interface to create WebSocket client connections.
@@ -575,7 +605,7 @@ int createNopollConnection(noPollCtx *ctx)
 	{
 		ParodusInfo("Connected to server\n");
 	}
-	
+	show_socket_buf_sizes ();
 	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
 
