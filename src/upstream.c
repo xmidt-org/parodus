@@ -419,7 +419,7 @@ void *processUpstreamMessage()
             }
 
 			//nn_freemsg should not be done for parodus/tags/ CRUD requests as it is not received through nanomsg.
-			if ((msg && (msg->u.crud.source !=NULL) && strstr(msg->u.crud.source, "/parodus/") != NULL))
+			if ((msg && (msg->u.crud.source !=NULL) && wrp_does_service_match("parodus", msg->u.crud.source) == 0))
 			{
 				free(message->msg);
 			}
