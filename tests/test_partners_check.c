@@ -43,7 +43,7 @@ ParodusCfg *get_parodus_cfg(void)
 
 void test_validate_partner_id_for_req()
 {
-    static partners_t partner_ids = {1,{"comcast"}};
+    static partners_t partner_ids = {3,{"shaw","","comcast"}};
     wrp_msg_t *msg = (wrp_msg_t*) malloc(sizeof(wrp_msg_t));
     memset(msg, 0, sizeof(wrp_msg_t));
     msg->msg_type = WRP_MSG_TYPE__REQ;
@@ -51,7 +51,7 @@ void test_validate_partner_id_for_req()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
+    parStrncpy(cfg.partner_id, "shaw,bar,comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -68,7 +68,7 @@ void test_validate_partner_id_for_req_listNULL()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
+    parStrncpy(cfg.partner_id, "*,comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -103,7 +103,7 @@ void err_validate_partner_id_for_req()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
+    parStrncpy(cfg.partner_id, "*,,comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
@@ -114,7 +114,7 @@ void err_validate_partner_id_for_req()
 
 void test_validate_partner_id_for_event()
 {
-    static partners_t partner_ids = {1,{"comcast"}};
+    static partners_t partner_ids = {4,{"shaw","","*","comcast"}};
     wrp_msg_t *msg = (wrp_msg_t*) malloc(sizeof(wrp_msg_t));
     memset(msg, 0, sizeof(wrp_msg_t));
     msg->msg_type = WRP_MSG_TYPE__EVENT;
@@ -122,7 +122,7 @@ void test_validate_partner_id_for_event()
     
     ParodusCfg cfg;
     memset(&cfg, 0, sizeof(ParodusCfg));
-    parStrncpy(cfg.partner_id, "comcast", sizeof(cfg.partner_id));
+    parStrncpy(cfg.partner_id, "abc,*,comcast", sizeof(cfg.partner_id));
     
     will_return(get_parodus_cfg, (intptr_t)&cfg);
     expect_function_call(get_parodus_cfg);
