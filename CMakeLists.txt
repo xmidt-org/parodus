@@ -19,6 +19,7 @@ project(parodus)
 include(ExternalProject)
 include(CTest)
 
+set(PATCHES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/patches)
 set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
@@ -84,6 +85,7 @@ ExternalProject_Add(nopoll
     PREFIX ${PREFIX_DIR}/nopoll
     GIT_REPOSITORY https://github.com/Comcast/nopoll.git
     GIT_TAG "739b740683b0615e5999bdeea756cbd593b7f1cc"
+    PATCH_COMMAND patch -p1 < ${PATCHES_DIR}/nopoll_mutex_unlock_msgs.patch
     CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/autogen.sh --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}

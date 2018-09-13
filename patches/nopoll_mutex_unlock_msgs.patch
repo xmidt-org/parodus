@@ -1,0 +1,61 @@
+diff --git a/src/nopoll_ctx.c b/src/nopoll_ctx.c
+index ef73f56..fe9559e 100644
+--- a/src/nopoll_ctx.c
++++ b/src/nopoll_ctx.c
+@@ -221,6 +221,26 @@ int            nopoll_ctx_ref_count (noPollCtx * ctx)
+ 	return result;
+ }
+ 
++static void log_register (noPollCtx *ctx, noPollConn *conn, const char *func)
++{
++	const char *role_msg;
++
++	if (conn->role == NOPOLL_ROLE_MAIN_LISTENER)
++	  role_msg = "main listener";
++	else if (conn->role == NOPOLL_ROLE_LISTENER)
++	  role_msg = "listener";
++	else if (conn->role == NOPOLL_ROLE_CLIENT)
++	  role_msg = "client";
++	else if (conn->role == NOPOLL_ROLE_UNKNOWN)
++	  role_msg = "known unknown";
++	else
++	  role_msg = "unknown unknown";
++
++	nopoll_log (ctx, NOPOLL_LEVEL_INFO, "nopoll_ctx_%s: "
++	  "id %d, host %s, port %s, role %s\n", func, conn->id, 
++	   conn->host, conn->port, role_msg);
++}
++
+ /** 
+  * @internal Function used to register the provided connection on the
+  * provided context.
+@@ -257,8 +277,10 @@ nopoll_bool           nopoll_ctx_register_conn (noPollCtx  * ctx,
+ 			/* update connection list number */
+ 			ctx->conn_num++;
+ 
+-			nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "registered connection id %d, role: %d", conn->id, conn->role);
+-
++			/* nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, 
++			   "registered connection id %d, role: %d", conn->id, conn->role);
++			*/
++			log_register (ctx, conn, "register");
+ 			/* release */
+ 			nopoll_mutex_unlock (ctx->ref_mutex);
+ 
+@@ -332,12 +354,15 @@ void           nopoll_ctx_unregister_conn (noPollCtx  * ctx,
+ 			/* update connection list number */
+ 			ctx->conn_num--;
+ 
++			log_register (ctx, conn, "unregister");
+ 			/* release */
+ 			nopoll_mutex_unlock (ctx->ref_mutex);
+ 
+ 			/* acquire a reference to the conection */
+ 			nopoll_conn_unref (conn);
+-            nopoll_log (ctx, NOPOLL_LEVEL_INFO, "Returning, unlock of mutex is not required ");
++			/* nopoll_log (ctx, NOPOLL_LEVEL_INFO, 
++			   "Returning, unlock of mutex is not required ");
++			*/
+ 			return;
+ 		} /* end if */
+ 		
