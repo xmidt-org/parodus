@@ -229,6 +229,10 @@ include_directories(${INCLUDE_DIR}
 
 endif (FEATURE_DNS_QUERY)
 
+if(ENABLE_MUTUAL_AUTH)
+       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_MUTUAL_AUTH ")
+endif(ENABLE_MUTUAL_AUTH)
+
 if (BUILD_TESTING)
 # cmocka external dependency
 #-------------------------------------------------------------------------------

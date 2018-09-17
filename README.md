@@ -75,6 +75,12 @@ make test
 
 - /jwt-public-key-file -JWT token validation key
 
+# if ENABLE_MUTUAL_AUTH is enabled
+
+- /client-cert-path - Provide the client cert for establishing a mutual auth secure connection
+
+- /client-key-path - Provide the client cert key for establishing a mutual auth secure connection
+
 ```
 
 # Sample parodus start commands:

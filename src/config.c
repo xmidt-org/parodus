@@ -390,6 +390,10 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"boot-time-retry-wait",    required_argument, 0, 'w'},
 	{"token-acquisition-script",     required_argument, 0, 'J'},
 	{"crud-config-file",        required_argument, 0, 'C'},
+#ifdef ENABLE_MUTUAL_AUTH
+	{"client-cert-path",		required_argument, 0, 'q'},
+	{"client-key-path",		required_argument, 0, 'K'},
+#endif
         {0, 0, 0, 0}
     };
     int c;
@@ -413,9 +417,14 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
+#ifdef ENABLE_MUTUAL_AUTH
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:Cq:K:",
+				long_options, &option_index);
+#else
       c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C",
 				long_options, &option_index);
 
+#endif
       /* Detect the end of the options. */
       if (c == -1)
         break;
@@ -563,6 +572,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 		  cfg->crud_config_file = strdup(optarg);
 		  ParodusInfo("crud_config_file is %s\n", cfg->crud_config_file);
 		  break;
+
+#ifdef ENABLE_MUTUAL_AUTH
+        case 'q':
+          parStrncpy(cfg->client_cert_path, optarg,sizeof(cfg->client_cert_path));
+          break;
+
+        case 'K':
+          parStrncpy(cfg->client_key_path, optarg,sizeof(cfg->client_key_path));
+          break;
+#endif
 
         case '?':
           /* getopt_long already printed an error message. */

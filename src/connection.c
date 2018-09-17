@@ -618,13 +618,22 @@ static char* build_extra_headers( const char *auth, const char *device_id,
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 {
     noPollConnOpts * opts;
+    char * client_cert_path = NULL;
+    char * client_key_path = NULL;
     
     opts = nopoll_conn_opts_new ();
     if(secure) 
 	{
 	    if(strlen(get_parodus_cfg()->cert_path) > 0)
             {
-                nopoll_conn_opts_set_ssl_certs(opts, NULL, NULL, NULL, get_parodus_cfg()->cert_path);
+#ifdef ENABLE_MUTUAL_AUTH
+               if (strlen(get_parodus_cfg()->client_cert_path) > 0)
+                       client_cert_path = get_parodus_cfg()->client_cert_path;
+
+               if (strlen(get_parodus_cfg()->client_key_path) > 0)
+                       client_key_path = get_parodus_cfg()->client_key_path;
+#endif
+                nopoll_conn_opts_set_ssl_certs(opts, client_cert_path, client_key_path, NULL, get_parodus_cfg()->cert_path);
             }
 	    nopoll_conn_opts_ssl_peer_verify (opts, nopoll_true);
 	    nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
