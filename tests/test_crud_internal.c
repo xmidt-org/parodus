@@ -30,8 +30,8 @@
 #include "../src/config.h"
 #include "../src/crud_internal.h"
 #include "../src/connection.h"
+#include "../src/close_retry.h"
 
-bool close_retry;
 bool LastReasonStatus;
 pthread_mutex_t close_mut;
 
@@ -2524,7 +2524,7 @@ void err_updateObject_cloud_disconnectFailure()
 {
 	int ret = 0;
 	wrp_msg_t *reqMsg = NULL;
-	close_retry = 1;
+	set_close_retry();
 	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
 	memset(reqMsg, 0, sizeof(wrp_msg_t));
 	wrp_msg_t *respMsg = NULL;
@@ -2542,7 +2542,7 @@ void err_updateObject_cloud_disconnectFailure()
 	assert_int_equal (ret, -1);
 	wrp_free_struct(reqMsg);
 	wrp_free_struct(respMsg);
-	close_retry = 0;
+	reset_close_retry();
 }
 
 void test_updateObject_cloud_disconnect()

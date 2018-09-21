@@ -31,6 +31,7 @@
 #include "../src/client_list.h"
 #include "../src/ParodusInternal.h"
 #include "../src/partners_check.h"
+#include "../src/close_retry.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -624,6 +625,21 @@ void test_sendUpstreamMsgToServer()
     free(bytes);
 }
 
+void test_sendUpstreamMsg_close_retry()
+{
+	set_close_retry();
+	void *bytes = NULL;
+	wrp_msg_t msg;
+	memset(&msg, 0, sizeof(wrp_msg_t));
+	msg.msg_type = WRP_MSG_TYPE__EVENT;
+	wrp_struct_to( &msg, WRP_BYTES, &bytes );
+	metaPackSize = 10;
+	will_return(appendEncodedData, 100);
+	expect_function_call(appendEncodedData);
+	sendUpstreamMsgToServer(&bytes, 110);
+	free(bytes);
+}
+
 void err_sendUpstreamMsgToServer()
 {
     metaPackSize = 0;
@@ -770,6 +786,7 @@ int main(void)
         cmocka_unit_test(err_processUpstreamMessageMetapackFailure),
         cmocka_unit_test(err_processUpstreamMessageRegMsg),
         cmocka_unit_test(test_sendUpstreamMsgToServer),
+        cmocka_unit_test(test_sendUpstreamMsg_close_retry),
         cmocka_unit_test(err_sendUpstreamMsgToServer),
         cmocka_unit_test(test_get_global_UpStreamMsgQ),
         cmocka_unit_test(test_set_global_UpStreamMsgQ),
