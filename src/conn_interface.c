@@ -35,6 +35,7 @@
 #include "seshat_interface.h"
 #include "crud_interface.h"
 #include "heartBeat.h"
+#include "close_retry.h"
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
@@ -50,9 +51,6 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-
-bool close_retry = false;
-pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -126,19 +124,18 @@ void createSocketConnection(void (* initKeypress)())
         if(heartBeatTimer >= webpa_ping_timeout_ms)
         {
             ParodusInfo("heartBeatTimer %d webpa_ping_timeout_ms %d\n", heartBeatTimer, webpa_ping_timeout_ms);
-            if(!close_retry) 
+
+            if(!get_close_retry())
             {
                 ParodusError("ping wait time > %d . Terminating the connection with WebPA server and retrying\n", webpa_ping_timeout_ms / 1000);
                 ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
                 set_global_reconnect_reason("Ping_Miss");
                 set_global_reconnect_status(true);
-                pthread_mutex_lock (&close_mut);
-                close_retry = true;
-                pthread_mutex_unlock (&close_mut);
+                set_close_retry();
             }
             else
-            {			
-                ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+            {
+				ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",get_close_retry());
             }
             reset_heartBeatTimer();
         }
@@ -150,9 +147,9 @@ void createSocketConnection(void (* initKeypress)())
             seshat_registered = __registerWithSeshat();
         }
 
-        if(close_retry)
+        if(get_close_retry())
         {
-            ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
+            ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", get_close_retry());
             close_and_unref_connection(get_global_conn());
             set_global_conn(NULL);
 
@@ -171,7 +168,7 @@ void createSocketConnection(void (* initKeypress)())
             }
             createNopollConnection(ctx);
         }
-       } while(!close_retry);
+       } while(!get_close_retry());
 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);

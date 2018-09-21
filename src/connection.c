@@ -30,7 +30,7 @@
 #include "spin_thread.h"
 #include "ParodusInternal.h"
 #include "heartBeat.h"
-
+#include "close_retry.h"
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -584,11 +584,8 @@ int createNopollConnection(noPollCtx *ctx)
         free_server_list (&conn_ctx.server_list);
         
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
-	ParodusPrint("createNopollConnection(): close_mut lock\n");
-	pthread_mutex_lock (&close_mut);
-	close_retry = false;
-	pthread_mutex_unlock (&close_mut);
-	ParodusPrint("createNopollConnection(): close_mut unlock\n");
+	ParodusPrint("createNopollConnection(): reset_close_retry\n");
+	reset_close_retry();
 	reset_heartBeatTimer();
 	set_global_reconnect_reason("webpa_process_starts");
 	set_global_reconnect_status(false);
