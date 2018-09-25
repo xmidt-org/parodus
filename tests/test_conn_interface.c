@@ -28,14 +28,13 @@
 #include "../src/connection.h"
 #include "../src/config.h"
 #include "../src/heartBeat.h"
+#include "../src/close_retry.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
-extern bool close_retry;
-extern pthread_mutex_t close_mut;
 pthread_mutex_t nano_mut;
 pthread_cond_t nano_con;
 
@@ -215,10 +214,7 @@ void test_createSocketConnection()
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(ParodusCfg));
-    
-    pthread_mutex_lock (&close_mut);
-    close_retry = false;
-    pthread_mutex_unlock (&close_mut);
+    reset_close_retry();
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -254,9 +250,7 @@ void test_createSocketConnection1()
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0, sizeof(ParodusCfg));
-    pthread_mutex_lock (&close_mut);
-    close_retry = true;
-    pthread_mutex_unlock (&close_mut);
+    set_close_retry();
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -306,9 +300,7 @@ void test_PingMissIntervalTime()
     cfg.webpa_ping_timeout = 6;
     set_parodus_cfg(&cfg);
     
-    pthread_mutex_lock (&close_mut);
-    close_retry = false;
-    pthread_mutex_unlock (&close_mut);
+    reset_close_retry();
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -348,9 +340,7 @@ void test_PingMissIntervalTime()
 
 void err_createSocketConnection()
 {
-    pthread_mutex_lock (&close_mut);
-    close_retry = true;
-    pthread_mutex_unlock (&close_mut);
+    set_close_retry();
     reset_heartBeatTimer();
     expect_function_call(nopoll_thread_handlers);
     
@@ -387,9 +377,7 @@ void test_createSocketConnection_cloud_disconn()
 	cfg.cloud_disconnect = strdup("XPC");
 	set_parodus_cfg(&cfg);
 
-	pthread_mutex_lock (&close_mut);
-	close_retry = true;
-	pthread_mutex_unlock (&close_mut);
+	set_close_retry();
 	reset_heartBeatTimer();
 	expect_function_call(nopoll_thread_handlers);
 

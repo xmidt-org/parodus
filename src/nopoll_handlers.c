@@ -25,6 +25,7 @@
 #include "nopoll_handlers.h"
 #include "connection.h"
 #include "heartBeat.h"
+#include "close_retry.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -175,9 +176,7 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
         set_global_reconnect_reason("Unknown");
     }
 
-    pthread_mutex_lock (&close_mut);
-    close_retry = true;
-    pthread_mutex_unlock (&close_mut);
+    set_close_retry();
     ParodusPrint("listenerOnCloseMessage(): mutex unlock in producer thread\n");
 }
 

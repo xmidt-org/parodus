@@ -28,6 +28,7 @@
 #include "connection.h"
 #include "client_list.h"
 #include "nopoll_helpers.h"
+#include "close_retry.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -453,6 +454,7 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
 	size_t encodedSize;
+	bool close_retry = false;
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{
@@ -461,8 +463,18 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
 		ParodusInfo("Sending response to server\n");
-	   	sendMessage(get_global_conn(),appendData, encodedSize);
-	   	
+		close_retry = get_close_retry();
+
+		/* send response when connection retry is not in progress. Also during cloud_disconnect UPDATE request. Here, close_retry becomes 1 hence check is added to send disconnect response to server. */
+		//TODO: Upstream and downstream messages in queue should be handled and queue should be empty before parodus forcefully disconnect from cloud.
+		if(!close_retry || (get_parodus_cfg()->cloud_disconnect !=NULL))
+		{
+			sendMessage(get_global_conn(),appendData, encodedSize);
+		}
+		else
+		{
+			ParodusInfo("close_retry is %d, unable to send response as connection retry is in progress\n", close_retry);
+		}
 		free(appendData);
 		appendData =NULL;
 	}

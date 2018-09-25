@@ -34,8 +34,6 @@ extern "C" {
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
-extern bool close_retry;
-extern pthread_mutex_t close_mut;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */

@@ -25,6 +25,7 @@
 #include "crud_internal.h"
 #include "config.h"
 #include "connection.h"
+#include "close_retry.h"
 
 static void freeObjArray(char *(*obj)[], int size);
 static int writeIntoCrudJson(cJSON *res_obj, char * object, cJSON *objValue, int freeFlag);
@@ -1340,14 +1341,14 @@ int updateObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 
 static int ConnDisconnectFromCloud(char *disconn_reason)
 {
+	bool close_retry = false;
+	close_retry = get_close_retry();
 	if(!close_retry)
 	{
 		ParodusInfo("Reconnect detected, setting reason %s for Reconnect\n", disconn_reason);
 		set_global_reconnect_reason(disconn_reason);
 		set_global_reconnect_status(true);
-		pthread_mutex_lock (&close_mut);
-		close_retry = true;
-		pthread_mutex_unlock (&close_mut);
+		set_close_retry();
 	}
 	else
 	{
