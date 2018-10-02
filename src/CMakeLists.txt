@@ -37,7 +37,7 @@ target_link_libraries (parodus
     -lcimplog
     -lssl
     -lcrypto
-    -lnanomsg
+    -lnng
     -lcjson
     -lcjwt
     -lpthread

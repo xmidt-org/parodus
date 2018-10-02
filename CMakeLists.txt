@@ -96,14 +96,13 @@ add_dependencies(libnopoll nopoll)
 
 # nanoMsg external dependency
 #-------------------------------------------------------------------------------
-ExternalProject_Add(nanomsg
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
-    GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
-    GIT_TAG "0c1aa2b288f6b167dbafe7e29c20e6fc7e71c000"
+ExternalProject_Add(nng
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nng
+    GIT_REPOSITORY https://github.com/nanomsg/nng.git
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
-add_library(libnanomsg STATIC SHARED IMPORTED)
-add_dependencies(libnanomsg nanomsg)
+add_library(libnng STATIC SHARED IMPORTED)
+add_dependencies(libnng nng)
 
 
 # cJSON external dependency
@@ -166,10 +165,11 @@ add_dependencies(libwrp-c wrp-c)
 # libparodus external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libparodus
-    DEPENDS trower-base64 msgpack nanomsg wrp-c
+    DEPENDS trower-base64 msgpack nng wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
-    GIT_REPOSITORY https://github.com/Comcast/libparodus.git
-    GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
+    GIT_REPOSITORY https://github.com/bill1600/libparodus.git
+    #GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
+    GIT_TAG "a041804fd4570230418beebd38ff78bd6935966f"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     		  -DMAIN_PROJ_BUILD=ON
     		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
@@ -184,10 +184,11 @@ if (ENABLE_SESHAT)
 # libseshat external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libseshat
-    DEPENDS cJSON trower-base64 msgpack nanomsg wrp-c
+    DEPENDS cJSON trower-base64 msgpack nng wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
-    GIT_REPOSITORY https://github.com/comcast/seshat.git
-    GIT_TAG "470f8d5e9457755028aae6da65d3df9b62a53942"
+    GIT_REPOSITORY https://github.com/bill1600/seshat.git
+    GIT_TAG "nng_compat"
+    #GIT_TAG "470f8d5e9457755028aae6da65d3df9b62a53942"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}

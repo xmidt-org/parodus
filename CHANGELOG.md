@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Default HTTP port to 80 and HTTPS port to 443.
 - Updates to how `nopoll` is called have been implemented.
 - Refactored connection.c and updated corresponding unit tests
+- Switched from nanomsg to NNG
 
 ### Fixed
 - 64 bit pointer fixes (#144, #145).
