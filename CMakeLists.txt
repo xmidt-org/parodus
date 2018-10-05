@@ -168,9 +168,8 @@ add_dependencies(libwrp-c wrp-c)
 ExternalProject_Add(libparodus
     DEPENDS trower-base64 msgpack nng wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
-    GIT_REPOSITORY https://github.com/bill1600/libparodus.git
-    #GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
-    GIT_TAG "a041804fd4570230418beebd38ff78bd6935966f"
+    GIT_REPOSITORY https://github.com/Comcast/libparodus.git
+    GIT_TAG "ac3ff5cf352790e1a9d14e7333a787b87447fa20"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     		  -DMAIN_PROJ_BUILD=ON
     		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
@@ -187,9 +186,8 @@ if (ENABLE_SESHAT)
 ExternalProject_Add(libseshat
     DEPENDS cJSON trower-base64 msgpack nng wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
-    GIT_REPOSITORY https://github.com/bill1600/seshat.git
-    GIT_TAG "nng_compat"
-    #GIT_TAG "470f8d5e9457755028aae6da65d3df9b62a53942"
+    GIT_REPOSITORY https://github.com/Comcast/seshat.git
+    GIT_TAG "261a9b330a4ab1393556b17ccf55db93effdf982"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
