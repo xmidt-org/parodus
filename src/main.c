@@ -103,7 +103,7 @@ static void sig_handler(int sig)
 	{
 		signal(SIGINT, sig_handler); /* reset it to this function */
 		ParodusInfo("SIGINT received!\n");
-		exit(0);
+		shutdownSocketConnection();
 	}
 	else if ( sig == SIGUSR1 ) 
 	{
@@ -132,7 +132,7 @@ static void sig_handler(int sig)
 	else 
 	{
 		ParodusInfo("Signal %d received!\n", sig);
-		exit(0);
+		shutdownSocketConnection();
 	}
 	
 }
