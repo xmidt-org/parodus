@@ -96,14 +96,14 @@ add_dependencies(libnopoll nopoll)
 
 # nanoMsg external dependency
 #-------------------------------------------------------------------------------
-ExternalProject_Add(nanomsg
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
-    GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
-    GIT_TAG "0c1aa2b288f6b167dbafe7e29c20e6fc7e71c000"
+ExternalProject_Add(nng
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nng
+    GIT_REPOSITORY https://github.com/nanomsg/nng.git
+    GIT_TAG "v1.0.1"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
-add_library(libnanomsg STATIC SHARED IMPORTED)
-add_dependencies(libnanomsg nanomsg)
+add_library(libnng STATIC SHARED IMPORTED)
+add_dependencies(libnng nng)
 
 
 # cJSON external dependency
@@ -166,10 +166,10 @@ add_dependencies(libwrp-c wrp-c)
 # libparodus external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libparodus
-    DEPENDS trower-base64 msgpack nanomsg wrp-c
+    DEPENDS trower-base64 msgpack nng wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
     GIT_REPOSITORY https://github.com/Comcast/libparodus.git
-    GIT_TAG "a7615d69bd5859e337f467fb7e33182da970a5de"
+    GIT_TAG "ac3ff5cf352790e1a9d14e7333a787b87447fa20"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     		  -DMAIN_PROJ_BUILD=ON
     		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
@@ -184,10 +184,10 @@ if (ENABLE_SESHAT)
 # libseshat external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libseshat
-    DEPENDS cJSON trower-base64 msgpack nanomsg wrp-c
+    DEPENDS cJSON trower-base64 msgpack nng wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
-    GIT_REPOSITORY https://github.com/comcast/seshat.git
-    GIT_TAG "470f8d5e9457755028aae6da65d3df9b62a53942"
+    GIT_REPOSITORY https://github.com/Comcast/seshat.git
+    GIT_TAG "261a9b330a4ab1393556b17ccf55db93effdf982"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}

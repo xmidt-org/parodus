@@ -24,7 +24,7 @@
 
 #include <nopoll.h>
 #include <wrp-c.h>
-#include <nanomsg/nn.h>
+#include <nng/compat/nanomsg/nn.h>
 
 #include "../src/upstream.h"
 #include "../src/config.h"
