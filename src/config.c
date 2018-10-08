@@ -693,8 +693,8 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
-    cfg->crud_config_file = strdup("parodus_cfg.json");
-	ParodusPrint("Default crud_config_file is %s\n", cfg->crud_config_file);
+    cfg->crud_config_file = NULL;
+	
 	cfg->cloud_status = CLOUD_STATUS_OFFLINE;
 	ParodusInfo("Default cloud_status is %s\n", cfg->cloud_status);
 }

@@ -51,6 +51,7 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+bool g_shutdown  = false;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -168,10 +169,14 @@ void createSocketConnection(void (* initKeypress)())
             }
             createNopollConnection(ctx);
         }
-       } while(!get_close_retry());
+       } while(!get_close_retry() && !g_shutdown);
 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
+}
+
+void shutdownSocketConnection(void) {
+   g_shutdown = true;
 }
 
