@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Updates to how `nopoll` is called have been implemented.
 - Refactored connection.c and updated corresponding unit tests
 - Switched from nanomsg (Release 1.1.2) to NNG (Release v1.0.1)
+- Changed connection logic (connection.c) for retries, and added unit test
 
 ### Fixed
 - 64 bit pointer fixes (#144, #145).
