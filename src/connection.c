@@ -503,8 +503,7 @@ int connect_and_wait (create_connection_ctx_t *ctx)
 // a) success, or
 // b) need to requery dns
 int keep_trying_to_connect (create_connection_ctx_t *ctx, 
-	int max_retry_sleep,
-	int query_dns_status)
+	int max_retry_sleep)
 {
     backoff_timer_t backoff_timer;
     int rtn;
@@ -520,8 +519,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
         continue;
       backoff_delay (&backoff_timer); // 3,7,15,31 ..
       if (rtn == CONN_WAIT_RETRY_DNS)
-        if (query_dns_status < 0)
-          return false;  //find_server again
+        return false;  //find_server again
       // else retry
     }
 }
@@ -562,7 +560,7 @@ int createNopollConnection(noPollCtx *ctx)
 	  if (query_dns_status == FIND_INVALID_DEFAULT)
 		return nopoll_false;
 	  set_current_server (&conn_ctx);
-	  if (keep_trying_to_connect (&conn_ctx, max_retry_sleep, query_dns_status))
+	  if (keep_trying_to_connect (&conn_ctx, max_retry_sleep))
 		break;
 	  // retry dns query
 	}

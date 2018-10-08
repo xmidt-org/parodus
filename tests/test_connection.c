@@ -51,8 +51,7 @@ extern int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6);
 extern int wait_connection_ready (create_connection_ctx_t *ctx);
 extern int connect_and_wait (create_connection_ctx_t *ctx);
 extern int keep_trying_to_connect (create_connection_ctx_t *ctx, 
-	int max_retry_sleep,
-	int query_dns_status);
+	int max_retry_sleep);
 
 
 /*----------------------------------------------------------------------------*/
@@ -117,10 +116,15 @@ nopoll_bool  nopoll_conn_wait_for_status_until_connection_ready (noPollConn * co
 	int timeout, int *status, char ** message)
 {
     UNUSED(conn); UNUSED(timeout);
-    *status = mock_wait_status;
+    if (mock_wait_status >= 1000) {
+      *status = mock_wait_status / 1000;
+      mock_wait_status = mock_wait_status % 1000;
+    } else {
+      *status = mock_wait_status;
+    }
     if ((NULL != mock_redirect) &&
-        ((mock_wait_status == 307) || (mock_wait_status == 302) || 
-         (mock_wait_status == 303)) )
+        ((*status == 307) || (*status == 302) || 
+         (*status == 303)) )
     {
       *message = malloc (strlen(mock_redirect) + 10);
       sprintf (*message, "Redirect:%s", mock_redirect);
@@ -580,6 +584,11 @@ void test_wait_connection_ready ()
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   assert_int_equal (wait_connection_ready (&ctx), WAIT_FAIL);
   
+  mock_wait_status = 503;
+  will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
+  assert_int_equal (wait_connection_ready (&ctx), WAIT_FAIL);
+
   mock_wait_status = 307;
   mock_redirect = "mydns.mycom.net";
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
@@ -668,7 +677,18 @@ void test_connect_and_wait ()
   will_return (checkHostIp, 0);
   expect_function_call (checkHostIp);
   assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
-  
+
+  mock_wait_status = 503;  
+  will_return (nopoll_conn_new_opts, &connection1);
+  expect_function_call (nopoll_conn_new_opts);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
+
   Cfg.flags = 0;
   set_parodus_cfg(&Cfg);
 
@@ -802,7 +822,7 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = keep_trying_to_connect (&ctx, 30, -1);
+  rtn = keep_trying_to_connect (&ctx, 30);
   assert_int_equal (rtn, true);
 
   test_server.allow_insecure = 0;
@@ -823,24 +843,39 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_tls_new);
   will_return (nopoll_conn_is_ok, nopoll_true);
   expect_function_call (nopoll_conn_is_ok);
-  mock_wait_status = 0;
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = keep_trying_to_connect (&ctx, 30, 0);
+  rtn = keep_trying_to_connect (&ctx, 30);
   assert_int_equal (rtn, true);
 
-  will_return (nopoll_conn_tls_new, NULL);
-  expect_function_call (nopoll_conn_tls_new);
-  will_return (checkHostIp, 0);
-  expect_function_call (checkHostIp);
   will_return (nopoll_conn_tls_new, &connection1);
   expect_function_call (nopoll_conn_tls_new);
   will_return (nopoll_conn_is_ok, nopoll_true);
   expect_function_call (nopoll_conn_is_ok);
-  will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+  mock_wait_status = 302503;
+  mock_redirect = "https://mydns.mycom.net";
+  will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = keep_trying_to_connect (&ctx, 30, 0);
-  assert_int_equal (rtn, true);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
+  will_return (nopoll_conn_ref_count, 0);
+  expect_function_call (nopoll_conn_ref_count);
+  rtn = keep_trying_to_connect (&ctx, 30);
+  assert_int_equal (rtn, false);
+
+  mock_wait_status = 0;
+  will_return (nopoll_conn_tls_new, NULL);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (checkHostIp, 0);
+  expect_function_call (checkHostIp);
+  rtn = keep_trying_to_connect (&ctx, 30);
+  assert_int_equal (rtn, false);
 
   mock_wait_status = 302;
   mock_redirect = "mydns.mycom.net";
@@ -853,7 +888,7 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   will_return (nopoll_conn_ref_count, 0);
   expect_function_call (nopoll_conn_ref_count);
-  rtn = keep_trying_to_connect (&ctx, 30, -1);
+  rtn = keep_trying_to_connect (&ctx, 30);
   assert_int_equal (rtn, false);
 }
 
