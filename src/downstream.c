@@ -75,6 +75,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 case WRP_MSG_TYPE__AUTH:
                 {
                     ParodusInfo("Authorization Status received with Status code :%d\n", message->u.auth.status);
+		    wrp_free_struct(message);
                     break;
                 }
 
