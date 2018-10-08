@@ -8,7 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Refactored connection.c and updated corresponding unit tests
 - Additional `/cloud-status` and `/cloud-disconnect` fields.
 - Switched from nanomsg (Release 1.1.2) to NNG (Release v1.0.1)
-- Memory leak fixes 
+- Memory leak fixes
+- Changed connection logic (connection.c) for retries, and added unit test
 
 ## [1.0.1] - 2018-07-18
 ### Added
