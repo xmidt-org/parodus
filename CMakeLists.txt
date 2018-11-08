@@ -96,14 +96,14 @@ add_dependencies(libnopoll nopoll)
 
 # nanoMsg external dependency
 #-------------------------------------------------------------------------------
-ExternalProject_Add(nng
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nng
-    GIT_REPOSITORY https://github.com/nanomsg/nng.git
-    GIT_TAG "v1.0.1"
+ExternalProject_Add(nanomsg
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
+    GIT_REPOSITORY https://github.com/bill1600/nanomsg.git
+    GIT_TAG "dbg_msgs"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
-add_library(libnng STATIC SHARED IMPORTED)
-add_dependencies(libnng nng)
+add_library(libnanomsg STATIC SHARED IMPORTED)
+add_dependencies(libnanomsg nanomsg)
 
 
 # cJSON external dependency
@@ -163,31 +163,16 @@ ExternalProject_Add(wrp-c
 add_library(libwrp-c STATIC SHARED IMPORTED)
 add_dependencies(libwrp-c wrp-c)
 
-# libparodus external dependency
-#-------------------------------------------------------------------------------
-ExternalProject_Add(libparodus
-    DEPENDS trower-base64 msgpack nng wrp-c
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libparodus
-    GIT_REPOSITORY https://github.com/Comcast/libparodus.git
-    GIT_TAG "ac3ff5cf352790e1a9d14e7333a787b87447fa20"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
-    		  -DMAIN_PROJ_BUILD=ON
-    		  -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
-    		  -DMAIN_PROJ_LIB64_PATH=${LIBRARY_DIR64}
-    		  -DMAIN_PROJ_COMMON_PATH=${COMMON_LIBRARY_DIR}
-    		  -DMAIN_PROJ_INCLUDE_PATH=${INCLUDE_DIR}
-)
-add_library(liblibparodus STATIC SHARED IMPORTED)
-add_dependencies(liblibparodus libparodus)
 
 if (ENABLE_SESHAT)
 # libseshat external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(libseshat
-    DEPENDS cJSON trower-base64 msgpack nng wrp-c
+    DEPENDS cJSON trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
-    GIT_REPOSITORY https://github.com/Comcast/seshat.git
-    GIT_TAG "261a9b330a4ab1393556b17ccf55db93effdf982"
+    GIT_REPOSITORY https://github.com/bill1600/seshat.git
+    #GIT_TAG "261a9b330a4ab1393556b17ccf55db93effdf982"
+    GIT_TAG "dbg_msgs"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
