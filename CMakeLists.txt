@@ -98,8 +98,8 @@ add_dependencies(libnopoll nopoll)
 #-------------------------------------------------------------------------------
 ExternalProject_Add(nanomsg
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
-    GIT_REPOSITORY https://github.com/bill1600/nanomsg.git
-    GIT_TAG "dbg_msgs"
+    GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
+    GIT_TAG "0c1aa2b288f6b167dbafe7e29c20e6fc7e71c000"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libnanomsg STATIC SHARED IMPORTED)
@@ -172,7 +172,7 @@ ExternalProject_Add(libseshat
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
     GIT_REPOSITORY https://github.com/bill1600/seshat.git
     #GIT_TAG "261a9b330a4ab1393556b17ccf55db93effdf982"
-    GIT_TAG "dbg_msgs"
+    GIT_TAG "revert_from_NNG"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
