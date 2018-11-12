@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Memory leak fixes
 - Changed connection logic (connection.c) for retries, and added unit test
 - Partner-id comparison made case insensitive
+- Reverted from NNG to nanomag (v1.1.2)
 
 ## [1.0.1] - 2018-07-18
 ### Added
