@@ -41,8 +41,8 @@
 
 #include <cJSON.h>
 #include <nopoll.h>
-#include <nng/compat/nanomsg/nn.h>
-#include <nng/compat/nanomsg/pipeline.h>
+#include <nanomsg/nn.h>
+#include <nanomsg/pipeline.h>
 #include <wrp-c.h>
 
 #include "parodus_log.h"
