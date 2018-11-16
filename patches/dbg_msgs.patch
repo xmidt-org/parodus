@@ -1,0 +1,209 @@
+diff --git a/src/aio/ctx.c b/src/aio/ctx.c
+index f6ea1054..d72723c1 100644
+--- a/src/aio/ctx.c
++++ b/src/aio/ctx.c
+@@ -54,6 +54,7 @@ void nn_ctx_leave (struct nn_ctx *self)
+     struct nn_fsm_event *event;
+     struct nn_queue eventsto;
+ 
++    printf ("Nano: nn_ctx_leave\n");
+     /*  Process any queued events before leaving the context. */
+     while (1) {
+         item = nn_queue_pop (&self->events);
+diff --git a/src/aio/timer.c b/src/aio/timer.c
+index 73ba6046..ce97bf74 100644
+--- a/src/aio/timer.c
++++ b/src/aio/timer.c
+@@ -27,6 +27,7 @@
+ #include "../utils/fast.h"
+ #include "../utils/err.h"
+ #include "../utils/attr.h"
++#include <stdio.h>
+ 
+ /*  Timer state reflects the state as seen by the user thread. It says nothing
+     about the state of affairs in the worker thread. */
+@@ -84,6 +85,7 @@ void nn_timer_start (struct nn_timer *self, int timeout)
+ 
+ void nn_timer_stop (struct nn_timer *self)
+ {
++    printf ("Nano: nn_timer_stop\n");
+     nn_fsm_stop (&self->fsm);
+ }
+ 
+diff --git a/src/core/ep.c b/src/core/ep.c
+index 6587007e..b8011149 100644
+--- a/src/core/ep.c
++++ b/src/core/ep.c
+@@ -33,6 +33,7 @@
+ #include "../utils/attr.h"
+ 
+ #include <string.h>
++#include <stdio.h>
+ 
+ #define NN_EP_STATE_IDLE 1
+ #define NN_EP_STATE_ACTIVE 2
+@@ -97,6 +98,7 @@ void nn_ep_start (struct nn_ep *self)
+ 
+ void nn_ep_stop (struct nn_ep *self)
+ {
++    printf ("Nano: nn_ep_stop\n");
+     nn_fsm_stop (&self->fsm);
+ }
+ 
+diff --git a/src/core/sock.c b/src/core/sock.c
+index da32930b..0becee98 100644
+--- a/src/core/sock.c
++++ b/src/core/sock.c
+@@ -38,6 +38,7 @@
+ #include "../utils/msg.h"
+ 
+ #include <limits.h>
++#include <stdio.h>
+ 
+ /*  These bits specify whether individual efds are signalled or not at
+     the moment. Storing this information allows us to avoid redundant signalling
+@@ -181,6 +182,7 @@ void nn_sock_stopped (struct nn_sock *self)
+     threads waiting to recv or send data. */
+ void nn_sock_stop (struct nn_sock *self)
+ {
++    printf ("Nano: nn_sock_stop\n");
+     nn_ctx_enter (&self->ctx);
+     nn_fsm_stop (&self->fsm);
+     nn_ctx_leave (&self->ctx);
+diff --git a/src/protocols/reqrep/req.c b/src/protocols/reqrep/req.c
+index bd2c11bb..00f10051 100644
+--- a/src/protocols/reqrep/req.c
++++ b/src/protocols/reqrep/req.c
+@@ -39,6 +39,7 @@
+ 
+ #include <stddef.h>
+ #include <string.h>
++#include <stdio.h>
+ 
+ /*  Default re-send interval is 1 minute. */
+ #define NN_REQ_DEFAULT_RESEND_IVL 60000
+@@ -117,6 +118,7 @@ void nn_req_stop (struct nn_sockbase *self)
+ 
+     req = nn_cont (self, struct nn_req, xreq.sockbase);
+ 
++    printf ("Nano: nn_req_stop\n");    
+     nn_fsm_stop (&req->fsm);
+ }
+ 
+diff --git a/src/transports/tcp/atcp.c b/src/transports/tcp/atcp.c
+index 2f943312..ac38a543 100644
+--- a/src/transports/tcp/atcp.c
++++ b/src/transports/tcp/atcp.c
+@@ -28,6 +28,7 @@
+ #include "../../utils/err.h"
+ #include "../../utils/cont.h"
+ #include "../../utils/attr.h"
++#include <stdio.h>
+ 
+ #if defined NN_HAVE_WINDOWS
+ #include "../../utils/win.h"
+@@ -105,6 +106,7 @@ void nn_atcp_start (struct nn_atcp *self, struct nn_usock *listener)
+ 
+ void nn_atcp_stop (struct nn_atcp *self)
+ {
++    printf ("Nano: nn_atcp_stop\n");
+     nn_fsm_stop (&self->fsm);
+ }
+ 
+diff --git a/src/transports/tcp/btcp.c b/src/transports/tcp/btcp.c
+index 1fdef036..0ef579d3 100644
+--- a/src/transports/tcp/btcp.c
++++ b/src/transports/tcp/btcp.c
+@@ -39,6 +39,7 @@
+ #include "../../utils/fast.h"
+ 
+ #include <string.h>
++#include <stdio.h>
+ 
+ #if defined NN_HAVE_WINDOWS
+ #include "../../utils/win.h"
+@@ -172,6 +173,7 @@ static void nn_btcp_stop (void *self)
+ {
+     struct nn_btcp *btcp = self;
+ 
++    printf ("Nano: nn_btcp_stop\n");
+     nn_fsm_stop (&btcp->fsm);
+ }
+ 
+diff --git a/src/transports/tcp/ctcp.c b/src/transports/tcp/ctcp.c
+index b74b5a03..7de92653 100644
+--- a/src/transports/tcp/ctcp.c
++++ b/src/transports/tcp/ctcp.c
+@@ -42,6 +42,7 @@
+ #include "../../utils/attr.h"
+ 
+ #include <string.h>
++#include <stdio.h>
+ 
+ #if defined NN_HAVE_WINDOWS
+ #include "../../utils/win.h"
+@@ -206,6 +207,7 @@ static void nn_ctcp_stop (void *self)
+ {
+     struct nn_ctcp *ctcp = self;
+ 
++    printf ("Nano: nn_ctcp_stop\n");
+     nn_fsm_stop (&ctcp->fsm);
+ }
+ 
+diff --git a/src/transports/tcp/stcp.c b/src/transports/tcp/stcp.c
+index 61be2734..a9856673 100644
+--- a/src/transports/tcp/stcp.c
++++ b/src/transports/tcp/stcp.c
+@@ -28,6 +28,7 @@
+ #include "../../utils/fast.h"
+ #include "../../utils/wire.h"
+ #include "../../utils/attr.h"
++#include <stdio.h>
+ 
+ /*  States of the object as a whole. */
+ #define NN_STCP_STATE_IDLE 1
+@@ -115,6 +116,7 @@ void nn_stcp_start (struct nn_stcp *self, struct nn_usock *usock)
+ 
+ void nn_stcp_stop (struct nn_stcp *self)
+ {
++    printf ("Nano: nn_stcp_stop\n");
+     nn_fsm_stop (&self->fsm);
+ }
+ 
+diff --git a/src/transports/utils/streamhdr.c b/src/transports/utils/streamhdr.c
+index 1ce1c052..adec9e8f 100644
+--- a/src/transports/utils/streamhdr.c
++++ b/src/transports/utils/streamhdr.c
+@@ -33,6 +33,7 @@
+ 
+ #include <stddef.h>
+ #include <string.h>
++#include <stdio.h>
+ 
+ #define NN_STREAMHDR_STATE_IDLE 1
+ #define NN_STREAMHDR_STATE_SENDING 2
+@@ -109,6 +110,7 @@ void nn_streamhdr_start (struct nn_streamhdr *self, struct nn_usock *usock,
+ 
+ void nn_streamhdr_stop (struct nn_streamhdr *self)
+ {
++    printf ("Nano: nn_streamhdr_stop\n");
+     nn_fsm_stop (&self->fsm);
+ }
+ 
+@@ -117,6 +119,7 @@ static void nn_streamhdr_shutdown (struct nn_fsm *self, int src, int type,
+ {
+     struct nn_streamhdr *streamhdr;
+ 
++    printf ("Nano: nn_streamhdr_shutdown\n");
+     streamhdr = nn_cont (self, struct nn_streamhdr, fsm);
+ 
+     if (nn_slow (src == NN_FSM_ACTION && type == NN_FSM_STOP)) {
+@@ -166,6 +169,8 @@ static void nn_streamhdr_handler (struct nn_fsm *self, int src, int type,
+             }
+ 
+         default:
++            printf ("Nanomsg: Invalid SRC %d when NN_STREAMHDR_STATE_IDLE\n",
++                src);
+             nn_fsm_bad_source (streamhdr->state, src, type);
+         }
+ 

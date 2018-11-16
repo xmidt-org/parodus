@@ -25,6 +25,7 @@ set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(INCLUDE_UCRESOLV ${PREFIX_DIR}/ucresolv/src/ucresolv/include)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
+set(PATCHES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/patches)
 set(COMMON_LIBRARY_DIR ${INSTALL_DIR}/lib/${CMAKE_LIBRARY_ARCHITECTURE})
 set(TEST_RESULTS_DIR ${CMAKE_CURRENT_BINARY_DIR}/test_results)
 file(MAKE_DIRECTORY ${TEST_RESULTS_DIR})
@@ -100,6 +101,7 @@ ExternalProject_Add(nanomsg
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nanomsg
     GIT_REPOSITORY https://github.com/nanomsg/nanomsg.git
     GIT_TAG "1.1.2"
+    PATCH_COMMAND patch -p1 < ${PATCHES_DIR}/dbg_msgs.patch
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libnanomsg STATIC SHARED IMPORTED)
@@ -172,7 +174,7 @@ ExternalProject_Add(libseshat
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
     GIT_REPOSITORY https://github.com/bill1600/seshat.git
     #GIT_TAG "261a9b330a4ab1393556b17ccf55db93effdf982"
-    GIT_TAG "revert_from_NNG"
+    GIT_TAG "dbg_msgs_patch"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
