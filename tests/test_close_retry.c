@@ -71,8 +71,8 @@ void test_mutex_close_retry() {
 	ParodusInfo("Threads execution is completed, close_retry is: %d\n", close_retry);
 	assert_int_equal(close_retry, 1);
 
-	pthread_create(&thread[3], NULL, test_mutex_reset_close_retry, NULL);
-	pthread_join(thread[3], NULL);
+	pthread_create(&thread[2], NULL, test_mutex_reset_close_retry, NULL);
+	pthread_join(thread[2], NULL);
 
 	close_retry = get_close_retry();
 	ParodusInfo("close_retry reset to: %d\n", close_retry);

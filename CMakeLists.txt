@@ -72,7 +72,7 @@ if (NOT BUILD_YOCTO)
 ExternalProject_Add(trower-base64
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/trower-base64
     GIT_REPOSITORY https://github.com/Comcast/trower-base64.git
-    GIT_TAG "fbb9440ae2bc1118866baefcea7ff814f16613dd"
+    GIT_TAG "v1.1.1"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libtrower-base64 STATIC SHARED IMPORTED)
@@ -84,7 +84,7 @@ add_dependencies(libtrower-base64 trower-base64)
 ExternalProject_Add(nopoll
     PREFIX ${PREFIX_DIR}/nopoll
     GIT_REPOSITORY https://github.com/Comcast/nopoll.git
-    GIT_TAG "739b740683b0615e5999bdeea756cbd593b7f1cc"
+    GIT_TAG "1.0.1"
     CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/autogen.sh --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}
@@ -113,7 +113,7 @@ ExternalProject_Add(cJSON
     #PREFIX ${PREFIX_DIR}/cJSON
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cJSON
     GIT_REPOSITORY https://github.com/DaveGamble/cJSON.git
-    GIT_TAG "aafb64a1c549b7b927e339df6d35b1d5059dc235"
+    GIT_TAG "v1.7.8"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcJSON STATIC SHARED IMPORTED)
@@ -125,7 +125,7 @@ add_dependencies(libcJSON cJSON)
 ExternalProject_Add(msgpack
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/msgpack
     GIT_REPOSITORY https://github.com/msgpack/msgpack-c.git
-    GIT_TAG "7a98138f27f27290e680bf8fbf1f8d1b089bf138"
+    GIT_TAG "cpp-3.1.1"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF
@@ -139,7 +139,7 @@ add_dependencies(libmsgpack msgpack)
 ExternalProject_Add(cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cimplog
     GIT_REPOSITORY https://github.com/Comcast/cimplog.git
-    GIT_TAG "8a5fb3c2f182241d17f5342bea5b7688c28cd1fd"
+    GIT_TAG "1.0.1"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcimplog STATIC SHARED IMPORTED)
@@ -152,7 +152,7 @@ ExternalProject_Add(wrp-c
 	DEPENDS trower-base64 msgpack cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
     GIT_REPOSITORY https://github.com/Comcast/wrp-c.git
-    GIT_TAG "c2bc9be9dad6b0e4f7f9138f3d1074702ace7976"
+    GIT_TAG "1.0.1"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF
@@ -172,7 +172,7 @@ ExternalProject_Add(libseshat
     DEPENDS cJSON trower-base64 msgpack nanomsg wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/libseshat
     GIT_REPOSITORY https://github.com/Comcast/seshat.git
-    GIT_TAG "700865fd0d96a50cd91309f0c4efcd3c0887cd88"
+    GIT_TAG "1.0.1"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
     	          -DMAIN_PROJ_BUILD=ON
     	          -DMAIN_PROJ_LIB_PATH=${LIBRARY_DIR}
@@ -191,7 +191,7 @@ endif (ENABLE_SESHAT)
 ExternalProject_Add(cjwt
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cjwt
     GIT_REPOSITORY https://github.com/Comcast/cjwt.git
-    GIT_TAG "ddd077f0f00407f9657934492b252ee5cfcde535"
+    GIT_TAG "1.0.1"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcjwt STATIC SHARED IMPORTED)
@@ -203,7 +203,7 @@ if (FEATURE_DNS_QUERY)
 ExternalProject_Add(ucresolv
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
     GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
-    GIT_TAG "b58d49e165208791f84b44e3c079b1b4ef6d5c9d"
+    GIT_TAG "1.0.0"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libucresolv STATIC SHARED IMPORTED)

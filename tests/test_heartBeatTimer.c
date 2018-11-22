@@ -72,8 +72,8 @@ void test_mutexHeartBeatTimer() {
 	ParodusInfo("Threads execution is completed, heartBeatTimer is: %d\n", heartBeatTimer);
 	assert_int_equal(heartBeatTimer, 10);
 
-	pthread_create(&thread[3], NULL, test_mutexResetTimer, NULL);
-	pthread_join(thread[3], NULL);
+	pthread_create(&thread[2], NULL, test_mutexResetTimer, NULL);
+	pthread_join(thread[2], NULL);
 
 	heartBeatTimer = get_heartBeatTimer();
 	ParodusInfo("heartBeatTimer reset to: %d\n", heartBeatTimer);
