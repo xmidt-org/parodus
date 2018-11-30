@@ -40,6 +40,8 @@ typedef struct {
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+pthread_mutex_t client_mut=PTHREAD_MUTEX_INITIALIZER;
+
 static test_t tests[] = {
         {
             .s.msg_type = WRP_MSG_TYPE__CREATE,
@@ -242,6 +244,11 @@ int get_numOfClients()
 reg_list_item_t *get_global_node(void)
 {
     return NULL;
+}
+
+pthread_mutex_t *get_global_client_mut(void)
+{
+    return &client_mut;
 }
 
 void wrp_free_struct( wrp_msg_t *msg )

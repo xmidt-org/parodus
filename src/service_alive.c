@@ -61,6 +61,7 @@ void *serviceAliveTask()
 		        if(get_numOfClients() > 0)
 		        {
 			        //sending svc msg to all the clients every 30s
+				pthread_mutex_lock (get_global_client_mut());
 			        temp = get_global_node();
 			        size = (size_t) nbytes;
 			        while(NULL != temp)
@@ -91,6 +92,8 @@ void *serviceAliveTask()
 					        temp= temp->next;
 				        }
 			        }
+				pthread_mutex_unlock (get_global_client_mut());
+
 		         	ParodusPrint("Waiting for 30s to send keep alive msg \n");
 		         	sleep(KEEPALIVE_INTERVAL_SEC);
 	            	}

@@ -23,6 +23,8 @@
 #ifndef _CLIENTLIST_H_
 #define _CLIENTLIST_H_
 
+#include <pthread.h>
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -53,6 +55,7 @@ int get_numOfClients();
 int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize);
 
 reg_list_item_t * get_global_node(void);
+pthread_mutex_t * get_global_client_mut(void);
 
 #ifdef __cplusplus
 }

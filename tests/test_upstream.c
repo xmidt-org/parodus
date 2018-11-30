@@ -45,6 +45,7 @@ int numLoops = 1;
 wrp_msg_t *temp = NULL;
 extern pthread_mutex_t nano_mut;
 extern pthread_cond_t nano_con;
+pthread_mutex_t client_mut=PTHREAD_MUTEX_INITIALIZER;
 static int crud_test = 0;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -70,6 +71,11 @@ int get_numOfClients()
 {
     function_called();
     return (int)mock();
+}
+
+pthread_mutex_t *get_global_client_mut(void)
+{
+    return &client_mut;
 }
 
 void addCRUDmsgToQueue(wrp_msg_t *crudMsg)

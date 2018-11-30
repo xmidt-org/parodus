@@ -33,6 +33,7 @@
 ParodusMsg *ParodusMsgQ;
 pthread_mutex_t g_mutex;
 pthread_cond_t g_cond;
+pthread_mutex_t client_mut=PTHREAD_MUTEX_INITIALIZER;
 int crud_test = 0;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -59,6 +60,11 @@ reg_list_item_t * get_global_node(void)
 {
     function_called();
     return mock_ptr_type(reg_list_item_t *);
+}
+
+pthread_mutex_t *get_global_client_mut(void)
+{
+    return &client_mut;
 }
 
 ssize_t wrp_to_struct( const void *bytes, const size_t length,
