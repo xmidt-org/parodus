@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Partner-id comparison made case insensitive
 - Reverted from NNG to nanomag (v1.1.2)
 - reverted temporary CMake reference to https://github.com/bill1600/seshat
+- used mutex protection to make client list and nn_sends thread safe
+
 
 ## [1.0.1] - 2018-07-18
 ### Added
