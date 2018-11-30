@@ -345,7 +345,9 @@ void *processUpstreamMessage()
 								Expecting dest format as mac:xxxxxxxxxxxx/parodus/cloud-status
 								Parse dest field and check destService is "parodus" and destApplication is "cloud-status"
 							*/
-							if(macId != NULL && destService != NULL && destApplication != NULL && strcmp(destService,"parodus")== 0 && strcmp(destApplication,"cloud-status")== 0)
+						if(macId != NULL)
+						    {
+							if(destService != NULL && destApplication != NULL && strcmp(destService,"parodus")== 0 && strcmp(destApplication,"cloud-status")== 0)
 							{
 								retrieve_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
 								memset(retrieve_msg, 0, sizeof(wrp_msg_t));
@@ -388,6 +390,11 @@ void *processUpstreamMessage()
 								ParodusInfo("sendUpstreamMsgToServer \n");
 								sendUpstreamMsgToServer(&message->msg, message->len);
 							}
+						}
+else
+		{
+			ParodusError("MAC is null, Not sending cloud-status retrieve response here to send it to registered client \n");
+		}
 							if(sourceService !=NULL)
 							{
 								free(sourceService);
