@@ -536,6 +536,8 @@ int createNopollConnection(noPollCtx *ctx)
   create_connection_ctx_t conn_ctx;
   int max_retry_sleep;
   int query_dns_status;
+  struct timespec connect_time,*connectTimePtr;
+  connectTimePtr = &connect_time;
   
   if(ctx == NULL) {
         return nopoll_false;
@@ -576,6 +578,11 @@ int createNopollConnection(noPollCtx *ctx)
 	
 	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
+
+	if(get_parodus_cfg()->boot_time != 0) {
+		getCurrentTime(connectTimePtr);
+		ParodusInfo("connect_time-diff-boot_time=%d\n", connectTimePtr->tv_sec - get_parodus_cfg()->boot_time);
+	}
 
 	free_extra_headers (&conn_ctx);
         free_header_info (&conn_ctx.header_info);
