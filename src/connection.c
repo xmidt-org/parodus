@@ -192,19 +192,20 @@ int check_timer_expired (expire_timer_t *timer, long timeout_ms)
 }
 
 //--------------------------------------------------------------------
-void init_backoff_timer (backoff_timer_t *timer, int max_delay)
+void init_backoff_timer (backoff_timer_t *timer, int max_count)
 {
-  timer->max_delay = max_delay;
+  timer->count = 1;
+  timer->max_count = max_count;
   timer->delay = 1;
 }
 
 int update_backoff_delay (backoff_timer_t *timer)
 {
-  if (timer->delay < timer->max_delay)
+  if (timer->count < timer->max_count) {
+    timer->count += 1;
     timer->delay = timer->delay + timer->delay + 1;
     // 3,7,15,31 ..
-  if (timer->delay > timer->max_delay)
-    timer->delay = timer->max_delay;
+  }
   return timer->delay;
 }  
 
@@ -531,7 +532,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 int createNopollConnection(noPollCtx *ctx)
 {
   create_connection_ctx_t conn_ctx;
-  int max_retry_sleep;
+  int max_retry_count;
   int query_dns_status;
   struct timespec connect_time,*connectTimePtr;
   connectTimePtr = &connect_time;
@@ -545,15 +546,15 @@ int createNopollConnection(noPollCtx *ctx)
 	ParodusInfo("Received reboot_reason as:%s\n", get_parodus_cfg()->hw_last_reboot_reason);
 	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
 	
-	max_retry_sleep = (int) get_parodus_cfg()->webpa_backoff_max;
-	ParodusPrint("max_retry_sleep is %d\n", max_retry_sleep );
+	max_retry_count = (int) get_parodus_cfg()->webpa_backoff_max;
+	ParodusPrint("max_retry_count is %d\n", max_retry_count );
   
 	conn_ctx.nopoll_ctx = ctx;
 	init_expire_timer (&conn_ctx.connect_timer);
 	init_header_info (&conn_ctx.header_info);
 	set_extra_headers (&conn_ctx, false);
         set_server_list_null (&conn_ctx.server_list);
-        init_backoff_timer (&backoff_timer, max_retry_sleep);
+        init_backoff_timer (&backoff_timer, max_retry_count);
   
 	while (true)
 	{
