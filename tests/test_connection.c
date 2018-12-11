@@ -51,7 +51,7 @@ extern int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6);
 extern int wait_connection_ready (create_connection_ctx_t *ctx);
 extern int connect_and_wait (create_connection_ctx_t *ctx);
 extern int keep_trying_to_connect (create_connection_ctx_t *ctx, 
-	int max_retry_sleep);
+	backoff_timer_t *backoff_timer);
 
 
 /*----------------------------------------------------------------------------*/
@@ -791,6 +791,7 @@ void test_keep_trying ()
   create_connection_ctx_t ctx;
   noPollCtx test_nopoll_ctx;
   server_t test_server;
+  backoff_timer_t backoff_timer;
   ParodusCfg Cfg;
   char *test_extra_headers =
       "\r\nAuthorization: Bearer SER_MAC Fer23u948590 123567892366"
@@ -822,7 +823,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 30);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, true);
 
   test_server.allow_insecure = 0;
@@ -845,7 +847,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 30);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, true);
 
   will_return (nopoll_conn_tls_new, &connection1);
@@ -866,7 +869,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   will_return (nopoll_conn_ref_count, 0);
   expect_function_call (nopoll_conn_ref_count);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 30);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, false);
 
   mock_wait_status = 0;
@@ -874,7 +878,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_tls_new);
   will_return (checkHostIp, 0);
   expect_function_call (checkHostIp);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 30);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, false);
 
   mock_wait_status = 302;
@@ -888,7 +893,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   will_return (nopoll_conn_ref_count, 0);
   expect_function_call (nopoll_conn_ref_count);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 30);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, false);
 }
 

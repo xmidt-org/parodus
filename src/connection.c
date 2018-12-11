@@ -503,13 +503,10 @@ int connect_and_wait (create_connection_ctx_t *ctx)
 // a) success, or
 // b) need to requery dns
 int keep_trying_to_connect (create_connection_ctx_t *ctx, 
-	int max_retry_sleep)
+	backoff_timer_t *backoff_timer)
 {
-    backoff_timer_t backoff_timer;
     int rtn;
     
-    init_backoff_timer (&backoff_timer, max_retry_sleep);
-
     while (true)
     {
       rtn = connect_and_wait (ctx);
@@ -517,7 +514,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
         return true;
       if (rtn == CONN_WAIT_ACTION_RETRY) // if redirected or build_headers
         continue;
-      backoff_delay (&backoff_timer); // 3,7,15,31 ..
+      backoff_delay (backoff_timer); // 3,7,15,31 ..
       if (rtn == CONN_WAIT_RETRY_DNS)
         return false;  //find_server again
       // else retry
@@ -538,6 +535,7 @@ int createNopollConnection(noPollCtx *ctx)
   int query_dns_status;
   struct timespec connect_time,*connectTimePtr;
   connectTimePtr = &connect_time;
+  backoff_timer_t backoff_timer;
   
   if(ctx == NULL) {
         return nopoll_false;
@@ -555,6 +553,7 @@ int createNopollConnection(noPollCtx *ctx)
 	init_header_info (&conn_ctx.header_info);
 	set_extra_headers (&conn_ctx, false);
         set_server_list_null (&conn_ctx.server_list);
+        init_backoff_timer (&backoff_timer, max_retry_sleep);
   
 	while (true)
 	{
@@ -562,7 +561,7 @@ int createNopollConnection(noPollCtx *ctx)
 	  if (query_dns_status == FIND_INVALID_DEFAULT)
 		return nopoll_false;
 	  set_current_server (&conn_ctx);
-	  if (keep_trying_to_connect (&conn_ctx, max_retry_sleep))
+	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
 		break;
 	  // retry dns query
 	}
