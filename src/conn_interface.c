@@ -69,6 +69,7 @@ void createSocketConnection(void (* initKeypress)())
     bool seshat_registered = false;
     unsigned int webpa_ping_timeout_ms = 1000 * get_parodus_cfg()->webpa_ping_timeout;
     unsigned int heartBeatTimer = 0;
+    struct timespec start_svc_alive_timer;
     
     //loadParodusCfg(tmpCfg,get_parodus_cfg());
 #ifdef FEATURE_DNS_QUERY
@@ -93,13 +94,13 @@ void createSocketConnection(void (* initKeypress)())
     }
     packMetaData();
     
-    UpStreamMsgQ = NULL;
+    UpStreamMsgQ = NULL;    
     StartThread(handle_upstream);
     StartThread(processUpstreamMessage);
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask);
-    StartThread(serviceAliveTask);
-	StartThread(CRUDHandlerTask);
+    /* StartThread(serviceAliveTask); */
+    StartThread(CRUDHandlerTask);
 
     if (NULL != initKeypress) 
     {
@@ -108,6 +109,8 @@ void createSocketConnection(void (* initKeypress)())
 
     seshat_registered = __registerWithSeshat();
     
+    clock_gettime(CLOCK_REALTIME, &start_svc_alive_timer);
+
     do
     {
         struct timespec start, stop, diff;
@@ -168,6 +171,12 @@ void createSocketConnection(void (* initKeypress)())
 				reset_cloud_disconnect_reason(get_parodus_cfg());
             }
             createNopollConnection(ctx);
+        }
+        clock_gettime(CLOCK_REALTIME, &stop);
+        timespec_diff(&start_svc_alive_timer, &stop, &diff);
+        if (diff.tv_sec >= 30) {
+                serviceAliveTask ();
+                start_svc_alive_timer.tv_sec += 30;
         }
        } while(!get_close_retry() && !g_shutdown);
 

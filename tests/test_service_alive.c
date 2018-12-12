@@ -134,7 +134,10 @@ static void *keep_alive_thread()
 	//ParodusPrint("keep_alive threadId is %d\n", threadId);
 	sleep(2);
 	ParodusPrint("Starting serviceAliveTask..\n");
-	serviceAliveTask();
+	while (true) {
+	  serviceAliveTask();
+	  sleep (30);
+	}
 	return 0;
 }
 
