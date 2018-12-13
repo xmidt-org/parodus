@@ -36,7 +36,7 @@ extern server_t *get_current_server (server_list_t *server_list);
 extern int parse_server_url (const char *full_url, server_t *server);
 extern void init_expire_timer (expire_timer_t *timer);
 extern int check_timer_expired (expire_timer_t *timer, long timeout_ms);
-extern void init_backoff_timer (backoff_timer_t *timer, int max_delay);
+extern void init_backoff_timer (backoff_timer_t *timer, int max_count);
 extern int update_backoff_delay (backoff_timer_t *timer);
 extern int init_header_info (header_info_t *header_info);
 extern void free_header_info (header_info_t *header_info);
@@ -51,7 +51,7 @@ extern int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6);
 extern int wait_connection_ready (create_connection_ctx_t *ctx);
 extern int connect_and_wait (create_connection_ctx_t *ctx);
 extern int keep_trying_to_connect (create_connection_ctx_t *ctx, 
-	int max_retry_sleep);
+	backoff_timer_t *backoff_timer);
 
 
 /*----------------------------------------------------------------------------*/
@@ -301,12 +301,12 @@ void test_expire_timer()
 void test_backoff_delay_timer()
 {
   backoff_timer_t btimer;
-  init_backoff_timer (&btimer, 30);
+  init_backoff_timer (&btimer, 5);
   assert_int_equal (3, update_backoff_delay (&btimer));
   assert_int_equal (7, update_backoff_delay (&btimer));
   assert_int_equal (15, update_backoff_delay (&btimer));
-  assert_int_equal (30, update_backoff_delay (&btimer));
-  assert_int_equal (30, update_backoff_delay (&btimer));
+  assert_int_equal (31, update_backoff_delay (&btimer));
+  assert_int_equal (31, update_backoff_delay (&btimer));
 }
 
 
@@ -791,6 +791,7 @@ void test_keep_trying ()
   create_connection_ctx_t ctx;
   noPollCtx test_nopoll_ctx;
   server_t test_server;
+  backoff_timer_t backoff_timer;
   ParodusCfg Cfg;
   char *test_extra_headers =
       "\r\nAuthorization: Bearer SER_MAC Fer23u948590 123567892366"
@@ -822,7 +823,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 5);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, true);
 
   test_server.allow_insecure = 0;
@@ -845,7 +847,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 5);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, true);
 
   will_return (nopoll_conn_tls_new, &connection1);
@@ -866,7 +869,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   will_return (nopoll_conn_ref_count, 0);
   expect_function_call (nopoll_conn_ref_count);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 5);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, false);
 
   mock_wait_status = 0;
@@ -874,7 +878,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_tls_new);
   will_return (checkHostIp, 0);
   expect_function_call (checkHostIp);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 5);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, false);
 
   mock_wait_status = 302;
@@ -888,7 +893,8 @@ void test_keep_trying ()
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   will_return (nopoll_conn_ref_count, 0);
   expect_function_call (nopoll_conn_ref_count);
-  rtn = keep_trying_to_connect (&ctx, 30);
+  init_backoff_timer (&backoff_timer, 5);
+  rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, false);
 }
 
