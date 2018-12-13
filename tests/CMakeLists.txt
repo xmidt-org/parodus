@@ -219,7 +219,8 @@ target_link_libraries (test_upstream -lcmocka gcov -lcunit -lcimplog
 #   test_downstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_downstream COMMAND ${MEMORY_CHECK} ./test_downstream)
-add_executable(test_downstream test_downstream.c ../src/downstream.c ../src/string_helpers.c)
+add_executable(test_downstream test_downstream.c ../src/downstream.c 
+  ../src/string_helpers.c)
 target_link_libraries (test_downstream -lcmocka gcov -lcunit -lcimplog
  -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
