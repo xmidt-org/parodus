@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Partner-id comparison made case insensitive
 - Reverted from NNG to nanomag (v1.1.2)
 - reverted temporary CMake reference to https://github.com/bill1600/seshat
+- Added log for time difference of parodus connect time and boot time
+- added NULL check for device mac id in upstream retrieve message handling
+- backoff retry to include find_servers in loop (connection.c)
+- backoff max is max count not max delay
 - used mutex protection to make client list and nn_sends thread safe
 
 
