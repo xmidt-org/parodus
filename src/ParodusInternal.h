@@ -106,7 +106,8 @@ typedef struct {
 
 //--- Used in connection.c for backoff delay timer
 typedef struct {
-  int max_delay;
+  int count;
+  int max_count;
   int delay;
 } backoff_timer_t;
 

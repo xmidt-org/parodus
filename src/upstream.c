@@ -226,12 +226,11 @@ void *processUpstreamMessage()
                 {
                     ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                     //Extract serviceName and url & store it in a linked list for reg_clients
-                    pthread_mutex_lock (get_global_client_mut());
+                    temp = get_global_node();
                     if(get_numOfClients() !=0)
                     {
                         matchFlag = 0;
                         ParodusPrint("matchFlag reset to %d\n", matchFlag);
-                        temp = get_global_node();
                         while(temp!=NULL)
                         {
                             if(strcmp(temp->service_name, msg->u.reg.service_name)==0)
@@ -290,7 +289,7 @@ void *processUpstreamMessage()
                             ParodusPrint("sent auth status to reg client\n");
                         }
                     }
-                    pthread_mutex_unlock (get_global_client_mut());
+                    release_global_node ();
                 }
                 else if(msgType == WRP_MSG_TYPE__EVENT)
                 {
@@ -347,48 +346,55 @@ void *processUpstreamMessage()
 								Expecting dest format as mac:xxxxxxxxxxxx/parodus/cloud-status
 								Parse dest field and check destService is "parodus" and destApplication is "cloud-status"
 							*/
-							if(macId != NULL && destService != NULL && destApplication != NULL && strcmp(destService,"parodus")== 0 && strcmp(destApplication,"cloud-status")== 0)
-							{
-								retrieve_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
-								memset(retrieve_msg, 0, sizeof(wrp_msg_t));
-								retrieve_msg->msg_type = msg->msg_type;
-								retrieve_msg->u.crud.transaction_uuid = strdup(msg->u.crud.transaction_uuid);
-								retrieve_msg->u.crud.source = strdup(msg->u.crud.source);
-								retrieve_msg->u.crud.dest = strdup(msg->u.crud.dest);
-								addCRUDmsgToQueue(retrieve_msg);
-							}
-							else if(sourceService != NULL && sourceApplication != NULL && strcmp(sourceService,"parodus")== 0 && strcmp(sourceApplication,"cloud-status")== 0 && strncmp(msg->u.crud.dest,"mac:", 4)==0)
-							{
-								/*  Handle cloud-status retrieve response here to send it to registered client
-									Expecting src format as mac:xxxxxxxxxxxx/parodus/cloud-status and dest as mac:
-									Parse src field and check sourceService is "parodus" and sourceApplication is "cloud-status"
-								*/
-								serviceName = wrp_get_msg_element(WRP_ID_ELEMENT__SERVICE, msg, DEST);
-								if ( serviceName != NULL)
+							if(macId != NULL)
+						    	{
+								if(destService != NULL && destApplication != NULL && strcmp(destService,"parodus")== 0 && strcmp(destApplication,"cloud-status")== 0)
 								{
-									//Send Client cloud-status response back to registered client
-									ParodusInfo("Sending cloud-status response to %s client\n",serviceName);
-									sendStatus=sendMsgtoRegisteredClients(serviceName,(const char **)&message->msg,message->len);
-									if(sendStatus ==1)
+									retrieve_msg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+									memset(retrieve_msg, 0, sizeof(wrp_msg_t));
+									retrieve_msg->msg_type = msg->msg_type;
+									retrieve_msg->u.crud.transaction_uuid = strdup(msg->u.crud.transaction_uuid);
+									retrieve_msg->u.crud.source = strdup(msg->u.crud.source);
+									retrieve_msg->u.crud.dest = strdup(msg->u.crud.dest);
+									addCRUDmsgToQueue(retrieve_msg);
+								}
+								else if(sourceService != NULL && sourceApplication != NULL && strcmp(sourceService,"parodus")== 0 && strcmp(sourceApplication,"cloud-status")== 0 && strncmp(msg->u.crud.dest,"mac:", 4)==0)
+								{
+									/*  Handle cloud-status retrieve response here to send it to registered client
+										Expecting src format as mac:xxxxxxxxxxxx/parodus/cloud-status and dest as mac:
+										Parse src field and check sourceService is "parodus" and sourceApplication is "cloud-status"
+									*/
+									serviceName = wrp_get_msg_element(WRP_ID_ELEMENT__SERVICE, msg, DEST);
+									if ( serviceName != NULL)
 									{
-										ParodusInfo("Send upstreamMsg successfully to registered client %s\n", serviceName);
+										//Send Client cloud-status response back to registered client
+										ParodusInfo("Sending cloud-status response to %s client\n",serviceName);
+										sendStatus=sendMsgtoRegisteredClients(serviceName,(const char **)&message->msg,message->len);
+										if(sendStatus ==1)
+										{
+											ParodusInfo("Send upstreamMsg successfully to registered client %s\n", serviceName);
+										}
+										else
+										{
+											ParodusError("Failed to send upstreamMsg to registered client %s\n", serviceName);
+										}
+										free(serviceName);
+										serviceName = NULL;
 									}
 									else
 									{
-										ParodusError("Failed to send upstreamMsg to registered client %s\n", serviceName);
+										ParodusError("serviceName is NULL,not sending cloud-status response to client\n");
 									}
-									free(serviceName);
-									serviceName = NULL;
 								}
 								else
 								{
-									ParodusError("serviceName is NULL,not sending cloud-status response to client\n");
+									ParodusInfo("sendUpstreamMsgToServer \n");
+									sendUpstreamMsgToServer(&message->msg, message->len);
 								}
 							}
 							else
 							{
-								ParodusInfo("sendUpstreamMsgToServer \n");
-								sendUpstreamMsgToServer(&message->msg, message->len);
+								ParodusError("MAC is null, not handling retrieve wrp message \n");
 							}
 							if(sourceService !=NULL)
 							{

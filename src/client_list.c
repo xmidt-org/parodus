@@ -38,13 +38,15 @@ pthread_mutex_t client_mut=PTHREAD_MUTEX_INITIALIZER;
 
 reg_list_item_t * get_global_node(void)
 {
+    pthread_mutex_lock (&client_mut);
     return g_head;
 }
 
-pthread_mutex_t *get_global_client_mut(void)
+void release_global_node (void)
 {
-    return &client_mut;
+    pthread_mutex_unlock (&client_mut);
 }
+
 
 int get_numOfClients()
 {
@@ -241,7 +243,6 @@ int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
 {
 	int bytes =0;
 	reg_list_item_t *temp = NULL;
-	pthread_mutex_lock (&client_mut);
 	temp = get_global_node();
 	//Checking for individual clients & Sending msg to registered client
 	while (NULL != temp)
@@ -251,7 +252,7 @@ int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
 		if( strcmp(dest, temp->service_name) == 0)
 		{
 			bytes = nn_send(temp->sock, *Msg, msgSize, 0);
-			pthread_mutex_unlock (&client_mut);
+			release_global_node ();
 			ParodusInfo("sent downstream message to reg_client '%s'\n", temp->url);
 			ParodusPrint("downstream bytes sent:%d\n", bytes);
 			return 1;
@@ -259,6 +260,6 @@ int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
 		ParodusPrint("checking the next item in the list\n");
 		temp= temp->next;
 	}
-	pthread_mutex_unlock (&client_mut);
+	release_global_node ();
 	return 0;
 }
