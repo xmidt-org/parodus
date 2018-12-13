@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - backoff retry to include find_servers in loop (connection.c)
 - backoff max is max count not max delay
 - used mutex protection to make client list and nn_sends thread safe
-
+- put mutex lock into get_global_node
 
 ## [1.0.1] - 2018-07-18
 ### Added
