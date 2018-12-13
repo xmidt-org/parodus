@@ -121,7 +121,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         
                         free(destVal);
 
-                        pthread_mutex_lock (get_global_client_mut());
                         temp = get_global_node();
                         //Checking for individual clients & Sending to each client
 
@@ -141,7 +140,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                             ParodusPrint("checking the next item in the list\n");
                             temp= temp->next;
                         }
-                        pthread_mutex_unlock (get_global_client_mut());
+                        release_global_node ();
 
 						/* check Downstream dest for CRUD requests */
 						if(destFlag ==0 && strcmp("parodus", dest)==0)

@@ -226,12 +226,11 @@ void *processUpstreamMessage()
                 {
                     ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                     //Extract serviceName and url & store it in a linked list for reg_clients
-                    pthread_mutex_lock (get_global_client_mut());
+                    temp = get_global_node();
                     if(get_numOfClients() !=0)
                     {
                         matchFlag = 0;
                         ParodusPrint("matchFlag reset to %d\n", matchFlag);
-                        temp = get_global_node();
                         while(temp!=NULL)
                         {
                             if(strcmp(temp->service_name, msg->u.reg.service_name)==0)
@@ -290,7 +289,7 @@ void *processUpstreamMessage()
                             ParodusPrint("sent auth status to reg client\n");
                         }
                     }
-                    pthread_mutex_unlock (get_global_client_mut());
+                    release_global_node ();
                 }
                 else if(msgType == WRP_MSG_TYPE__EVENT)
                 {

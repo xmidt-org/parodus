@@ -73,7 +73,7 @@ void test_client_addtolist()
 		CU_ASSERT_STRING_EQUAL( temp->service_name, message->u.reg.service_name );
 		CU_ASSERT_STRING_EQUAL( temp->url, message->u.reg.url );
 	}
-
+	release_global_node ();
 	wrp_free_struct(message);
 	free(bytes);
 	ParodusInfo("test_client_addtolist done..\n");	
@@ -206,7 +206,7 @@ void test_addtolist_multiple_clients()
 		CU_ASSERT_STRING_EQUAL( temp->url, message->u.reg.url );
 		
 	}
-
+	release_global_node ();
 	wrp_free_struct(message);
 	free(bytes);
 	ParodusInfo("test_addtolist_multiple_clients done..\n");	
