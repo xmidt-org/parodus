@@ -37,7 +37,7 @@
 /*
  * @brief To handle registered services to indicate that the service is still alive.
  */
-void *serviceAliveTask()
+int serviceAliveTask()
 {
 	void *svc_bytes;
 	wrp_msg_t svc_alive_msg;
@@ -52,11 +52,10 @@ void *serviceAliveTask()
         if(nbytes < 0)
         {
                 ParodusError(" Failed to encode wrp struct returns %d\n", nbytes);
+		return -1;
         }
         else
         {
-	        while(1)
-	        {
 		        ParodusPrint("serviceAliveTask: numOfClients registered is %d\n", get_numOfClients());
 		        temp = get_global_node();
 		        if(get_numOfClients() > 0)
@@ -93,15 +92,12 @@ void *serviceAliveTask()
 			        }
 				release_global_node ();
 		         	ParodusPrint("Waiting for 30s to send keep alive msg \n");
-		         	sleep(KEEPALIVE_INTERVAL_SEC);
 	            	}
 	            	else
 	            	{
 				release_global_node ();
 	            		ParodusInfo("No clients are registered, waiting ..\n");
-	            		sleep(50);
 	            	}
-	        }
 	}
 	return 0;
 }

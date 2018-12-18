@@ -103,9 +103,9 @@ void *messageHandlerTask()
     return NULL;
 }
 
-void *serviceAliveTask()
+int serviceAliveTask()
 {
-    return NULL;
+    return 0;
 }
 
 int nopoll_loop_wait(noPollCtx * ctx,long timeout)
@@ -224,7 +224,7 @@ void test_createSocketConnection()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 5);
+    expect_function_calls(StartThread, 4);
     expect_function_call(initKeypress);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
@@ -260,7 +260,7 @@ void test_createSocketConnection1()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 5);
+    expect_function_calls(StartThread, 4);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
@@ -310,7 +310,7 @@ void test_PingMissIntervalTime()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 5);
+    expect_function_calls(StartThread, 4);
     //Increment ping interval time to 1 sec for each nopoll_loop_wait call
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
@@ -351,7 +351,7 @@ void err_createSocketConnection()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 5);
+    expect_function_calls(StartThread, 4);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
@@ -388,7 +388,7 @@ void test_createSocketConnection_cloud_disconn()
 	expect_function_call(createNopollConnection);
 	expect_function_call(packMetaData);
 
-	expect_function_calls(StartThread, 5);
+	expect_function_calls(StartThread, 4);
 	will_return(nopoll_loop_wait, 1);
 	expect_function_call(nopoll_loop_wait);
 
