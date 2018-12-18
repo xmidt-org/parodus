@@ -46,6 +46,7 @@ static char *reconnect_reason = "webpa_process_starts";
 static int cloud_disconnect_max_time = 5;
 static noPollConn *g_conn = NULL;
 static bool LastReasonStatus = false;
+static int init = 1;
 static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
 static char* build_extra_headers( const char *auth, const char *device_id,
                                   const char *user_agent, const char *convey );
@@ -579,9 +580,10 @@ int createNopollConnection(noPollCtx *ctx)
 	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
 
-	if(get_parodus_cfg()->boot_time != 0) {
+	if((get_parodus_cfg()->boot_time != 0) && init) {
 		getCurrentTime(connectTimePtr);
 		ParodusInfo("connect_time-diff-boot_time=%d\n", connectTimePtr->tv_sec - get_parodus_cfg()->boot_time);
+		init = 0; //set init to 0 so that this is logged only during process start up and not during reconnect
 	}
 
 	free_extra_headers (&conn_ctx);

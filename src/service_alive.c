@@ -57,10 +57,10 @@ int serviceAliveTask()
         else
         {
 		        ParodusPrint("serviceAliveTask: numOfClients registered is %d\n", get_numOfClients());
+		        temp = get_global_node();
 		        if(get_numOfClients() > 0)
 		        {
 			        //sending svc msg to all the clients every 30s
-			        temp = get_global_node();
 			        size = (size_t) nbytes;
 			        while(NULL != temp)
 			        {
@@ -90,10 +90,12 @@ int serviceAliveTask()
 					        temp= temp->next;
 				        }
 			        }
+				release_global_node ();
 		         	ParodusPrint("Waiting for 30s to send keep alive msg \n");
 	            	}
 	            	else
 	            	{
+				release_global_node ();
 	            		ParodusInfo("No clients are registered, waiting ..\n");
 	            	}
 	}

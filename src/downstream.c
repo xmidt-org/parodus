@@ -120,7 +120,8 @@ void listenerOnMessage(void * msg, size_t msgSize)
                             ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
                         
                         free(destVal);
-						temp = get_global_node();
+
+                        temp = get_global_node();
                         //Checking for individual clients & Sending to each client
 
                         while (NULL != temp)
@@ -139,6 +140,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                             ParodusPrint("checking the next item in the list\n");
                             temp= temp->next;
                         }
+                        release_global_node ();
 
 						/* check Downstream dest for CRUD requests */
 						if(destFlag ==0 && strcmp("parodus", dest)==0)

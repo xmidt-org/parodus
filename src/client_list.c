@@ -30,6 +30,7 @@
 /*----------------------------------------------------------------------------*/
 static int numOfClients = 0;
 static reg_list_item_t * g_head = NULL;
+pthread_mutex_t client_mut=PTHREAD_MUTEX_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
@@ -37,8 +38,15 @@ static reg_list_item_t * g_head = NULL;
 
 reg_list_item_t * get_global_node(void)
 {
+    pthread_mutex_lock (&client_mut);
     return g_head;
 }
+
+void release_global_node (void)
+{
+    pthread_mutex_unlock (&client_mut);
+}
+
 
 int get_numOfClients()
 {
@@ -52,6 +60,7 @@ int addToList( wrp_msg_t **msg)
     int rc = -1;
     int sock;
     int retStatus = -1;
+
     sock = nn_socket( AF_SP, NN_PUSH );
     ParodusPrint("sock created for adding entries to list: %d\n", sock);
     if(sock >= 0)
@@ -214,7 +223,7 @@ int deleteFromList(char* service_name)
 			curr_node = NULL;
 			ParodusInfo("Deleted successfully and returning..\n");
 			numOfClients =numOfClients - 1;
-			ParodusPrint("numOfClients after delte is %d\n", numOfClients);
+			ParodusPrint("numOfClients after delete is %d\n", numOfClients);
 			return 0;
 		}
 		
@@ -243,6 +252,7 @@ int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
 		if( strcmp(dest, temp->service_name) == 0)
 		{
 			bytes = nn_send(temp->sock, *Msg, msgSize, 0);
+			release_global_node ();
 			ParodusInfo("sent downstream message to reg_client '%s'\n", temp->url);
 			ParodusPrint("downstream bytes sent:%d\n", bytes);
 			return 1;
@@ -250,5 +260,6 @@ int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
 		ParodusPrint("checking the next item in the list\n");
 		temp= temp->next;
 	}
+	release_global_node ();
 	return 0;
 }

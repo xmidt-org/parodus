@@ -61,6 +61,10 @@ reg_list_item_t * get_global_node(void)
     return mock_ptr_type(reg_list_item_t *);
 }
 
+void release_global_node (void)
+{
+}
+
 ssize_t wrp_to_struct( const void *bytes, const size_t length,
                        const enum wrp_format fmt, wrp_msg_t **msg )
 {

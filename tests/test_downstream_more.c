@@ -244,6 +244,10 @@ reg_list_item_t *get_global_node(void)
     return NULL;
 }
 
+void release_global_node (void)
+{
+}
+
 void wrp_free_struct( wrp_msg_t *msg )
 {
     if( WRP_MSG_TYPE__EVENT == tests[i].s.msg_type ) {

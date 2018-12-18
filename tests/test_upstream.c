@@ -66,6 +66,10 @@ reg_list_item_t * get_global_node(void)
     return mock_ptr_type(reg_list_item_t *);
 }
 
+void release_global_node (void)
+{
+}
+
 int get_numOfClients()
 {
     function_called();
@@ -414,11 +418,11 @@ void test_processUpstreamMessageRegMsg()
     will_return(wrp_to_struct, 12);
     expect_function_call(wrp_to_struct);
 
-    will_return(get_numOfClients, 1);
-    expect_function_call(get_numOfClients);
-
     will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
+
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
 
     will_return(nn_shutdown, 1);
     expect_function_call(nn_shutdown);
@@ -472,6 +476,9 @@ void test_processUpstreamMessageRegMsgNoClients()
 
     will_return(wrp_to_struct, 12);
     expect_function_call(wrp_to_struct);
+
+    will_return(get_global_node, (intptr_t)head);
+    expect_function_call(get_global_node);
 
     will_return(get_numOfClients, 0);
     expect_function_call(get_numOfClients);
@@ -570,11 +577,11 @@ void err_processUpstreamMessageRegMsg()
     will_return(wrp_to_struct, 12);
     expect_function_call(wrp_to_struct);
 
-    will_return(get_numOfClients, 1);
-    expect_function_call(get_numOfClients);
-
     will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
+
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
 
     will_return(nn_shutdown, -1);
     expect_function_call(nn_shutdown);
