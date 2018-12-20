@@ -1,0 +1,15 @@
+258c258
+< 			nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "unable to resolve host name %s, errno=%d", host, errno);
+---
+> 			nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "unable to resolve host name %s, errno=%d", host, errno);
+269c269
+< 			nopoll_log (ctx, NOPOLL_LEVEL_DEBUG, "unable to resolve host name %s, errno=%d", host, errno);
+---
+> 			nopoll_log (ctx, NOPOLL_LEVEL_CRITICAL, "unable to resolve host name %s, errno=%d", host, errno);
+337,339d336
+< 		        shutdown (session, SHUT_RDWR);
+<                         nopoll_close_socket (session);
+< 
+341a339,340
+> 		        shutdown (session, SHUT_RDWR);
+>                         nopoll_close_socket (session);
