@@ -69,7 +69,7 @@ int checkHostIp(char * serverIP)
 	retVal = getaddrinfo(serverIP, "http", &hints, &result);
 	if (retVal != 0) 
 	{
-		ParodusError("getaddrinfo: %s\n", gai_strerror(retVal));
+		ParodusError("getaddrinfo: server %s: %s\n", serverIP, gai_strerror(retVal));
 	}
 	else
 	{
