@@ -23,6 +23,7 @@ set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(INCLUDE_UCRESOLV ${PREFIX_DIR}/ucresolv/src/ucresolv/include)
+set(RESOLV_SRC ${PREFIX_DIR}/ucresolv/src/ucresolv/src)
 set(PATCHES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/patches)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
@@ -204,6 +205,7 @@ ExternalProject_Add(ucresolv
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/ucresolv
     GIT_REPOSITORY https://github.com/Comcast/libucresolv.git
     GIT_TAG "1.0.0"
+    PATCH_COMMAND patch ${RESOLV_SRC}/res_init.c < ${PATCHES_DIR}/resolv.patch
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
 )
 add_library(libucresolv STATIC SHARED IMPORTED)

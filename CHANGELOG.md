@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - used mutex protection to make client list and nn_sends thread safe
 - put mutex lock into get_global_node
 - change svc alive from a thread to a function called every 30 sec from main
+- patched usresolv so it uses option RES_USEVC and does not call send_dg
 
 ## [1.0.1] - 2018-07-18
 ### Added

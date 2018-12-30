@@ -1,0 +1,2 @@
+409a410
+> 	statp->options |= RES_USEVC;
