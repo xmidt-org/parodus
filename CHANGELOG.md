@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - added NULL check for device mac id in upstream retrieve message handling
 - backoff retry to include find_servers in loop (connection.c)
 - backoff max is max count not max delay
+- Fixed memory leak in upstream event message flow
 
 ## [1.0.1] - 2018-07-18
 ### Added
