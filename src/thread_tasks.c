@@ -43,6 +43,10 @@ void *messageHandlerTask()
         }
         else
         {
+            if (g_shutdown) {
+                pthread_mutex_unlock (&g_mutex);
+                break;
+            }
             ParodusPrint("Before pthread cond wait in consumer thread\n");
             pthread_cond_wait(&g_cond, &g_mutex);
             pthread_mutex_unlock (&g_mutex);

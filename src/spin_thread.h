@@ -24,6 +24,8 @@
 #ifndef _SPIN_THREAD_H_
 #define _SPIN_THREAD_H_
 
+#include <pthread.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -32,7 +34,7 @@ extern "C" {
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-void StartThread(void *(*start_routine) (void *));
+void StartThread(void *(*start_routine) (void *), pthread_t *threadId);
 
 
 #ifdef __cplusplus

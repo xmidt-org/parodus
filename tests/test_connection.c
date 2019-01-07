@@ -63,6 +63,7 @@ bool LastReasonStatus;
 pthread_mutex_t close_mut;
 
 // Mock values
+bool g_shutdown = false;
 char *mock_server_addr;
 unsigned int mock_port;
 int mock_wait_status;

@@ -158,6 +158,19 @@ extern void read_key_from_file (const char *fname, char *buf, size_t buflen);
 extern const char *get_tok (const char *src, int delim, char *result, int resultsize);
 extern unsigned int get_algo_mask (const char *algo_str);
 
+pthread_mutex_t crud_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t crud_con=PTHREAD_COND_INITIALIZER;
+
+pthread_cond_t *get_global_crud_con(void)
+{
+    return &crud_con;
+}
+
+pthread_mutex_t *get_global_crud_mut(void)
+{
+    return &crud_mut;
+}
+
 void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
 {
 	(void)crudMsg;

@@ -23,6 +23,7 @@ set(INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}/_install)
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/_prefix)
 set(INCLUDE_DIR ${INSTALL_DIR}/include)
 set(INCLUDE_UCRESOLV ${PREFIX_DIR}/ucresolv/src/ucresolv/include)
+set(NOPOLL_SRC ${PREFIX_DIR}/nopoll/src/nopoll/src)
 set(PATCHES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/patches)
 set(LIBRARY_DIR ${INSTALL_DIR}/lib)
 set(LIBRARY_DIR64 ${INSTALL_DIR}/lib64)
@@ -85,6 +86,7 @@ ExternalProject_Add(nopoll
     PREFIX ${PREFIX_DIR}/nopoll
     GIT_REPOSITORY https://github.com/Comcast/nopoll.git
     GIT_TAG "1.0.1"
+    PATCH_COMMAND patch ${NOPOLL_SRC}/nopoll_conn.c < ${PATCHES_DIR}/nopoll_conn.patch
     CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/autogen.sh --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}
@@ -190,8 +192,9 @@ endif (ENABLE_SESHAT)
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cjwt
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/cjwt
-    GIT_REPOSITORY https://github.com/Comcast/cjwt.git
-    GIT_TAG "1.0.1"
+    GIT_REPOSITORY https://github.com/bill1600/cjwt.git
+    GIT_TAG "7b3240f9278072ce0ec64c79fdf2bc38e20bda06"
+    #GIT_TAG "1.0.1"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
 add_library(libcjwt STATIC SHARED IMPORTED)

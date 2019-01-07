@@ -30,6 +30,7 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+bool g_shutdown  = false;
 ParodusMsg *ParodusMsgQ;
 pthread_mutex_t g_mutex;
 pthread_cond_t g_cond;

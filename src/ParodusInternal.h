@@ -50,7 +50,8 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 #define UNUSED(x) (void )(x)
-#define NANOMSG_SOCKET_TIMEOUT_MSEC                      2000
+#define NANO_SOCKET_SEND_TIMEOUT_MS                     2000
+#define NANO_SOCKET_RCV_TIMEOUT_MS			500
 
 #ifndef TEST
 #define FOREVER()   1
@@ -133,6 +134,7 @@ typedef struct {
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+extern bool g_shutdown;
 extern ParodusMsg *ParodusMsgQ;
 int numLoops;
 /*----------------------------------------------------------------------------*/

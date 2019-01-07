@@ -38,6 +38,7 @@
 /*----------------------------------------------------------------------------*/
 static noPollConn *conn;
 static char *reconnect_reason = "webpa_process_starts";
+bool g_shutdown  = false;
 static ParodusCfg parodusCfg;
 extern size_t metaPackSize;
 extern UpStreamMsg *UpStreamMsgQ;

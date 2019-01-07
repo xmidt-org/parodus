@@ -65,7 +65,7 @@ int addToList( wrp_msg_t **msg)
     ParodusPrint("sock created for adding entries to list: %d\n", sock);
     if(sock >= 0)
     {
-            int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
+            int t = NANO_SOCKET_SEND_TIMEOUT_MS;
             rc = nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
             if(rc < 0)
             {
@@ -232,6 +232,22 @@ int deleteFromList(char* service_name)
 	}
 	ParodusError("Could not find the entry to delete from list\n");
 	return -1;
+}
+
+void deleteAllClients (void)
+{
+  reg_list_item_t *next_node = NULL;
+
+  while (NULL != g_head)
+  {
+    next_node = g_head->next;
+    free (g_head);
+    g_head = next_node;
+  }
+  if (numOfClients > 0) {
+    ParodusInfo ("Deleted %d clients\n", numOfClients);
+    numOfClients = 0;
+  }
 }
 
 /*

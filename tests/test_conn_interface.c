@@ -35,8 +35,10 @@
 /*----------------------------------------------------------------------------*/
 UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
-pthread_mutex_t nano_mut;
-pthread_cond_t nano_con;
+pthread_mutex_t g_mutex=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t g_cond=PTHREAD_COND_INITIALIZER;
+pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 
  
 /*----------------------------------------------------------------------------*/
@@ -203,6 +205,10 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
    UNUSED(stop);
    diff->tv_sec = 1;
    diff->tv_nsec = 1000;
+}
+
+void deleteAllClients (void)
+{
 }
 
 /*----------------------------------------------------------------------------*/
