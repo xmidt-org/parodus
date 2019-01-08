@@ -516,34 +516,58 @@ void test_nopoll_connect ()
   test_server.allow_insecure = 1;
   will_return (nopoll_conn_new_opts, NULL);
   expect_function_call (nopoll_conn_new_opts);
-  will_return (checkHostIp, 0);
-  expect_function_call (checkHostIp);
+  //will_return (checkHostIp, 0);
+  //expect_function_call (checkHostIp);
   assert_int_equal (nopoll_connect (&ctx, true), 0);
   assert_ptr_equal(NULL, get_global_conn());
   
   test_server.allow_insecure = 0;
   will_return (nopoll_conn_tls_new6, NULL);
   expect_function_call (nopoll_conn_tls_new6);
+  //will_return (checkHostIp, 0);
+  //expect_function_call (checkHostIp);
+  assert_int_equal (nopoll_connect (&ctx, true), 0);
+  assert_ptr_equal(NULL, get_global_conn());
+
+  will_return (nopoll_conn_tls_new, NULL);
+  expect_function_call (nopoll_conn_tls_new);
   will_return (checkHostIp, 0);
   expect_function_call (checkHostIp);
-  assert_int_equal (nopoll_connect (&ctx, true), 0);
+  assert_int_equal (nopoll_connect (&ctx, false), 0);
   assert_ptr_equal(NULL, get_global_conn());
 
   will_return (nopoll_conn_tls_new6, NULL);
   expect_function_call (nopoll_conn_tls_new6);
+  //will_return (checkHostIp, -2);
+  //expect_function_call (checkHostIp);
+  assert_int_equal (nopoll_connect (&ctx, true), 0);
+  assert_ptr_equal(NULL, get_global_conn());
+
+  will_return (nopoll_conn_tls_new, NULL);
+  expect_function_call (nopoll_conn_tls_new);
   will_return (checkHostIp, -2);
   expect_function_call (checkHostIp);
-  assert_int_equal (nopoll_connect (&ctx, true), 0);
+  assert_int_equal (nopoll_connect (&ctx, false), 0);
   assert_ptr_equal(NULL, get_global_conn());
 
   will_return (nopoll_conn_tls_new6, NULL);
   expect_function_call (nopoll_conn_tls_new6);
+  //will_return (checkHostIp, -2);
+  //expect_function_call (checkHostIp);
+  //ctx.connect_timer.start_time.tv_sec -= (15*60);
+  //will_return(kill, 1);
+  //expect_function_call(kill);
+  assert_int_equal (nopoll_connect (&ctx, true), 0);
+  assert_ptr_equal(NULL, get_global_conn());
+
+  will_return (nopoll_conn_tls_new, NULL);
+  expect_function_call (nopoll_conn_tls_new);
   will_return (checkHostIp, -2);
   expect_function_call (checkHostIp);
   ctx.connect_timer.start_time.tv_sec -= (15*60);
   will_return(kill, 1);
   expect_function_call(kill);
-  assert_int_equal (nopoll_connect (&ctx, true), 0);
+  assert_int_equal (nopoll_connect (&ctx, false), 0);
   assert_ptr_equal(NULL, get_global_conn());
 
   init_expire_timer (&ctx.connect_timer);
@@ -715,8 +739,8 @@ void test_connect_and_wait ()
   test_server.allow_insecure = 0;
   will_return (nopoll_conn_tls_new6, NULL);
   expect_function_call (nopoll_conn_tls_new6);
-  will_return (checkHostIp, 0);
-  expect_function_call (checkHostIp);
+  //will_return (checkHostIp, 0);
+  //expect_function_call (checkHostIp);
   assert_int_equal (connect_and_wait (&ctx), CONN_WAIT_RETRY_DNS);
   
   Cfg.flags = 0;
@@ -724,8 +748,8 @@ void test_connect_and_wait ()
 
   will_return (nopoll_conn_tls_new6, NULL);
   expect_function_call (nopoll_conn_tls_new6);
-  will_return (checkHostIp, 0);
-  expect_function_call (checkHostIp);
+  //will_return (checkHostIp, 0);
+  //expect_function_call (checkHostIp);
   will_return (nopoll_conn_tls_new, NULL);
   expect_function_call (nopoll_conn_tls_new);
   will_return (checkHostIp, 0);

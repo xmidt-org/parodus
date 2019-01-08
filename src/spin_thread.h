@@ -35,7 +35,7 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 
 void StartThread(void *(*start_routine) (void *), pthread_t *threadId);
-
+void JoinThread (pthread_t threadId);
 
 #ifdef __cplusplus
 }

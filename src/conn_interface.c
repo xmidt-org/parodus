@@ -196,10 +196,10 @@ void createSocketConnection(void (* initKeypress)())
     pthread_mutex_unlock (get_global_nano_mut());
 
     ParodusInfo ("joining threads\n");
-    pthread_join (upstream_tid, NULL);
-    pthread_join (downstream_tid, NULL);
-    pthread_join (upstream_msg_tid, NULL);
-    pthread_join (crud_tid, NULL);
+    JoinThread (upstream_tid);
+    JoinThread (downstream_tid);
+    JoinThread (upstream_msg_tid);
+    JoinThread (crud_tid);
 
     deleteAllClients ();
 

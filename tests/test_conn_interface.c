@@ -158,10 +158,16 @@ void set_global_conn(noPollConn *conn)
     function_called();
 }
 
-void StartThread(void *(*start_routine) (void *))
+void StartThread(void *(*start_routine) (void *), pthread_t *threadId)
 {
     UNUSED(start_routine);
+    UNUSED(threadId);
     function_called(); 
+}
+
+void JoinThread (pthread_t threadId)
+{
+    UNUSED(threadId);
 }
 
 noPollCtx* nopoll_ctx_new(void)
