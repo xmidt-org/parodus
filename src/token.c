@@ -526,8 +526,13 @@ int allow_insecure_conn(char **server_addr, unsigned int *port)
 		insecure = TOKEN_ERR_ALGO_NOT_ALLOWED;
 	}
 
-	if (insecure >= 0) {
-		ParodusInfo ("JWT claims: %s\n", cJSON_Print (jwt->private_claims));
+	if (insecure >= 0)
+	{
+	    char *temp = NULL;
+	    temp = cJSON_Print (jwt->private_claims);
+	    ParodusInfo ("JWT claims: %s\n", temp);
+	    free(temp);
+	    temp = NULL;
 	}
 	cjwt_destroy(&jwt);
 	
