@@ -229,6 +229,12 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         free(resp_msg);
                         ParodusPrint("free for downstream decoded msg\n");
                         wrp_free_struct(message);
+                        message = NULL;
+                    }
+                    if(msgType == WRP_MSG_TYPE__REQ && message != NULL)
+                    {
+                        wrp_free_struct(message);
+                        message = NULL;
                     }
                     break;
                 }
