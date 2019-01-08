@@ -72,7 +72,7 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length,
     function_called();
     *msg = (wrp_msg_t*) malloc(sizeof(wrp_msg_t));
     memset(*msg, 0, sizeof(wrp_msg_t));
-	(*msg)->msg_type = WRP_MSG_TYPE__REQ;
+	(*msg)->msg_type = WRP_MSG_TYPE__REQ;   
 	(*msg)->u.req.dest = (char *) malloc(sizeof(char) *100);
 	(*msg)->u.req.partner_ids = (partners_t *) malloc(sizeof(partners_t));
 	(*msg)->u.req.partner_ids->count = 1;
@@ -83,8 +83,10 @@ ssize_t wrp_to_struct( const void *bytes, const size_t length,
 	{
 			(*msg)->msg_type = WRP_MSG_TYPE__CREATE;
 			parStrncpy((*msg)->u.crud.dest,"mac:1122334455/parodus", 100);
-			(*msg)->u.crud.source = "tag-update";
-			(*msg)->u.crud.transaction_uuid = "1234";
+                        (*msg)->u.crud.source = (char *) malloc(sizeof(char) *40);
+			parStrncpy ((*msg)->u.crud.source, "tag-update", 40);
+                        (*msg)->u.crud.transaction_uuid = (char *) malloc(sizeof(char) *40);
+			parStrncpy ((*msg)->u.crud.transaction_uuid, "1234", 40);
 	}
     return (ssize_t) mock();
 }
