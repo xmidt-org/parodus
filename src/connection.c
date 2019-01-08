@@ -412,9 +412,11 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
   int wait_status;
   char *redirectURL = NULL;
 
-  if(nopoll_conn_wait_for_status_until_connection_ready(get_global_conn(), 10, 
-	&wait_status, &redirectURL)) 
+  if(nopoll_conn_wait_for_status_until_connection_ready(get_global_conn(), 10, &wait_status, &redirectURL))
+  {
+     free(redirectURL);
      return WAIT_SUCCESS;
+  }
   if(wait_status == 307 || wait_status == 302 || wait_status == 303)    // only when there is a http redirect
   {
 	char *redirect_ptr = redirectURL;
