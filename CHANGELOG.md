@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - change svc alive from a thread to a function called every 30 sec from main
 - shut down tasks properly
 - fix memory leaks
+- Fixed memory leak in upstream event message flow
 
 ## [1.0.1] - 2018-07-18
 ### Added

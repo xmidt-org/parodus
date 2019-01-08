@@ -308,7 +308,7 @@ void *processUpstreamMessage()
                 {
                     ParodusInfo(" Received upstream event data: dest '%s'\n", msg->u.event.dest);
                     partners_t *partnersList = NULL;
-		    int j = 0;
+                    int j = 0;
 
                     int ret = validate_partner_id(msg, &partnersList);
                     if(ret == 1)
@@ -337,7 +337,7 @@ void *processUpstreamMessage()
                     {
                         sendUpstreamMsgToServer(&message->msg, message->len);
                     }
-		    if(partnersList != NULL)
+                    if(partnersList != NULL)
                     {
                         for(j=0; j<(int)partnersList->count; j++)
                         {
