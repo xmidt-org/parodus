@@ -27,7 +27,10 @@
 #include "partners_check.h"
 #include "ParodusInternal.h"
 #include "crud_interface.h"
-
+/*----------------------------------------------------------------------------*/
+/*                             Function Prototypes                            */
+/*----------------------------------------------------------------------------*/
+static void createNewMsgForCRUD(wrp_msg_t *message, wrp_msg_t **crudMessage );
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -42,6 +45,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 {
     int rv =0;
     wrp_msg_t *message;
+    wrp_msg_t *crudMessage= NULL;
     char* destVal = NULL;
     char dest[32] = {'\0'};
     int msgType;
@@ -155,7 +159,8 @@ void listenerOnMessage(void * msg, size_t msgSize)
 							}
 							else
 							{
-								addCRUDmsgToQueue(message);
+							    createNewMsgForCRUD(message, &crudMessage);
+							    addCRUDmsgToQueue(crudMessage);
 							}
 							destFlag =1;
 			}
@@ -243,5 +248,114 @@ void listenerOnMessage(void * msg, size_t msgSize)
         {
             ParodusError( "Failure in msgpack decoding for receivdMsg: rv is %d\n", rv );
         }
+    }
+}
+/*----------------------------------------------------------------------------*/
+/*                             Internal Functions                             */
+/*----------------------------------------------------------------------------*/
+/**
+ * @brief createNewMsgForCRUD function to create new message for processing CRUD requests
+ *
+ * @param[in] message The message received from server
+ * @param[out] crudMessage New message for processing CRUD requests
+ */
+static void createNewMsgForCRUD(wrp_msg_t *message, wrp_msg_t **crudMessage )
+{
+    wrp_msg_t *msg;
+    msg = ( wrp_msg_t * ) malloc( sizeof( wrp_msg_t ) );
+    size_t i;
+    if(msg != NULL)
+    {
+        memset( msg, 0, sizeof( wrp_msg_t ) );
+        msg->msg_type = message->msg_type;
+        if(message->u.crud.source != NULL)
+        {
+            ParodusPrint("message->u.crud.source = %s\n",message->u.crud.source);
+            msg->u.crud.source = strdup(message->u.crud.source);
+        }
+
+        if(message->u.crud.dest!= NULL)
+        {
+            ParodusPrint("message->u.crud.dest = %s\n",message->u.crud.dest);
+            msg->u.crud.dest = strdup(message->u.crud.dest);
+        }
+
+        if(message->u.crud.transaction_uuid != NULL)
+        {
+            ParodusPrint("message->u.crud.transaction_uuid = %s\n",message->u.crud.transaction_uuid);
+            msg->u.crud.transaction_uuid = strdup(message->u.crud.transaction_uuid);
+        }
+
+        if(message->u.crud.partner_ids!= NULL && message->u.crud.partner_ids->count >0)
+        {
+            msg->u.crud.partner_ids = ( partners_t * ) malloc( sizeof( partners_t ) +
+                                                              sizeof( char * ) * message->u.crud.partner_ids->count );
+            if(msg->u.crud.partner_ids != NULL)
+            {
+                msg->u.crud.partner_ids->count = message->u.crud.partner_ids->count;
+                for(i = 0; i<message->u.crud.partner_ids->count; i++)
+                {
+                    ParodusPrint("message->u.crud.partner_ids->partner_ids[%d] = %s\n",i,message->u.crud.partner_ids->partner_ids[i]);
+                    msg->u.crud.partner_ids->partner_ids[i] = strdup(message->u.crud.partner_ids->partner_ids[i]);
+                }
+            }
+        }
+
+        if(message->u.crud.headers!= NULL && message->u.crud.headers->count >0)
+        {
+            msg->u.crud.headers = ( headers_t * ) malloc( sizeof( headers_t ) +
+                                                                sizeof( char * ) * message->u.crud.headers->count );
+            if(msg->u.crud.headers != NULL)
+            {
+                msg->u.crud.headers->count = message->u.crud.headers->count;
+                for(i = 0; i<message->u.crud.headers->count; i++)
+                {
+                    ParodusPrint("message->u.crud.headers->headers[%d] = %s\n",i,message->u.crud.headers->headers[i]);
+                    msg->u.crud.headers->headers[i] = strdup(message->u.crud.headers->headers[i]);
+                }
+            }
+        }
+
+        if(message->u.crud.metadata != NULL && message->u.crud.metadata->count > 0)
+        {
+            msg->u.crud.metadata = (data_t *) malloc( sizeof( data_t ) );
+            if(msg->u.crud.metadata != NULL)
+            {
+                memset( msg->u.crud.metadata, 0, sizeof( data_t ) );
+                msg->u.crud.metadata->count = message->u.crud.metadata->count;
+                msg->u.crud.metadata->data_items = ( struct data* )malloc( sizeof( struct data ) * ( message->u.crud.metadata->count ) );
+                for(i=0; i<message->u.crud.metadata->count; i++)
+                {
+                    if(message->u.crud.metadata->data_items[i].name != NULL)
+                    {
+                        ParodusPrint("message->u.crud.metadata->data_items[%d].name : %s\n",i,message->u.crud.metadata->data_items[i].name);
+                        msg->u.crud.metadata->data_items[i].name = strdup(message->u.crud.metadata->data_items[i].name);
+                    }
+                    if(message->u.crud.metadata->data_items[i].value != NULL)
+                    {
+                        ParodusPrint("message->u.crud.metadata->data_items[%d].value : %s\n",i,message->u.crud.metadata->data_items[i].value);
+                        msg->u.crud.metadata->data_items[i].value = strdup(message->u.crud.metadata->data_items[i].value);
+                    }
+                }
+            }
+        }
+        msg->u.crud.include_spans = message->u.crud.include_spans;
+        msg->u.crud.content_type = message->u.crud.content_type;
+        msg->u.crud.spans.spans = NULL;   /* not supported */
+        msg->u.crud.spans.count = 0;     /* not supported */
+        msg->u.crud.status = message->u.crud.status;
+        msg->u.crud.rdr = message->u.crud.rdr;
+        if(message->u.crud.payload != NULL)
+        {
+            ParodusPrint("message->u.crud.payload = %s\n", (char *)message->u.crud.payload);
+            msg->u.crud.payload = strdup((char *)message->u.crud.payload);
+        }
+        msg->u.crud.payload_size = message->u.crud.payload_size;
+        if(message->u.crud.path != NULL)
+        {
+            ParodusPrint("message->u.crud.path = %s\n", message->u.crud.path);
+            msg->u.crud.path = strdup(message->u.crud.path);
+        }
+        *crudMessage = msg;
     }
 }
