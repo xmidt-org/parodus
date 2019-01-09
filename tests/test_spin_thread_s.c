@@ -23,6 +23,8 @@
 #include "../src/ParodusInternal.h"
 #include "../src/spin_thread.h"
 
+pthread_t test_tid;
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -44,7 +46,7 @@ void *_routine(void *v)
 
 void test_StartThread_success()
 {
-    StartThread(&_routine);
+    StartThread(&_routine, &test_tid);
 }
 
 void add_suites( CU_pSuite *suite )

@@ -527,7 +527,9 @@ int allow_insecure_conn(char **server_addr, unsigned int *port)
 	}
 
 	if (insecure >= 0) {
-		ParodusInfo ("JWT claims: %s\n", cJSON_Print (jwt->private_claims));
+		char *claim_str = cJSON_Print (jwt->private_claims);
+		ParodusInfo ("JWT claims: %s\n", claim_str);
+		free (claim_str);
 	}
 	cjwt_destroy(&jwt);
 	

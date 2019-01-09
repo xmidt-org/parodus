@@ -44,6 +44,16 @@ CrudMsg *crudMsgQ = NULL;
 /*                             External functions                             */
 /*----------------------------------------------------------------------------*/
 
+pthread_cond_t *get_global_crud_con(void)
+{
+    return &crud_con;
+}
+
+pthread_mutex_t *get_global_crud_mut(void)
+{
+    return &crud_mut;
+}
+
 void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
 {
 	CrudMsg * crudMessage;
@@ -122,6 +132,10 @@ void *CRUDHandlerTask()
 		}
 		else
 		{
+			if (g_shutdown) {
+			  pthread_mutex_unlock (&crud_mut);
+			  break;
+			}
 			pthread_cond_wait(&crud_con, &crud_mut);
 			pthread_mutex_unlock (&crud_mut);
 		}

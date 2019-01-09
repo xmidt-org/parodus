@@ -129,6 +129,12 @@ void *handle_upstream()
     sock = nn_socket( AF_SP, NN_PULL );
     if(sock >= 0)
     {
+        int t = NANO_SOCKET_RCV_TIMEOUT_MS;
+        int rc = nn_setsockopt(sock, NN_SOL_SOCKET, NN_RCVTIMEO, &t, sizeof(t));
+        if (rc < 0)
+        {
+            ParodusError ("Unable to set socket receive timeout (errno=%d, %s)\n",errno, strerror(errno));
+        }
         ParodusPrint("Nanomsg bind with get_parodus_cfg()->local_url  %s\n", get_parodus_cfg()->local_url);
         bind = nn_bind(sock, get_parodus_cfg()->local_url);
         if(bind < 0)
@@ -137,11 +143,18 @@ void *handle_upstream()
         }
         else
         {
+            ParodusInfo("nanomsg server gone into the listening mode...\n");
             while( FOREVER() ) 
             {
                 buf = NULL;
-                ParodusInfo("nanomsg server gone into the listening mode...\n");
                 bytes = nn_recv (sock, &buf, NN_MSG, 0);
+                if (g_shutdown)
+                  break;
+                if (bytes < 0) {
+                  if ((errno != EAGAIN) && (errno != ETIMEDOUT))
+                    ParodusInfo ("Error (%d) receiving message from nanomsg client\n", errno);
+                  continue;
+                }
                 ParodusInfo ("Upstream message received from nanomsg client\n");
                 message = (UpStreamMsg *)malloc(sizeof(UpStreamMsg));
 
@@ -245,11 +258,11 @@ void *processUpstreamMessage()
                                 temp->sock = nn_socket(AF_SP,NN_PUSH );
                                 if(temp->sock >= 0)
                                 {					
-                                    int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
+                                    int t = NANO_SOCKET_SEND_TIMEOUT_MS;
                                     rc = nn_setsockopt(temp->sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
                                     if(rc < 0)
                                     {
-                                        ParodusError ("Unable to set socket timeout (errno=%d, %s)\n",errno, strerror(errno));
+                                        ParodusError ("Unable to set socket send timeout (errno=%d, %s)\n",errno, strerror(errno));
                                     }
                                     rc = nn_connect(temp->sock, msg->u.reg.url); 
                                     if(rc < 0)
@@ -464,6 +477,10 @@ void *processUpstreamMessage()
         }
         else
         {
+            if (g_shutdown) {
+                pthread_mutex_unlock (&nano_mut);
+                break;
+            }
             ParodusPrint("Before pthread cond wait in consumer thread\n");   
             pthread_cond_wait(&nano_con, &nano_mut);
             pthread_mutex_unlock (&nano_mut);

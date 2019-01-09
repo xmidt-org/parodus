@@ -52,6 +52,11 @@
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 bool g_shutdown  = false;
+pthread_t upstream_tid;
+pthread_t upstream_msg_tid;
+pthread_t downstream_tid;
+pthread_t svc_alive_tid;
+pthread_t crud_tid;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -94,13 +99,13 @@ void createSocketConnection(void (* initKeypress)())
     }
     packMetaData();
     
-    UpStreamMsgQ = NULL;    
-    StartThread(handle_upstream);
-    StartThread(processUpstreamMessage);
+    UpStreamMsgQ = NULL;
+    StartThread(handle_upstream, &upstream_tid);
+    StartThread(processUpstreamMessage, &upstream_msg_tid);
     ParodusMsgQ = NULL;
-    StartThread(messageHandlerTask);
-    /* StartThread(serviceAliveTask); */
-    StartThread(CRUDHandlerTask);
+    StartThread(messageHandlerTask, &downstream_tid);
+    /*StartThread(serviceAliveTask, &svc_alive_tid;);*/
+    StartThread(CRUDHandlerTask, &crud_tid);
 
     if (NULL != initKeypress) 
     {
@@ -179,6 +184,24 @@ void createSocketConnection(void (* initKeypress)())
                 start_svc_alive_timer.tv_sec += 30;
         }
        } while(!get_close_retry() && !g_shutdown);
+
+    pthread_mutex_lock (get_global_crud_mut());
+    pthread_cond_signal (get_global_crud_con());
+    pthread_mutex_unlock (get_global_crud_mut());
+    pthread_mutex_lock (&g_mutex);
+    pthread_cond_signal (&g_cond);
+    pthread_mutex_unlock (&g_mutex);
+    pthread_mutex_lock (get_global_nano_mut ());
+    pthread_cond_signal (get_global_nano_con());
+    pthread_mutex_unlock (get_global_nano_mut());
+
+    ParodusInfo ("joining threads\n");
+    JoinThread (upstream_tid);
+    JoinThread (downstream_tid);
+    JoinThread (upstream_msg_tid);
+    JoinThread (crud_tid);
+
+    deleteAllClients ();
 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);

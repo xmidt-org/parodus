@@ -99,5 +99,6 @@ int serviceAliveTask()
 	            		ParodusInfo("No clients are registered, waiting ..\n");
 	            	}
 	}
+	free (svc_bytes);
 	return 0;
 }

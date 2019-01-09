@@ -75,7 +75,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 case WRP_MSG_TYPE__AUTH:
                 {
                     ParodusInfo("Authorization Status received with Status code :%d\n", message->u.auth.status);
-		    wrp_free_struct(message);
                     break;
                 }
 
@@ -142,9 +141,9 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         }
                         release_global_node ();
 
-						/* check Downstream dest for CRUD requests */
-						if(destFlag ==0 && strcmp("parodus", dest)==0)
-						{
+			/* check Downstream dest for CRUD requests */
+			if(destFlag ==0 && strcmp("parodus", dest)==0)
+			{
 							ParodusPrint("Received CRUD request : dest : %s\n", dest);
 							if ((message->u.crud.source == NULL) || (message->u.crud.transaction_uuid == NULL))
 							{
@@ -159,8 +158,8 @@ void listenerOnMessage(void * msg, size_t msgSize)
 								addCRUDmsgToQueue(message);
 							}
 							destFlag =1;
-						}
-						//if any unknown dest received sending error response to server
+			}
+			//if any unknown dest received sending error response to server
                         if(destFlag ==0)
                         {
                             ParodusError("Unknown dest:%s\n", dest);
@@ -186,14 +185,14 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         else
                         {
                             resp_msg ->u.crud.source = message->u.crud.dest;
-							if(message->u.crud.source !=NULL)
-							{
-								resp_msg ->u.crud.dest = message->u.crud.source;
-							}
-							else
-							{
-								resp_msg ->u.crud.dest = "unknown";
-							}
+				if(message->u.crud.source !=NULL)
+				{
+					resp_msg ->u.crud.dest = message->u.crud.source;
+				}
+				else
+				{
+					resp_msg ->u.crud.dest = "unknown";
+				}
                             resp_msg ->u.crud.transaction_uuid = message->u.crud.transaction_uuid;
                             resp_msg ->u.crud.path =             message->u.crud.path;
                         }
@@ -228,7 +227,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         }
                         free(resp_msg);
                         ParodusPrint("free for downstream decoded msg\n");
-                        wrp_free_struct(message);
                     }
                     break;
                 }
@@ -237,9 +235,9 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 case WRP_MSG_TYPE__SVC_ALIVE:
                 case WRP_MSG_TYPE__UNKNOWN:
                 default:
-                        wrp_free_struct(message);
                     break;
             }
+            wrp_free_struct(message);
         }
         else
         {

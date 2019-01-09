@@ -385,7 +385,7 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
            NULL, default_url,NULL,NULL);
       }      
    }
-   if (NULL == connection) {
+   if ((NULL == connection) && (!is_ipv6)) {
      if((checkHostIp(server->server_addr) == -2)) {
        if (check_timer_expired (&ctx->connect_timer, 15*60*1000)) {
   	 ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
@@ -407,6 +407,8 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
 #define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
 #define WAIT_FAIL 	2
 
+#define FREE_NON_NULL_PTR(ptr) if (NULL != ptr) free(ptr)
+
 int wait_connection_ready (create_connection_ctx_t *ctx)
 {
   int wait_status;
@@ -414,7 +416,10 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 
   if(nopoll_conn_wait_for_status_until_connection_ready(get_global_conn(), 10, 
 	&wait_status, &redirectURL)) 
+  { 
+     FREE_NON_NULL_PTR (redirectURL);
      return WAIT_SUCCESS;
+  }
   if(wait_status == 307 || wait_status == 302 || wait_status == 303)    // only when there is a http redirect
   {
 	char *redirect_ptr = redirectURL;
@@ -432,9 +437,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 	set_current_server (ctx); // set current server to redirect server
 	return WAIT_ACTION_RETRY;
   }
-  if (NULL != redirectURL) {
-    free (redirectURL);
-  }
+  FREE_NON_NULL_PTR (redirectURL);
   if(wait_status == 403) 
   {
 	ParodusError("Received Unauthorized response with status: %d\n", wait_status);
@@ -557,7 +560,7 @@ int createNopollConnection(noPollCtx *ctx)
         set_server_list_null (&conn_ctx.server_list);
         init_backoff_timer (&backoff_timer, max_retry_count);
   
-	while (true)
+	while (!g_shutdown)
 	{
 	  query_dns_status = find_servers (&conn_ctx.server_list);
 	  if (query_dns_status == FIND_INVALID_DEFAULT)

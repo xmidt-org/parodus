@@ -38,6 +38,7 @@
 /*----------------------------------------------------------------------------*/
 static noPollConn *conn;
 static char *reconnect_reason = "webpa_process_starts";
+bool g_shutdown  = false;
 static ParodusCfg parodusCfg;
 extern size_t metaPackSize;
 extern UpStreamMsg *UpStreamMsgQ;
@@ -245,6 +246,8 @@ void test_handleUpstreamNull()
     UpStreamMsgQ = NULL;
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
+    will_return(nn_setsockopt, 0);
+    expect_function_call(nn_setsockopt);
     will_return(nn_bind, 1);
     expect_function_call(nn_bind);
     will_return(nn_recv, 12);
@@ -264,6 +267,8 @@ void test_handle_upstream()
     UpStreamMsgQ->next->next = NULL;
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
+    will_return(nn_setsockopt, 0);
+    expect_function_call(nn_setsockopt);
     will_return(nn_bind, 1);
     expect_function_call(nn_bind);
     will_return(nn_recv, 12);
@@ -277,6 +282,8 @@ void err_handleUpstreamBindFailure()
 {
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
+    will_return(nn_setsockopt, 0);
+    expect_function_call(nn_setsockopt);
     will_return(nn_bind, -1);
     expect_function_call(nn_bind);
     handle_upstream();
