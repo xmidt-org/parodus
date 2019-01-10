@@ -231,7 +231,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
                             resp_bytes = NULL;
                         }
                         free(resp_msg);
-                        ParodusPrint("free for downstream decoded msg\n");
                     }
                     break;
                 }
@@ -242,7 +241,9 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 default:
                     break;
             }
+            ParodusPrint("free for downstream decoded msg\n");
             wrp_free_struct(message);
+            message = NULL;
         }
         else
         {
@@ -340,7 +341,11 @@ static void createNewMsgForCRUD(wrp_msg_t *message, wrp_msg_t **crudMessage )
             }
         }
         msg->u.crud.include_spans = message->u.crud.include_spans;
-        msg->u.crud.content_type = message->u.crud.content_type;
+        if(message->u.crud.content_type != NULL)
+        {
+            ParodusPrint("message->u.crud.content_type : %s\n",message->u.crud.content_type);
+            msg->u.crud.content_type = strdup(message->u.crud.content_type);
+        }
         msg->u.crud.spans.spans = NULL;   /* not supported */
         msg->u.crud.spans.count = 0;     /* not supported */
         msg->u.crud.status = message->u.crud.status;
