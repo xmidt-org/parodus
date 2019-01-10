@@ -85,6 +85,7 @@ ExternalProject_Add(nopoll
     PREFIX ${PREFIX_DIR}/nopoll
     GIT_REPOSITORY https://github.com/Comcast/nopoll.git
     GIT_TAG "1.0.1"
+    PATCH_COMMAND patch ${NOPOLL_SRC}/nopoll_conn.c < ${PATCHES_DIR}/nopoll_conn.patch
     CONFIGURE_COMMAND COMMAND <SOURCE_DIR>/autogen.sh --prefix=${PREFIX}
                                                      --includedir=${INCLUDE_DIR}
                                                      --libdir=${LIBRARY_DIR}

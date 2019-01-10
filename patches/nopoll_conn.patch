@@ -1,0 +1,7 @@
+337,339d336
+< 		        shutdown (session, SHUT_RDWR);
+<                         nopoll_close_socket (session);
+< 
+341a339,340
+> 		        shutdown (session, SHUT_RDWR);
+>                         nopoll_close_socket (session);

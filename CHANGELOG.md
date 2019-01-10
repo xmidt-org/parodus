@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed memory leak in upstream event message flow
 - Fixed crash in CRUD request processing
 - Fixed issue on RETRIEVE respone processing
+- Patched nopoll so that connect error logs error correctly
 
 ## [1.0.1] - 2018-07-18
 ### Added
