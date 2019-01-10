@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - shut down tasks properly
 - fix memory leaks
 - Fixed memory leak in upstream event message flow
+- Fixed crash in CRUD request processing
+- Fixed issue on RETRIEVE respone processing
 
 ## [1.0.1] - 2018-07-18
 ### Added

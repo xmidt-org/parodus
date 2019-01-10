@@ -23,13 +23,27 @@
 #include <cmocka.h>
 #include <assert.h>
 #include <wrp-c.h>
-
+#include <pthread.h>
 #include "../src/token.h"
 
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
+
+
+pthread_mutex_t crud_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t crud_con=PTHREAD_COND_INITIALIZER;
+
+pthread_cond_t *get_global_crud_con(void)
+{
+    return &crud_con;
+}
+
+pthread_mutex_t *get_global_crud_mut(void)
+{
+    return &crud_mut;
+}
 
 void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
 {
