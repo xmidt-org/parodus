@@ -32,7 +32,8 @@
 
 #define MAX_BUF_SIZE	        128
 #define MAX_TOKEN_LEN	        4096
-#define CURL_TIMEOUT_SEC	30L
+#define CURL_TIMEOUT_SEC	25L
+#define MAX_CURL_RETRY_COUNT 	4
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -618,13 +619,17 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 }
 
 /*
-* Initialize curl object with required options. create newToken using libcurl.
+* @brief Initialize curl object with required options. create newToken using libcurl.
+* @param[out] newToken auth token obtained from JWT curl response
+* @param[in] len total token size
+* @param[in] r_count Number of curl retries on ipv4 and ipv6 mode during failure
 */
 
-int createNewAuthToken(char *newToken, size_t len)
+int createNewAuthToken(char *newToken, size_t len, int r_count)
 {
 	CURL *curl;
 	CURLcode res;
+	CURLcode time_res;
 	struct curl_slist *list = NULL;
 	struct curl_slist *headers_list = NULL;
 
@@ -632,6 +637,7 @@ int createNewAuthToken(char *newToken, size_t len)
 	char *serial_header = NULL;
 	char *uuid_header = NULL;
 	char *transaction_uuid = NULL;
+	double total;
 
 	struct url_data data;
 	data.size = 0;
@@ -651,14 +657,22 @@ int createNewAuthToken(char *newToken, size_t len)
 
 		curl_easy_setopt(curl, CURLOPT_URL, TOKEN_SERVER_URL);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT_SEC);
-
+		curl_easy_setopt(curl, CURLOPT_INTERFACE, get_parodus_cfg()->webpa_interface_used);
 		/* set callback for writing received data */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_fn);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers_list);
-
-		curl_easy_setopt(curl, CURLOPT_INTERFACE, get_parodus_cfg()->webpa_interface_used);
+		if(r_count % 2 == 0)
+		{
+			ParodusInfo("Curl Ip resolve option set as V4 mode\n");
+			curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+		}
+		else
+		{
+			ParodusInfo("Curl Ip resolve option set as V6 mode\n");
+			curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+		}
 
 		/* set the cert for client authentication */
 		curl_easy_setopt(curl, CURLOPT_SSLCERT, get_parodus_cfg()->client_cert_path);
@@ -672,6 +686,11 @@ int createNewAuthToken(char *newToken, size_t len)
 		res = curl_easy_perform(curl);
 		ParodusInfo("themis curl response code is %d\n", res);
 
+		time_res = curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total);
+		if(time_res == 0)
+		{
+			ParodusInfo("curl response Time: %.1f seconds\n", total);
+		}
 		if(transaction_uuid !=NULL)
 		{
 			free(transaction_uuid);
@@ -699,11 +718,10 @@ int createNewAuthToken(char *newToken, size_t len)
 			free(data.data);
 			data.data = NULL;
 		}
-		if(res != CURLE_OK)
+		if(res != 0)
 		{
 			ParodusError("curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 			curl_easy_cleanup(curl);
-			curl_global_cleanup();
 			return -1;
 		}
 		else
@@ -722,7 +740,9 @@ int createNewAuthToken(char *newToken, size_t len)
 }
 
 /*
-* Fetches authorization token and update to parodus config
+* @brief Fetches authorization token and update to parodus config.
+  This will do curl retry in case of any failure till it reaches max curl retry count.
+ * @param[in] cfg Global parodus config structure to update webpa_auth_token
 */
 
 void getAuthToken(ParodusCfg *cfg)
@@ -735,10 +755,10 @@ void getAuthToken(ParodusCfg *cfg)
 		while(1)
 		{
 			//Fetch new auth token using libcurl
-			status = createNewAuthToken(cfg->webpa_auth_token, sizeof(cfg->webpa_auth_token));
+			status = createNewAuthToken(cfg->webpa_auth_token, sizeof(cfg->webpa_auth_token), retry_count);
 			if(status == 0)
 			{
-				ParodusInfo("cfg->webpa_auth_token created is %s\n", cfg->webpa_auth_token);
+				ParodusInfo("cfg->webpa_auth_token created successfully\n");
 				break;
 			}
 			else
@@ -748,9 +768,9 @@ void getAuthToken(ParodusCfg *cfg)
 				ParodusError("Curl execution is failed, retry attempt: %d\n", retry_count);
 			}
 
-			if(retry_count ==3)
+			if(retry_count == MAX_CURL_RETRY_COUNT)
 			{
-				ParodusError("Curl retry is reached to max 3 attempts, proceeding without token\n");
+				ParodusError("Curl retry is reached to max %d attempts, proceeding without token\n", retry_count);
 				break;
 			}
 		}
@@ -761,7 +781,12 @@ void getAuthToken(ParodusCfg *cfg)
 	}
 }
 
-/* callback function for writing libcurl received data */
+/* @brief callback function for writing libcurl received data
+ * @param[in] buffer curl delivered data which need to be saved.
+ * @param[in] size size is always 1
+ * @param[in] nmemb size of delivered data
+ * @param[out] data curl response data saved.
+*/
 size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct url_data *data)
 {
     size_t index = data->size;
@@ -788,6 +813,8 @@ size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct url_dat
     return size * nmemb;
 }
 
+/* @brief function to generate random uuid.
+*/
 char* generate_trans_uuid()
 {
 	char *transID = NULL;
@@ -804,13 +831,20 @@ char* generate_trans_uuid()
 	return transID;
 }
 
+/* @brief function to create curl header contains mac, serial number and uuid.
+ * @param[in] mac_header mac address header key value pair
+ * @param[in] serial_header serial number key value pair
+ * @param[in] uuid_header transaction uuid key value pair
+ * @param[in] list temp curl header list
+ * @param[out] header_list output curl header list
+*/
 void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list)
 {
 	mac_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
 	if(mac_header !=NULL)
 	{
 		snprintf(mac_header, MAX_BUF_SIZE, "X-Midt-Mac-Address: %s", get_parodus_cfg()->hw_mac);
-		ParodusInfo("mac_header formed %s\n", mac_header);
+		ParodusPrint("mac_header formed %s\n", mac_header);
 		list = curl_slist_append(list, mac_header);
 	}
 
@@ -818,7 +852,7 @@ void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, 
 	if(serial_header !=NULL)
 	{
 		snprintf(serial_header, MAX_BUF_SIZE, "X-Midt-Serial-Number: %s", get_parodus_cfg()->hw_serial_number);
-		ParodusInfo("serial_header formed %s\n", serial_header);
+		ParodusPrint("serial_header formed %s\n", serial_header);
 		list = curl_slist_append(list, serial_header);
 	}
 

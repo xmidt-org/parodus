@@ -121,7 +121,7 @@ struct url_data {
 /*----------------------------------------------------------------------------*/
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
-int createNewAuthToken(char *newToken, size_t len);
+int createNewAuthToken(char *newToken, size_t len, int r_count);
 
 /**
  * parse command line arguments and create config structure

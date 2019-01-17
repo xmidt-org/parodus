@@ -184,9 +184,8 @@ void test_parseCommandLine()
 #endif
 		"--force-ipv4",
 		"--force-ipv6",
-		"--token-read-script=/tmp/token.sh",
-		"--token-acquisition-script=/tmp/token.sh",
 		"--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt",
+		"--client-cert-path=../../tests/clientcert.mch",
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
 		"--dns-txt-url=mydns.mycom.net",
@@ -224,12 +223,12 @@ void test_parseCommandLine()
     assert_string_equal(  parodusCfg.seshat_url, "ipc://127.0.0.1:7777");
 #endif
     assert_int_equal( (int) parodusCfg.flags, FLAGS_IPV6_ONLY|FLAGS_IPV4_ONLY);
-    sprintf(expectedToken,"secure-token-%s-%s",parodusCfg.hw_serial_number,parodusCfg.hw_mac);
     getAuthToken(&parodusCfg);
     set_parodus_cfg(&parodusCfg);
     
     assert_string_equal(  get_parodus_cfg()->webpa_auth_token,expectedToken);
     assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
+    assert_string_equal(  parodusCfg.client_cert_path,"../../tests/clientcert.mch");
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
     assert_string_equal(parodusCfg.dns_txt_url, "mydns.mycom.net");
@@ -568,30 +567,74 @@ void test_execute_token_script()
   assert_string_equal (token, "");
 }
 
-void test_new_auth_token ()
+void getAuthToken_Null()
 {
-  char token[64];
+    ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.client_cert_path = NULL;
+    getAuthToken(&cfg);
+    set_parodus_cfg(&cfg);
+    assert( cfg.client_cert_path == NULL);
+}
+
+void test_new_auth_token_failure ()
+{
+  char token[1024];
   ParodusCfg cfg;
+  int output = -1;
   memset(&cfg,0,sizeof(cfg));
 
-  parStrncpy (cfg.token_acquisition_script, "../../tests/return_success.bsh",
-	sizeof(cfg.token_acquisition_script));
-  parStrncpy (cfg.token_read_script, "../../tests/return_ser_mac.bsh",
-	sizeof(cfg.token_read_script));
+  cfg.client_cert_path = strdup("../../tests/clientcert.mch");
+  parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
   parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
   parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
 	
   set_parodus_cfg(&cfg);
   createNewAuthToken (token, sizeof(token));
-  assert_string_equal (token, "SER_MAC Fer23u948590 123567892366");
+  assert_int_equal (output, -1);
   
-  memset (token, 0, sizeof(token));
-  parStrncpy (cfg.token_acquisition_script, "../../tests/return_failure.bsh",
-	sizeof(cfg.token_acquisition_script));
-  set_parodus_cfg(&cfg);
-  createNewAuthToken (token, sizeof(token));
-  assert_string_equal (token, "");  
 	
+}
+
+
+void test_new_auth_token ()
+{
+  char token[1024];
+  ParodusCfg cfg;
+  int output = -1;
+  memset(&cfg,0,sizeof(cfg));
+
+  cfg.client_cert_path = strdup("../../tests/clientcert.mch");
+  parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
+  parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+  parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+  parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+  set_parodus_cfg(&cfg);
+  output = createNewAuthToken (token, sizeof(token));
+  assert_int_equal (output, 0);
+  if(cfg.client_cert_path !=NULL) {
+  free(cfg.client_cert_path); }
+}
+
+void test_getAuthToken ()
+{
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+
+	cfg.client_cert_path = strdup("../../tests/clientcert.mch");
+	parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
+	parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+	parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+	parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+	set_parodus_cfg(&cfg);
+
+	getAuthToken(&cfg);
+	assert( cfg.webpa_auth_token != NULL);
+
+	if(cfg.client_cert_path !=NULL)
+	{
+		free(cfg.client_cert_path);
+	}
 }
 
 /*----------------------------------------------------------------------------*/
@@ -619,7 +662,10 @@ int main(void)
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),
         cmocka_unit_test(test_execute_token_script),
-        cmocka_unit_test(test_new_auth_token)
+        cmocka_unit_test(test_new_auth_token),
+	cmocka_unit_test(test_new_auth_token_failure),
+	cmocka_unit_test(getAuthToken_Null),
+	cmocka_unit_test(test_getAuthToken)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

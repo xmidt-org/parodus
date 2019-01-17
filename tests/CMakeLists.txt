@@ -20,7 +20,7 @@ set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../
 set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c
  -luuid -lmsgpackc -lnopoll -lnanomsg -lpthread
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
- -lssl -lcrypto -lrt -lm -lcurl -luuid)
+ -lssl -lcrypto -lrt -lm )
 
 if (ENABLE_SESHAT)
 set (PARODUS_COMMON_LIBS -llibseshat ${PARODUS_COMMON_LIBS})
@@ -123,7 +123,7 @@ set (CONN_SRC ../src/connection.c
   ../src/config.c ../src/spin_thread.c  ../src/heartBeat.c ../src/close_retry.c)
 #set(CONN_SRC ../src/connection.c ${PARODUS_COMMON_SRC})
 add_executable(test_connection test_connection.c ${CONN_SRC})
-target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
+target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
@@ -155,7 +155,7 @@ endif (ENABLE_SESHAT)
  
 add_executable(test_client_list ${CLIST_SRC})
 #target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
-target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_service_alive
@@ -172,7 +172,7 @@ endif (ENABLE_SESHAT)
 
 add_executable(test_service_alive ${SVA_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
-target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_config
@@ -203,7 +203,7 @@ target_link_libraries (test_crud_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_crud_internal COMMAND ${MEMORY_CHECK} ./test_crud_internal)
 add_executable(test_crud_internal test_crud_internal.c ../src/config.c ../src/close_retry.c ../src/string_helpers.c ../src/crud_internal.c )
-target_link_libraries (test_crud_internal -lcmocka ${PARODUS_COMMON_LIBS} )
+target_link_libraries (test_crud_internal -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_upstream
@@ -259,14 +259,14 @@ else()
 set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(test_conn_interface ${CONIFC_SRC})
-target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
+target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid )
 
 #-------------------------------------------------------------------------------
 #   test_ParodusInternal
 #-------------------------------------------------------------------------------
 add_test(NAME test_ParodusInternal COMMAND ${MEMORY_CHECK} ./test_ParodusInternal)
 add_executable(test_ParodusInternal test_ParodusInternal.c ../src/ParodusInternal.c ../src/config.c ../src/string_helpers.c)
-target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} )
+target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_partners_check
@@ -306,7 +306,7 @@ endif (FEATURE_DNS_QUERY)
 
 add_executable(test_token ${TOKEN_SRC} ) 
 #target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
-target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
+target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_seshat_interface - registerWithSeshat
