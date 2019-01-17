@@ -20,7 +20,7 @@ set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../
 set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c
  -luuid -lmsgpackc -lnopoll -lnanomsg -lpthread
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
- -lssl -lcrypto -lrt -lm)
+ -lssl -lcrypto -lrt -lm -lcurl -luuid)
 
 if (ENABLE_SESHAT)
 set (PARODUS_COMMON_LIBS -llibseshat ${PARODUS_COMMON_LIBS})
@@ -181,7 +181,7 @@ add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
 add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
 target_link_libraries (test_config -lcmocka
  -Wl,--no-as-needed -lcimplog
- -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm
+ -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
 )
 
 #-------------------------------------------------------------------------------
