@@ -20,6 +20,7 @@
 #include "config.h"
 #include "conn_interface.h"
 #include "parodus_log.h"
+#include <curl/curl.h>
 #ifdef INCLUDE_BREAKPAD
 #include "breakpad_wrapper.h"
 #else
@@ -80,6 +81,7 @@ int main( int argc, char **argv)
     if (0 != parseCommandLine(argc,argv,cfg)) {
 		abort();
 	}
+    curl_global_init(CURL_GLOBAL_DEFAULT);
     getAuthToken(cfg);
      
     createSocketConnection( NULL);

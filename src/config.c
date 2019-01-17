@@ -26,9 +26,13 @@
 #include "config.h"
 #include "ParodusInternal.h"
 #include <cjwt/cjwt.h>
+#include <stdlib.h>
+#include <curl/curl.h>
+#include <uuid/uuid.h>
 
-#define MAX_BUF_SIZE	128
-
+#define MAX_BUF_SIZE	        128
+#define MAX_TOKEN_LEN	        4096
+#define CURL_TIMEOUT_SEC	30L
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -36,7 +40,7 @@
 static ParodusCfg parodusCfg;
 static unsigned int rsa_algorithms = 
 	(1<<alg_rs256) | (1<<alg_rs384) | (1<<alg_rs512);
-
+void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list);
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -614,60 +618,226 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 }
 
 /*
-* call parodus create/acquisition script to create new auth token, if success then calls 
-* execute_token_script func with args as parodus read script.
+* Initialize curl object with required options. create newToken using libcurl.
 */
 
-void createNewAuthToken(char *newToken, size_t len)
+int createNewAuthToken(char *newToken, size_t len)
 {
-	//Call create script
-	char output[12] = {'\0'};
-	execute_token_script(output,get_parodus_cfg()->token_acquisition_script,sizeof(output),get_parodus_cfg()->hw_mac,get_parodus_cfg()->hw_serial_number);
-  	if (strlen(output)>0  && strcmp(output,"SUCCESS")==0)
+	CURL *curl;
+	CURLcode res;
+	struct curl_slist *list = NULL;
+	struct curl_slist *headers_list = NULL;
+
+	char *mac_header = NULL;
+	char *serial_header = NULL;
+	char *uuid_header = NULL;
+	char *transaction_uuid = NULL;
+
+	struct url_data data;
+	data.size = 0;
+
+	curl = curl_easy_init();
+	if(curl)
 	{
-		//Call read script 
-		execute_token_script(newToken,get_parodus_cfg()->token_read_script,len,get_parodus_cfg()->hw_mac,get_parodus_cfg()->hw_serial_number);
-	}	
-	else 
-	{
-		ParodusError("Failed to create new token\n");
+		data.data = (char *) malloc(sizeof(char) * MAX_TOKEN_LEN);
+		if(NULL == data.data)
+		{
+			ParodusError("Failed to allocate memory.\n");
+			return -1;
+		}
+		data.data[0] = '\0';
+
+		createCurlheader(mac_header, serial_header, uuid_header, transaction_uuid, list, &headers_list);
+
+		curl_easy_setopt(curl, CURLOPT_URL, TOKEN_SERVER_URL);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT_SEC);
+
+		/* set callback for writing received data */
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_fn);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
+
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers_list);
+
+		curl_easy_setopt(curl, CURLOPT_INTERFACE, get_parodus_cfg()->webpa_interface_used);
+
+		/* set the cert for client authentication */
+		curl_easy_setopt(curl, CURLOPT_SSLCERT, get_parodus_cfg()->client_cert_path);
+
+		curl_easy_setopt(curl, CURLOPT_CAINFO, get_parodus_cfg()->cert_path);
+
+		/* disconnect if it is failed to validate server's cert */
+		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+
+		/* Perform the request, res will get the return code */
+		res = curl_easy_perform(curl);
+		ParodusInfo("themis curl response code is %d\n", res);
+
+		if(transaction_uuid !=NULL)
+		{
+			free(transaction_uuid);
+			transaction_uuid = NULL;
+		}
+		if(mac_header !=NULL)
+		{
+			free(mac_header);
+			mac_header = NULL;
+		}
+		if(serial_header !=NULL)
+		{
+			free(serial_header);
+			serial_header = NULL;
+		}
+		if(uuid_header !=NULL)
+		{
+			free(uuid_header);
+			uuid_header = NULL;
+		}
+		curl_slist_free_all(headers_list);
+		if(data.data)
+		{
+			strncpy(newToken, data.data, len);
+			free(data.data);
+			data.data = NULL;
+		}
+		if(res != CURLE_OK)
+		{
+			ParodusError("curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+			curl_easy_cleanup(curl);
+			curl_global_cleanup();
+			return -1;
+		}
+		else
+		{
+			ParodusInfo("cURL success\n");
+		}
+		curl_easy_cleanup(curl);
 	}
+	else
+	{
+		ParodusError("curl init failure\n");
+		return -1;
+	}
+
+	return 0;
 }
 
 /*
-* Fetches authorization token from the output of read script. If read script returns "ERROR"
-* it will call createNewAuthToken to create and read new token 
+* Fetches authorization token and update to parodus config
 */
 
 void getAuthToken(ParodusCfg *cfg)
 {
-	//local var to update cfg->webpa_auth_token only in success case
-	char output[4069] = {'\0'} ;
-	
-	if( strlen(cfg->token_read_script) !=0 && strlen(cfg->token_acquisition_script) !=0)
-    	{
-		execute_token_script(output,cfg->token_read_script,sizeof(output),cfg->hw_mac,cfg->hw_serial_number);
-		
-	    	if ((strlen(output) == 0))
-	    	{
-			ParodusError("Unable to get auth token\n");
-		}
-		else if(strcmp(output,"ERROR")==0)
+	int status = -1;
+	int retry_count = 0;
+
+	if( cfg->client_cert_path !=NULL && strlen(cfg->client_cert_path) !=0 )
+	{
+		while(1)
 		{
-			ParodusInfo("Failed to read token from %s. Proceeding to create new token.\n",cfg->token_read_script);
-			//Call create/acquisition script
-			createNewAuthToken(cfg->webpa_auth_token, sizeof(cfg->webpa_auth_token));	
-		}
-		else
-		{
-			ParodusInfo("update cfg->webpa_auth_token in success case\n");
-			parStrncpy(cfg->webpa_auth_token, output, sizeof(cfg->webpa_auth_token));
+			//Fetch new auth token using libcurl
+			status = createNewAuthToken(cfg->webpa_auth_token, sizeof(cfg->webpa_auth_token));
+			if(status == 0)
+			{
+				ParodusInfo("cfg->webpa_auth_token created is %s\n", cfg->webpa_auth_token);
+				break;
+			}
+			else
+			{
+				ParodusError("Failed to create new token\n");
+				retry_count++;
+				ParodusError("Curl execution is failed, retry attempt: %d\n", retry_count);
+			}
+
+			if(retry_count ==3)
+			{
+				ParodusError("Curl retry is reached to max 3 attempts, proceeding without token\n");
+				break;
+			}
 		}
 	}
 	else
 	{
-        	ParodusInfo("Both read and write file are NULL \n");
+		ParodusInfo("client_cert_path is NULL\n");
 	}
+}
+
+/* callback function for writing libcurl received data */
+size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct url_data *data)
+{
+    size_t index = data->size;
+    size_t n = (size * nmemb);
+    char* tmp;
+
+    data->size += (size * nmemb);
+
+    tmp = realloc(data->data, data->size + 1); /* +1 for '\0' */
+
+    if(tmp) {
+        data->data = tmp;
+    } else {
+        if(data->data) {
+            free(data->data);
+        }
+        ParodusError("Failed to allocate memory for data\n");
+        return 0;
+    }
+
+    memcpy((data->data + index), buffer, n);
+    data->data[data->size] = '\0';
+
+    return size * nmemb;
+}
+
+char* generate_trans_uuid()
+{
+	char *transID = NULL;
+	uuid_t transaction_Id;
+	char *trans_id = NULL;
+	trans_id = (char *)malloc(37);
+	uuid_generate_random(transaction_Id);
+	uuid_unparse(transaction_Id, trans_id);
+
+	if(trans_id !=NULL)
+	{
+		transID = trans_id;
+	}
+	return transID;
+}
+
+void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list)
+{
+	mac_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
+	if(mac_header !=NULL)
+	{
+		snprintf(mac_header, MAX_BUF_SIZE, "X-Midt-Mac-Address: %s", get_parodus_cfg()->hw_mac);
+		ParodusInfo("mac_header formed %s\n", mac_header);
+		list = curl_slist_append(list, mac_header);
+	}
+
+	serial_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
+	if(serial_header !=NULL)
+	{
+		snprintf(serial_header, MAX_BUF_SIZE, "X-Midt-Serial-Number: %s", get_parodus_cfg()->hw_serial_number);
+		ParodusInfo("serial_header formed %s\n", serial_header);
+		list = curl_slist_append(list, serial_header);
+	}
+
+	transaction_uuid = generate_trans_uuid();
+	if(transaction_uuid !=NULL)
+	{
+		uuid_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
+		if(uuid_header !=NULL)
+		{
+			snprintf(uuid_header, MAX_BUF_SIZE, "X-Midt-Uuid: %s", transaction_uuid);
+			ParodusInfo("uuid_header formed %s\n", uuid_header);
+			list = curl_slist_append(list, uuid_header);
+		}
+	}
+	else
+	{
+		ParodusError("Failed to generate transaction_uuid\n");
+	}
+	*header_list = list;
 }
 
 void setDefaultValuesToCfg(ParodusCfg *cfg)

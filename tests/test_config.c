@@ -38,7 +38,7 @@ extern int parse_webpa_url (const char *full_url,
 extern unsigned int get_algo_mask (const char *algo_str);
 extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
 extern void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
-extern void createNewAuthToken(char *newToken, size_t len);
+extern int createNewAuthToken(char *newToken, size_t len);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
