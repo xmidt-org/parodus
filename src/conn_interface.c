@@ -63,6 +63,37 @@ pthread_t crud_tid;
 /*----------------------------------------------------------------------------*/
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
+
+/*----------------------------------------------------------------------------*/
+/*                             Utility  Functions                             */
+/*----------------------------------------------------------------------------*/
+void activate_svc_alive (struct timespec *start)
+{
+  struct timespec stop;
+  struct timespec diff;
+
+  clock_gettime(CLOCK_REALTIME, &stop);
+  timespec_diff(start, &stop, &diff);
+  if (diff.tv_sec >= 30) {
+     serviceAliveTask ();
+     start->tv_sec += 30;
+  }
+
+}
+
+void wait_cloud_disconnect (struct timespec *svc_alive_timer, int disconnect_mins)
+{
+  int disconnect_secs = disconnect_mins * 60;
+  int i;
+
+  for (i=0; i<disconnect_secs; i+=5)
+  {
+    activate_svc_alive (svc_alive_timer);
+    sleep (5);
+  }
+  activate_svc_alive (svc_alive_timer);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -166,23 +197,18 @@ void createSocketConnection(void (* initKeypress)())
             ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
             if(get_parodus_cfg()->cloud_disconnect !=NULL)
             {
-				ParodusPrint("get_parodus_cfg()->cloud_disconnect is %s\n", get_parodus_cfg()->cloud_disconnect);
-				set_cloud_disconnect_time(CLOUD_RECONNECT_TIME);
-				ParodusInfo("Waiting for %d minutes for reconnecting .. \n", get_cloud_disconnect_time());
+                ParodusPrint("get_parodus_cfg()->cloud_disconnect is %s\n", get_parodus_cfg()->cloud_disconnect);
+		set_cloud_disconnect_time(CLOUD_RECONNECT_TIME);
+		ParodusInfo("Waiting for %d minutes for reconnecting .. \n", get_cloud_disconnect_time());
 
-				sleep( get_cloud_disconnect_time() * 60 );
-				ParodusInfo("cloud-disconnect reason reset after %d minutes\n", get_cloud_disconnect_time());
-				free(get_parodus_cfg()->cloud_disconnect);
-				reset_cloud_disconnect_reason(get_parodus_cfg());
+		wait_cloud_disconnect ( &start_svc_alive_timer, get_cloud_disconnect_time() );
+		ParodusInfo("cloud-disconnect reason reset after %d minutes\n", get_cloud_disconnect_time());
+		free(get_parodus_cfg()->cloud_disconnect);
+		reset_cloud_disconnect_reason(get_parodus_cfg());
             }
             createNopollConnection(ctx);
         }
-        clock_gettime(CLOCK_REALTIME, &stop);
-        timespec_diff(&start_svc_alive_timer, &stop, &diff);
-        if (diff.tv_sec >= 30) {
-                serviceAliveTask ();
-                start_svc_alive_timer.tv_sec += 30;
-        }
+        activate_svc_alive (&start_svc_alive_timer);
        } while(!get_close_retry() && !g_shutdown);
 
     pthread_mutex_lock (get_global_crud_mut());
