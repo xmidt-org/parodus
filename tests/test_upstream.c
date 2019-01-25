@@ -43,6 +43,7 @@ static ParodusCfg parodusCfg;
 extern size_t metaPackSize;
 extern UpStreamMsg *UpStreamMsgQ;
 int numLoops = 1;
+int deviceIDNull =0;
 wrp_msg_t *temp = NULL;
 extern pthread_mutex_t nano_mut;
 extern pthread_cond_t nano_con;
@@ -97,8 +98,21 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
     function_called();
 }
 
+void set_parodus_cfg(ParodusCfg *cfg)
+{
+    memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
+}
+
 ParodusCfg *get_parodus_cfg(void) 
 {
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	parStrncpy(cfg.hw_mac , "14cfe2142xxx", sizeof(cfg.hw_mac));
+	if(deviceIDNull)
+	{
+		parStrncpy(cfg.hw_mac , "", sizeof(cfg.hw_mac));
+	}
+	set_parodus_cfg(&cfg);
     return &parodusCfg;
 }
 
@@ -740,16 +754,16 @@ void test_processUpstreamMsg_cloud_status()
 
 void test_processUpstreamMsg_sendToClient()
 {
-    numLoops = 2;
-    metaPackSize = 20;
+	numLoops = 2;
+	metaPackSize = 20;
 	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
 	UpStreamMsgQ->msg = strdup("First Message");
 	UpStreamMsgQ->len = 13;
 	UpStreamMsgQ->next= NULL;
 	UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
-    UpStreamMsgQ->next->msg = strdup("Second Message");
-    UpStreamMsgQ->next->len = 15;
-    UpStreamMsgQ->next->next = NULL;
+	UpStreamMsgQ->next->msg = strdup("Second Message");
+	UpStreamMsgQ->next->len = 15;
+	UpStreamMsgQ->next->next = NULL;
 
 	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
 	memset(temp,0,sizeof(wrp_msg_t));
@@ -772,9 +786,65 @@ void test_processUpstreamMsg_sendToClient()
 
 	expect_function_call(wrp_free_struct);
 	processUpstreamMessage();
-    free(temp);
-    free(UpStreamMsgQ);
-    UpStreamMsgQ = NULL;
+	free(temp);
+	free(UpStreamMsgQ);
+	UpStreamMsgQ = NULL;
+}
+
+void test_processUpstreamMsg_serviceNameNULL()
+{
+	numLoops = 1;
+	metaPackSize = 20;
+	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->msg = strdup("First Message");
+	UpStreamMsgQ->len = 13;
+	UpStreamMsgQ->next= NULL;
+	UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->next->msg = strdup("Second Message");
+	UpStreamMsgQ->next->len = 15;
+	UpStreamMsgQ->next->next = NULL;
+
+	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	memset(temp,0,sizeof(wrp_msg_t));
+	temp->msg_type = 6;
+	temp->u.crud.dest = strdup("mac:14cfe2142xxx/");
+	temp->u.crud.source = strdup("mac:14cfe2142xxx/parodus/cloud-status");
+	temp->u.crud.transaction_uuid = strdup("123");
+
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+	expect_function_call(wrp_free_struct);
+	processUpstreamMessage();
+	free(temp);
+	free(UpStreamMsgQ);
+	UpStreamMsgQ = NULL;
+}
+
+void err_processUpstreamMsg_deviceID()
+{
+	numLoops = 1;
+	metaPackSize = 20;
+	deviceIDNull = 1;
+	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->msg = "First Message";
+	UpStreamMsgQ->len = 13;
+	UpStreamMsgQ->next= NULL;
+	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	memset(temp,0,sizeof(wrp_msg_t));
+	temp->msg_type = 6;
+	temp->u.crud.dest = "mac:14cfe2142xxx/parodus/cloud-status";
+	temp->u.crud.source = "mac:14cfe2142xxx/config";
+	temp->u.crud.transaction_uuid = "123";
+
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+	will_return(nn_freemsg, 0);
+	expect_function_call(nn_freemsg);
+	expect_function_call(wrp_free_struct);
+	processUpstreamMessage();
+	free(temp);
+	free(UpStreamMsgQ);
+	UpStreamMsgQ = NULL;
 }
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -808,6 +878,8 @@ int main(void)
         cmocka_unit_test(test_processUpstreamMsgCrud_nnfree),
         cmocka_unit_test(test_processUpstreamMsg_cloud_status),
         cmocka_unit_test(test_processUpstreamMsg_sendToClient),
+	cmocka_unit_test(test_processUpstreamMsg_serviceNameNULL),
+	cmocka_unit_test(err_processUpstreamMsg_deviceID)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
