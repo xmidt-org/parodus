@@ -65,36 +65,6 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
 
 /*----------------------------------------------------------------------------*/
-/*                             Utility  Functions                             */
-/*----------------------------------------------------------------------------*/
-void activate_svc_alive (struct timespec *start)
-{
-  struct timespec stop;
-  struct timespec diff;
-
-  clock_gettime(CLOCK_REALTIME, &stop);
-  timespec_diff(start, &stop, &diff);
-  if (diff.tv_sec >= 30) {
-     serviceAliveTask ();
-     start->tv_sec += 30;
-  }
-
-}
-
-void wait_cloud_disconnect (struct timespec *svc_alive_timer, int disconnect_mins)
-{
-  int disconnect_secs = disconnect_mins * 60;
-  int i;
-
-  for (i=0; i<disconnect_secs; i+=5)
-  {
-    activate_svc_alive (svc_alive_timer);
-    sleep (5);
-  }
-  activate_svc_alive (svc_alive_timer);
-}
-
-/*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 
@@ -135,7 +105,7 @@ void createSocketConnection(void (* initKeypress)())
     StartThread(processUpstreamMessage, &upstream_msg_tid);
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask, &downstream_tid);
-    /*StartThread(serviceAliveTask, &svc_alive_tid;);*/
+    StartThread(serviceAliveTask, &svc_alive_tid);
     StartThread(CRUDHandlerTask, &crud_tid);
 
     if (NULL != initKeypress) 
@@ -201,16 +171,18 @@ void createSocketConnection(void (* initKeypress)())
 		set_cloud_disconnect_time(CLOUD_RECONNECT_TIME);
 		ParodusInfo("Waiting for %d minutes for reconnecting .. \n", get_cloud_disconnect_time());
 
-		wait_cloud_disconnect ( &start_svc_alive_timer, get_cloud_disconnect_time() );
+		sleep (get_cloud_disconnect_time() * 60);
 		ParodusInfo("cloud-disconnect reason reset after %d minutes\n", get_cloud_disconnect_time());
 		free(get_parodus_cfg()->cloud_disconnect);
 		reset_cloud_disconnect_reason(get_parodus_cfg());
             }
             createNopollConnection(ctx);
         }
-        activate_svc_alive (&start_svc_alive_timer);
        } while(!get_close_retry() && !g_shutdown);
 
+    pthread_mutex_lock (get_global_svc_mut());
+    pthread_cond_signal (get_global_svc_con());
+    pthread_mutex_unlock (get_global_svc_mut());
     pthread_mutex_lock (get_global_crud_mut());
     pthread_cond_signal (get_global_crud_con());
     pthread_mutex_unlock (get_global_crud_mut());
@@ -222,6 +194,7 @@ void createSocketConnection(void (* initKeypress)())
     pthread_mutex_unlock (get_global_nano_mut());
 
     ParodusInfo ("joining threads\n");
+    JoinThread (svc_alive_tid);
     JoinThread (upstream_tid);
     JoinThread (downstream_tid);
     JoinThread (upstream_msg_tid);
