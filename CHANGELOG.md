@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed crash in CRUD request processing
 - Fixed issue on RETRIEVE respone processing
 - Enabled valgrind
+- Fixed main loop to keep calling svc_alive_task during a cloud disconnect and retry
+- change svc alive back to a separate thread.  Shut it down with pthread_cond_timedwait
 - Refactored Upsteam RETRIEVE flow
 
 ## [1.0.1] - 2018-07-18
