@@ -42,7 +42,7 @@ extern "C" {
 #define BOOT_TIME               "boot-time"
 #define LAST_RECONNECT_REASON   "webpa-last-reconnect-reason"
 #define WEBPA_PROTOCOL          "webpa-protocol"
-#define WEBPA_INTERFACE         "webpa-inteface-used"
+#define WEBPA_INTERFACE         "webpa-interface-used"
 #define WEBPA_UUID              "webpa-uuid"
 #define WEBPA_URL               "webpa-url"
 #define WEBPA_PING_TIMEOUT      "webpa-ping-timeout"
