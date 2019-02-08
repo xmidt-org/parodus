@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.2] - 2019-02-08
 - Refactored connection.c and updated corresponding unit tests
 - Additional `/cloud-status` and `/cloud-disconnect` fields.
 - Switched from nanomsg (Release 1.1.2) to NNG (Release v1.0.1)
@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed crash in CRUD request processing
 - Fixed issue on RETRIEVE respone processing
 - Enabled valgrind
+- Fixed main loop to keep calling svc_alive_task during a cloud disconnect and retry
+- change svc alive back to a separate thread.  Shut it down with pthread_cond_timedwait
 - Refactored Upsteam RETRIEVE flow
 - Added common themis JWT support for parodus
 
@@ -60,6 +62,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation
 
 [Unreleased]: https://github.com/Comcast/parodus/compare/1.0.1...HEAD
+[1.0.2]: https://github.com/Comcast/parodus/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/Comcast/parodus/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/Comcast/parodus/compare/79fa7438de2b14ae64f869d52f5c127497bf9c3f...1.0.0
 

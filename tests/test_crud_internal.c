@@ -165,7 +165,7 @@ void test_retrieveFromMemory()
 	assert_int_equal (ret, 0);
 	ret = retrieveFromMemory("webpa-protocol", &jsonresponse );
 	assert_int_equal (ret, 0);
-	ret = retrieveFromMemory("webpa-inteface-used", &jsonresponse );
+	ret = retrieveFromMemory("webpa-interface-used", &jsonresponse );
 	assert_int_equal (ret, 0);
 	ret = retrieveFromMemory("webpa-backoff-max", &jsonresponse );
 	assert_int_equal (ret, 0);
@@ -200,7 +200,7 @@ void test_retrieveFromMemoryFailure()
 	assert_int_equal (ret, -1);
 	ret = retrieveFromMemory("webpa-protocol", &jsonresponse );
 	assert_int_equal (ret, -1);
-	ret = retrieveFromMemory("webpa-inteface-used", &jsonresponse );
+	ret = retrieveFromMemory("webpa-interface-used", &jsonresponse );
 	assert_int_equal (ret, -1);
 	ret = retrieveFromMemory("webpa-backoff-max", &jsonresponse );
 	assert_int_equal (ret, 0);

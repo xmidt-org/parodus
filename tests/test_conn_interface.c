@@ -39,6 +39,8 @@ pthread_mutex_t g_mutex=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t g_cond=PTHREAD_COND_INITIALIZER;
 pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
+pthread_mutex_t svc_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t svc_con=PTHREAD_COND_INITIALIZER;
 
  
 /*----------------------------------------------------------------------------*/
@@ -200,6 +202,16 @@ pthread_mutex_t *get_global_nano_mut(void)
     return &nano_mut;
 }
 
+pthread_cond_t *get_global_svc_con(void)
+{
+    return &svc_con;
+}
+
+pthread_mutex_t *get_global_svc_mut(void)
+{
+    return &svc_mut;
+}
+
 /*
 * Mock func to calculate time diff between start and stop time
 * This timespec_diff retuns 1 sec as diff time
@@ -236,7 +248,7 @@ void test_createSocketConnection()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     expect_function_call(initKeypress);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
@@ -272,7 +284,7 @@ void test_createSocketConnection1()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
@@ -322,7 +334,7 @@ void test_PingMissIntervalTime()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     //Increment ping interval time to 1 sec for each nopoll_loop_wait call
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
@@ -363,7 +375,7 @@ void err_createSocketConnection()
     expect_function_call(createNopollConnection);
     expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 4);
+    expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
@@ -400,7 +412,7 @@ void test_createSocketConnection_cloud_disconn()
 	expect_function_call(createNopollConnection);
 	expect_function_call(packMetaData);
 
-	expect_function_calls(StartThread, 4);
+	expect_function_calls(StartThread, 5);
 	will_return(nopoll_loop_wait, 1);
 	expect_function_call(nopoll_loop_wait);
 

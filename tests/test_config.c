@@ -38,7 +38,7 @@ extern int parse_webpa_url (const char *full_url,
 extern unsigned int get_algo_mask (const char *algo_str);
 extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
 extern void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
-extern int createNewAuthToken(char *newToken, size_t len);
+extern int createNewAuthToken(char *newToken, size_t len, int r_count);
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -590,7 +590,7 @@ void test_new_auth_token_failure ()
   parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
 	
   set_parodus_cfg(&cfg);
-  createNewAuthToken (token, sizeof(token));
+  createNewAuthToken (token, sizeof(token), 2);
   assert_int_equal (output, -1);
   
 	
@@ -610,7 +610,7 @@ void test_new_auth_token ()
   parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
   parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
   set_parodus_cfg(&cfg);
-  output = createNewAuthToken (token, sizeof(token));
+  output = createNewAuthToken (token, sizeof(token), 2);
   assert_int_equal (output, 0);
   if(cfg.client_cert_path !=NULL) {
   free(cfg.client_cert_path); }
