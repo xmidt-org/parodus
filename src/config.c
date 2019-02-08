@@ -33,7 +33,7 @@
 #define MAX_BUF_SIZE	        128
 #define MAX_TOKEN_LEN	        4096
 #define CURL_TIMEOUT_SEC	25L
-#define MAX_CURL_RETRY_COUNT 	4
+#define MAX_CURL_RETRY_COUNT 	3
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -663,15 +663,24 @@ int createNewAuthToken(char *newToken, size_t len, int r_count)
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
 
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers_list);
-		if(r_count % 2 == 0)
+
+		/* setting curl resolve option as default mode.
+		If any failure, retry with v4 first and then v6 mode. */
+
+		if(r_count == 1)
 		{
 			ParodusInfo("Curl Ip resolve option set as V4 mode\n");
 			curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 		}
-		else
+		else if(r_count == 2)
 		{
 			ParodusInfo("Curl Ip resolve option set as V6 mode\n");
 			curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+		}
+		else
+		{
+			ParodusInfo("Curl Ip resolve option set as default mode\n");
+			curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
 		}
 
 		/* set the cert for client authentication */

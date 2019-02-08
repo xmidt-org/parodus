@@ -610,7 +610,7 @@ void test_new_auth_token ()
   parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
   parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
   set_parodus_cfg(&cfg);
-  output = createNewAuthToken (token, sizeof(token), 2);
+  output = createNewAuthToken (token, sizeof(token), 0);
   assert_int_equal (output, 0);
   if(cfg.client_cert_path !=NULL) {
   free(cfg.client_cert_path); }
