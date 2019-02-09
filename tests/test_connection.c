@@ -1056,6 +1056,50 @@ void test_create_nopoll_connection()
 
 }
 
+void test_wait_connection_ready_403 ()
+{
+	create_connection_ctx_t ctx;
+	ParodusCfg Cfg;
+	memset(&Cfg, 0, sizeof(ParodusCfg));
+	parStrncpy(Cfg.hw_model, "TG1682", sizeof(Cfg.hw_model));
+	parStrncpy(Cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(Cfg.hw_manufacturer));
+	parStrncpy(Cfg.hw_mac , "123567892366", sizeof(Cfg.hw_mac));
+	parStrncpy(Cfg.fw_name , "2.364s2", sizeof(Cfg.fw_name));
+	parStrncpy(Cfg.webpa_protocol , "WebPA-1.6", sizeof(Cfg.webpa_protocol));
+	parStrncpy(Cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(Cfg.cert_path));
+	Cfg.client_cert_path = strdup("../../tests/clientcert.mch");
+
+	Cfg.token_server_url = strdup("https://issuer.xmidt.comcast.net:8080/issue");
+	set_parodus_cfg(&Cfg);
+	memset(&ctx,0,sizeof(ctx));
+	set_server_list_null (&ctx.server_list);
+
+	mock_wait_status = 0;
+	mock_redirect = NULL;
+
+	will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+	expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
+	assert_int_equal (wait_connection_ready (&ctx), WAIT_SUCCESS);
+
+	will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+	expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
+	assert_int_equal (wait_connection_ready (&ctx), WAIT_FAIL);
+
+	mock_wait_status = 403;
+	init_header_info (&ctx.header_info);
+	will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+	expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
+	assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
+
+	assert( Cfg.webpa_auth_token != NULL);
+
+	if(Cfg.client_cert_path !=NULL)
+	{
+		free(Cfg.client_cert_path);
+	}
+	if(Cfg.token_server_url !=NULL) {
+	free(Cfg.token_server_url); }
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -1083,7 +1127,8 @@ int main(void)
         cmocka_unit_test(test_wait_connection_ready),
         cmocka_unit_test(test_connect_and_wait),
         cmocka_unit_test(test_keep_trying),
-	cmocka_unit_test(test_create_nopoll_connection)
+	cmocka_unit_test(test_create_nopoll_connection),
+	cmocka_unit_test(test_wait_connection_ready_403)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

@@ -55,7 +55,6 @@ extern "C" {
 #define CLOUD_STATUS_OFFLINE    "offline"
 #define CLOUD_DISCONNECT_REASON "disconnection-reason"
 #define BOOT_RETRY_WAIT         "boot-time-retry-wait"
-#define TOKEN_SERVER_URL        "https://issuer.xmidt.comcast.net:8080/issue"
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                  "/api/v2/device"
@@ -101,13 +100,14 @@ typedef struct
     char token_acquisition_script[64];
     char token_read_script[64];
     char *client_cert_path;
+    char *token_server_url;
 	char *crud_config_file;
 	char *cloud_status;
 	char *cloud_disconnect;
 	unsigned int boot_retry_wait;
 } ParodusCfg;
 
-struct url_data {
+struct token_data {
     size_t size;
     char* data;
 };
@@ -121,7 +121,7 @@ struct url_data {
 /*----------------------------------------------------------------------------*/
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
-int createNewAuthToken(char *newToken, size_t len, int r_count);
+int requestNewAuthToken(char *newToken, size_t len, int r_count);
 
 /**
  * parse command line arguments and create config structure
@@ -156,7 +156,7 @@ void reset_cloud_disconnect_reason(ParodusCfg *cfg);
 */ 
 int parse_webpa_url (const char *full_url, 
 	char **server_addr, unsigned int *port);
-size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct url_data *data);
+size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct token_data *data);
 char* generate_trans_uuid();
 
 #ifdef __cplusplus
