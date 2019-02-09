@@ -34,6 +34,7 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/cjson
                     ${INCLUDE_DIR}/nopoll
                     ${INCLUDE_DIR}/msgpack
+	            ${INCLUDE_DIR}/curl
                     ${INCLUDE_DIR}/trower-base64
                     ${INCLUDE_DIR}/wrp-c                   
                     ${INCLUDE_DIR}/libparodus
@@ -132,6 +133,18 @@ ExternalProject_Add(msgpack
 )
 add_library(libmsgpack STATIC SHARED IMPORTED)
 add_dependencies(libmsgpack msgpack)
+
+
+# curl external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(curl
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/curl
+    GIT_REPOSITORY https://github.com/curl/curl.git
+    GIT_TAG "curl-7_63_0"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+)
+add_library(libcurl STATIC SHARED IMPORTED)
+add_dependencies(libcurl curl)
 
 
 # cimplog external dependency

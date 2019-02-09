@@ -30,6 +30,7 @@ target_link_libraries (parodus
     ${CMAKE_THREAD_LIBS_INIT}
     -lwrp-c
     -lmsgpackc
+    -lcurl
     -ltrower-base64
     -lnopoll
     -luuid
