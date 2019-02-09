@@ -389,6 +389,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"token-read-script",       required_argument, 0, 'T'},
         {"boot-time-retry-wait",    required_argument, 0, 'w'},
 	{"token-acquisition-script",     required_argument, 0, 'J'},
+	{"client-cert-path",        required_argument, 0, 'P'},
+	{"token-server-url",        required_argument, 0, 'U'},
 	{"crud-config-file",        required_argument, 0, 'C'},
         {0, 0, 0, 0}
     };
@@ -405,6 +407,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->jwt_algo = 0;
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	cfg->crud_config_file = NULL;
+	cfg->client_cert_path = NULL;
+	cfg->token_server_url = NULL;
 	cfg->cloud_status = NULL;
 	cfg->cloud_disconnect = NULL;
 	optind = 1;  /* We need this if parseCommandLine is called again */
@@ -564,6 +568,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 		  ParodusInfo("crud_config_file is %s\n", cfg->crud_config_file);
 		  break;
 
+		case 'P':
+		cfg->client_cert_path = strdup(optarg);
+		ParodusInfo("client_cert_path is %s\n", cfg->client_cert_path);
+		break;
+
+		case 'U':
+		cfg->token_server_url = strdup(optarg);
+		ParodusInfo("token_server_url is %s\n", cfg->token_server_url);
+		break;
+
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -694,6 +708,8 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     cfg->crud_config_file = NULL;
+    cfg->client_cert_path = NULL;
+    cfg->token_server_url = NULL;
 	
 	cfg->cloud_status = CLOUD_STATUS_OFFLINE;
 	ParodusInfo("Default cloud_status is %s\n", cfg->cloud_status);
@@ -868,6 +884,24 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     else
     {
         ParodusPrint("crud_config_file is NULL. set to empty\n");
+    }
+
+    if(config->client_cert_path != NULL)
+    {
+        cfg->client_cert_path = strdup(config->client_cert_path);
+    }
+    else
+    {
+        ParodusPrint("client_cert_path is NULL. set to empty\n");
+    }
+
+    if(config->token_server_url != NULL)
+    {
+        cfg->token_server_url = strdup(config->token_server_url);
+    }
+    else
+    {
+        ParodusPrint("token_server_url is NULL. set to empty\n");
     }
 }
 
