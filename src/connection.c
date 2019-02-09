@@ -297,10 +297,9 @@ void set_current_server (create_connection_ctx_t *ctx)
 
 void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize)
 {
-  if (reauthorize && (strlen(get_parodus_cfg()->token_acquisition_script) >0))
+  if (reauthorize && (get_parodus_cfg()->client_cert_path !=NULL &&strlen(get_parodus_cfg()->client_cert_path) >0))
   {
-    createNewAuthToken(get_parodus_cfg()->webpa_auth_token,
-      sizeof(get_parodus_cfg()->webpa_auth_token));
+    getAuthToken(get_parodus_cfg());
   }
   
   ctx->extra_headers = build_extra_hdrs (&ctx->header_info);
