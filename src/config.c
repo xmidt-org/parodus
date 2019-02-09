@@ -146,31 +146,6 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
   ParodusInfo ("%d bytes read\n", nbytes);
 }
 
-void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
-{
-    FILE* out = NULL, *file = NULL;
-    char command[MAX_BUF_SIZE] = {'\0'};
-    if(strlen(name)>0)
-    {
-        file = fopen(name, "r");
-        if(file)
-        {
-            snprintf(command,sizeof(command),"%s %s %s",name,serNum,mac);
-            out = popen(command, "r");
-            if(out)
-            {
-                fgets(token, len, out);
-                pclose(out);
-            }
-            fclose(file);
-        }
-        else
-        {
-            ParodusError ("File %s open error\n", name);
-        }
-    }
-}
-
 // strips ':' characters
 // verifies that there exactly 12 characters
 int parse_mac_address (char *target, const char *arg)
@@ -391,9 +366,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"ssl-cert-path",           required_argument, 0, 'c'},
         {"force-ipv4",              no_argument,       0, '4'},
         {"force-ipv6",              no_argument,       0, '6'},
-        {"token-read-script",       required_argument, 0, 'T'},
         {"boot-time-retry-wait",    required_argument, 0, 'w'},
-	{"token-acquisition-script",     required_argument, 0, 'J'},
 	{"client-cert-path",        required_argument, 0, 'P'},
 	{"crud-config-file",        required_argument, 0, 'C'},
         {0, 0, 0, 0}
@@ -551,14 +524,6 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case '6':
           ParodusInfo("Force IPv6\n");
           cfg->flags |= FLAGS_IPV6_ONLY;
-          break;
-
-        case 'J':
-          parStrncpy(cfg->token_acquisition_script, optarg,sizeof(cfg->token_acquisition_script));
-          break;
-        
-        case 'T':
-          parStrncpy(cfg->token_read_script, optarg,sizeof(cfg->token_read_script));
           break;
 
         case 'w':
@@ -1053,24 +1018,6 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     {
         parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
         ParodusPrint("cert_path is NULL. set to empty\n");
-    }
-
-    if(strlen(config->token_acquisition_script )!=0)
-    {
-          parStrncpy(cfg->token_acquisition_script, config->token_acquisition_script,sizeof(cfg->token_acquisition_script));
-    }
-    else
-    {
-          ParodusPrint("token_acquisition_script is NULL. read from tmp file\n");
-    }
-        
-    if(strlen(config->token_read_script )!=0)
-    {
-          parStrncpy(cfg->token_read_script, config->token_read_script,sizeof(cfg->token_read_script));
-    }
-    else
-    {
-          ParodusPrint("token_read_script is NULL. read from tmp file\n");
     }
 
     cfg->boot_time = config->boot_time;

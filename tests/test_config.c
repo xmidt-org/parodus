@@ -37,7 +37,6 @@ extern int parse_webpa_url (const char *full_url,
 	char **server_addr, unsigned int *port);
 extern unsigned int get_algo_mask (const char *algo_str);
 extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
-extern void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum);
 extern int createNewAuthToken(char *newToken, size_t len, int r_count);
 
 /*----------------------------------------------------------------------------*/
@@ -316,8 +315,6 @@ void test_loadParodusCfg()
     Cfg->jwt_algo = 1025;
     parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
 #endif
-    parStrncpy(Cfg->token_acquisition_script , "/tmp/token.sh", sizeof(Cfg->token_acquisition_script));
-    parStrncpy(Cfg->token_read_script , "/tmp/token.sh", sizeof(Cfg->token_read_script));
     parStrncpy(Cfg->cert_path, "/etc/ssl.crt",sizeof(Cfg->cert_path));
 #ifdef ENABLE_SESHAT
     parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
@@ -339,8 +336,6 @@ void test_loadParodusCfg()
     assert_int_equal( (int) tmpcfg.jwt_algo, 1025);
     assert_string_equal(tmpcfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
 #endif
-    assert_string_equal(  tmpcfg.token_acquisition_script,"/tmp/token.sh");
-    assert_string_equal(  tmpcfg.token_read_script,"/tmp/token.sh");
     assert_string_equal(tmpcfg.cert_path, "/etc/ssl.crt");
 #ifdef ENABLE_SESHAT
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
@@ -552,21 +547,6 @@ void test_get_algo_mask ()
 #endif	
 }
 
-void test_execute_token_script()
-{
-  char *cmd1 = "../../tests/return_ser_mac.bsh";
-  char *cmd2 = "nosuch";
-  char token[32];
-  
-  memset (token, '\0', sizeof(token));
-  execute_token_script (token, cmd1, sizeof(token), "mac123", "ser456");
-  assert_string_equal (token, "SER_MAC ser456 mac123");
-  
-  memset (token, '\0', sizeof(token));
-  execute_token_script (token, cmd2, sizeof(token), "mac123", "ser456");
-  assert_string_equal (token, "");
-}
-
 void getAuthToken_Null()
 {
     ParodusCfg cfg;
@@ -661,7 +641,6 @@ int main(void)
         //cmocka_unit_test(test_parodusGitVersion),
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),
-        cmocka_unit_test(test_execute_token_script),
         cmocka_unit_test(test_new_auth_token),
 	cmocka_unit_test(test_new_auth_token_failure),
 	cmocka_unit_test(getAuthToken_Null),
