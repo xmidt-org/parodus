@@ -120,7 +120,7 @@ target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog 
 add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
 set (CONN_SRC ../src/connection.c 
   ../src/string_helpers.c ../src/mutex.c ../src/time.c 
-  ../src/config.c ../src/spin_thread.c  ../src/heartBeat.c ../src/close_retry.c)
+  ../src/config.c ../src/auth_token.c ../src/spin_thread.c  ../src/heartBeat.c ../src/close_retry.c)
 #set(CONN_SRC ../src/connection.c ${PARODUS_COMMON_SRC})
 add_executable(test_connection test_connection.c ${CONN_SRC})
 target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka -lcurl -luuid)
@@ -141,7 +141,7 @@ target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka -lcurl -l
 add_test(NAME test_client_list COMMAND ${MEMORY_CHECK} ./test_client_list)
 #add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 #target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
-set(CLIST_SRC test_client_list.c ../src/client_list.c 
+set(CLIST_SRC test_client_list.c ../src/client_list.c ../src/auth_token.c
  ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c 
  ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c
  ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c 
@@ -163,7 +163,7 @@ target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 add_test(NAME test_service_alive COMMAND ${MEMORY_CHECK} ./test_service_alive)
 #add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
-set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ../src/heartBeat.c ../src/close_retry.c ${PARODUS_COMMON_SRC})
+set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/auth_token.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ../src/heartBeat.c ../src/close_retry.c ${PARODUS_COMMON_SRC})
 if (ENABLE_SESHAT)
 set(SVA_SRC ${SVA_SRC} ../src/seshat_interface.c)
 else()
@@ -178,12 +178,21 @@ target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 #   test_config
 #-------------------------------------------------------------------------------
 add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
-add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
+add_executable(test_config test_config.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
 target_link_libraries (test_config -lcmocka
  -Wl,--no-as-needed -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
 )
 
+#-------------------------------------------------------------------------------
+#   test_auth_token
+#-------------------------------------------------------------------------------
+add_test(NAME test_auth_token COMMAND ${MEMORY_CHECK} ./test_auth_token)
+add_executable(test_auth_token test_auth_token.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
+target_link_libraries (test_auth_token -lcmocka
+ -Wl,--no-as-needed -lcimplog
+ -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
+)
 #-------------------------------------------------------------------------------
 #   test_crud_interface
 #-------------------------------------------------------------------------------
@@ -285,7 +294,7 @@ set(TOKEN_SRC ../src/conn_interface.c ../src/config.c
  ../src/nopoll_handlers.c ../src/nopoll_helpers.c
  ../src/partners_check.c ../src/ParodusInternal.c
  ../src/upstream.c ../src/downstream.c 
- ../src/networking.c
+ ../src/networking.c ../src/auth_token.c
  ../src/thread_tasks.c ../src/time.c
  ../src/string_helpers.c ../src/mutex.c 
  ../src/token.c ../src/heartBeat.c
