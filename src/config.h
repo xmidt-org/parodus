@@ -107,11 +107,6 @@ typedef struct
 	unsigned int boot_retry_wait;
 } ParodusCfg;
 
-struct token_data {
-    size_t size;
-    char* data;
-};
-
 #define FLAGS_IPV6_ONLY (1 << 0)
 #define FLAGS_IPV4_ONLY (1 << 1)
 #define FLAGS_IPV6_IPV4 (FLAGS_IPV6_ONLY | FLAGS_IPV4_ONLY)
@@ -121,7 +116,6 @@ struct token_data {
 /*----------------------------------------------------------------------------*/
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
-int requestNewAuthToken(char *newToken, size_t len, int r_count);
 
 /**
  * parse command line arguments and create config structure
@@ -135,7 +129,6 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count);
 int parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
 
 void setDefaultValuesToCfg(ParodusCfg *cfg); 
-void getAuthToken(ParodusCfg *cfg);
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
 void set_parodus_cfg(ParodusCfg *);
@@ -156,9 +149,6 @@ void reset_cloud_disconnect_reason(ParodusCfg *cfg);
 */ 
 int parse_webpa_url (const char *full_url, 
 	char **server_addr, unsigned int *port);
-size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct token_data *data);
-char* generate_trans_uuid();
-
 #ifdef __cplusplus
 }
 #endif

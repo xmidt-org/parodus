@@ -25,6 +25,7 @@
 #include "time.h"
 #include "token.h"
 #include "config.h"
+#include "auth_token.h"
 #include "nopoll_helpers.h"
 #include "mutex.h"
 #include "spin_thread.h"
