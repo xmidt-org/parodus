@@ -1069,7 +1069,7 @@ void test_wait_connection_ready_403 ()
 	parStrncpy(Cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(Cfg.cert_path));
 	Cfg.client_cert_path = strdup("../../tests/clientcert.mch");
 
-	Cfg.token_server_url = strdup("https://issuer.xmidt.comcast.net:8080/issue");
+	Cfg.token_server_url = strdup("https://dev.comcast.net/token");
 	set_parodus_cfg(&Cfg);
 	memset(&ctx,0,sizeof(ctx));
 	set_server_list_null (&ctx.server_list);
