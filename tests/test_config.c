@@ -186,7 +186,7 @@ void test_parseCommandLine()
 		"--boot-time-retry-wait=10",
 		"--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt",
 		"--client-cert-path=../../tests/clientcert.mch",
-		"--token-server-url=https://issuer.xmidt.comcast.net:8080/issue",
+		"--token-server-url=https://dev.comcast.net/token",
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
 		"--dns-txt-url=mydns.mycom.net",
@@ -231,7 +231,7 @@ void test_parseCommandLine()
     assert_string_equal(  get_parodus_cfg()->webpa_auth_token,expectedToken);
     assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
     assert_string_equal(  parodusCfg.client_cert_path,"../../tests/clientcert.mch");
-	assert_string_equal(  parodusCfg.token_server_url,"https://issuer.xmidt.comcast.net:8080/issue");
+	assert_string_equal(  parodusCfg.token_server_url,"https://dev.comcast.net/token");
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
     assert_string_equal(parodusCfg.dns_txt_url, "mydns.mycom.net");
@@ -326,7 +326,7 @@ void test_loadParodusCfg()
 #endif
 	Cfg->crud_config_file = strdup("parodus_cfg.json");
 	Cfg->client_cert_path = strdup("./../tests/clientcert.mch");
-	Cfg->token_server_url = strdup("https://issuer.xmidt.comcast.net:8080/issue");
+	Cfg->token_server_url = strdup("https://dev.comcast.net/token");
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
 
@@ -338,7 +338,7 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.partner_id, "shaw");
     assert_string_equal( tmpcfg.webpa_protocol, protocol);
 	assert_string_equal(tmpcfg.client_cert_path, "./../tests/clientcert.mch");
-	assert_string_equal(tmpcfg.token_server_url, "https://issuer.xmidt.comcast.net:8080/issue");
+	assert_string_equal(tmpcfg.token_server_url, "https://dev.comcast.net/token");
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) tmpcfg.acquire_jwt, 1);
     assert_string_equal(tmpcfg.dns_txt_url, "mydns");
@@ -585,7 +585,7 @@ void test_new_auth_token_failure ()
   memset(&cfg,0,sizeof(cfg));
 
   cfg.client_cert_path = strdup("../../tests/clientcert.mch");
-  cfg.token_server_url = strdup("https://issuer.xmidt.comcast.net:8080/issue");
+  cfg.token_server_url = strdup("https://dev.comcast.net/token");
   parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
   parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
   parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
@@ -608,7 +608,7 @@ void test_new_auth_token ()
   memset(&cfg,0,sizeof(cfg));
 
   cfg.client_cert_path = strdup("../../tests/clientcert.mch");
-  cfg.token_server_url = strdup("https://issuer.xmidt.comcast.net:8080/issue");
+  cfg.token_server_url = strdup("https://dev.comcast.net/token");
   parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
   parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
   parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
@@ -628,7 +628,7 @@ void test_getAuthToken ()
 	memset(&cfg,0,sizeof(cfg));
 
 	cfg.client_cert_path = strdup("../../tests/clientcert.mch");
-    cfg.token_server_url = strdup("https://issuer.xmidt.comcast.net:8080/issue");
+    cfg.token_server_url = strdup("https://dev.comcast.net/token");
 	parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
 	parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
 	parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
