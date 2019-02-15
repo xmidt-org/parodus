@@ -32,7 +32,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed main loop to keep calling svc_alive_task during a cloud disconnect and retry
 - change svc alive back to a separate thread.  Shut it down with pthread_cond_timedwait
 - Refactored Upsteam RETRIEVE flow
-- Added common themis JWT support for parodus
 
 ## [1.0.1] - 2018-07-18
 ### Added
