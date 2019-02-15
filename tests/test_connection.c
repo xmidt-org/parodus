@@ -381,7 +381,6 @@ void test_set_extra_headers ()
   create_connection_ctx_t ctx;
   ParodusCfg cfg;
   const char *expected_extra_headers =
-      "\r\nAuthorization: Bearer SER_MAC Fer23u948590 123567892366"
       "\r\nX-WebPA-Device-Name: mac:123567892366"
       "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
       "\r\nUser-Agent: WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)"
@@ -390,15 +389,13 @@ void test_set_extra_headers ()
   memset(&cfg,0,sizeof(cfg));
   memset (&ctx, 0, sizeof(ctx));
 
-  parStrncpy (cfg.token_acquisition_script, "../../tests/return_success.bsh",
-	sizeof(cfg.token_acquisition_script));    
-  parStrncpy (cfg.token_read_script, "../../tests/return_ser_mac.bsh",
-	sizeof(cfg.token_read_script));
+  cfg.client_cert_path = strdup("testcert");
   parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
   parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
   parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
   parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
   parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
+  parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
   parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
 	
   set_parodus_cfg(&cfg);
@@ -410,9 +407,9 @@ void test_set_extra_headers ()
   assert_string_equal (ctx.header_info.conveyHeader, "WebPA-1.6 (TG1682)");
   set_extra_headers (&ctx, true);
   
-  assert_string_equal (get_parodus_cfg()->webpa_auth_token, 
-    "SER_MAC Fer23u948590 123567892366");
   assert_string_equal (ctx.extra_headers, expected_extra_headers);
+  if(cfg.client_cert_path !=NULL) {
+  free(cfg.client_cert_path); }
   free (ctx.extra_headers);
   free_header_info (&ctx.header_info);
 	

@@ -36,6 +36,7 @@
 #include "crud_interface.h"
 #include "heartBeat.h"
 #include "close_retry.h"
+#include <curl/curl.h>
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
@@ -205,6 +206,7 @@ void createSocketConnection(void (* initKeypress)())
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
+    curl_global_cleanup();
 }
 
 void shutdownSocketConnection(void) {

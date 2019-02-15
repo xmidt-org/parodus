@@ -99,11 +99,18 @@ typedef struct
     char webpa_auth_token[4096];
     char token_acquisition_script[64];
     char token_read_script[64];
+    char *client_cert_path;
+    char *token_server_url;
 	char *crud_config_file;
 	char *cloud_status;
 	char *cloud_disconnect;
 	unsigned int boot_retry_wait;
 } ParodusCfg;
+
+struct token_data {
+    size_t size;
+    char* data;
+};
 
 #define FLAGS_IPV6_ONLY (1 << 0)
 #define FLAGS_IPV4_ONLY (1 << 1)
@@ -114,7 +121,7 @@ typedef struct
 /*----------------------------------------------------------------------------*/
 
 void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
-void createNewAuthToken(char *newToken, size_t len);
+int requestNewAuthToken(char *newToken, size_t len, int r_count);
 
 /**
  * parse command line arguments and create config structure
@@ -149,6 +156,8 @@ void reset_cloud_disconnect_reason(ParodusCfg *cfg);
 */ 
 int parse_webpa_url (const char *full_url, 
 	char **server_addr, unsigned int *port);
+size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct token_data *data);
+char* generate_trans_uuid();
 
 #ifdef __cplusplus
 }
