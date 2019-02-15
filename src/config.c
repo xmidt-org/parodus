@@ -756,7 +756,7 @@ void getAuthToken(ParodusCfg *cfg)
 		}
 		else
 		{
-			ParodusInfo("client_cert_path is NULL\n");
+			ParodusError("client_cert_path is NULL, failed to fetch auth token\n");
 		}
 	}
 	else
