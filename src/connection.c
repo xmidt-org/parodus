@@ -297,7 +297,7 @@ void set_current_server (create_connection_ctx_t *ctx)
 
 void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize)
 {
-  if (reauthorize && (get_parodus_cfg()->client_cert_path !=NULL &&strlen(get_parodus_cfg()->client_cert_path) >0))
+  if (reauthorize && (get_parodus_cfg()->client_cert_path !=NULL && strlen(get_parodus_cfg()->client_cert_path) >0))
   {
     getAuthToken(get_parodus_cfg());
   }
