@@ -18,6 +18,7 @@
 #include <string.h>
 #include "stdlib.h"
 #include "config.h"
+#include "auth_token.h"
 #include "conn_interface.h"
 #include "parodus_log.h"
 #include <curl/curl.h>
