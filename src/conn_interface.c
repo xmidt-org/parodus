@@ -97,6 +97,7 @@ void createSocketConnection(void (* initKeypress)())
     if(!createNopollConnection(ctx))
     {
 		ParodusError("Unrecovered error, terminating the process\n");
+		OnboardLog("Unrecovered error, terminating the process\n");
 		abort();
     }
     packMetaData();
@@ -140,6 +141,7 @@ void createSocketConnection(void (* initKeypress)())
             {
                 ParodusError("ping wait time > %d . Terminating the connection with WebPA server and retrying\n", webpa_ping_timeout_ms / 1000);
                 ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
+                OnboardLog("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
                 set_global_reconnect_reason("Ping_Miss");
                 set_global_reconnect_status(true);
                 set_close_retry();

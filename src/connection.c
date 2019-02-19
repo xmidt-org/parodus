@@ -389,6 +389,8 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
      if((checkHostIp(server->server_addr) == -2)) {
        if (check_timer_expired (&ctx->connect_timer, 15*60*1000)) {
   	 ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
+	 OnboardLog("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
+	 OnboardLog("Reconnect detected, setting Dns_Res_webpa_reconnect reason for Reconnect\n");
 	 set_global_reconnect_reason("Dns_Res_webpa_reconnect");
 	 set_global_reconnect_status(true);
 						
@@ -441,6 +443,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
   if(wait_status == 403) 
   {
 	ParodusError("Received Unauthorized response with status: %d\n", wait_status);
+	OnboardLog("Received Unauthorized response with status: %d\n", wait_status);
 	free_extra_headers (ctx);
 	set_extra_headers (ctx, true);
 	return WAIT_ACTION_RETRY;
@@ -574,10 +577,12 @@ int createNopollConnection(noPollCtx *ctx)
 	if(conn_ctx.current_server->allow_insecure <= 0)
 	{
 		ParodusInfo("Connected to server over SSL\n");
+		OnboardLog("Connected to server over SSL\n");
 	}
 	else 
 	{
 		ParodusInfo("Connected to server\n");
+		OnboardLog("Connected to server\n");
 	}
 	
 	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;

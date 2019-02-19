@@ -1346,6 +1346,7 @@ static int ConnDisconnectFromCloud(char *disconn_reason)
 	if(!close_retry)
 	{
 		ParodusInfo("Reconnect detected, setting reason %s for Reconnect\n", disconn_reason);
+		OnboardLog("Reconnect detected, setting reason %s for Reconnect\n", disconn_reason);
 		set_global_reconnect_reason(disconn_reason);
 		set_global_reconnect_status(true);
 		set_close_retry();

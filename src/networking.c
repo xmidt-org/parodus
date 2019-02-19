@@ -70,6 +70,7 @@ int checkHostIp(char * serverIP)
 	if (retVal != 0) 
 	{
 		ParodusError("getaddrinfo: %s\n", gai_strerror(retVal));
+		OnboardLog("getaddrinfo: %s\n", gai_strerror(retVal));
 	}
 	else
 	{
