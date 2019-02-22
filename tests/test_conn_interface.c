@@ -74,11 +74,25 @@ noPollMutexUnlock 	mutex_unlock
     UNUSED(mutex_create); UNUSED(mutex_destroy); UNUSED(mutex_lock); UNUSED(mutex_unlock);
     function_called();
 }
+
+void start_conn_in_progress (void)
+{
+}   
+
+void stop_conn_in_progress (void)
+{
+}   
+
+int check_conn_in_progress (unsigned timeout_secs)
+{
+  UNUSED(timeout_secs);
+  return -1;
+}
+
 void packMetaData()
 {
     function_called();
 }
-
 
 int get_cloud_disconnect_time(void)
 {

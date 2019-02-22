@@ -72,6 +72,12 @@ void release_global_node (void)
 {
 }
 
+int check_conn_in_progress (unsigned timeout_secs)
+{
+  UNUSED(timeout_secs);
+  return -1;
+}
+
 int get_numOfClients()
 {
     function_called();

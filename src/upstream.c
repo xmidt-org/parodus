@@ -119,12 +119,21 @@ void packMetaData()
 
 void *handle_upstream()
 {
+#define SECS_15_MIN 900
     UpStreamMsg *message;
-    int sock, bind;
+    int sock, bind, rtn;
     int bytes =0;
     void *buf;
 
+    do { /* wait for createNopollConnection */
+      rtn = check_conn_in_progress (SECS_15_MIN);
+      if (rtn > 0)
+	return NULL;
+    } while (rtn >= 0);
+
     ParodusPrint("******** Start of handle_upstream ********\n");
+
+    packMetaData();
 
     sock = nn_socket( AF_SP, NN_PULL );
     if(sock >= 0)
@@ -150,6 +159,8 @@ void *handle_upstream()
                 bytes = nn_recv (sock, &buf, NN_MSG, 0);
                 if (g_shutdown)
                   break;
+		if (check_conn_in_progress (SECS_15_MIN) > 0)
+		  break;
                 if (bytes < 0) {
                   if ((errno != EAGAIN) && (errno != ETIMEDOUT))
                     ParodusInfo ("Error (%d) receiving message from nanomsg client\n", errno);
@@ -196,8 +207,8 @@ void *handle_upstream()
     {
         ParodusError("Unable to create socket (errno=%d, %s)\n",errno, strerror(errno));
     }
-    ParodusPrint ("End of handle_upstream\n");
-    return 0;
+    ParodusInfo ("End of handle_upstream\n");
+    return NULL;
 }
 
 

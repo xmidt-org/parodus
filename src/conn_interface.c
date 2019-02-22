@@ -74,6 +74,7 @@ void createSocketConnection(void (* initKeypress)())
     //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
     bool seshat_registered = false;
+    int create_conn_rtn = 0;
     unsigned int webpa_ping_timeout_ms = 1000 * get_parodus_cfg()->webpa_ping_timeout;
     unsigned int heartBeatTimer = 0;
     struct timespec start_svc_alive_timer;
@@ -94,15 +95,24 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_log_set_handler (ctx, __report_log, NULL);
     #endif
 
-    if(!createNopollConnection(ctx))
-    {
-		ParodusError("Unrecovered error, terminating the process\n");
-		abort();
-    }
-    packMetaData();
-    
+    start_conn_in_progress ();
     UpStreamMsgQ = NULL;
     StartThread(handle_upstream, &upstream_tid);
+    create_conn_rtn = createNopollConnection(ctx);
+    stop_conn_in_progress ();
+    if (!create_conn_rtn)
+    {
+	ParodusError("Unrecovered error, terminating the process\n");
+        pthread_mutex_lock (get_global_nano_mut ());
+        pthread_cond_signal (get_global_nano_con());
+        pthread_mutex_unlock (get_global_nano_mut());
+        JoinThread (upstream_msg_tid);
+        nopoll_ctx_unref(ctx);
+        nopoll_cleanup_library();
+        curl_global_cleanup();
+	abort();
+    }
+
     StartThread(processUpstreamMessage, &upstream_msg_tid);
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask, &downstream_tid);
@@ -177,7 +187,9 @@ void createSocketConnection(void (* initKeypress)())
 		free(get_parodus_cfg()->cloud_disconnect);
 		reset_cloud_disconnect_reason(get_parodus_cfg());
             }
+            start_conn_in_progress ();
             createNopollConnection(ctx);
+            stop_conn_in_progress ();
         }
        } while(!get_close_retry() && !g_shutdown);
 

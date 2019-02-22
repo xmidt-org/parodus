@@ -52,6 +52,14 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure);
 static char* build_extra_headers( const char *auth, const char *device_id,
                                   const char *user_agent, const char *convey );
 
+static struct conn_in_prog_data {
+  pthread_mutex_t mut;
+  bool in_progress;
+  struct timespec start_time;
+} CPROG = {
+  .mut = PTHREAD_MUTEX_INITIALIZER, .in_progress = false
+};
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -655,3 +663,60 @@ void close_and_unref_connection(noPollConn *conn)
     }
 }
 
+void start_conn_in_progress (void)
+{
+   pthread_mutex_lock (&CPROG.mut);
+   clock_gettime(CLOCK_REALTIME, &CPROG.start_time);
+   CPROG.in_progress = true;
+   pthread_mutex_unlock (&CPROG.mut);
+}   
+
+void stop_conn_in_progress (void)
+{
+   pthread_mutex_lock (&CPROG.mut);
+   CPROG.in_progress = false;
+   pthread_mutex_unlock (&CPROG.mut);
+}   
+
+bool timeExpired(struct timespec *nowtime, struct timespec *expiretime)
+{
+  if (nowtime->tv_sec != expiretime->tv_sec)
+    return (bool) (nowtime->tv_sec >= expiretime->tv_sec);
+  return (bool) (nowtime->tv_nsec >= expiretime->tv_nsec);
+}
+
+int check_conn_in_progress (unsigned timeout_secs)
+{
+   struct timespec end_time;
+   struct timespec now_time;
+   bool expired;
+   bool in_progress;
+   int i;
+
+   pthread_mutex_lock (&CPROG.mut);
+   if (!CPROG.in_progress) {
+     pthread_mutex_unlock (&CPROG.mut);
+     return -1;
+   }
+   end_time.tv_sec = CPROG.start_time.tv_sec + timeout_secs;
+   end_time.tv_nsec = CPROG.start_time.tv_nsec;
+   clock_gettime(CLOCK_REALTIME, &now_time);
+   expired = timeExpired (&now_time, &end_time);
+   pthread_mutex_unlock (&CPROG.mut);
+   if (!expired)
+     return 0;
+   /* try to get out of createNopollConnection */
+   for (i=0; i<10; i++) {
+     ParodusInfo("Stuck connection detected, killing process\n");
+     kill(getpid(),SIGTERM);						
+     sleep (1);
+     pthread_mutex_lock (&CPROG.mut);
+     in_progress = CPROG.in_progress;
+     pthread_mutex_unlock (&CPROG.mut);
+     if (!in_progress)
+       return 1;
+   }
+   /* Could not get out of createNopollConnection */
+   kill(getpid(),SIGKILL);						
+   return 2;
+}
