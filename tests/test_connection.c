@@ -75,6 +75,10 @@ noPollConn connection3;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
+void shutdownSocketConnection(void)
+{
+}
+
 char* getWebpaConveyHeader()
 {
     return (char*) "WebPA-1.6 (TG1682)";

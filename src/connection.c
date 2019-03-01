@@ -63,6 +63,8 @@ static struct conn_in_prog_data {
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+extern void shutdownSocketConnection(void);
+
 noPollConn *get_global_conn(void)
 {
     return g_conn;
@@ -706,10 +708,12 @@ int check_conn_in_progress (unsigned timeout_secs)
    if (!expired)
      return 0;
    /* try to get out of createNopollConnection */
-   for (i=0; i<10; i++) {
+   for (i=0; i<20; i++) {
      ParodusInfo("Stuck connection detected, killing process\n");
      kill(getpid(),SIGTERM);						
      sleep (1);
+     if (i>10)
+       shutdownSocketConnection ();
      pthread_mutex_lock (&CPROG.mut);
      in_progress = CPROG.in_progress;
      pthread_mutex_unlock (&CPROG.mut);

@@ -46,9 +46,7 @@
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-#ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig);
-#endif
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -57,6 +55,7 @@ int main( int argc, char **argv)
 {
 #ifdef INCLUDE_BREAKPAD
     breakpad_ExceptionHandler();
+    signal(SIGTERM, sig_handler);
 #else
     signal(SIGTERM, sig_handler);
 	signal(SIGINT, sig_handler);
@@ -98,7 +97,22 @@ const char *rdk_logger_module_fetch(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
-#ifndef INCLUDE_BREAKPAD
+#ifdef INCLUDE_BREAKPAD
+static void sig_handler(int sig)
+{
+	if ( sig == SIGTERM ) 
+	{
+		signal(SIGTERM, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGTERM received!\n");
+	}
+	else  /* This won't happen */ 
+	{
+		ParodusInfo("Signal %d received!\n", sig);
+		shutdownSocketConnection();
+	}
+}
+
+#else
 static void sig_handler(int sig)
 {
 

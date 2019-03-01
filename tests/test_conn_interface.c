@@ -258,11 +258,12 @@ void test_createSocketConnection()
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
     expect_function_call(nopoll_ctx_new);
     expect_function_call(nopoll_log_set_handler);
+
+    expect_function_call(StartThread);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 5);
+    expect_function_calls(StartThread, 4);
     expect_function_call(initKeypress);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
@@ -294,11 +295,12 @@ void test_createSocketConnection1()
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
     expect_function_call(nopoll_ctx_new);
     expect_function_call(nopoll_log_set_handler);
+
+    expect_function_call(StartThread);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 5);
+    expect_function_calls(StartThread, 4);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
@@ -344,11 +346,12 @@ void test_PingMissIntervalTime()
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
     expect_function_call(nopoll_ctx_new);
     expect_function_call(nopoll_log_set_handler);
+
+    expect_function_call(StartThread);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 5);
+    expect_function_calls(StartThread, 4);
     //Increment ping interval time to 1 sec for each nopoll_loop_wait call
     will_return(nopoll_loop_wait, 1);
     will_return(nopoll_loop_wait, 1);
@@ -385,11 +388,12 @@ void err_createSocketConnection()
     will_return(nopoll_ctx_new, (intptr_t)NULL);
     expect_function_call(nopoll_ctx_new);
     expect_function_call(nopoll_log_set_handler);
+
+    expect_function_call(StartThread);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
 
-    expect_function_calls(StartThread, 5);
+    expect_function_calls(StartThread, 4);
     will_return(nopoll_loop_wait, 1);
     expect_function_call(nopoll_loop_wait);
     
@@ -422,11 +426,12 @@ void test_createSocketConnection_cloud_disconn()
 	will_return(nopoll_ctx_new, (intptr_t)NULL);
 	expect_function_call(nopoll_ctx_new);
 	expect_function_call(nopoll_log_set_handler);
+
+	expect_function_call(StartThread);
 	will_return(createNopollConnection, nopoll_true);
 	expect_function_call(createNopollConnection);
-	expect_function_call(packMetaData);
 
-	expect_function_calls(StartThread, 5);
+	expect_function_calls(StartThread, 4);
 	will_return(nopoll_loop_wait, 1);
 	expect_function_call(nopoll_loop_wait);
 
