@@ -24,9 +24,8 @@
 #include <curl/curl.h>
 #ifdef INCLUDE_BREAKPAD
 #include "breakpad_wrapper.h"
-#else
-#include "signal.h"
 #endif
+#include "signal.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
