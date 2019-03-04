@@ -454,6 +454,8 @@ void test_processUpstreamMessageRegMsg()
 
     will_return(nn_shutdown, 1);
     expect_function_call(nn_shutdown);
+
+    will_return(nn_close, 0);
     expect_function_call(nn_close);
 
     will_return(nn_socket, 1);
@@ -614,6 +616,8 @@ void err_processUpstreamMessageRegMsg()
 
     will_return(nn_shutdown, -1);
     expect_function_call(nn_shutdown);
+
+    will_return(nn_close, 0);
     expect_function_call(nn_close);
 
     will_return(nn_socket, -1);
@@ -621,6 +625,8 @@ void err_processUpstreamMessageRegMsg()
 
     will_return(nn_shutdown, 1);
     expect_function_call(nn_shutdown);
+
+    will_return(nn_close, 0);
     expect_function_call(nn_close);
 
     will_return(nn_socket, 1);
