@@ -221,6 +221,13 @@ int nn_shutdown (int s, int how)
     return (int)mock();
 }
 
+int nn_close (int s)
+{
+    UNUSED(s);
+    function_called();
+    return (int)mock();
+}
+
 int nn_setsockopt (int s, int level, int option, const void *optval, size_t optvallen)
 {
     UNUSED(s); UNUSED(level); UNUSED(option); UNUSED(optval); UNUSED(optvallen);
@@ -462,6 +469,9 @@ void test_processUpstreamMessageRegMsg()
     will_return(nn_shutdown, 1);
     expect_function_call(nn_shutdown);
 
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
+
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
 
@@ -621,11 +631,17 @@ void err_processUpstreamMessageRegMsg()
     will_return(nn_shutdown, -1);
     expect_function_call(nn_shutdown);
 
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
+
     will_return(nn_socket, -1);
     expect_function_call(nn_socket);
 
     will_return(nn_shutdown, 1);
     expect_function_call(nn_shutdown);
+
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
 
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);

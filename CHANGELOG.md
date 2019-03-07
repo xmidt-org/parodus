@@ -32,7 +32,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed main loop to keep calling svc_alive_task during a cloud disconnect and retry
 - change svc alive back to a separate thread.  Shut it down with pthread_cond_timedwait
 - Refactored Upsteam RETRIEVE flow
-- Self heal so that if parodus gets stuck in connection, a signal will get it out.
+- Fix re-registration to call nn_shutdown and nn_close, so we don't lose a socket.
+- Self heal so that if parodus gets stuck in connection, a signal will get it out
+
 
 ## [1.0.1] - 2018-07-18
 ### Added

@@ -262,8 +262,10 @@ void *processUpstreamMessage()
                                 parStrncpy(temp->url,msg->u.reg.url, sizeof(temp->url));
                                 if(nn_shutdown(temp->sock, 0) < 0)
                                 {
-                                    ParodusError ("Failed to shutdown\n");
+                                    ParodusError ("nn_shutdown socket=%d err=%d\n", 
+					temp->sock, errno);
                                 }
+				nn_close (temp->sock);
 
                                 temp->sock = nn_socket(AF_SP,NN_PUSH );
                                 if(temp->sock >= 0)
@@ -281,7 +283,7 @@ void *processUpstreamMessage()
                                     }
                                     else
                                     {
-                                        ParodusInfo("Client registered before. Sending acknowledgement \n"); 
+                                        ParodusInfo("Client registered before. Sending ack on socket %d\n", temp->sock); 
                                         status =sendAuthStatus(temp);
 
                                         if(status == 0)
