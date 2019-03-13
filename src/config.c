@@ -365,7 +365,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"client-cert-path",        required_argument, 0, 'P'},
 	{"token-server-url",        required_argument, 0, 'U'},
 	{"crud-config-file",        required_argument, 0, 'C'},
-	{"connection-start-stop-file",        required_argument, 0, 'S'},
+	{"connection-health-file",  required_argument, 0, 'S'},
         {0, 0, 0, 0}
     };
     int c;
@@ -381,7 +381,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->jwt_algo = 0;
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	cfg->crud_config_file = NULL;
-	cfg->connection_start_stop_file = NULL;
+	cfg->connection_health_file = NULL;
 	cfg->client_cert_path = NULL;
 	cfg->token_server_url = NULL;
 	cfg->cloud_status = NULL;
@@ -531,8 +531,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
 	case 'S':
-	  cfg->connection_start_stop_file = strdup(optarg);
-	  ParodusInfo("connection_start_stop_file is %s\n", cfg->connection_start_stop_file);
+	  cfg->connection_health_file = strdup(optarg);
+	  ParodusInfo("connection_health_file is %s\n", cfg->connection_health_file);
 	  break;
 
 	case 'C':
@@ -623,7 +623,7 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     cfg->crud_config_file = NULL;
-    cfg->connection_start_stop_file = NULL;
+    cfg->connection_health_file = NULL;
     cfg->client_cert_path = NULL;
     cfg->token_server_url = NULL;
 	
@@ -775,9 +775,9 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
-    if(config->connection_start_stop_file != NULL)
+    if(config->connection_health_file != NULL)
     {
-        cfg->connection_start_stop_file = strdup(config->connection_start_stop_file);
+        cfg->connection_health_file = strdup(config->connection_health_file);
     }
     else
     {

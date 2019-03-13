@@ -102,7 +102,7 @@ typedef struct
     char *client_cert_path;
     char *token_server_url;
     char *crud_config_file;
-    char *connection_start_stop_file;
+    char *connection_health_file;
     char *cloud_status;
     char *cloud_disconnect;
     unsigned int boot_retry_wait;
