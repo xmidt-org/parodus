@@ -655,3 +655,40 @@ void close_and_unref_connection(noPollConn *conn)
     }
 }
 
+void write_conn_in_prog_file (const char *msg, time_t timestamp)
+{
+  int fd;
+  FILE *fp;
+  ParodusCfg *cfg = get_parodus_cfg();
+
+  if (NULL == cfg->connection_start_stop_file)
+    return;
+  fd = open (cfg->connection_start_stop_file, O_CREAT | O_WRONLY | O_SYNC, 0666);
+  if (fd < 0) {
+    ParodusError ("Error(1) %d opening file %s\n", errno, cfg->connection_start_stop_file);
+    return;
+  }
+  ftruncate (fd, 0);
+  fp = fdopen (fd, "w");
+  if (fp == NULL) {
+    ParodusError ("Error(2) %d opening file %s\n", errno, cfg->connection_start_stop_file);
+    return;
+  }
+  if (NULL == msg)
+    fprintf (fp, "<<%lu>>\n", (unsigned long) timestamp);
+  else
+    fprintf (fp, "<<%s>>\n", msg);
+  fclose (fp);
+}
+
+void start_conn_in_progress (void)
+{
+#define SECS_15_MIN 900UL
+  write_conn_in_prog_file (NULL, time(NULL)+SECS_15_MIN);
+}   
+
+void stop_conn_in_progress (void)
+{
+  write_conn_in_prog_file ("----", 0);
+}   
+

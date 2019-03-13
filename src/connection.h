@@ -57,6 +57,13 @@ void set_global_reconnect_status(bool status);
 
 int get_cloud_disconnect_time();
 void set_cloud_disconnect_time(int disconnTime);
+
+/**
+ * @brief Interface to self heal connection in progress getting stuck
+ */
+void start_conn_in_progress (void);
+void stop_conn_in_progress (void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -265,6 +265,8 @@ void test_handleUpstreamNull()
 {
     numLoops = 1;
     UpStreamMsgQ = NULL;
+    will_return(wrp_pack_metadata, 100);
+    expect_function_call(wrp_pack_metadata);
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
     will_return(nn_setsockopt, 0);
@@ -286,6 +288,8 @@ void test_handle_upstream()
     UpStreamMsgQ->next->msg = "Second Message";
     UpStreamMsgQ->next->len = 15;
     UpStreamMsgQ->next->next = NULL;
+    will_return(wrp_pack_metadata, 100);
+    expect_function_call(wrp_pack_metadata);
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
     will_return(nn_setsockopt, 0);
@@ -301,6 +305,8 @@ void test_handle_upstream()
 
 void err_handleUpstreamBindFailure()
 {
+    will_return(wrp_pack_metadata, 100);
+    expect_function_call(wrp_pack_metadata);
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
     will_return(nn_setsockopt, 0);
@@ -312,6 +318,8 @@ void err_handleUpstreamBindFailure()
 
 void err_handleUpstreamSockFailure()
 {
+    will_return(wrp_pack_metadata, 100);
+    expect_function_call(wrp_pack_metadata);
     will_return(nn_socket, -1);
     expect_function_call(nn_socket);
     handle_upstream();

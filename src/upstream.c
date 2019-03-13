@@ -234,7 +234,7 @@ void *processUpstreamMessage()
             if(rv > 0)
             {
                 msgType = msg->msg_type;				   
-                if(msgType == 9)
+                if(msgType == WRP_MSG_TYPE__SVC_REGISTRATION)
                 {
                     ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                     //Extract serviceName and url & store it in a linked list for reg_clients
@@ -402,9 +402,7 @@ void *processUpstreamMessage()
 								{
 									ParodusError("Failed to get device_id\n");
 								}
-						}
-						else
-						{
+						} else if (WRP_MSG_TYPE__SVC_ALIVE != msgType) {
 							sendUpstreamMsgToServer(&message->msg, message->len);
 						}
 					}
