@@ -114,8 +114,9 @@ void *serviceAliveTask()
 				        byte = 0;
 				        if(ret == 0)
 				        {
-					        ParodusPrint("Deletion from list is success, doing resync with head\n");
+						release_global_node ();
 					        temp= get_global_node();
+					        ParodusInfo("Deletion from list is success, doing resync with head\n");
 					        ret = -1;
 				        }
 				        else
