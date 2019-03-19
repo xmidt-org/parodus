@@ -365,7 +365,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"client-cert-path",        required_argument, 0, 'P'},
 	{"token-server-url",        required_argument, 0, 'U'},
 	{"crud-config-file",        required_argument, 0, 'C'},
-	{"client-key-path",		required_argument, 0, 'K'},
+	{"mtls-client-key-path",    required_argument, 0, 'K'},
+	{"mtls-client-cert-path",    required_argument, 0,'M'},
         {0, 0, 0, 0}
     };
     int c;
@@ -391,7 +392,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C:K:",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C:K:M",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -545,8 +546,13 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 		break;
 
         case 'K':
-          cfg->client_key_path = strdup(optarg);
-          ParodusInfo("client_key_path is %s\n", cfg->client_key_path);
+          cfg->mtls_client_key_path = strdup(optarg);
+          ParodusInfo("mtls_client_key_path is %s\n", cfg->mtls_client_key_path);
+          break;
+
+	case 'M':
+          cfg->mtls_client_cert_path = strdup(optarg);
+          ParodusInfo("mtls_client_cert_path is %s\n", cfg->mtls_client_cert_path);
           break;
 
         case '?':
