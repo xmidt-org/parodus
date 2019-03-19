@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 - Security: Added support to use auth token during initial connect to cloud
+- Fix re-registration fails that lose a socket
+- Fix mutex error in service alive
+- Security: Mutual Authentication (mTLS or two way TLS)
 - Rename command line options for MTLS cert and Key
 
 ## [1.0.2] - 2019-02-08
