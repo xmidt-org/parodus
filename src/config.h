@@ -101,6 +101,7 @@ typedef struct
     char token_read_script[64];
     char *client_cert_path;
     char *token_server_url;
+    char *client_key_path;
 	char *crud_config_file;
 	char *cloud_status;
 	char *cloud_disconnect;
