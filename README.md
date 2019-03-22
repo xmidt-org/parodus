@@ -77,9 +77,9 @@ make test
 
 # if ENABLE_MUTUAL_AUTH is enabled
 
-- /client-cert-path - Provide the client cert for establishing a mutual auth secure connection
+- /mtls-client-cert-path - Provide the client cert for establishing a mutual auth secure websocket connection
 
-- /client-key-path - Provide the client cert key for establishing a mutual auth secure connection
+- /mtls-client-key-path - Provide the client cert key for establishing a mutual auth secure websocket connection
 
 ```
 
