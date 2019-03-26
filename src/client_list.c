@@ -220,6 +220,16 @@ int deleteFromList(char* service_name)
 			}
 			
 			ParodusPrint("Deleting the node\n");
+                        if(nn_shutdown(curr_node->sock, curr_node->endpoint) < 0)
+                        {
+                           ParodusError ("nn_shutdown socket=%d endpt=%d, err=%d\n", 
+				curr_node->sock, curr_node->endpoint, errno);
+                        }
+			if (nn_close (curr_node->sock) < 0)
+                        {
+                           ParodusError ("nn_close socket=%d err=%d\n", 
+				curr_node->sock, errno);
+                        }
 			free( curr_node );
 			curr_node = NULL;
 			ParodusInfo("Deleted successfully and returning..\n");
