@@ -87,6 +87,7 @@ int addToList( wrp_msg_t **msg)
 		{
     			memset( new_node, 0, sizeof( reg_list_item_t ) );
     			new_node->sock = sock;
+                        new_node->endpoint = rc;
     			ParodusPrint("new_node->sock is %d\n", new_node->sock);
     			
     			
