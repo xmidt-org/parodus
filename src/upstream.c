@@ -418,6 +418,7 @@ void *processUpstreamMessage()
 									ParodusError("Failed to get device_id\n");
 								}
 						} else if (WRP_MSG_TYPE__SVC_ALIVE != msgType) {
+						  /* Don't reply to service alive message */
 							sendUpstreamMsgToServer(&message->msg, message->len);
 						}
 					}

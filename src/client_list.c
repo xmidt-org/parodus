@@ -76,7 +76,11 @@ int addToList( wrp_msg_t **msg)
             if(rc < 0)
             {
                 ParodusError ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
-                nn_close (sock);
+		if (nn_close (sock) < 0)
+                {
+                   ParodusError ("nn_close socket=%d (err=%d, %s)\n", 
+			sock, errno, strerror(errno));
+		}
                 
             }
             else
