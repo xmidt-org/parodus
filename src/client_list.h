@@ -30,6 +30,7 @@
 typedef struct reg_list_item
 {
 	int sock;
+	int endpoint;
 	char service_name[32];
 	char url[100];
 	struct reg_list_item *next;

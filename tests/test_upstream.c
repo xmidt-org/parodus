@@ -273,6 +273,10 @@ void test_handleUpstreamNull()
     expect_function_call(nn_bind);
     will_return(nn_recv, 12);
     expect_function_call(nn_recv);
+    will_return(nn_shutdown, 0);
+    expect_function_call(nn_shutdown);
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
     handle_upstream();
 }
 
@@ -294,6 +298,10 @@ void test_handle_upstream()
     expect_function_call(nn_bind);
     will_return(nn_recv, 12);
     expect_function_call(nn_recv);
+    will_return(nn_shutdown, 0);
+    expect_function_call(nn_shutdown);
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
     handle_upstream();
     free(UpStreamMsgQ->next);
     free(UpStreamMsgQ);
