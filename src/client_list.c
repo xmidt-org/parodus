@@ -76,7 +76,11 @@ int addToList( wrp_msg_t **msg)
             if(rc < 0)
             {
                 ParodusError ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
-                nn_close (sock);
+		if (nn_close (sock) < 0)
+                {
+                   ParodusError ("nn_close socket=%d (err=%d, %s)\n", 
+			sock, errno, strerror(errno));
+		}
                 
             }
             else
@@ -87,6 +91,7 @@ int addToList( wrp_msg_t **msg)
 		{
     			memset( new_node, 0, sizeof( reg_list_item_t ) );
     			new_node->sock = sock;
+                        new_node->endpoint = rc;
     			ParodusPrint("new_node->sock is %d\n", new_node->sock);
     			
     			
@@ -219,6 +224,16 @@ int deleteFromList(char* service_name)
 			}
 			
 			ParodusPrint("Deleting the node\n");
+                        if(nn_shutdown(curr_node->sock, curr_node->endpoint) < 0)
+                        {
+                           ParodusError ("nn_shutdown socket=%d endpt=%d, err=%d\n", 
+				curr_node->sock, curr_node->endpoint, errno);
+                        }
+			if (nn_close (curr_node->sock) < 0)
+                        {
+                           ParodusError ("nn_close socket=%d err=%d\n", 
+				curr_node->sock, errno);
+                        }
 			free( curr_node );
 			curr_node = NULL;
 			ParodusInfo("Deleted successfully and returning..\n");

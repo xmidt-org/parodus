@@ -190,6 +190,16 @@ void *handle_upstream()
                     ParodusError("failure in allocation for message\n");
                 }
             }
+	    if(nn_shutdown(sock, bind) < 0)
+	    {
+	        ParodusError ("nn_shutdown bind socket=%d endpt=%d, err=%d\n", 
+		    sock, bind, errno);
+	    }
+	    if (nn_close (sock) < 0)
+	    {
+	        ParodusError ("nn_close bind socket=%d err=%d\n", 
+		    sock, errno);
+	    }
         }
     }
     else
@@ -234,7 +244,7 @@ void *processUpstreamMessage()
             if(rv > 0)
             {
                 msgType = msg->msg_type;				   
-                if(msgType == 9)
+                if(msgType == WRP_MSG_TYPE__SVC_REGISTRATION)
                 {
                     ParodusInfo("\n Nanomsg client Registration for Upstream\n");
                     //Extract serviceName and url & store it in a linked list for reg_clients
@@ -249,12 +259,16 @@ void *processUpstreamMessage()
                             {
                                 ParodusInfo("match found, client is already registered\n");
                                 parStrncpy(temp->url,msg->u.reg.url, sizeof(temp->url));
-                                if(nn_shutdown(temp->sock, 0) < 0)
+                                if(nn_shutdown(temp->sock, temp->endpoint) < 0)
                                 {
-                                    ParodusError ("nn_shutdown socket=%d err=%d\n", 
+                                    ParodusError ("nn_shutdown socket=%d endpt=%d, err=%d\n", 
+					temp->sock, temp->endpoint, errno);
+                                }
+				if (nn_close (temp->sock) < 0)
+                                {
+                                    ParodusError ("nn_close socket=%d err=%d\n", 
 					temp->sock, errno);
                                 }
-				nn_close (temp->sock);
 
                                 temp->sock = nn_socket(AF_SP,NN_PUSH );
                                 if(temp->sock >= 0)
@@ -272,6 +286,7 @@ void *processUpstreamMessage()
                                     }
                                     else
                                     {
+                                        temp->endpoint = rc;
                                         ParodusInfo("Client registered before. Sending ack on socket %d\n", temp->sock); 
                                         status =sendAuthStatus(temp);
 
@@ -402,9 +417,8 @@ void *processUpstreamMessage()
 								{
 									ParodusError("Failed to get device_id\n");
 								}
-						}
-						else
-						{
+						} else if (WRP_MSG_TYPE__SVC_ALIVE != msgType) {
+						  /* Don't reply to service alive message */
 							sendUpstreamMsgToServer(&message->msg, message->len);
 						}
 					}
