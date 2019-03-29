@@ -101,11 +101,13 @@ typedef struct
     char token_read_script[64];
     char *client_cert_path;
     char *token_server_url;
-    char *crud_config_file;
     char *connection_health_file;
-    char *cloud_status;
-    char *cloud_disconnect;
-    unsigned int boot_retry_wait;
+    char *mtls_client_key_path;
+    char *mtls_client_cert_path;
+	char *crud_config_file;
+	char *cloud_status;
+	char *cloud_disconnect;
+	unsigned int boot_retry_wait;
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
