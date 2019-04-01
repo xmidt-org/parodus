@@ -662,3 +662,38 @@ void close_and_unref_connection(noPollConn *conn)
     }
 }
 
+void write_conn_in_prog_file (const char *msg)
+{
+  int fd;
+  FILE *fp;
+  unsigned long timestamp;
+  ParodusCfg *cfg = get_parodus_cfg();
+
+  if (NULL == cfg->connection_health_file)
+    return;
+  fd = open (cfg->connection_health_file, O_CREAT | O_WRONLY | O_SYNC, 0666);
+  if (fd < 0) {
+    ParodusError ("Error(1) %d opening file %s\n", errno, cfg->connection_health_file);
+    return;
+  }
+  ftruncate (fd, 0);
+  fp = fdopen (fd, "w");
+  if (fp == NULL) {
+    ParodusError ("Error(2) %d opening file %s\n", errno, cfg->connection_health_file);
+    return;
+  }
+  timestamp = (unsigned long) time(NULL);
+  fprintf (fp, "{%s=%lu}\n", msg, timestamp);
+  fclose (fp);
+}
+
+void start_conn_in_progress (void)
+{
+  write_conn_in_prog_file ("START");
+}   
+
+void stop_conn_in_progress (void)
+{
+  write_conn_in_prog_file ("STOP");
+}   
+
