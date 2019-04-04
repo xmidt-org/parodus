@@ -365,6 +365,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"client-cert-path",        required_argument, 0, 'P'},
 	{"token-server-url",        required_argument, 0, 'U'},
 	{"crud-config-file",        required_argument, 0, 'C'},
+	{"connection-health-file",  required_argument, 0, 'S'},
 	{"mtls-client-key-path",    required_argument, 0, 'K'},
 	{"mtls-client-cert-path",    required_argument, 0,'M'},
         {0, 0, 0, 0}
@@ -382,6 +383,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->jwt_algo = 0;
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	cfg->crud_config_file = NULL;
+	cfg->connection_health_file = NULL;
 	cfg->client_cert_path = NULL;
 	cfg->token_server_url = NULL;
 	cfg->cloud_status = NULL;
@@ -392,7 +394,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C:K:M",
+      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C:S:K:M",
 				long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -530,10 +532,15 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("boot_retry_wait is %d\n",cfg->boot_retry_wait);
           break;
 
-		case 'C':
-		  cfg->crud_config_file = strdup(optarg);
-		  ParodusInfo("crud_config_file is %s\n", cfg->crud_config_file);
-		  break;
+	case 'S':
+	  cfg->connection_health_file = strdup(optarg);
+	  ParodusInfo("connection_health_file is %s\n", cfg->connection_health_file);
+	  break;
+
+	case 'C':
+	  cfg->crud_config_file = strdup(optarg);
+	  ParodusInfo("crud_config_file is %s\n", cfg->crud_config_file);
+	  break;
 
 		case 'P':
 		cfg->client_cert_path = strdup(optarg);
@@ -628,6 +635,7 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     cfg->crud_config_file = NULL;
+    cfg->connection_health_file = NULL;
     cfg->client_cert_path = NULL;
     cfg->token_server_url = NULL;
 	
@@ -779,6 +787,15 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     parStrncpy(cfg->webpa_uuid, "1234567-345456546",sizeof(cfg->webpa_uuid));
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     
+    if(config->connection_health_file != NULL)
+    {
+        cfg->connection_health_file = strdup(config->connection_health_file);
+    }
+    else
+    {
+        ParodusPrint("connection_health_file is NULL. set to empty\n");
+    }
+
     if(config->crud_config_file != NULL)
     {
         cfg->crud_config_file = strdup(config->crud_config_file);
