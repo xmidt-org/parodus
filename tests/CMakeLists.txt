@@ -225,6 +225,17 @@ target_link_libraries (test_upstream -lcmocka gcov -lcunit -lcimplog
  -lssl -lcrypto -lrt -lm)
 
 #-------------------------------------------------------------------------------
+#   test_upstream_sock
+#-------------------------------------------------------------------------------
+add_test(NAME test_upstream_sock COMMAND ${MEMORY_CHECK} ./test_upstream_sock)
+add_executable(test_upstream_sock test_upstream_sock.c ../src/upstream.c 
+  ../src/client_list.c ../src/close_retry.c ../src/string_helpers.c)
+target_link_libraries (test_upstream_sock -lcmocka gcov -lcunit -lcimplog
+ -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll -lnanomsg
+ -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
+ -lssl -lcrypto -lrt -lm)
+
+#-------------------------------------------------------------------------------
 #   test_downstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_downstream COMMAND ${MEMORY_CHECK} ./test_downstream)
