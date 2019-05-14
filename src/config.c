@@ -615,6 +615,7 @@ void createNewAuthToken(char *newToken, size_t len)
 {
 	//Call create script
 	char output[12] = {'\0'};
+	newToken[0] = '\0';
 	execute_token_script(output,get_parodus_cfg()->token_acquisition_script,sizeof(output),get_parodus_cfg()->hw_mac,get_parodus_cfg()->hw_serial_number);
   	if (strlen(output)>0  && strcmp(output,"SUCCESS")==0)
 	{
@@ -636,7 +637,7 @@ void getAuthToken(ParodusCfg *cfg)
 {
 	//local var to update cfg->webpa_auth_token only in success case
 	char output[4069] = {'\0'} ;
-	
+	cfg->webpa_auth_token[0] = '\0';
 	if( strlen(cfg->token_read_script) !=0 && strlen(cfg->token_acquisition_script) !=0)
     	{
 		execute_token_script(output,cfg->token_read_script,sizeof(output),cfg->hw_mac,cfg->hw_serial_number);
