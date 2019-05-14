@@ -66,7 +66,7 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 
 	struct token_data data;
 	data.size = 0;
-	newToken[0] = '\0';
+	memset (newToken, 0, len);
 
 	curl = curl_easy_init();
 	if(curl)
