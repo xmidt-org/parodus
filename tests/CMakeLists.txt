@@ -193,6 +193,17 @@ target_link_libraries (test_auth_token -lcmocka
  -Wl,--no-as-needed -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
 )
+
+#-------------------------------------------------------------------------------
+#   test_auth_token_more
+#-------------------------------------------------------------------------------
+add_test(NAME test_auth_token_more COMMAND ${MEMORY_CHECK} ./test_auth_token_more)
+add_executable(test_auth_token_more test_auth_token_more.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
+target_link_libraries (test_auth_token_more -lcmocka
+ -Wl,--no-as-needed -lcimplog
+ -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
+)
+
 #-------------------------------------------------------------------------------
 #   test_crud_interface
 #-------------------------------------------------------------------------------
