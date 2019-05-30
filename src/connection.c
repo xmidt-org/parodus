@@ -296,19 +296,21 @@ void set_current_server (create_connection_ctx_t *ctx)
   ctx->current_server = get_current_server (&ctx->server_list);
 }
 
-void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize)
-{
-  if (reauthorize && (get_parodus_cfg()->client_cert_path !=NULL && strlen(get_parodus_cfg()->client_cert_path) >0))
-  {
-    getAuthToken(get_parodus_cfg());
-  }
-  
-  ctx->extra_headers = build_extra_hdrs (&ctx->header_info);
-}
-
 void free_extra_headers (create_connection_ctx_t *ctx)
 {
   FREE_PTR_VAR (ctx->extra_headers)
+}
+
+void set_extra_headers (create_connection_ctx_t *ctx)
+{
+  ParodusCfg * cfg = get_parodus_cfg();
+  free_extra_headers (ctx);
+  if ((cfg->client_cert_path != NULL) && (strlen(cfg->client_cert_path) > 0))
+  {
+    getAuthToken(cfg);
+  }
+  
+  ctx->extra_headers = build_extra_hdrs (&ctx->header_info);
 }
 
 void free_connection_ctx (create_connection_ctx_t *ctx)
@@ -404,8 +406,9 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
 //--------------------------------------------------------------------
 // Return codes for wait_connection_ready
 #define WAIT_SUCCESS	0
-#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
-#define WAIT_FAIL 	2
+#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302 or 303
+#define WAIT_ACTION_BACKOFF	2	// if wait status is 403
+#define WAIT_FAIL 	3
 
 #define FREE_NON_NULL_PTR(ptr) if (NULL != ptr) free(ptr)
 
@@ -441,9 +444,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
   if(wait_status == 403) 
   {
 	ParodusError("Received Unauthorized response with status: %d\n", wait_status);
-	free_extra_headers (ctx);
-	set_extra_headers (ctx, true);
-	return WAIT_ACTION_RETRY;
+	return WAIT_ACTION_BACKOFF;
   }
   ParodusError("Client connection timeout\n");	
   ParodusError("RDK-10037 - WebPA Connection Lost\n");
@@ -453,9 +454,10 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
  
 //--------------------------------------------------------------------
 // Return codes for connect_and_wait
-#define CONN_WAIT_SUCCESS	0
-#define CONN_WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
-#define CONN_WAIT_RETRY_DNS 	2
+#define CONN_WAIT_SUCCESS	 0
+#define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302 or 303
+#define CONN_WAIT_ACTION_BACKOFF 2	// if wait status is 403
+#define CONN_WAIT_RETRY_DNS 	 3
 
 int connect_and_wait (create_connection_ctx_t *ctx)
 {
@@ -493,6 +495,9 @@ int connect_and_wait (create_connection_ctx_t *ctx)
     if (wait_rtn == WAIT_ACTION_RETRY)
       return CONN_WAIT_ACTION_RETRY;
 
+    if (wait_rtn == WAIT_ACTION_BACKOFF)
+      return CONN_WAIT_ACTION_BACKOFF;
+
     // try ipv4 if we need to      
     if ((0==force_flags) && (0==ctx->current_server->allow_insecure) && is_ipv6) {
       is_ipv6 = false;
@@ -514,6 +519,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
     
     while (true)
     {
+      set_extra_headers (ctx);
       rtn = connect_and_wait (ctx);
       if (rtn == CONN_WAIT_SUCCESS)
         return true;
@@ -552,11 +558,11 @@ int createNopollConnection(noPollCtx *ctx)
 	
 	max_retry_count = (int) get_parodus_cfg()->webpa_backoff_max;
 	ParodusPrint("max_retry_count is %d\n", max_retry_count );
-  
+
+	memset (&conn_ctx, 0, sizeof(create_connection_ctx_t));
 	conn_ctx.nopoll_ctx = ctx;
 	init_expire_timer (&conn_ctx.connect_timer);
 	init_header_info (&conn_ctx.header_info);
-	set_extra_headers (&conn_ctx, false);
         set_server_list_null (&conn_ctx.server_list);
         init_backoff_timer (&backoff_timer, max_retry_count);
   

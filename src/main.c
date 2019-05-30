@@ -83,7 +83,6 @@ int main( int argc, char **argv)
 		abort();
 	}
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    getAuthToken(cfg);
      
     createSocketConnection( NULL);
     
