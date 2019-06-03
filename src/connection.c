@@ -304,8 +304,10 @@ void free_extra_headers (create_connection_ctx_t *ctx)
 void set_extra_headers (create_connection_ctx_t *ctx)
 {
   ParodusCfg * cfg = get_parodus_cfg();
+
   free_extra_headers (ctx);
-  if ((cfg->client_cert_path != NULL) && (strlen(cfg->client_cert_path) > 0))
+  if ((strlen(cfg->webpa_auth_token) == 0) &&
+      (cfg->client_cert_path != NULL) && (strlen(cfg->client_cert_path) > 0))
   {
     getAuthToken(cfg);
   }
@@ -516,13 +518,20 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 	backoff_timer_t *backoff_timer)
 {
     int rtn;
+    ParodusCfg *cfg;
     
     while (true)
     {
       set_extra_headers (ctx);
+
       rtn = connect_and_wait (ctx);
       if (rtn == CONN_WAIT_SUCCESS)
         return true;
+
+      /* clear auth token in cfg so that we will refetch auth token */
+      cfg = get_parodus_cfg();
+      memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
+
       if (rtn == CONN_WAIT_ACTION_RETRY) // if redirected or build_headers
         continue;
       backoff_delay (backoff_timer); // 3,7,15,31 ..
