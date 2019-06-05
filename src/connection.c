@@ -445,8 +445,11 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
   FREE_NON_NULL_PTR (redirectURL);
   if(wait_status == 403) 
   {
-	ParodusError("Received Unauthorized response with status: %d\n", wait_status);
-	return WAIT_ACTION_BACKOFF;
+    ParodusCfg *cfg = get_parodus_cfg();
+    /* clear auth token in cfg so that we will refetch auth token */
+    memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
+    ParodusError("Received Unauthorized response with status: %d\n", wait_status);
+    return WAIT_ACTION_BACKOFF;
   }
   ParodusError("Client connection timeout\n");	
   ParodusError("RDK-10037 - WebPA Connection Lost\n");
@@ -518,7 +521,6 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 	backoff_timer_t *backoff_timer)
 {
     int rtn;
-    ParodusCfg *cfg;
     
     while (true)
     {
@@ -527,10 +529,6 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
       rtn = connect_and_wait (ctx);
       if (rtn == CONN_WAIT_SUCCESS)
         return true;
-
-      /* clear auth token in cfg so that we will refetch auth token */
-      cfg = get_parodus_cfg();
-      memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
 
       if (rtn == CONN_WAIT_ACTION_RETRY) // if redirected or build_headers
         continue;
