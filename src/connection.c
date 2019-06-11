@@ -408,9 +408,8 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
 //--------------------------------------------------------------------
 // Return codes for wait_connection_ready
 #define WAIT_SUCCESS	0
-#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302 or 303
-#define WAIT_ACTION_BACKOFF	2	// if wait status is 403
-#define WAIT_FAIL 	3
+#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303, or 403
+#define WAIT_FAIL 	2
 
 #define FREE_NON_NULL_PTR(ptr) if (NULL != ptr) free(ptr)
 
@@ -449,7 +448,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
     /* clear auth token in cfg so that we will refetch auth token */
     memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
     ParodusError("Received Unauthorized response with status: %d\n", wait_status);
-    return WAIT_ACTION_BACKOFF;
+    return WAIT_ACTION_RETRY;
   }
   ParodusError("Client connection timeout\n");	
   ParodusError("RDK-10037 - WebPA Connection Lost\n");
@@ -460,9 +459,8 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 //--------------------------------------------------------------------
 // Return codes for connect_and_wait
 #define CONN_WAIT_SUCCESS	 0
-#define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302 or 303
-#define CONN_WAIT_ACTION_BACKOFF 2	// if wait status is 403
-#define CONN_WAIT_RETRY_DNS 	 3
+#define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302, 303, or 403
+#define CONN_WAIT_RETRY_DNS 	 2
 
 int connect_and_wait (create_connection_ctx_t *ctx)
 {
@@ -499,9 +497,6 @@ int connect_and_wait (create_connection_ctx_t *ctx)
 
     if (wait_rtn == WAIT_ACTION_RETRY)
       return CONN_WAIT_ACTION_RETRY;
-
-    if (wait_rtn == WAIT_ACTION_BACKOFF)
-      return CONN_WAIT_ACTION_BACKOFF;
 
     // try ipv4 if we need to      
     if ((0==force_flags) && (0==ctx->current_server->allow_insecure) && is_ipv6) {

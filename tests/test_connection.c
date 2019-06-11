@@ -585,9 +585,8 @@ void test_nopoll_connect ()
 
 // Return codes for wait_connection_ready
 #define WAIT_SUCCESS	0
-#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302 or 303
-#define WAIT_ACTION_BACKOFF	2	// if wait status is 403
-#define WAIT_FAIL 	3
+#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303, or 403
+#define WAIT_FAIL 	2
 
 void test_wait_connection_ready ()
 {
@@ -643,7 +642,7 @@ void test_wait_connection_ready ()
     mock_wait_status = 403;
     will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
     expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-    assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_BACKOFF);
+    assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
 
     free_extra_headers (&ctx);
     free_header_info (&ctx.header_info);
@@ -651,9 +650,8 @@ void test_wait_connection_ready ()
 
 // Return codes for connect_and_wait
 #define CONN_WAIT_SUCCESS	0
-#define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302 or 303
-#define CONN_WAIT_ACTION_BACKOFF 2	// if wait status is 403
-#define CONN_WAIT_RETRY_DNS 	 3
+#define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302, 303, or 403
+#define CONN_WAIT_RETRY_DNS 	 2
 
 void test_connect_and_wait ()
 {
