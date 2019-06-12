@@ -117,6 +117,8 @@ nopoll_bool  nopoll_conn_wait_for_status_until_connection_ready (noPollConn * co
 	int timeout, int *status, char ** message)
 {
     UNUSED(conn); UNUSED(timeout);
+
+    *message = NULL;
     if (mock_wait_status >= 1000) {
       *status = mock_wait_status / 1000;
       mock_wait_status = mock_wait_status % 1000;
@@ -375,6 +377,15 @@ void test_set_current_server()
   assert_ptr_equal (&ctx.server_list.defaults, ctx.current_server);
 }
 
+void init_cfg_header_info (ParodusCfg *cfg)
+{
+  parStrncpy(cfg->hw_mac , "123567892366", sizeof(cfg->hw_mac));
+  parStrncpy(cfg->hw_model, "TG1682", sizeof(cfg->hw_model));
+  parStrncpy(cfg->hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg->hw_manufacturer));
+  parStrncpy(cfg->fw_name , "2.364s2", sizeof(cfg->fw_name));
+  parStrncpy(cfg->webpa_protocol , "WebPA-1.6", sizeof(cfg->webpa_protocol));
+}
+
 void test_set_extra_headers ()
 {
   int rtn;
@@ -391,12 +402,8 @@ void test_set_extra_headers ()
 
   cfg.client_cert_path = strdup("testcert");
   parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
-  parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
-  parStrncpy(cfg.hw_model, "TG1682", sizeof(cfg.hw_model));
-  parStrncpy(cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(cfg.hw_manufacturer));
-  parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
+  init_cfg_header_info (&cfg);
   parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
-  parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
 	
   set_parodus_cfg(&cfg);
   rtn = init_header_info (&ctx.header_info);
@@ -578,19 +585,12 @@ void test_nopoll_connect ()
 
 // Return codes for wait_connection_ready
 #define WAIT_SUCCESS	0
-#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
+#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303, or 403
 #define WAIT_FAIL 	2
 
 void test_wait_connection_ready ()
 {
   create_connection_ctx_t ctx;
-  ParodusCfg Cfg;
-  const char *expected_extra_headers =
-      "\r\nAuthorization: Bearer Auth---"
-      "\r\nX-WebPA-Device-Name: mac:123567892366"
-      "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
-      "\r\nUser-Agent: WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)"
-      "\r\nX-WebPA-Convey: WebPA-1.6 (TG1682)";
 
   memset(&ctx,0,sizeof(ctx));
   set_server_list_null (&ctx.server_list);
@@ -605,7 +605,7 @@ void test_wait_connection_ready ()
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   assert_int_equal (wait_connection_ready (&ctx), WAIT_FAIL);
-  
+
   mock_wait_status = 503;
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
@@ -640,30 +640,18 @@ void test_wait_connection_ready ()
   free_server (&ctx.server_list.redirect);
   
     mock_wait_status = 403;
-    memset(&Cfg, 0, sizeof(ParodusCfg));
-
-    parStrncpy (Cfg.webpa_auth_token, "Auth---", sizeof (Cfg.webpa_auth_token));
-    parStrncpy(Cfg.hw_model, "TG1682", sizeof(Cfg.hw_model));
-    parStrncpy(Cfg.hw_manufacturer , "ARRISGroup,Inc.", sizeof(Cfg.hw_manufacturer));
-    parStrncpy(Cfg.hw_mac , "123567892366", sizeof(Cfg.hw_mac));
-    parStrncpy(Cfg.fw_name , "2.364s2", sizeof(Cfg.fw_name));
-    parStrncpy(Cfg.webpa_protocol , "WebPA-1.6", sizeof(Cfg.webpa_protocol));
-    set_parodus_cfg(&Cfg);
-  
-    init_header_info (&ctx.header_info);
     will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
     expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
     assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
-    
-    assert_string_equal (ctx.extra_headers, expected_extra_headers);
+
     free_extra_headers (&ctx);
     free_header_info (&ctx.header_info);
 }
 
 // Return codes for connect_and_wait
 #define CONN_WAIT_SUCCESS	0
-#define CONN_WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
-#define CONN_WAIT_RETRY_DNS 	2
+#define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302, 303, or 403
+#define CONN_WAIT_RETRY_DNS 	 2
 
 void test_connect_and_wait ()
 {
@@ -815,22 +803,16 @@ void test_keep_trying ()
   server_t test_server;
   backoff_timer_t backoff_timer;
   ParodusCfg Cfg;
-  char *test_extra_headers =
-      "\r\nAuthorization: Bearer SER_MAC Fer23u948590 123567892366"
-      "\r\nX-WebPA-Device-Name: mac:123567892366"
-      "\r\nX-WebPA-Device-Protocols: wrp-0.11,getset-0.1"
-      "\r\nUser-Agent: WebPA-1.6 (2.364s2; TG1682/ARRISGroup,Inc.;)"
-      "\r\nX-WebPA-Convey: WebPA-1.6 (TG1682)";
 
   memset(&Cfg, 0, sizeof(ParodusCfg));
   parStrncpy (Cfg.webpa_url, "http://mydns.mycom.net:8080", sizeof(Cfg.webpa_url));
+  init_cfg_header_info (&Cfg);
 
   mock_wait_status = 0;
 
   memset(&ctx,0,sizeof(ctx));
   ctx.nopoll_ctx = &test_nopoll_ctx;
   ctx.current_server = &test_server;
-  ctx.extra_headers = test_extra_headers;
 
   test_server.allow_insecure = 1;
   test_server.server_addr = "mydns.mycom.net";
