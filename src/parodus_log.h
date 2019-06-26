@@ -33,3 +33,9 @@
 #define ParodusError(...)                   cimplog_error(LOGGING_MODULE, __VA_ARGS__)
 #define ParodusInfo(...)                    cimplog_info(LOGGING_MODULE, __VA_ARGS__)
 #define ParodusPrint(...)                   cimplog_debug(LOGGING_MODULE, __VA_ARGS__)
+#ifdef FEATURE_SUPPORT_ONBOARD_LOGGING
+#define OnboardLog(...)                     onboarding_log(LOGGING_MODULE, __VA_ARGS__)
+#else
+#define OnboardLog(...)
+#endif
+

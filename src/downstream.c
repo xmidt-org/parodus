@@ -121,6 +121,9 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         ParodusInfo("Received downstream dest as :%s and transaction_uuid :%s\n", dest, 
                             ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid : 
                             ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
+			OnboardLog("%s\n",
+                            ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid :
+                            ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
                         
                         free(destVal);
 

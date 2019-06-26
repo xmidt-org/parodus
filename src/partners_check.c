@@ -178,6 +178,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
                 if(matchFlag != 1)
                 {
                     ParodusError("Invalid partner_id %s\n",temp);
+                    OnboardLog("Invalid partner_id %s\n",temp);
                     if(partnersList != NULL)
                     {
                         for(j=0; j<partnersList->count; j++)

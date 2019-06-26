@@ -435,6 +435,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         case 'r':
           parStrncpy(cfg->hw_last_reboot_reason, optarg,sizeof(cfg->hw_last_reboot_reason));
           ParodusInfo("hw_last_reboot_reason is %s\n",cfg->hw_last_reboot_reason);
+          OnboardLog("Last reboot reason is %s\n",cfg->hw_last_reboot_reason);
           break;
 
         case 'n':
