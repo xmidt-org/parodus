@@ -24,9 +24,8 @@
 #include <curl/curl.h>
 #ifdef INCLUDE_BREAKPAD
 #include "breakpad_wrapper.h"
-#else
-#include "signal.h"
 #endif
+#include "signal.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -46,9 +45,7 @@
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-#ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig);
-#endif
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -97,7 +94,6 @@ const char *rdk_logger_module_fetch(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
-#ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig)
 {
 
@@ -138,4 +134,3 @@ static void sig_handler(int sig)
 	}
 	
 }
-#endif
