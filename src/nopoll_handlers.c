@@ -167,12 +167,14 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
     if( closeStatus == 1006 && !get_global_reconnect_status())
     {
 	ParodusInfo("Reconnect detected, setting default Reconnect reason %s\n",defaultReason);
+	OnboardLog("Reconnect detected, setting default Reconnect reason %s\n",defaultReason);
         set_global_reconnect_reason(defaultReason);
         set_global_reconnect_status(true);
     }
     else if(!get_global_reconnect_status())
     {
     	ParodusInfo("Reconnect detected, setting Reconnect reason as Unknown\n");
+	OnboardLog("Reconnect detected, setting Reconnect reason as Unknown\n");
         set_global_reconnect_reason("Unknown");
     }
 

@@ -589,6 +589,7 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		else
 		{
 			ParodusInfo("close_retry is %d, unable to send response as connection retry is in progress\n", close_retry);
+			OnboardLog("close_retry is %d, unable to send response as connection retry is in progress\n", close_retry);
 		}
 		free(appendData);
 		appendData =NULL;
