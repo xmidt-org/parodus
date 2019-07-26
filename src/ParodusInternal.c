@@ -25,6 +25,10 @@
 #include "config.h"
 #include "connection.h"
 
+bool wan_stop_flag = false;
+
+pthread_mutex_t wan_stop_mut=PTHREAD_MUTEX_INITIALIZER;
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -139,3 +143,38 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
 
     return;
 }
+
+
+/*------------------------------------------------------------------------------*/
+/*                              For Wan-staus Flag                              */
+/*------------------------------------------------------------------------------*/
+
+// Get value of wan_stop_flag
+bool get_wan_stop_flag() 
+{
+	bool tmp = false;
+	pthread_mutex_lock (&wan_stop_mut);
+	tmp = wan_stop_flag;
+	pthread_mutex_unlock (&wan_stop_mut);
+	return tmp;
+}
+
+// Reset value of wan_stop_flag to false
+void reset_wan_stop_flag() 
+{
+	pthread_mutex_lock (&wan_stop_mut);
+	wan_stop_flag = false;
+	pthread_mutex_unlock (&wan_stop_mut);
+}
+
+// set value of wan_stop_flag to true
+void set_wan_stop_flag() 
+{
+	pthread_mutex_lock (&wan_stop_mut);
+    	wan_stop_flag = true;
+    	pthread_mutex_unlock (&wan_stop_mut);
+}
+
+
+
+

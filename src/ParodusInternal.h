@@ -157,6 +157,21 @@ void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
 
+
+/*------------------------------------------------------------------------------*/
+/*                              For Wan-staus Flag                              */
+/*------------------------------------------------------------------------------*/
+
+// Get value of wan_stop_flag
+bool get_wan_stop_flag();
+
+// Reset value of wan_stop_flag to false
+void reset_wan_stop_flag();
+
+// Set value of wan_stop_flag to true
+void set_wan_stop_flag();
+  
+
 #ifdef __cplusplus
 }
 #endif
