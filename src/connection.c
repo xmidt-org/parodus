@@ -520,7 +520,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 {
     int rtn;
     
-    while (true)
+    while (!g_shutdown)
     {
       set_extra_headers (ctx);
 
@@ -535,6 +535,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
         return false;  //find_server again
       // else retry
     }
+    return false;
 }
 
 
@@ -581,6 +582,8 @@ int createNopollConnection(noPollCtx *ctx)
 		break;
 	  // retry dns query
 	}
+	if (g_shutdown)
+		return nopoll_false;
       
 	if(conn_ctx.current_server->allow_insecure <= 0)
 	{
