@@ -39,6 +39,24 @@
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
 
+/* Close codes defined in RFC 6455, section 11.7. */
+enum {
+	CloseNormalClosure           = 1000,
+	CloseGoingAway               = 1001,
+	CloseProtocolError           = 1002,
+	CloseUnsupportedData         = 1003,
+	CloseNoStatus		     = 1005,
+	CloseAbnormalClosure         = 1006,
+	CloseInvalidFramePayloadData = 1007,
+	ClosePolicyViolation         = 1008,
+	CloseMessageTooBig           = 1009,
+	CloseMandatoryExtension      = 1010,
+	CloseInternalServerErr       = 1011,
+	CloseServiceRestart          = 1012,
+	CloseTryAgainLater           = 1013,
+	CloseTLSHandshake            = 1015
+};
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
@@ -668,7 +686,14 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 void close_and_unref_connection(noPollConn *conn)
 {
     if (conn) {
-        nopoll_conn_close(conn);
+	const char *reason = get_global_reconnect_reason();
+	int reason_len = 0;
+	int status = CloseNoStatus;
+	if (NULL != reason) {
+		reason_len = (int) strlen (reason);
+		status = CloseNormalClosure;
+	}
+        nopoll_conn_close_ext(conn, status, reason, reason_len);
         if (0 < nopoll_conn_ref_count (conn)) {
             nopoll_conn_unref(conn);
         }
