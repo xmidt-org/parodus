@@ -177,8 +177,15 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
 	OnboardLog("Reconnect detected, setting Reconnect reason as Unknown\n");
         set_global_reconnect_reason("Unknown");
     }
+    
+    if(!get_interface_down_event())
+    {
+	ParodusInfo("Setting the close and retry connection\n");
+    	set_close_retry();
+    }
+    else
+    	ParodusInfo("Not Setting the close and retry connection as interface is down\n");
 
-    set_close_retry();
     ParodusPrint("listenerOnCloseMessage(): mutex unlock in producer thread\n");
 }
 
