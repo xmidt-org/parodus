@@ -66,17 +66,11 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 
 	struct token_data data;
 	data.size = 0;
+	data.data = newToken;
 
 	curl = curl_easy_init();
 	if(curl)
 	{
-		//this memory will be dynamically grown by write call back fn as required
-		data.data = (char *) malloc(sizeof(char) * 1);
-		if(NULL == data.data)
-		{
-			ParodusError("Failed to allocate memory.\n");
-			return -1;
-		}
 		data.data[0] = '\0';
 
 		createCurlheader(mac_header, serial_header, uuid_header, transaction_uuid, list, &headers_list);
@@ -137,11 +131,8 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 		{
 			ParodusError("curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 			curl_easy_cleanup(curl);
-			if(data.data)
-			{
-				free(data.data);
-				data.data = NULL;
-			}
+			data.size = 0;
+			memset (data.data, 0, len);
 			return -1;
 		}
 		else
@@ -149,19 +140,15 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 			if(response_code == 200)
 			{
 				ParodusInfo("cURL success\n");
-				strncpy(newToken, data.data, len);
 			}
-		}
-		if(data.data)
-		{
-			free(data.data);
-			data.data = NULL;
 		}
 		curl_easy_cleanup(curl);
 	}
 	else
 	{
 		ParodusError("curl init failure\n");
+		data.size = 0;
+		memset (data.data, 0, len);
 		return -1;
 	}
 
@@ -179,6 +166,7 @@ void getAuthToken(ParodusCfg *cfg)
 	int status = -1;
 	int retry_count = 0;
 
+	memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
 	if( cfg->hw_mac != NULL && strlen(cfg->hw_mac) !=0 )
 	{
 		if( cfg->client_cert_path !=NULL && strlen(cfg->client_cert_path) !=0 )
@@ -225,28 +213,23 @@ void getAuthToken(ParodusCfg *cfg)
 */
 size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct token_data *data)
 {
+    ParodusCfg *cfg;
+    size_t max_data_size = sizeof (cfg->webpa_auth_token);
     size_t index = data->size;
     size_t n = (size * nmemb);
-    char* tmp;
 
-    data->size += (size * nmemb);
+    data->size += n;
 
-    tmp = realloc(data->data, data->size + 1); /* +1 for '\0' */
-
-    if(tmp) {
-        data->data = tmp;
-    } else {
-        if(data->data) {
-            free(data->data);
-        }
-        ParodusError("Failed to allocate memory for data\n");
+    if (data->size >= max_data_size) {
+        ParodusError("Auth token data overruns buffer\n");
+	data->size = 0;
         return 0;
     }
 
     memcpy((data->data + index), buffer, n);
     data->data[data->size] = '\0';
 
-    return size * nmemb;
+    return n;
 }
 
 /* @brief function to generate random uuid.

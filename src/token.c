@@ -139,6 +139,7 @@ int analyze_jwt (const cjwt_t *jwt, char **url_buf, unsigned int *port)
 		show_times (exp_time, cur_time);
 		if (exp_time < cur_time) {
 			ParodusError ("JWT has expired\n");
+			OnboardLog ("JWT has expired\n");
 			return TOKEN_ERR_JWT_EXPIRED;
 		}
 	}
@@ -146,6 +147,7 @@ int analyze_jwt (const cjwt_t *jwt, char **url_buf, unsigned int *port)
 		url_buf, port);
 	if (http_match < 0) {
 		ParodusError ("Invalid endpoint claim in JWT\n");
+		OnboardLog("Invalid endpoint claim in JWT\n");
 		return TOKEN_ERR_BAD_ENDPOINT;
 	}
 	ParodusInfo ("JWT is_http strncmp: %d\n", http_match);

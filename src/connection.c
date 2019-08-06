@@ -296,19 +296,23 @@ void set_current_server (create_connection_ctx_t *ctx)
   ctx->current_server = get_current_server (&ctx->server_list);
 }
 
-void set_extra_headers (create_connection_ctx_t *ctx, int reauthorize)
-{
-  if (reauthorize && (get_parodus_cfg()->client_cert_path !=NULL && strlen(get_parodus_cfg()->client_cert_path) >0))
-  {
-    getAuthToken(get_parodus_cfg());
-  }
-  
-  ctx->extra_headers = build_extra_hdrs (&ctx->header_info);
-}
-
 void free_extra_headers (create_connection_ctx_t *ctx)
 {
   FREE_PTR_VAR (ctx->extra_headers)
+}
+
+void set_extra_headers (create_connection_ctx_t *ctx)
+{
+  ParodusCfg * cfg = get_parodus_cfg();
+
+  free_extra_headers (ctx);
+  if ((strlen(cfg->webpa_auth_token) == 0) &&
+      (cfg->client_cert_path != NULL) && (strlen(cfg->client_cert_path) > 0))
+  {
+    getAuthToken(cfg);
+  }
+  
+  ctx->extra_headers = build_extra_hdrs (&ctx->header_info);
 }
 
 void free_connection_ctx (create_connection_ctx_t *ctx)
@@ -389,6 +393,8 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
      if((checkHostIp(server->server_addr) == -2)) {
        if (check_timer_expired (&ctx->connect_timer, 15*60*1000)) {
   	 ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
+	 OnboardLog("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
+	 OnboardLog("Reconnect detected, setting Dns_Res_webpa_reconnect reason for Reconnect\n");
 	 set_global_reconnect_reason("Dns_Res_webpa_reconnect");
 	 set_global_reconnect_status(true);
 						
@@ -404,7 +410,7 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
 //--------------------------------------------------------------------
 // Return codes for wait_connection_ready
 #define WAIT_SUCCESS	0
-#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
+#define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303, or 403
 #define WAIT_FAIL 	2
 
 #define FREE_NON_NULL_PTR(ptr) if (NULL != ptr) free(ptr)
@@ -440,10 +446,12 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
   FREE_NON_NULL_PTR (redirectURL);
   if(wait_status == 403) 
   {
-	ParodusError("Received Unauthorized response with status: %d\n", wait_status);
-	free_extra_headers (ctx);
-	set_extra_headers (ctx, true);
-	return WAIT_ACTION_RETRY;
+    ParodusCfg *cfg = get_parodus_cfg();
+    /* clear auth token in cfg so that we will refetch auth token */
+    memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
+    ParodusError("Received Unauthorized response with status: %d\n", wait_status);
+	OnboardLog("Received Unauthorized response with status: %d\n", wait_status);
+    return WAIT_ACTION_RETRY;
   }
   ParodusError("Client connection timeout\n");	
   ParodusError("RDK-10037 - WebPA Connection Lost\n");
@@ -453,9 +461,9 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
  
 //--------------------------------------------------------------------
 // Return codes for connect_and_wait
-#define CONN_WAIT_SUCCESS	0
-#define CONN_WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303 or 403
-#define CONN_WAIT_RETRY_DNS 	2
+#define CONN_WAIT_SUCCESS	 0
+#define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302, 303, or 403
+#define CONN_WAIT_RETRY_DNS 	 2
 
 int connect_and_wait (create_connection_ctx_t *ctx)
 {
@@ -514,9 +522,12 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
     
     while (true)
     {
+      set_extra_headers (ctx);
+
       rtn = connect_and_wait (ctx);
       if (rtn == CONN_WAIT_SUCCESS)
         return true;
+
       if (rtn == CONN_WAIT_ACTION_RETRY) // if redirected or build_headers
         continue;
       backoff_delay (backoff_timer); // 3,7,15,31 ..
@@ -552,11 +563,11 @@ int createNopollConnection(noPollCtx *ctx)
 	
 	max_retry_count = (int) get_parodus_cfg()->webpa_backoff_max;
 	ParodusPrint("max_retry_count is %d\n", max_retry_count );
-  
+
+	memset (&conn_ctx, 0, sizeof(create_connection_ctx_t));
 	conn_ctx.nopoll_ctx = ctx;
 	init_expire_timer (&conn_ctx.connect_timer);
 	init_header_info (&conn_ctx.header_info);
-	set_extra_headers (&conn_ctx, false);
         set_server_list_null (&conn_ctx.server_list);
         init_backoff_timer (&backoff_timer, max_retry_count);
   
@@ -574,10 +585,12 @@ int createNopollConnection(noPollCtx *ctx)
 	if(conn_ctx.current_server->allow_insecure <= 0)
 	{
 		ParodusInfo("Connected to server over SSL\n");
+		OnboardLog("Connected to server over SSL\n");
 	}
 	else 
 	{
 		ParodusInfo("Connected to server\n");
+		OnboardLog("Connected to server\n");
 	}
 	
 	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;

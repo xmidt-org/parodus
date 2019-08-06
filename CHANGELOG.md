@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Security: Mutual Authentication (mTLS or two way TLS)
 - Rename command line options for MTLS cert and Key
 - Update to use nanomsg v. 1.1.4
+- requestNewAuthToken will clear the token if it fails.
+- request auth token on every retry, not just after 403
+- update to use nopoll v 1.0.2
 - Add pause/resume heartBeatTimer
 
 ## [1.0.2] - 2019-02-08
