@@ -22,8 +22,10 @@
  */
 
 #include "heartBeat.h"
+#include <stdbool.h>
 
 volatile unsigned int heartBeatTimer = 0;
+volatile bool paused = false;
 
 pthread_mutex_t heartBeat_mut=PTHREAD_MUTEX_INITIALIZER;
 
@@ -49,8 +51,27 @@ void reset_heartBeatTimer()
 void increment_heartBeatTimer(unsigned int inc_time_ms) 
 {
 	pthread_mutex_lock (&heartBeat_mut);
-	heartBeatTimer += inc_time_ms;
+	if (!paused)
+	  heartBeatTimer += inc_time_ms;
 	pthread_mutex_unlock (&heartBeat_mut);
 }
+
+// Pause heartBeatTimer, i.e. stop incrementing
+void pause_heartBeatTimer()
+{
+	pthread_mutex_lock (&heartBeat_mut);
+	heartBeatTimer = 0;
+	paused = true;
+	pthread_mutex_unlock (&heartBeat_mut);
+}
+
+// Resume heartBeatTimer, i.e. resume incrementing
+void resume_heartBeatTimer()
+{
+	pthread_mutex_lock (&heartBeat_mut);
+	paused = false;
+	pthread_mutex_unlock (&heartBeat_mut);
+}
+
 
 
