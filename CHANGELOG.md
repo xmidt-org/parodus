@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - requestNewAuthToken will clear the token if it fails.
 - request auth token on every retry, not just after 403
 - update to use nopoll v 1.0.2
+- Add pause/resume heartBeatTimer
+- parodus event handler to listen to interface_down and interface_up event
 
 ## [1.0.2] - 2019-02-08
 - Refactored connection.c and updated corresponding unit tests

@@ -21,6 +21,7 @@
 #include <nopoll_private.h>
 #include <pthread.h>
 
+#include "../src/ParodusInternal.h"
 #include "../src/nopoll_handlers.h"
 #include "../src/parodus_log.h"
 
@@ -44,6 +45,11 @@ void set_global_reconnect_reason(char *reason)
 bool get_global_reconnect_status()
 {
     return LastReasonStatus;
+}
+
+bool get_interface_down_event()
+{
+     return false;
 }
 
 void set_global_reconnect_status(bool status)
