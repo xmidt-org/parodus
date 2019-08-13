@@ -88,6 +88,10 @@ void packMetaData()
     function_called();
 }
 
+char *get_global_reconnect_reason(void)
+{
+  return "Unknown";
+}
 
 int get_cloud_disconnect_time(void)
 {

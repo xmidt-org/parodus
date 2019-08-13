@@ -211,6 +211,7 @@ void createSocketConnection(void (* initKeypress)())
 
     deleteAllClients ();
 
+    ParodusInfo ("reconnect reason at close %s\n", get_global_reconnect_reason()); 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
