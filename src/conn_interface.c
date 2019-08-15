@@ -187,7 +187,7 @@ void createSocketConnection(void (* initKeypress)())
             createNopollConnection(ctx);
             stop_conn_in_progress ();
         }
-       } while(!get_close_retry() && !g_shutdown);
+       } while(!g_shutdown);
 
     pthread_mutex_lock (get_global_svc_mut());
     pthread_cond_signal (get_global_svc_con());

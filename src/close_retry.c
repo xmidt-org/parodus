@@ -26,6 +26,17 @@
 bool close_retry = false;
 
 pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t close_con=PTHREAD_COND_INITIALIZER;
+
+pthread_cond_t *get_global_close_retry_con(void)
+{
+    return &close_con;
+}
+
+pthread_mutex_t *get_global_close_retry_mut(void)
+{
+    return &close_mut;
+}
 
 // Get value of close_retry
 bool get_close_retry() 
@@ -48,8 +59,9 @@ void reset_close_retry()
 // set value of close_retry to true
 void set_close_retry() 
 {
-	pthread_mutex_lock (&close_mut);
+    pthread_mutex_lock (&close_mut);
     close_retry = true;
+    pthread_cond_signal(&close_con);
     pthread_mutex_unlock (&close_mut);
 }
 

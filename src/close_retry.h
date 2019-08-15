@@ -31,6 +31,12 @@
 extern "C" {
 #endif
 
+// Get the condition variable
+pthread_cond_t *get_global_close_retry_con();
+
+// Get the mutex variable
+pthread_mutex_t *get_global_close_retry_mut();
+
 // Get value of close_retry
 bool get_close_retry();
 

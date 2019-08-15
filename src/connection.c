@@ -580,6 +580,14 @@ int createNopollConnection(noPollCtx *ctx)
 	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
 		break;
 	  // retry dns query
+
+	  // If close_retry is reset due to interface down event, stop retry
+	  // and wait till close_retry is set again.
+	  if(!get_close_retry() && get_interface_down_event()) {
+		pthread_mutex_lock(get_global_close_retry_mut());
+		pthread_cond_wait(get_global_close_retry_con(), get_global_close_retry_mut());
+		pthread_mutex_unlock (get_global_close_retry_mut());
+	  }
 	}
       
 	if(conn_ctx.current_server->allow_insecure <= 0)
