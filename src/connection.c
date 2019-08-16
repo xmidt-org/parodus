@@ -391,7 +391,7 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
    }
    if ((NULL == connection) && (!is_ipv6)) {
      if((checkHostIp(server->server_addr) == -2)) {
-       if (check_timer_expired (&ctx->connect_timer, 15*60*1000)) {
+       if (check_timer_expired (&ctx->connect_timer, 15*60*1000) && !get_interface_down_event()) {
   	 ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
 	 OnboardLog("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
 	 OnboardLog("Reconnect detected, setting Dns_Res_webpa_reconnect reason for Reconnect\n");
@@ -587,7 +587,7 @@ int createNopollConnection(noPollCtx *ctx)
 		pthread_mutex_lock(get_global_close_retry_mut());
 		pthread_cond_wait(get_global_close_retry_con(), get_global_close_retry_mut());
 		pthread_mutex_unlock (get_global_close_retry_mut());
-		&conn_ctx.header_info->conveyHeader = getWebpaConveyHeader(); 
+		//&conn_ctx.header_info->conveyHeader = getWebpaConveyHeader(); 
 	  }
 	}
       
