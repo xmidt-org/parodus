@@ -16,6 +16,7 @@
  
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdbool.h>
 #include <setjmp.h>
 #include <cmocka.h>
 #include <nopoll.h>
@@ -114,6 +115,11 @@ int kill(pid_t pid, int sig)
     UNUSED(pid); UNUSED(sig);
     function_called();
     return (int) mock();
+}
+
+bool get_interface_down_event()
+{
+     return false;
 }
 
 /*----------------------------------------------------------------------------*/

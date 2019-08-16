@@ -587,6 +587,7 @@ int createNopollConnection(noPollCtx *ctx)
 		pthread_mutex_lock(get_global_close_retry_mut());
 		pthread_cond_wait(get_global_close_retry_con(), get_global_close_retry_mut());
 		pthread_mutex_unlock (get_global_close_retry_mut());
+		&conn_ctx.header_info->conveyHeader = getWebpaConveyHeader(); 
 	  }
 	}
       
