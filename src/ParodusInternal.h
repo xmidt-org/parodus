@@ -170,6 +170,10 @@ void reset_interface_down_event();
 
 // Set value of interface_down_event to true
 void set_interface_down_event();
+
+pthread_cond_t *get_interface_down_con();
+
+pthread_mutex_t *get_interface_down_mut();
   
 
 #ifdef __cplusplus

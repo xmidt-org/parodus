@@ -28,6 +28,7 @@
 bool interface_down_event = false;
 
 pthread_mutex_t interface_down_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t interface_down_con=PTHREAD_COND_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -164,6 +165,7 @@ void reset_interface_down_event()
 {
 	pthread_mutex_lock (&interface_down_mut);
 	interface_down_event = false;
+	pthread_cond_signal(&interface_down_con);
 	pthread_mutex_unlock (&interface_down_mut);
 }
 
@@ -175,6 +177,14 @@ void set_interface_down_event()
     	pthread_mutex_unlock (&interface_down_mut);
 }
 
+pthread_cond_t *get_interface_down_con(void)
+{
+    return &interface_down_con;
+}
 
+pthread_mutex_t *get_interface_down_mut(void)
+{
+    return &interface_down_mut;
+}
 
 
