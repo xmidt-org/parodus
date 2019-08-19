@@ -391,7 +391,7 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
    }
    if ((NULL == connection) && (!is_ipv6)) {
      if((checkHostIp(server->server_addr) == -2)) {
-       if (check_timer_expired (&ctx->connect_timer, 15*60*1000)) {
+       if (check_timer_expired (&ctx->connect_timer, 15*60*1000) && !get_interface_down_event()) {
   	 ParodusError("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
 	 OnboardLog("WebPA unable to connect due to DNS resolving to 10.0.0.1 for over 15 minutes; crashing service.\n");
 	 OnboardLog("Reconnect detected, setting Dns_Res_webpa_reconnect reason for Reconnect\n");
@@ -580,6 +580,18 @@ int createNopollConnection(noPollCtx *ctx)
 	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
 		break;
 	  // retry dns query
+
+	  // If interface down event is set, stop retry
+	  // and wait till interface is up again.
+	  if(get_interface_down_event()) {
+		ParodusError("Interface is down, hence pausing retry and waiting until its up\n");
+		pthread_mutex_lock(get_interface_down_mut());
+		pthread_cond_wait(get_interface_down_con(), get_interface_down_mut());
+		pthread_mutex_unlock (get_interface_down_mut());
+		ParodusInfo("Interface is back up, re-initializing the convey header\n");
+		// Reset the reconnect reason by initializing the convey header again
+		((header_info_t *)(&conn_ctx.header_info))->conveyHeader = getWebpaConveyHeader(); 
+	  }
 	}
       
 	if(conn_ctx.current_server->allow_insecure <= 0)
