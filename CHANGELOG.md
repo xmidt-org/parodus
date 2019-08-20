@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - update to use nopoll v 1.0.2
 - Add pause/resume heartBeatTimer
 - parodus event handler to listen to interface_down and interface_up event
+- Pause connection retry during interface_down event
 
 ## [1.0.2] - 2019-02-08
 - Refactored connection.c and updated corresponding unit tests

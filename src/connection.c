@@ -590,7 +590,8 @@ int createNopollConnection(noPollCtx *ctx)
 		pthread_mutex_unlock (get_interface_down_mut());
 		ParodusInfo("Interface is back up, re-initializing the convey header\n");
 		// Reset the reconnect reason by initializing the convey header again
-		((header_info_t *)(&conn_ctx.header_info))->conveyHeader = getWebpaConveyHeader(); 
+		((header_info_t *)(&conn_ctx.header_info))->conveyHeader = getWebpaConveyHeader();
+		ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
 	  }
 	}
       
