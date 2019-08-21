@@ -170,8 +170,6 @@ void createSocketConnection(void (* initKeypress)())
             close_and_unref_connection(get_global_conn());
             set_global_conn(NULL);
 
-            get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
-            ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
             if(get_parodus_cfg()->cloud_disconnect !=NULL)
             {
                 ParodusPrint("get_parodus_cfg()->cloud_disconnect is %s\n", get_parodus_cfg()->cloud_disconnect);
