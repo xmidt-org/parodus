@@ -48,6 +48,11 @@ bool get_global_reconnect_status()
     return LastReasonStatus;
 }
 
+bool get_interface_down_event()
+{
+     return false;
+}
+
 void set_global_reconnect_status(bool status)
 {
     (void) status ;

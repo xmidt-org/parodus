@@ -157,6 +157,25 @@ void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
 
+
+/*------------------------------------------------------------------------------*/
+/*                        For interface_down_event Flag                         */
+/*------------------------------------------------------------------------------*/
+
+// Get value of interface_down_event
+bool get_interface_down_event();
+
+// Reset value of interface_down_event to false
+void reset_interface_down_event();
+
+// Set value of interface_down_event to true
+void set_interface_down_event();
+
+pthread_cond_t *get_interface_down_con();
+
+pthread_mutex_t *get_interface_down_mut();
+  
+
 #ifdef __cplusplus
 }
 #endif

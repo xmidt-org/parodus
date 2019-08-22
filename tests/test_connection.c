@@ -60,7 +60,9 @@ extern int keep_trying_to_connect (create_connection_ctx_t *ctx,
 
 bool close_retry;
 bool LastReasonStatus;
-pthread_mutex_t close_mut;
+pthread_mutex_t close_mut; 
+pthread_mutex_t interface_down_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t interface_down_con=PTHREAD_COND_INITIALIZER;
 
 // Mock values
 bool g_shutdown = false;
@@ -78,6 +80,20 @@ noPollConn connection3;
 char* getWebpaConveyHeader()
 {
     return (char*) "WebPA-1.6 (TG1682)";
+}
+
+bool get_interface_down_event() 
+{
+	return false;
+}
+pthread_cond_t *get_interface_down_con(void)
+{
+    return &interface_down_con;
+}
+
+pthread_mutex_t *get_interface_down_mut(void)
+{
+    return &interface_down_mut;
 }
 
 noPollConn * nopoll_conn_new_opts (noPollCtx  * ctx, noPollConnOpts  * opts, const char  * host_ip, const char  * host_port, const char  * host_name,const char  * get_url,const char  * protocols, const char * origin)

@@ -74,26 +74,34 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
     {
                 ParodusError("Failed to send msg upstream as connection is not OK\n");
                 OnboardLog("Failed to send msg upstream as connection is not OK\n");
-		if (connErr == 0)
-		{
-			getCurrentTime(connStuck_startPtr);
-			ParodusInfo("Conn got stuck, initialized the first timer\n");
-			connErr = 1;
-		}
-		else
-		{
-			getCurrentTime(connStuck_endPtr);
-			timeDiff = timeValDiff(connStuck_startPtr, connStuck_endPtr);
-			ParodusPrint("checking timeout difference:%ld\n", timeDiff);
 
-			if( timeDiff >= (10*60*1000))
+                if(get_interface_down_event())
+                {     
+                     ParodusError("Unable to connect to server since interface is down\n");
+                }
+                else
+                {
+			if (connErr == 0)
 			{
-				ParodusError("conn got stuck for over 10 minutes; crashing service.\n");
-				OnboardLog("conn got stuck for over 10 minutes; crashing service.\n");
-				kill(getpid(),SIGTERM);
+				getCurrentTime(connStuck_startPtr);
+				ParodusInfo("Conn got stuck, initialized the first timer\n");
+				connErr = 1;
 			}
+			else
+			{
+				getCurrentTime(connStuck_endPtr);
+				timeDiff = timeValDiff(connStuck_startPtr, connStuck_endPtr);
+				ParodusPrint("checking timeout difference:%ld\n", timeDiff);
 
-		}
+				if( timeDiff >= (10*60*1000))
+				{
+					ParodusError("conn got stuck for over 10 minutes; crashing service.\n");
+					OnboardLog("conn got stuck for over 10 minutes; crashing service.\n");
+					kill(getpid(),SIGTERM);
+				}
+
+			}
+                 }
     }
 }
 

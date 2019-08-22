@@ -25,6 +25,11 @@
 #include "config.h"
 #include "connection.h"
 
+bool interface_down_event = false;
+
+pthread_mutex_t interface_down_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t interface_down_con=PTHREAD_COND_INITIALIZER;
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -139,3 +144,47 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
 
     return;
 }
+
+
+/*------------------------------------------------------------------------------*/
+/*                        For interface_down_event Flag                         */
+/*------------------------------------------------------------------------------*/
+
+// Get value of interface_down_event
+bool get_interface_down_event() 
+{
+	bool tmp = false;
+	pthread_mutex_lock (&interface_down_mut);
+	tmp = interface_down_event;
+	pthread_mutex_unlock (&interface_down_mut);
+	return tmp;
+}
+
+// Reset value of interface_down_event to false
+void reset_interface_down_event() 
+{
+	pthread_mutex_lock (&interface_down_mut);
+	interface_down_event = false;
+	pthread_cond_signal(&interface_down_con);
+	pthread_mutex_unlock (&interface_down_mut);
+}
+
+// set value of interface_down_event to true
+void set_interface_down_event() 
+{
+	pthread_mutex_lock (&interface_down_mut);
+    	interface_down_event = true;
+    	pthread_mutex_unlock (&interface_down_mut);
+}
+
+pthread_cond_t *get_interface_down_con(void)
+{
+    return &interface_down_con;
+}
+
+pthread_mutex_t *get_interface_down_mut(void)
+{
+    return &interface_down_mut;
+}
+
+
