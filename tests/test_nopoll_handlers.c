@@ -30,8 +30,11 @@
 /*----------------------------------------------------------------------------*/
 volatile unsigned int heartBeatTimer;
 bool LastReasonStatus;
+bool interface_down_event = false;
 int closeReason = 0;
-pthread_mutex_t close_mut;
+pthread_mutex_t close_mut; 
+pthread_mutex_t interface_down_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t interface_down_con=PTHREAD_COND_INITIALIZER;
 bool close_retry;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
@@ -47,9 +50,22 @@ bool get_global_reconnect_status()
     return LastReasonStatus;
 }
 
-bool get_interface_down_event()
+void set_interface_down_event()
 {
-     return false;
+        interface_down_event = true;
+}
+
+void reset_interface_down_event() 
+{
+	pthread_mutex_lock (&interface_down_mut);
+	interface_down_event = false;
+	pthread_cond_signal(&interface_down_con);
+	pthread_mutex_unlock (&interface_down_mut);
+}
+
+bool get_interface_down_event() 
+{
+	return interface_down_event;
 }
 
 void set_global_reconnect_status(bool status)
@@ -185,6 +201,30 @@ void test_listenerOnPingMessage()
     listenerOnPingMessage(NULL, NULL, NULL, NULL);
 }
 
+void test_getInterfaceDownEvent()
+{   
+    set_interface_down_event();
+    CU_ASSERT_TRUE(get_interface_down_event());
+}
+
+void test_interfaceDownEvent()
+{
+    char str[] = "SSL_Socket_Close";
+    set_global_reconnect_status(true);
+    set_interface_down_event();
+    listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
+    
+}
+
+void test_noInterfaceDownEvent()
+{
+    char str[] = "SSL_Socket_Close";
+    set_global_reconnect_status(true);
+    reset_interface_down_event();
+    listenerOnCloseMessage(NULL, NULL, (noPollPtr) str);
+}
+
+
 void add_suites( CU_pSuite *suite )
 {
     ParodusInfo("--------Start of Test Cases Execution ---------\n");
@@ -192,6 +232,9 @@ void add_suites( CU_pSuite *suite )
     CU_add_test( *suite, "Test 1", test_listenerOnMessage_queue );
     CU_add_test( *suite, "Test 2", test_listenerOnCloseMessage );
     CU_add_test( *suite, "Test 3", test_listenerOnPingMessage );
+    CU_add_test( *suite, "Test 4", test_getInterfaceDownEvent );
+    CU_add_test( *suite, "Test 5", test_interfaceDownEvent );
+    CU_add_test( *suite, "Test 6", test_noInterfaceDownEvent );
 }
 
 /*----------------------------------------------------------------------------*/
