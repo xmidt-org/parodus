@@ -33,7 +33,8 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-
+#define SHUTDOWN_REASON_PARODUS_STOP    "parodus_stopping"
+#define SHUTDOWN_REASON_SYSTEM_RESTART  "system_restarting"
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -48,6 +49,9 @@ void close_and_unref_connection(noPollConn *);
 
 noPollConn *get_global_conn(void);
 void set_global_conn(noPollConn *);
+
+char *get_global_shutdown_reason();
+void set_global_shutdown_reason(char *reason);
 
 char *get_global_reconnect_reason();
 void set_global_reconnect_reason(char *reason);
