@@ -34,6 +34,14 @@ extern "C" {
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
+/**
+* parodusOnPingStatusChangeHandler - Function pointer
+* Used to define callback function to do additional processing 
+* when websocket Ping status change event 
+* i.e. ping_miss or ping receive after miss
+*/
+typedef void (*parodusOnPingStatusChangeHandler) (char * status);
+parodusOnPingStatusChangeHandler on_ping_status_change;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -63,6 +71,9 @@ void set_cloud_disconnect_time(int disconnTime);
  */
 void start_conn_in_progress (void);
 void stop_conn_in_progress (void);
+
+// To Register parodusOnPingStatusChangeHandler Callback function
+void registerParodusOnPingStatusChangeHandler(parodusOnPingStatusChangeHandler on_ping_status_change);
 
 #ifdef __cplusplus
 }
