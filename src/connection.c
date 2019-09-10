@@ -417,7 +417,7 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
 
 int wait_connection_ready (create_connection_ctx_t *ctx)
 {
-  int wait_status;
+  int wait_status = 0;
   char *redirectURL = NULL;
 
   if(nopoll_conn_wait_for_status_until_connection_ready(get_global_conn(), 10, 
