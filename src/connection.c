@@ -609,6 +609,12 @@ int createNopollConnection(noPollCtx *ctx)
 	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
 
+	// Invoke the ping status change event callback as "received" ping
+	if(NULL != on_ping_status_change)
+	{
+		on_ping_status_change("received");
+	}
+
 	if((get_parodus_cfg()->boot_time != 0) && init) {
 		getCurrentTime(connectTimePtr);
 		ParodusInfo("connect_time-diff-boot_time=%d\n", connectTimePtr->tv_sec - get_parodus_cfg()->boot_time);
@@ -724,4 +730,10 @@ void stop_conn_in_progress (void)
 {
   write_conn_in_prog_file ("STOP");
 }   
+
+
+void registerParodusOnPingStatusChangeHandler(parodusOnPingStatusChangeHandler callback_func)
+{
+	on_ping_status_change = callback_func;
+}
 
