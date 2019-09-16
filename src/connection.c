@@ -688,10 +688,6 @@ void close_and_unref_connection(noPollConn *conn)
 {
     if (conn) {
         nopoll_conn_close(conn);
-        
-        if (0 < nopoll_conn_ref_count (conn)) {
-            nopoll_conn_unref(conn);
-        }
 
 	get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
       	ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
