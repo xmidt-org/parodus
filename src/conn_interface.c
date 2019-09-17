@@ -148,6 +148,11 @@ void createSocketConnection(void (* initKeypress)())
                 OnboardLog("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
                 set_global_reconnect_reason("Ping_Miss");
                 set_global_reconnect_status(true);
+		// Invoke the ping status change event callback as "missed" ping
+		if(NULL != on_ping_status_change)
+		{ 
+			on_ping_status_change("missed");
+		}
                 set_close_retry();
             }
             else
