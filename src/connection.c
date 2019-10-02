@@ -274,6 +274,8 @@ static int backoff_delay (backoff_timer_t *timer)
   }
   if (waiting_interface)
     return BACKOFF_IFC_UP;
+  if ((timer->count >= timer->max_count) || (timer->delay >= 15))
+    start_conn_in_progress ();
   return BACKOFF_DELAY_TAKEN;
 }
 
