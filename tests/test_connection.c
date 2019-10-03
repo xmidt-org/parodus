@@ -915,6 +915,9 @@ void test_create_nopoll_connection()
   ParodusCfg cfg;
   noPollCtx test_nopoll_ctx;
 
+#ifdef TEST_CONNECTION_STUCK
+  unlink ("/tmp/parconnstktest.txt");
+#endif
   memset(&cfg,0,sizeof(cfg));
   cfg.flags = 0;
   parStrncpy (cfg.webpa_url, "mydns.mycom.net:8080", sizeof(cfg.webpa_url));
@@ -1057,6 +1060,10 @@ void test_interface_down_retry()
   ParodusCfg cfg;
   noPollCtx test_nopoll_ctx;
   pthread_t thread_a;
+
+#ifdef TEST_CONNECTION_STUCK
+  unlink ("/tmp/parconnstktest.txt");
+#endif
 
   pthread_create(&thread_a, NULL, a, NULL);
 

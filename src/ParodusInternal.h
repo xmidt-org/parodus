@@ -49,6 +49,13 @@
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
+#define TEST_CONNECTION_STUCK 1
+
+#ifdef TEST_CONNECTION_STUCK
+#include <sys/stat.h>
+#endif
+
+
 #define UNUSED(x) (void )(x)
 #define NANO_SOCKET_SEND_TIMEOUT_MS                     2000
 #define NANO_SOCKET_RCV_TIMEOUT_MS			500

@@ -32,6 +32,8 @@
 #include "ParodusInternal.h"
 #include "heartBeat.h"
 #include "close_retry.h"
+
+
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -622,6 +624,16 @@ int createNopollConnection(noPollCtx *ctx)
   struct timespec connect_time,*connectTimePtr;
   connectTimePtr = &connect_time;
   backoff_timer_t backoff_timer;
+#ifdef TEST_CONNECTION_STUCK
+  struct stat sb;
+
+  if (stat ("/tmp/parconnstktest.txt", &sb) == 0) {
+    while (true) {
+      ParodusError ("parodus simulating connection stuck.\n");
+      sleep (60);
+    }
+  }
+#endif
   
   if(ctx == NULL) {
         return nopoll_false;
