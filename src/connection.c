@@ -214,6 +214,13 @@ int update_backoff_delay (backoff_timer_t *timer)
 static void backoff_delay (backoff_timer_t *timer)
 {
   update_backoff_delay (timer);
+
+  // Update retry time for conn progress
+  if(timer->count == timer->max_count) 
+  {
+	start_conn_in_progress();
+  }
+
   ParodusInfo("Waiting with backoffRetryTime %d seconds\n", timer->delay);
   sleep (timer->delay);
 }  
