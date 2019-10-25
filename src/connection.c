@@ -451,7 +451,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
     memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
     ParodusError("Received Unauthorized response with status: %d\n", wait_status);
 	OnboardLog("Received Unauthorized response with status: %d\n", wait_status);
-    return WAIT_ACTION_RETRY;
+    return WAIT_FAIL;
   }
   ParodusError("Client connection timeout\n");	
   ParodusError("RDK-10037 - WebPA Connection Lost\n");
@@ -531,6 +531,8 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
       if (rtn == CONN_WAIT_ACTION_RETRY) // if redirected or build_headers
         continue;
       backoff_delay (backoff_timer); // 3,7,15,31 ..
+      if ((backoff_timer->count >= backoff_timer->max_count) || (backoff_timer->delay >= 15))
+        start_conn_in_progress ();
       if (rtn == CONN_WAIT_RETRY_DNS)
         return false;  //find_server again
       // else retry

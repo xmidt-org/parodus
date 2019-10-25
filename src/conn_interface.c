@@ -222,5 +222,6 @@ void createSocketConnection(void (* initKeypress)())
 
 void shutdownSocketConnection(void) {
    g_shutdown = true;
+   reset_interface_down_event ();
 }
 

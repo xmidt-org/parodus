@@ -83,6 +83,10 @@ void stop_conn_in_progress (void)
 {
 }   
 
+void reset_interface_down_event (void)
+{
+}
+
 void packMetaData()
 {
     function_called();
