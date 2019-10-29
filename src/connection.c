@@ -39,10 +39,29 @@
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
 
+/* Close codes defined in RFC 6455, section 11.7. */
+enum {
+	CloseNormalClosure           = 1000,
+	CloseGoingAway               = 1001,
+	CloseProtocolError           = 1002,
+	CloseUnsupportedData         = 1003,
+	CloseNoStatus		     = 1005,
+	CloseAbnormalClosure         = 1006,
+	CloseInvalidFramePayloadData = 1007,
+	ClosePolicyViolation         = 1008,
+	CloseMessageTooBig           = 1009,
+	CloseMandatoryExtension      = 1010,
+	CloseInternalServerErr       = 1011,
+	CloseServiceRestart          = 1012,
+	CloseTryAgainLater           = 1013,
+	CloseTLSHandshake            = 1015
+};
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
+static char *shutdown_reason = SHUTDOWN_REASON_PARODUS_STOP;  /* goes in the close message */
 static char *reconnect_reason = "webpa_process_starts";
 static int cloud_disconnect_max_time = 5;
 static noPollConn *g_conn = NULL;
@@ -63,6 +82,16 @@ noPollConn *get_global_conn(void)
 void set_global_conn(noPollConn *conn)
 {
     g_conn = conn;
+}
+
+char *get_global_shutdown_reason()
+{
+    return shutdown_reason;
+}
+
+void set_global_shutdown_reason(char *reason)
+{
+    shutdown_reason = reason;
 }
 
 char *get_global_reconnect_reason()
@@ -458,7 +487,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
     memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
     ParodusError("Received Unauthorized response with status: %d\n", wait_status);
 	OnboardLog("Received Unauthorized response with status: %d\n", wait_status);
-    return WAIT_ACTION_RETRY;
+    return WAIT_FAIL;
   }
   ParodusError("Client connection timeout\n");	
   ParodusError("RDK-10037 - WebPA Connection Lost\n");
@@ -694,10 +723,17 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 void close_and_unref_connection(noPollConn *conn)
 {
     if (conn) {
-        nopoll_conn_close(conn);
-
-	get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
-      	ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
+	const char *reason = get_global_shutdown_reason();
+	int reason_len = 0;
+	int status = CloseNoStatus;
+	if (NULL != reason) {
+		reason_len = (int) strlen (reason);
+		status = CloseNormalClosure;
+	}
+        nopoll_conn_close_ext(conn, status, reason, reason_len);
+        if (0 < nopoll_conn_ref_count (conn)) {
+            nopoll_conn_unref(conn);
+        }
     }
 }
 

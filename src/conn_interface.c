@@ -214,13 +214,16 @@ void createSocketConnection(void (* initKeypress)())
 
     deleteAllClients ();
 
+    ParodusInfo ("reconnect reason at close %s\n", get_global_reconnect_reason());
+    ParodusInfo ("shutdown reason at close %s\n", get_global_shutdown_reason()); 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
     curl_global_cleanup();
 }
 
-void shutdownSocketConnection(void) {
+void shutdownSocketConnection(char *reason) {
+   set_global_shutdown_reason (reason);
    g_shutdown = true;
 }
 
