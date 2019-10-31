@@ -723,17 +723,14 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 void close_and_unref_connection(noPollConn *conn)
 {
     if (conn) {
-	const char *reason = get_global_shutdown_reason();
-	int reason_len = 0;
-	int status = CloseNoStatus;
-	if (NULL != reason) {
+	  const char *reason = get_global_shutdown_reason();
+	  int reason_len = 0;
+	  int status = CloseNoStatus;
+	  if (NULL != reason) {
 		reason_len = (int) strlen (reason);
 		status = CloseNormalClosure;
-	}
-        nopoll_conn_close_ext(conn, status, reason, reason_len);
-        if (0 < nopoll_conn_ref_count (conn)) {
-            nopoll_conn_unref(conn);
-        }
+	  }
+      nopoll_conn_close_ext(conn, status, reason, reason_len);
     }
 }
 
