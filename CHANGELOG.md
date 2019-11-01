@@ -17,8 +17,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - provide signal handlers so we shut down properly when INCLUDE_BREAKPAD active
 - send status code and reason in close message 
 - Add pause/resume heartBeatTimer
-- parodus event handler to listen to interface_down and interface_up event
-- Pause connection retry during interface_down event
+- fix so that parodus can be killed, even if in a connection fail loop
 
 ## [1.0.2] - 2019-02-08
 - Refactored connection.c and updated corresponding unit tests

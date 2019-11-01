@@ -556,7 +556,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 {
     int rtn;
     
-    while (true)
+    while (!g_shutdown)
     {
       set_extra_headers (ctx);
 
@@ -571,6 +571,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
         return false;  //find_server again
       // else retry
     }
+    return false;
 }
 
 
@@ -615,8 +616,8 @@ int createNopollConnection(noPollCtx *ctx)
 	  set_current_server (&conn_ctx);
 	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
 		break;
-	  // retry dns query
-
+	  if (g_shutdown)
+		return nopoll_false;
 	  // If interface down event is set, stop retry
 	  // and wait till interface is up again.
 	  if(get_interface_down_event()) {
@@ -629,6 +630,7 @@ int createNopollConnection(noPollCtx *ctx)
 		((header_info_t *)(&conn_ctx.header_info))->conveyHeader = getWebpaConveyHeader();
 		ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
 	  }
+	  // retry dns query
 	}
       
 	if(conn_ctx.current_server->allow_insecure <= 0)
