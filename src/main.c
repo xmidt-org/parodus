@@ -84,9 +84,10 @@ int main( int argc, char **argv)
 	signal(SIGUSR2, sig_handler);
 	signal(SIGKILL, sig_handler);
 	signal(SIGQUIT, sig_handler);
-	signal(SIGHUP, sig_handler);
+	signal(SIGHUP, sig_handler);   
 	signal(SIGALRM, sig_handler);
 #ifdef INCLUDE_BREAKPAD
+    /* breakpad handles the signals SIGSEGV, SIGBUS, SIGFPE, and SIGILL */
     breakpad_ExceptionHandler();
 #else
 	signal(SIGSEGV, sig_handler);

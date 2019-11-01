@@ -1040,6 +1040,11 @@ void test_create_nopoll_connection()
 
 }
 
+void test_get_interface_down_event()
+{
+    assert_false(get_interface_down_event());
+    set_interface_down_event();
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -1067,7 +1072,8 @@ int main(void)
         cmocka_unit_test(test_wait_connection_ready),
         cmocka_unit_test(test_connect_and_wait),
         cmocka_unit_test(test_keep_trying),
-	cmocka_unit_test(test_create_nopoll_connection)
+	cmocka_unit_test(test_create_nopoll_connection),
+        cmocka_unit_test(test_get_interface_down_event)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
