@@ -674,7 +674,7 @@ void test_wait_connection_ready ()
     mock_wait_status = 403;
     will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
     expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-    assert_int_equal (wait_connection_ready (&ctx), WAIT_FAIL);
+    assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
 
     free_extra_headers (&ctx);
     free_header_info (&ctx.header_info);

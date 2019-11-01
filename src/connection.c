@@ -487,7 +487,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
     memset (cfg->webpa_auth_token, 0, sizeof(cfg->webpa_auth_token));
     ParodusError("Received Unauthorized response with status: %d\n", wait_status);
 	OnboardLog("Received Unauthorized response with status: %d\n", wait_status);
-    return WAIT_FAIL;
+    return WAIT_ACTION_RETRY;
   }
   ParodusError("Client connection timeout\n");	
   ParodusError("RDK-10037 - WebPA Connection Lost\n");
