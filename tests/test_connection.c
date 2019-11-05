@@ -1062,10 +1062,6 @@ void test_interface_down_retry()
   noPollCtx test_nopoll_ctx;
   pthread_t thread_a;
 
-#ifdef TEST_CONNECTION_STUCK
-  unlink ("/tmp/parconnstktest.txt");
-#endif
-
   pthread_create(&thread_a, NULL, a, NULL);
 
   memset(&cfg,0,sizeof(cfg));
