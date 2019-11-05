@@ -75,6 +75,9 @@ void stop_conn_in_progress (void);
 // To Register parodusOnPingStatusChangeHandler Callback function
 void registerParodusOnPingStatusChangeHandler(parodusOnPingStatusChangeHandler on_ping_status_change);
 
+// To stop connection and wait during interface down state
+void wait_on_interface_down_event();
+
 #ifdef __cplusplus
 }
 #endif

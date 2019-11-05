@@ -537,7 +537,22 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 
       if (rtn == CONN_WAIT_ACTION_RETRY) // if redirected or build_headers
         continue;
+      
       backoff_delay (backoff_timer); // 3,7,15,31 ..
+
+      // If interface down event is set, stop retry
+      // and wait till interface is up again.
+      if(get_interface_down_event()) {
+
+	wait_on_interface_down_event();
+
+	start_conn_in_progress();
+	ParodusInfo("Interface is back up, re-initializing the convey header\n");
+	// Reset the reconnect reason by initializing the convey header again
+	((header_info_t *)(&ctx->header_info))->conveyHeader = getWebpaConveyHeader();
+	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
+      }      
+
       if (rtn == CONN_WAIT_RETRY_DNS)
         return false;  //find_server again
       // else retry
@@ -587,19 +602,6 @@ int createNopollConnection(noPollCtx *ctx)
 	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
 		break;
 	  // retry dns query
-
-	  // If interface down event is set, stop retry
-	  // and wait till interface is up again.
-	  if(get_interface_down_event()) {
-		ParodusError("Interface is down, hence pausing retry and waiting until its up\n");
-		pthread_mutex_lock(get_interface_down_mut());
-		pthread_cond_wait(get_interface_down_con(), get_interface_down_mut());
-		pthread_mutex_unlock (get_interface_down_mut());
-		ParodusInfo("Interface is back up, re-initializing the convey header\n");
-		// Reset the reconnect reason by initializing the convey header again
-		((header_info_t *)(&conn_ctx.header_info))->conveyHeader = getWebpaConveyHeader();
-		ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
-	  }
 	}
       
 	if(conn_ctx.current_server->allow_insecure <= 0)
@@ -740,5 +742,17 @@ void stop_conn_in_progress (void)
 void registerParodusOnPingStatusChangeHandler(parodusOnPingStatusChangeHandler callback_func)
 {
 	on_ping_status_change = callback_func;
+}
+
+// Check if interface is down, close conn and wait
+void wait_on_interface_down_event()
+{
+	ParodusError("Interface is down, hence waiting until its up\n");
+	close_and_unref_connection (get_global_conn());
+	set_global_conn(NULL);
+
+	pthread_mutex_lock(get_interface_down_mut());
+	pthread_cond_wait(get_interface_down_con(), get_interface_down_mut());
+	pthread_mutex_unlock (get_interface_down_mut());
 }
 

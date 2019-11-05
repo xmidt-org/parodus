@@ -169,6 +169,10 @@ void createSocketConnection(void (* initKeypress)())
             seshat_registered = __registerWithSeshat();
         }
 
+	// If interface down event is set, wait till interface is up again.
+	if(get_interface_down_event()) 
+		wait_on_interface_down_event();
+
         if(get_close_retry())
         {
             ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", get_close_retry());
