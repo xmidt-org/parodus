@@ -19,14 +19,14 @@
 #include "stdlib.h"
 #include "config.h"
 #include "auth_token.h"
+#include "connection.h"
 #include "conn_interface.h"
 #include "parodus_log.h"
 #include <curl/curl.h>
 #ifdef INCLUDE_BREAKPAD
 #include "breakpad_wrapper.h"
-#else
-#include "signal.h"
 #endif
+#include "signal.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -36,7 +36,7 @@
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
-/* none */
+typedef    void    Sigfunc(int);
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -46,30 +46,54 @@
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-#ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig);
+
+Sigfunc *
+signal (int signo, Sigfunc *func)
+{
+    struct sigaction act, oact;
+
+    act.sa_handler = func;
+    sigemptyset (&act.sa_mask);
+    act.sa_flags = 0;
+    if (signo == SIGALRM) {
+#ifdef  SA_INTERRUPT
+        act.sa_flags |= SA_INTERRUPT;     /* SunOS 4.x */
 #endif
+    } else {
+#ifdef  SA_RESTART
+        act.sa_flags |= SA_RESTART; /* SVR4, 4.4BSD */
+#endif
+    }
+    if (sigaction (signo, &act, &oact) < 0) {
+	ParodusError ("Signal Handler for signal %d not installed!\n", signo);
+        return (SIG_ERR);
+    }
+    return (oact.sa_handler);
+}
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
 int main( int argc, char **argv)
 {
-#ifdef INCLUDE_BREAKPAD
-    breakpad_ExceptionHandler();
-#else
+    set_global_shutdown_reason (SHUTDOWN_REASON_PARODUS_STOP);
     signal(SIGTERM, sig_handler);
-	signal(SIGINT, sig_handler);
+    signal(SIGINT, sig_handler);
 	signal(SIGUSR1, sig_handler);
 	signal(SIGUSR2, sig_handler);
+	signal(SIGKILL, sig_handler);
+	signal(SIGQUIT, sig_handler);
+	signal(SIGHUP, sig_handler);   
+	signal(SIGALRM, sig_handler);
+#ifdef INCLUDE_BREAKPAD
+    /* breakpad handles the signals SIGSEGV, SIGBUS, SIGFPE, and SIGILL */
+    breakpad_ExceptionHandler();
+#else
 	signal(SIGSEGV, sig_handler);
 	signal(SIGBUS, sig_handler);
-	signal(SIGKILL, sig_handler);
 	signal(SIGFPE, sig_handler);
 	signal(SIGILL, sig_handler);
-	signal(SIGQUIT, sig_handler);
-	signal(SIGHUP, sig_handler);
-	signal(SIGALRM, sig_handler);
 #endif	
     ParodusCfg *cfg;
 
@@ -97,7 +121,6 @@ const char *rdk_logger_module_fetch(void)
 /*----------------------------------------------------------------------------*/
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
-#ifndef INCLUDE_BREAKPAD
 static void sig_handler(int sig)
 {
 
@@ -105,12 +128,13 @@ static void sig_handler(int sig)
 	{
 		signal(SIGINT, sig_handler); /* reset it to this function */
 		ParodusInfo("SIGINT received!\n");
-		shutdownSocketConnection();
+		shutdownSocketConnection(SHUTDOWN_REASON_PARODUS_STOP);
 	}
 	else if ( sig == SIGUSR1 ) 
 	{
 		signal(SIGUSR1, sig_handler); /* reset it to this function */
 		ParodusInfo("SIGUSR1 received!\n");
+		shutdownSocketConnection(SHUTDOWN_REASON_SYSTEM_RESTART);
 	}
 	else if ( sig == SIGUSR2 ) 
 	{
@@ -134,8 +158,7 @@ static void sig_handler(int sig)
 	else 
 	{
 		ParodusInfo("Signal %d received!\n", sig);
-		shutdownSocketConnection();
+		shutdownSocketConnection(SHUTDOWN_REASON_PARODUS_STOP);
 	}
 	
 }
-#endif
