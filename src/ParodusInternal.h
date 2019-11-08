@@ -49,12 +49,6 @@
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
-#define TEST_CONNECTION_STUCK 1
-
-#ifdef TEST_CONNECTION_STUCK
-#include <sys/stat.h>
-#endif
-
 
 #define UNUSED(x) (void )(x)
 #define NANO_SOCKET_SEND_TIMEOUT_MS                     2000
@@ -114,6 +108,7 @@ typedef struct {
 
 //--- Used in connection.c for backoff delay timer
 typedef struct {
+  struct timespec ts;
   int count;
   int max_count;
   int delay;

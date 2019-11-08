@@ -87,6 +87,21 @@ void reset_interface_down_event (void)
 {
 }
 
+bool get_interface_down_event (void)
+{
+	return false;
+}
+
+int wait_while_interface_down (void)
+{
+	return 0;
+}
+
+void terminate_backoff_delay (void)
+{
+}
+
+
 void packMetaData()
 {
     function_called();

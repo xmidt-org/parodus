@@ -45,6 +45,9 @@
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
+pthread_mutex_t backoff_delay_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t backoff_delay_con=PTHREAD_COND_INITIALIZER;
+
 static char *reconnect_reason = "webpa_process_starts";
 static int cloud_disconnect_max_time = 5;
 static noPollConn *g_conn = NULL;
@@ -202,6 +205,13 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
   if (max_count != -1)
     timer->max_count = max_count;
   timer->delay = 1;
+  clock_gettime (CLOCK_REALTIME, &timer->ts);
+}
+void terminate_backoff_delay (void)
+{
+	pthread_mutex_lock (&backoff_delay_mut);
+	pthread_cond_signal(&backoff_delay_con);
+	pthread_mutex_unlock (&backoff_delay_mut);
 }
 
 int update_backoff_delay (backoff_timer_t *timer)
@@ -214,70 +224,48 @@ int update_backoff_delay (backoff_timer_t *timer)
   return timer->delay;
 }  
 
-#define BACKOFF_ERR -2
-#define BACKOFF_SHUTDOWN -1
-#define BACKOFF_IFC_UP   1
+#define BACKOFF_ERR -1
+#define BACKOFF_SHUTDOWN   1
 #define BACKOFF_DELAY_TAKEN 0
 
-extern bool interface_down_event;
 void start_conn_in_progress (void);
 
 /* backoff_delay
  * 
  * delays for the number of seconds specified in parameter timer
  * g_shutdown can break out of the delay.
- * Also, if the interface is down or goes down, then this function
- * won't return until the interface comes back up, or shutdown is
- * signalled.  While the interface is down, every 3 minutes the
- * connection_health_file will be updated.
  *
- * returns -2 pthread_cond_timedwait error
- *  -1   shutdown
+ * returns -1 pthread_cond_timedwait error
+ *  1   shutdown
  *  0    delay taken
- *  1    interface back up
 */  
 static int backoff_delay (backoff_timer_t *timer)
 {
   struct timespec ts;
   int rtn;
-  bool waiting_interface;
 
-  pthread_mutex_lock (get_interface_down_mut());
-  while (true)
-  {
-    clock_gettime (CLOCK_REALTIME, &ts);
-    waiting_interface = interface_down_event;
-    if (!waiting_interface) {
-      update_backoff_delay (timer);
-      ts.tv_sec += timer->delay;
-    } else {
-      init_backoff_timer (timer, -1);
-      ts.tv_sec += 180; /* 3 minutes */
-    }
-    rtn = pthread_cond_timedwait (get_interface_down_con (),
-      get_interface_down_mut(), &ts);
-    if (g_shutdown) {
-      pthread_mutex_unlock (get_interface_down_mut());
-      return BACKOFF_SHUTDOWN;
-    }
-    if (!interface_down_event) {
-      break;
-    }
-    pthread_mutex_unlock (get_interface_down_mut());
+  pthread_mutex_lock (&backoff_delay_mut);
+
+  clock_gettime (CLOCK_REALTIME, &ts);
+  if ((ts.tv_sec - timer->ts.tv_sec) >= 180) {
+    pthread_mutex_unlock (&backoff_delay_mut);
     start_conn_in_progress ();
-    pthread_mutex_lock (get_interface_down_mut());
-    /* keep waiting */
-  }
+    pthread_mutex_lock (&backoff_delay_mut);
+    timer->ts.tv_sec += 180;
+  }	  
 
-  pthread_mutex_unlock (get_interface_down_mut());
+  update_backoff_delay (timer);
+  ts.tv_sec += timer->delay;
+  // The condition variable will only be set if we shut down.
+  rtn = pthread_cond_timedwait (&backoff_delay_con, &backoff_delay_mut, &ts);
+
+  pthread_mutex_unlock (&backoff_delay_mut);
+  if (g_shutdown)
+    return BACKOFF_SHUTDOWN;
   if ((rtn != 0) && (rtn != ETIMEDOUT)) {
     ParodusError ("pthread_cond_timedwait error in backoff_delay.\n");
     return BACKOFF_ERR;
   }
-  if (waiting_interface)
-    return BACKOFF_IFC_UP;
-  if ((timer->count >= timer->max_count) || (timer->delay >= 15))
-    start_conn_in_progress ();
   return BACKOFF_DELAY_TAKEN;
 }
 
@@ -582,7 +570,7 @@ int connect_and_wait (create_connection_ctx_t *ctx)
 int keep_trying_to_connect (create_connection_ctx_t *ctx, 
 	backoff_timer_t *backoff_timer)
 {
-    int rtn, backoff_rtn;
+    int rtn;
     
     while (true)
     {
@@ -594,21 +582,49 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 
       if (rtn == CONN_WAIT_ACTION_RETRY) // if redirected or build_headers
         continue;
-      backoff_rtn = backoff_delay (backoff_timer); // 3,7,15,31 ..
-      if (backoff_rtn == BACKOFF_IFC_UP) {
-	ParodusInfo("Interface is back up, re-initializing the convey header\n");
-	// Reset the reconnect reason by initializing the convey header again
-	((header_info_t *)(&ctx->header_info))->conveyHeader = getWebpaConveyHeader();
-	ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
+      // If interface down event is set, stop retry
+      // and wait till interface is up again.
+      if(get_interface_down_event()) {
+	    if (0 != wait_while_interface_down())
+	      return false;
+	    start_conn_in_progress();
+	    ParodusInfo("Interface is back up, re-initializing the convey header\n");
+	    // Reset the reconnect reason by initializing the convey header again
+	    ((header_info_t *)(&ctx->header_info))->conveyHeader = getWebpaConveyHeader();
+	    ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
+      } else { 
+        if (backoff_delay (backoff_timer) // 3,7,15,31 ..
+              != BACKOFF_DELAY_TAKEN) // shutdown or cond wait error
+          return false;
       }
-      if (backoff_rtn != BACKOFF_DELAY_TAKEN)
-        return false;
       if (rtn == CONN_WAIT_RETRY_DNS)
         return false;  //find_server again
       // else retry
     }
 }
 
+int wait_while_interface_down()
+
+{
+	int rtn;
+	
+	ParodusError("Interface is down, hence waiting until its up\n");
+	close_and_unref_connection (get_global_conn());
+	set_global_conn(NULL);
+
+	pthread_mutex_lock(get_interface_down_mut());
+	while (!get_interface_down_event ()) {
+  	  rtn = pthread_cond_wait(get_interface_down_con(), get_interface_down_mut());
+  	  if (rtn != 0)
+  	    ParodusError ("Error on pthread_cond_wait in wait_while_interface_down\n");
+  	  if ((rtn != 0) || g_shutdown) {
+	    pthread_mutex_unlock (get_interface_down_mut());
+	    return -1;
+	  }
+	}
+    pthread_mutex_unlock (get_interface_down_mut());
+    return 0;
+}
 
 //--------------------------------------------------------------------
 
@@ -624,16 +640,6 @@ int createNopollConnection(noPollCtx *ctx)
   struct timespec connect_time,*connectTimePtr;
   connectTimePtr = &connect_time;
   backoff_timer_t backoff_timer;
-#ifdef TEST_CONNECTION_STUCK
-  struct stat sb;
-
-  if (stat ("/tmp/parconnstktest.txt", &sb) == 0) {
-    while (true) {
-      ParodusError ("parodus simulating connection stuck.\n");
-      sleep (60);
-    }
-  }
-#endif
   
   if(ctx == NULL) {
         return nopoll_false;
