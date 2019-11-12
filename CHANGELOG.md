@@ -22,7 +22,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update retry timestamp in connection-health-file
 - fix so that parodus can be killed, even if in a connection fail loop
 - provide signal handlers so we shut down properly when INCLUDE_BREAKPAD active
-- send status code and reason in websocket close message 
+- send status code and reason in websocket close message
+- dont try to install handler for signal 9 
 
 ## [1.0.2] - 2019-02-08
 - Refactored connection.c and updated corresponding unit tests
