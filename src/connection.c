@@ -38,6 +38,7 @@
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
+#define UPDATE_HEALTH_FILE_INTERVAL_SECS		450
 
 /* Close codes defined in RFC 6455, section 11.7. */
 enum {
@@ -229,8 +230,7 @@ int check_timer_expired (expire_timer_t *timer, long timeout_ms)
 void init_backoff_timer (backoff_timer_t *timer, int max_count)
 {
   timer->count = 1;
-  if (max_count != -1)
-    timer->max_count = max_count;
+  timer->max_count = max_count;
   timer->delay = 1;
   clock_gettime (CLOCK_REALTIME, &timer->ts);
 }
@@ -272,30 +272,29 @@ static int backoff_delay (backoff_timer_t *timer)
   struct timespec ts;
   int rtn;
 
-  pthread_mutex_lock (&backoff_delay_mut);
-
+  // periodically update the health file.
   clock_gettime (CLOCK_REALTIME, &ts);
-  if ((ts.tv_sec - timer->ts.tv_sec) >= 180) {
-    pthread_mutex_unlock (&backoff_delay_mut);
+  if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
     start_conn_in_progress ();
-    pthread_mutex_lock (&backoff_delay_mut);
-    timer->ts.tv_sec += 180;
+    timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
   }	  
 
   update_backoff_delay (timer);
+  ParodusInfo("Waiting with backoffRetryTime %d seconds\n", timer->delay);
   ts.tv_sec += timer->delay;
+
+  pthread_mutex_lock (&backoff_delay_mut);
   // The condition variable will only be set if we shut down.
   rtn = pthread_cond_timedwait (&backoff_delay_con, &backoff_delay_mut, &ts);
-
   pthread_mutex_unlock (&backoff_delay_mut);
+
   if (g_shutdown)
     return BACKOFF_SHUTDOWN;
   if ((rtn != 0) && (rtn != ETIMEDOUT)) {
-    ParodusError ("pthread_cond_timedwait error in backoff_delay.\n");
+    ParodusError ("pthread_cond_timedwait error (%d) in backoff_delay.\n", rtn);
     return BACKOFF_ERR;
   }
 
-  ParodusInfo("Waiting with backoffRetryTime %d seconds\n", timer->delay);
   return BACKOFF_DELAY_TAKEN;
 }  
 
