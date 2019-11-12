@@ -82,7 +82,6 @@ int main( int argc, char **argv)
     signal(SIGINT, sig_handler);
 	signal(SIGUSR1, sig_handler);
 	signal(SIGUSR2, sig_handler);
-	signal(SIGKILL, sig_handler);
 	signal(SIGQUIT, sig_handler);
 	signal(SIGHUP, sig_handler);   
 	signal(SIGALRM, sig_handler);
