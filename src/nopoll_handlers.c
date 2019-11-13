@@ -25,6 +25,7 @@
 #include "nopoll_handlers.h"
 #include "connection.h"
 #include "heartBeat.h"
+#include "close_retry.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -166,18 +167,25 @@ void listenerOnCloseMessage (noPollCtx * ctx, noPollConn * conn, noPollPtr user_
     if( closeStatus == 1006 && !get_global_reconnect_status())
     {
 	ParodusInfo("Reconnect detected, setting default Reconnect reason %s\n",defaultReason);
+	OnboardLog("Reconnect detected, setting default Reconnect reason %s\n",defaultReason);
         set_global_reconnect_reason(defaultReason);
         set_global_reconnect_status(true);
     }
     else if(!get_global_reconnect_status())
     {
     	ParodusInfo("Reconnect detected, setting Reconnect reason as Unknown\n");
+	OnboardLog("Reconnect detected, setting Reconnect reason as Unknown\n");
         set_global_reconnect_reason("Unknown");
     }
+    
+    if(!get_interface_down_event())
+    {
+	ParodusInfo("Setting the close and retry connection\n");
+    	set_close_retry();
+    }
+    else
+    	ParodusInfo("Not Setting the close and retry connection as interface is down\n");
 
-    pthread_mutex_lock (&close_mut);
-    close_retry = true;
-    pthread_mutex_unlock (&close_mut);
     ParodusPrint("listenerOnCloseMessage(): mutex unlock in producer thread\n");
 }
 

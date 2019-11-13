@@ -29,6 +29,21 @@
 #include "../src/crud_tasks.h"
 #include "../src/config.h"
 #include "../src/crud_internal.h"
+#include "../src/connection.h"
+#include "../src/close_retry.h"
+
+bool LastReasonStatus;
+pthread_mutex_t close_mut;
+
+void set_global_reconnect_reason(char *reason)
+{
+	UNUSED(reason);
+}
+
+void set_global_reconnect_status(bool status)
+{
+	UNUSED(status);
+}
 
 void test_writeToJSON_Failure()
 {
@@ -150,7 +165,7 @@ void test_retrieveFromMemory()
 	assert_int_equal (ret, 0);
 	ret = retrieveFromMemory("webpa-protocol", &jsonresponse );
 	assert_int_equal (ret, 0);
-	ret = retrieveFromMemory("webpa-inteface-used", &jsonresponse );
+	ret = retrieveFromMemory("webpa-interface-used", &jsonresponse );
 	assert_int_equal (ret, 0);
 	ret = retrieveFromMemory("webpa-backoff-max", &jsonresponse );
 	assert_int_equal (ret, 0);
@@ -185,7 +200,7 @@ void test_retrieveFromMemoryFailure()
 	assert_int_equal (ret, -1);
 	ret = retrieveFromMemory("webpa-protocol", &jsonresponse );
 	assert_int_equal (ret, -1);
-	ret = retrieveFromMemory("webpa-inteface-used", &jsonresponse );
+	ret = retrieveFromMemory("webpa-interface-used", &jsonresponse );
 	assert_int_equal (ret, -1);
 	ret = retrieveFromMemory("webpa-backoff-max", &jsonresponse );
 	assert_int_equal (ret, 0);
@@ -1420,7 +1435,6 @@ void test_retrieveObject_invalid()
 	memset(&cfg,0,sizeof(cfg));
 	cfg.crud_config_file = strdup("parodus_cfg.json");
 	set_parodus_cfg(&cfg);
-	//testdata=strdup("{\"test\":{}}}");
 	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
 	write_ret = writeToJSON(testdata);
 	assert_int_equal (write_ret, 1);
@@ -1474,6 +1488,130 @@ void test_retrieveObject_readOnlyObj()
 	ret = retrieveObject(reqMsg, &respMsg);
 	assert_int_equal (respMsg->u.crud.status, 200);
 	assert_int_equal (ret, 0);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void test_retrieveObject_cloud_status()
+{
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.cloud_status = CLOUD_STATUS_ONLINE;
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/cloud-status");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 200);
+	assert_int_equal (ret, 0);
+	assert_string_equal(get_parodus_cfg()->cloud_status, CLOUD_STATUS_ONLINE);
+	assert_int_equal (respMsg->u.crud.payload_size, 25);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_retrieveObject_cloud_statusNULL()
+{
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.cloud_status = NULL;
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/cloud-status");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	assert_int_equal (respMsg->u.crud.payload_size, 0);
+
+	fp = fopen(cfg.crud_config_file, "r");
+	if (fp != NULL)
+	{
+		system("rm parodus_cfg.json");
+		fclose(fp);
+	}
+	if(cfg.crud_config_file !=NULL)
+		free(cfg.crud_config_file);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_retrieveObject_cloud_statusEmpty()
+{
+	int ret = 0;
+	int write_ret = -1;
+	FILE *fp;
+	char *testdata = NULL;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.cloud_status = "";
+	cfg.crud_config_file = strdup("parodus_cfg.json");
+	set_parodus_cfg(&cfg);
+	testdata=strdup("{\"tags\":{\"test1\":{\"expires\":1522451870}}}");
+	write_ret = writeToJSON(testdata);
+	assert_int_equal (write_ret, 1);
+	reqMsg->msg_type = 6;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.dest = strdup("mac:14xxx/parodus/cloud-status");
+	respMsg->msg_type = 6;
+	ret = retrieveObject(reqMsg, &respMsg);
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	assert_int_equal (respMsg->u.crud.payload_size, 0);
 
 	fp = fopen(cfg.crud_config_file, "r");
 	if (fp != NULL)
@@ -2244,6 +2382,192 @@ void err_updateObject_InvalidType()
    wrp_free_struct(respMsg);
 }
 
+void err_updateObject_cloud_disconnectInvalid()
+{
+	int ret = 0;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("dns:tr1d1um.webpa.comcast.net/config");
+	reqMsg->u.crud.dest = strdup("mac:14cfe2142145/parodus/cloud-disconnect");
+	reqMsg->u.crud.payload = strdup("{ \"disconnection-reason\": \"***\" }");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_updateObject_cloud_disconnectNULL()
+{
+	int ret = 0;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("dns:tr1d1um.webpa.comcast.net/config");
+	reqMsg->u.crud.dest = strdup("mac:14cfe2142145/parodus/cloud-disconnect");
+	reqMsg->u.crud.payload = strdup("{ \"disconnection-reason\": \"\" }");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_updateObject_no_cloud_disconnectReason()
+{
+	int ret = 0;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("dns:tr1d1um.webpa.comcast.net/config");
+	reqMsg->u.crud.dest = strdup("mac:14cfe2142145/parodus/cloud-disconnect");
+	reqMsg->u.crud.payload = strdup("{ \"discon-val\": \"XPC\" }");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_updateObject_cloud_disconnectNoPayload()
+{
+	int ret = 0;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("dns:tr1d1um.webpa.comcast.net/config");
+	reqMsg->u.crud.dest = strdup("mac:14cfe2142145/parodus/cloud-disconnect");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+
+}
+
+void err_updateObject_cloud_disconnectInvalidPayload()
+{
+	int ret = 0;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("dns:tr1d1um.webpa.comcast.net/config");
+	reqMsg->u.crud.dest = strdup("mac:14cfe2142145/parodus/cloud-disconnect");
+	reqMsg->u.crud.payload = strdup("{ \"disconnection-reason\"\"XPC\" }");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_updateObject_cloud_disconnectInvalidType()
+{
+	int ret = 0;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("dns:tr1d1um.webpa.comcast.net/config");
+	reqMsg->u.crud.dest = strdup("mac:14cfe2142145/parodus/cloud-disconnect");
+	reqMsg->u.crud.payload = strdup("{ \"disconnection-reason\":123 }");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 400);
+	assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
+void err_updateObject_cloud_disconnectFailure()
+{
+	int ret = 0;
+	wrp_msg_t *reqMsg = NULL;
+	set_close_retry();
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("dns:tr1d1um.webpa.comcast.net/config");
+	reqMsg->u.crud.dest = strdup("mac:14cfe2142145/parodus/cloud-disconnect");
+	reqMsg->u.crud.payload = strdup("{ \"disconnection-reason\":\"XPC09\" }");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 500);
+	assert_int_equal (ret, -1);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+	reset_close_retry();
+}
+
+void test_updateObject_cloud_disconnect()
+{
+	int ret = 0;
+	wrp_msg_t *reqMsg = NULL;
+	reqMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(reqMsg, 0, sizeof(wrp_msg_t));
+	wrp_msg_t *respMsg = NULL;
+	respMsg = ( wrp_msg_t *)malloc( sizeof( wrp_msg_t ) );
+	memset(respMsg, 0, sizeof(wrp_msg_t));
+	reqMsg->msg_type = 7;
+	reqMsg->u.crud.transaction_uuid = strdup("1234");
+	reqMsg->u.crud.source = strdup("dns:tr1d1um.webpa.comcast.net/config");
+	reqMsg->u.crud.dest = strdup("mac:14cfe2142145/parodus/cloud-disconnect");
+	reqMsg->u.crud.payload = strdup("{ \"disconnection-reason\":\"XPC\" }");
+	respMsg->msg_type = 7;
+	ret = updateObject(reqMsg, &respMsg);
+
+	assert_int_equal (respMsg->u.crud.status, 200);
+	assert_int_equal (ret, 0);
+	wrp_free_struct(reqMsg);
+	wrp_free_struct(respMsg);
+}
+
 void test_deleteObject_JsonEmpty()
 {
 	int ret = 0;
@@ -2657,6 +2981,10 @@ int main(void)
         cmocka_unit_test(test_retrieveObject_readOnlyObj),
         cmocka_unit_test(test_retrieveObject_readOnlyFailure),
         
+        cmocka_unit_test(test_retrieveObject_cloud_status),
+        cmocka_unit_test(err_retrieveObject_cloud_statusNULL),
+        cmocka_unit_test(err_retrieveObject_cloud_statusEmpty),
+
         cmocka_unit_test(test_updateObject_JsonEmpty),
         cmocka_unit_test(test_updateObject_destNull),
         cmocka_unit_test(test_updateObjectWithNoConfigJson),
@@ -2675,6 +3003,15 @@ int main(void)
         cmocka_unit_test(err_updateObject_NonExisting_InvalidType),
         cmocka_unit_test(err_updateObject_existingObj_InvalidType),
         
+        cmocka_unit_test(test_updateObject_cloud_disconnect),
+        cmocka_unit_test(err_updateObject_cloud_disconnectNULL),
+        cmocka_unit_test(err_updateObject_cloud_disconnectInvalid),
+        cmocka_unit_test(err_updateObject_cloud_disconnectFailure),
+        cmocka_unit_test(err_updateObject_no_cloud_disconnectReason),
+        cmocka_unit_test(err_updateObject_cloud_disconnectNoPayload),
+        cmocka_unit_test(err_updateObject_cloud_disconnectInvalidType),
+        cmocka_unit_test(err_updateObject_cloud_disconnectInvalidPayload),
+
         cmocka_unit_test(test_deleteObject_JsonEmpty),
         cmocka_unit_test(test_deleteObject_destNull),
         cmocka_unit_test(test_deleteObjectWithNoConfigJson),
@@ -2684,7 +3021,6 @@ int main(void)
         cmocka_unit_test(test_deleteObject_NonExistObj),
         cmocka_unit_test(test_deleteObject_withTagsEmpty),
         cmocka_unit_test(test_deleteObject_tagsFailure)
-        
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

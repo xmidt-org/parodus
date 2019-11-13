@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Comcast Cable Communications Management, LLC
+ * Copyright 2018 Comcast Cable Communications Management, LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,32 +15,33 @@
  *
  */
 /**
- * @file spin_thread.h
+ * @file close_retry.h
  *
- * @description This file is used to define thread function
+ * @description Functions required to manage connection close retry.
  *
  */
- 
-#ifndef _SPIN_THREAD_H_
-#define _SPIN_THREAD_H_
+
+#ifndef _CLOSERETRY_H_
+#define _CLOSERETRY_H_
 
 #include <pthread.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*----------------------------------------------------------------------------*/
-/*                             Function Prototypes                            */
-/*----------------------------------------------------------------------------*/
+// Get value of close_retry
+bool get_close_retry();
 
-void StartThread(void *(*start_routine) (void *), pthread_t *threadId);
-void JoinThread (pthread_t threadId);
+// Reset value of close_retry to false
+void reset_close_retry();
+
+// Set value of close_retry to true
+void set_close_retry();
 
 #ifdef __cplusplus
 }
 #endif
-
+    
 #endif
-
-

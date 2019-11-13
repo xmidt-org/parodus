@@ -28,16 +28,19 @@
 #include "../src/connection.h"
 #include "../src/config.h"
 #include "../src/heartBeat.h"
+#include "../src/close_retry.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
-extern bool close_retry;
-extern pthread_mutex_t close_mut;
-pthread_mutex_t nano_mut;
-pthread_cond_t nano_con;
+pthread_mutex_t g_mutex=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t g_cond=PTHREAD_COND_INITIALIZER;
+pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
+pthread_mutex_t svc_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t svc_con=PTHREAD_COND_INITIALIZER;
 
  
 /*----------------------------------------------------------------------------*/
@@ -71,12 +74,32 @@ noPollMutexUnlock 	mutex_unlock
     UNUSED(mutex_create); UNUSED(mutex_destroy); UNUSED(mutex_lock); UNUSED(mutex_unlock);
     function_called();
 }
+
+void start_conn_in_progress (void)
+{
+}   
+
+void stop_conn_in_progress (void)
+{
+}   
+
 void packMetaData()
 {
     function_called();
 }
 
 
+int get_cloud_disconnect_time(void)
+{
+    function_called();
+    return (int) (intptr_t)mock();
+}
+
+void set_cloud_disconnect_time(int Time)
+{
+    UNUSED(Time);
+    function_called();
+}
 
 void *handle_upstream()
 {
@@ -93,9 +116,9 @@ void *messageHandlerTask()
     return NULL;
 }
 
-void *serviceAliveTask()
+int serviceAliveTask()
 {
-    return NULL;
+    return 0;
 }
 
 int nopoll_loop_wait(noPollCtx * ctx,long timeout)
@@ -146,10 +169,16 @@ void set_global_conn(noPollConn *conn)
     function_called();
 }
 
-void StartThread(void *(*start_routine) (void *))
+void StartThread(void *(*start_routine) (void *), pthread_t *threadId)
 {
     UNUSED(start_routine);
+    UNUSED(threadId);
     function_called(); 
+}
+
+void JoinThread (pthread_t threadId)
+{
+    UNUSED(threadId);
 }
 
 noPollCtx* nopoll_ctx_new(void)
@@ -182,6 +211,16 @@ pthread_mutex_t *get_global_nano_mut(void)
     return &nano_mut;
 }
 
+pthread_cond_t *get_global_svc_con(void)
+{
+    return &svc_con;
+}
+
+pthread_mutex_t *get_global_svc_mut(void)
+{
+    return &svc_mut;
+}
+
 /*
 * Mock func to calculate time diff between start and stop time
 * This timespec_diff retuns 1 sec as diff time
@@ -195,6 +234,10 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
    diff->tv_nsec = 1000;
 }
 
+void deleteAllClients (void)
+{
+}
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -204,10 +247,7 @@ void test_createSocketConnection()
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(ParodusCfg));
-    
-    pthread_mutex_lock (&close_mut);
-    close_retry = false;
-    pthread_mutex_unlock (&close_mut);
+    reset_close_retry();
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -243,9 +283,7 @@ void test_createSocketConnection1()
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0, sizeof(ParodusCfg));
-    pthread_mutex_lock (&close_mut);
-    close_retry = true;
-    pthread_mutex_unlock (&close_mut);
+    set_close_retry();
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -294,9 +332,7 @@ void test_PingMissIntervalTime()
     cfg.webpa_ping_timeout = 6;
     set_parodus_cfg(&cfg);
     
-    pthread_mutex_lock (&close_mut);
-    close_retry = false;
-    pthread_mutex_unlock (&close_mut);
+    reset_close_retry();
     expect_function_call(nopoll_thread_handlers);
     
     will_return(nopoll_ctx_new, (intptr_t)&ctx);
@@ -336,9 +372,7 @@ void test_PingMissIntervalTime()
 
 void err_createSocketConnection()
 {
-    pthread_mutex_lock (&close_mut);
-    close_retry = true;
-    pthread_mutex_unlock (&close_mut);
+    set_close_retry();
     reset_heartBeatTimer();
     expect_function_call(nopoll_thread_handlers);
     
@@ -367,6 +401,53 @@ void err_createSocketConnection()
     createSocketConnection(NULL);
 }
 
+
+void test_createSocketConnection_cloud_disconn()
+{
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(ParodusCfg));
+	cfg.cloud_disconnect = strdup("XPC");
+	set_parodus_cfg(&cfg);
+
+	set_close_retry();
+	reset_heartBeatTimer();
+	expect_function_call(nopoll_thread_handlers);
+
+	will_return(nopoll_ctx_new, (intptr_t)NULL);
+	expect_function_call(nopoll_ctx_new);
+	expect_function_call(nopoll_log_set_handler);
+	will_return(createNopollConnection, nopoll_true);
+	expect_function_call(createNopollConnection);
+	expect_function_call(packMetaData);
+
+	expect_function_calls(StartThread, 5);
+	will_return(nopoll_loop_wait, 1);
+	expect_function_call(nopoll_loop_wait);
+
+	will_return(get_global_conn, (intptr_t)NULL);
+	expect_function_call(get_global_conn);
+	expect_function_call(close_and_unref_connection);
+	expect_function_call(set_global_conn);
+
+
+	expect_function_call(set_cloud_disconnect_time);
+	will_return(get_cloud_disconnect_time, 0);
+	expect_function_call(get_cloud_disconnect_time);
+	will_return(get_cloud_disconnect_time, 0);
+	expect_function_call(get_cloud_disconnect_time);
+	will_return(get_cloud_disconnect_time, 0);
+	expect_function_call(get_cloud_disconnect_time);
+
+	will_return(createNopollConnection, nopoll_true);
+	expect_function_call(createNopollConnection);
+	will_return(get_global_conn, (intptr_t)NULL);
+	expect_function_call(get_global_conn);
+	expect_function_call(close_and_unref_connection);
+	expect_function_call(nopoll_ctx_unref);
+	expect_function_call(nopoll_cleanup_library);
+	createSocketConnection(NULL);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -378,6 +459,7 @@ int main(void)
         cmocka_unit_test(test_createSocketConnection1),
         cmocka_unit_test(test_PingMissIntervalTime),
         cmocka_unit_test(err_createSocketConnection),
+        cmocka_unit_test(test_createSocketConnection_cloud_disconn)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

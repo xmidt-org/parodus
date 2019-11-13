@@ -18,7 +18,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -W  -g -fprofile-arcs -ftest-cove
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage -O0")
 set (PARODUS_COMMON_SRC ../src/string_helpers.c ../src/mutex.c ../src/time.c ../src/config.c ../src/spin_thread.c ../src/token.c)
 set (PARODUS_COMMON_LIBS gcov -lcunit -lcimplog -lwrp-c
- -luuid -lpthread -lmsgpackc -lnopoll -lnanomsg
+ -luuid -lmsgpackc -lnopoll -lnanomsg -lpthread
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
  -lssl -lcrypto -lrt -lm)
 
@@ -35,6 +35,20 @@ set (MEMORY_CHECK valgrind --leak-check=full --show-reachable=yes -v)
 endif ()
 
 link_directories ( ${LIBRARY_DIR} )
+
+#-------------------------------------------------------------------------------
+#   test_heartBeatTimer
+#-------------------------------------------------------------------------------
+add_test(NAME test_heartBeatTimer COMMAND ${MEMORY_CHECK} ./test_heartBeatTimer)
+add_executable(test_heartBeatTimer test_heartBeatTimer.c ../src/heartBeat.c)
+target_link_libraries (test_heartBeatTimer ${PARODUS_COMMON_LIBS} -lcmocka)
+
+#-------------------------------------------------------------------------------
+#   test_close_retry
+#-------------------------------------------------------------------------------
+add_test(NAME test_close_retry COMMAND ${MEMORY_CHECK} ./test_close_retry)
+add_executable(test_close_retry test_close_retry.c ../src/close_retry.c)
+target_link_libraries (test_close_retry ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_mutex
@@ -57,26 +71,6 @@ add_test(NAME test_nopoll_helpers COMMAND ${MEMORY_CHECK} ./test_nopoll_helpers)
 add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
 target_link_libraries (test_nopoll_helpers -Wl,--no-as-needed -lrt -lcmocka -lcimplog -lnopoll)
 
-#-------------------------------------------------------------------------------
-#   libpd_test
-#-------------------------------------------------------------------------------
-add_executable (libpd_test libpd_test.c ../src/string_helpers.c) 
-
-target_link_libraries (libpd_test
-                       cunit
-                       -llibparodus
-                       -lwrp-c
-		       -luuid
-                       -lmsgpackc
-                       -ltrower-base64
-                       -lnanomsg
-                       -lcimplog 
-                       -lm
-                       -lpthread
-                       -lrt)
-if (ENABLE_SESHAT)
-target_link_libraries (libpd_test -llibseshat)
-endif (ENABLE_SESHAT)
 #-------------------------------------------------------------------------------
 #   test_time
 #-------------------------------------------------------------------------------
@@ -109,7 +103,7 @@ target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS} )
 #   test_nopoll_handlers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers)
-add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c ../src/heartBeat.c)
+add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c)
 target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm)
 
 
@@ -117,29 +111,29 @@ target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-
 #   test_nopoll_handlers_fragment
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers_fragment COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers_fragment)
-add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c ../src/heartBeat.c)
+add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c)
 target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_connection
 #-------------------------------------------------------------------------------
 add_test(NAME test_connection COMMAND ${MEMORY_CHECK} ./test_connection)
-#add_executable(test_connection test_connection.c ../src/connection.c ${PARODUS_COMMON_SRC}) 
-#target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
-set(CONN_SRC test_connection.c ../src/connection.c ../src/heartBeat.c ${PARODUS_COMMON_SRC})
-add_executable(test_connection ${CONN_SRC})
-#target_link_libraries (test_connection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka)
-target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka)
+set (CONN_SRC ../src/connection.c 
+  ../src/string_helpers.c ../src/mutex.c ../src/time.c 
+  ../src/config.c ../src/auth_token.c ../src/spin_thread.c  ../src/heartBeat.c ../src/close_retry.c)
+#set(CONN_SRC ../src/connection.c ${PARODUS_COMMON_SRC})
+add_executable(test_connection test_connection.c ${CONN_SRC})
+target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_connection - function createNopollConnection
 #-------------------------------------------------------------------------------
-add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
+#add_test(NAME test_createConnection COMMAND ${MEMORY_CHECK} ./test_createConnection)
 #add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c) 
 #target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka)
-add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c ../src/heartBeat.c) 
+#add_executable(test_createConnection test_createConnection.c ../src/connection.c ../src/string_helpers.c ../src/config.c ../src/heartBeat.c) 
 #target_link_libraries (test_createConnection ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS} -lcmocka )
-target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
+#target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
 
 #-------------------------------------------------------------------------------
 #   test_client_list
@@ -147,9 +141,9 @@ target_link_libraries (test_createConnection ${PARODUS_COMMON_LIBS} -lcmocka )
 add_test(NAME test_client_list COMMAND ${MEMORY_CHECK} ./test_client_list)
 #add_executable(test_client_list test_client_list.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 #target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
-set(CLIST_SRC test_client_list.c ../src/client_list.c 
+set(CLIST_SRC test_client_list.c ../src/client_list.c ../src/auth_token.c
  ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c 
- ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/heartBeat.c
+ ../src/downstream.c ../src/connection.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c
  ../src/ParodusInternal.c ../src/thread_tasks.c ../src/conn_interface.c 
  ../src/partners_check.c ../src/crud_interface.c ../src/crud_tasks.c ../src/crud_internal.c ${PARODUS_COMMON_SRC})
 
@@ -161,7 +155,7 @@ endif (ENABLE_SESHAT)
  
 add_executable(test_client_list ${CLIST_SRC})
 #target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
-target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_service_alive
@@ -169,7 +163,7 @@ target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS})
 add_test(NAME test_service_alive COMMAND ${MEMORY_CHECK} ./test_service_alive)
 #add_executable(test_service_alive test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ${PARODUS_COMMON_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
-set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ../src/heartBeat.c ${PARODUS_COMMON_SRC})
+set(SVA_SRC test_service_alive.c ../src/client_list.c ../src/service_alive.c ../src/auth_token.c ../src/upstream.c ../src/networking.c ../src/nopoll_helpers.c ../src/nopoll_handlers.c ../src/config.c ../src/connection.c ../src/ParodusInternal.c ../src/downstream.c ../src/thread_tasks.c ../src/conn_interface.c ../src/partners_check.c ../src/heartBeat.c ../src/close_retry.c ${PARODUS_COMMON_SRC})
 if (ENABLE_SESHAT)
 set(SVA_SRC ${SVA_SRC} ../src/seshat_interface.c)
 else()
@@ -178,16 +172,36 @@ endif (ENABLE_SESHAT)
 
 add_executable(test_service_alive ${SVA_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
-target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS})
+target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_config
 #-------------------------------------------------------------------------------
 add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
-add_executable(test_config test_config.c ../src/config.c ../src/string_helpers.c)
+add_executable(test_config test_config.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
 target_link_libraries (test_config -lcmocka
  -Wl,--no-as-needed -lcimplog
- -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm
+ -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
+)
+
+#-------------------------------------------------------------------------------
+#   test_auth_token
+#-------------------------------------------------------------------------------
+add_test(NAME test_auth_token COMMAND ${MEMORY_CHECK} ./test_auth_token)
+add_executable(test_auth_token test_auth_token.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
+target_link_libraries (test_auth_token -lcmocka
+ -Wl,--no-as-needed -lcimplog
+ -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
+)
+
+#-------------------------------------------------------------------------------
+#   test_auth_token_more
+#-------------------------------------------------------------------------------
+add_test(NAME test_auth_token_more COMMAND ${MEMORY_CHECK} ./test_auth_token_more)
+add_executable(test_auth_token_more test_auth_token_more.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
+target_link_libraries (test_auth_token_more -lcmocka
+ -Wl,--no-as-needed -lcimplog
+ -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
 )
 
 #-------------------------------------------------------------------------------
@@ -208,22 +222,39 @@ target_link_libraries (test_crud_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #   test_crud_internal
 #-------------------------------------------------------------------------------
 add_test(NAME test_crud_internal COMMAND ${MEMORY_CHECK} ./test_crud_internal)
-add_executable(test_crud_internal test_crud_internal.c ../src/config.c ../src/string_helpers.c ../src/crud_internal.c )
-target_link_libraries (test_crud_internal -lcmocka ${PARODUS_COMMON_LIBS} )
+add_executable(test_crud_internal test_crud_internal.c ../src/config.c ../src/close_retry.c ../src/string_helpers.c ../src/crud_internal.c )
+target_link_libraries (test_crud_internal -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_upstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_upstream COMMAND ${MEMORY_CHECK} ./test_upstream)
-add_executable(test_upstream test_upstream.c ../src/upstream.c ../src/string_helpers.c)
-target_link_libraries (test_upstream -lcmocka ${PARODUS_COMMON_LIBS} )
+add_executable(test_upstream test_upstream.c ../src/upstream.c ../src/close_retry.c ../src/string_helpers.c)
+target_link_libraries (test_upstream -lcmocka gcov -lcunit -lcimplog
+ -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll
+ -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
+ -lssl -lcrypto -lrt -lm)
+
+#-------------------------------------------------------------------------------
+#   test_upstream_sock
+#-------------------------------------------------------------------------------
+add_test(NAME test_upstream_sock COMMAND ${MEMORY_CHECK} ./test_upstream_sock)
+add_executable(test_upstream_sock test_upstream_sock.c ../src/upstream.c 
+  ../src/client_list.c ../src/close_retry.c ../src/string_helpers.c)
+target_link_libraries (test_upstream_sock -lcmocka gcov -lcunit -lcimplog
+ -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll -lnanomsg
+ -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
+ -lssl -lcrypto -lrt -lm)
 
 #-------------------------------------------------------------------------------
 #   test_downstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_downstream COMMAND ${MEMORY_CHECK} ./test_downstream)
 add_executable(test_downstream test_downstream.c ../src/downstream.c ../src/string_helpers.c)
-target_link_libraries (test_downstream -lcmocka ${PARODUS_COMMON_LIBS} )
+target_link_libraries (test_downstream -lcmocka gcov -lcunit -lcimplog
+ -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll
+ -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
+ -lssl -lcrypto -lrt -lm)
 
 #-------------------------------------------------------------------------------
 #   test_downstream_more
@@ -251,6 +282,7 @@ set(CONIFC_SRC test_conn_interface.c
   ../src/string_helpers.c 
   ../src/mutex.c
   ../src/heartBeat.c
+  ../src/close_retry.c
 )
 if (ENABLE_SESHAT)
 set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface.c)
@@ -258,14 +290,14 @@ else()
 set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(test_conn_interface ${CONIFC_SRC})
-target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} )
+target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid )
 
 #-------------------------------------------------------------------------------
 #   test_ParodusInternal
 #-------------------------------------------------------------------------------
 add_test(NAME test_ParodusInternal COMMAND ${MEMORY_CHECK} ./test_ParodusInternal)
 add_executable(test_ParodusInternal test_ParodusInternal.c ../src/ParodusInternal.c ../src/config.c ../src/string_helpers.c)
-target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} )
+target_link_libraries (test_ParodusInternal -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_partners_check
@@ -284,10 +316,11 @@ set(TOKEN_SRC ../src/conn_interface.c ../src/config.c
  ../src/nopoll_handlers.c ../src/nopoll_helpers.c
  ../src/partners_check.c ../src/ParodusInternal.c
  ../src/upstream.c ../src/downstream.c 
- ../src/networking.c
+ ../src/networking.c ../src/auth_token.c
  ../src/thread_tasks.c ../src/time.c
  ../src/string_helpers.c ../src/mutex.c 
  ../src/token.c ../src/heartBeat.c
+ ../src/close_retry.c
  )
 
 if (ENABLE_SESHAT)
@@ -304,7 +337,7 @@ endif (FEATURE_DNS_QUERY)
 
 add_executable(test_token ${TOKEN_SRC} ) 
 #target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
-target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka )
+target_link_libraries (test_token ${PARODUS_COMMON_LIBS} -lcmocka -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
 #   test_seshat_interface - registerWithSeshat
@@ -346,5 +379,5 @@ set(SIMPLE_SRC ${SIMPLE_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 add_executable(simple ${SIMPLE_SRC}) 
 
-target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  gcov -lnopoll -lnanomsg )
+target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  gcov -lnopoll )
 endif (INTEGRATION_TESTING)

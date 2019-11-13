@@ -30,6 +30,7 @@
 typedef struct reg_list_item
 {
 	int sock;
+	int endpoint;
 	char service_name[32];
 	char url[100];
 	struct reg_list_item *next;
@@ -50,8 +51,11 @@ int sendAuthStatus(reg_list_item_t *new_node);
 
 int deleteFromList(char* service_name);
 int get_numOfClients();
+void deleteAllClients (void);
+int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize);
 
 reg_list_item_t * get_global_node(void);
+void release_global_node (void);
 
 #ifdef __cplusplus
 }

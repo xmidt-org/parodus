@@ -35,6 +35,8 @@
 #include "seshat_interface.h"
 #include "crud_interface.h"
 #include "heartBeat.h"
+#include "close_retry.h"
+#include <curl/curl.h>
 #ifdef FEATURE_DNS_QUERY
 #include <ucresolv_log.h>
 #endif
@@ -45,19 +47,24 @@
 /*----------------------------------------------------------------------------*/
 
 #define HEARTBEAT_RETRY_SEC                         	30      /* Heartbeat (ping/pong) timeout in seconds */
+#define CLOUD_RECONNECT_TIME                       		5		/* Cloud disconnect max time in minutes */
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-
-bool close_retry = false;
-pthread_mutex_t close_mut=PTHREAD_MUTEX_INITIALIZER;
+bool g_shutdown  = false;
+pthread_t upstream_tid;
+pthread_t upstream_msg_tid;
+pthread_t downstream_tid;
+pthread_t svc_alive_tid;
+pthread_t crud_tid;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -67,8 +74,10 @@ void createSocketConnection(void (* initKeypress)())
     //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
     bool seshat_registered = false;
+    int create_conn_rtn = 0;
     unsigned int webpa_ping_timeout_ms = 1000 * get_parodus_cfg()->webpa_ping_timeout;
     unsigned int heartBeatTimer = 0;
+    struct timespec start_svc_alive_timer;
     
     //loadParodusCfg(tmpCfg,get_parodus_cfg());
 #ifdef FEATURE_DNS_QUERY
@@ -86,20 +95,24 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_log_set_handler (ctx, __report_log, NULL);
     #endif
 
-    if(!createNopollConnection(ctx))
+    start_conn_in_progress ();
+    create_conn_rtn = createNopollConnection(ctx);
+    stop_conn_in_progress ();
+    if(!create_conn_rtn)
     {
 		ParodusError("Unrecovered error, terminating the process\n");
+		OnboardLog("Unrecovered error, terminating the process\n");
 		abort();
     }
     packMetaData();
     
     UpStreamMsgQ = NULL;
-    StartThread(handle_upstream);
-    StartThread(processUpstreamMessage);
+    StartThread(handle_upstream, &upstream_tid);
+    StartThread(processUpstreamMessage, &upstream_msg_tid);
     ParodusMsgQ = NULL;
-    StartThread(messageHandlerTask);
-    StartThread(serviceAliveTask);
-	StartThread(CRUDHandlerTask);
+    StartThread(messageHandlerTask, &downstream_tid);
+    StartThread(serviceAliveTask, &svc_alive_tid);
+    StartThread(CRUDHandlerTask, &crud_tid);
 
     if (NULL != initKeypress) 
     {
@@ -108,6 +121,8 @@ void createSocketConnection(void (* initKeypress)())
 
     seshat_registered = __registerWithSeshat();
     
+    clock_gettime(CLOCK_REALTIME, &start_svc_alive_timer);
+
     do
     {
         struct timespec start, stop, diff;
@@ -125,19 +140,24 @@ void createSocketConnection(void (* initKeypress)())
         if(heartBeatTimer >= webpa_ping_timeout_ms)
         {
             ParodusInfo("heartBeatTimer %d webpa_ping_timeout_ms %d\n", heartBeatTimer, webpa_ping_timeout_ms);
-            if(!close_retry) 
+
+            if(!get_close_retry())
             {
                 ParodusError("ping wait time > %d . Terminating the connection with WebPA server and retrying\n", webpa_ping_timeout_ms / 1000);
                 ParodusInfo("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
+                OnboardLog("Reconnect detected, setting Ping_Miss reason for Reconnect\n");
                 set_global_reconnect_reason("Ping_Miss");
                 set_global_reconnect_status(true);
-                pthread_mutex_lock (&close_mut);
-                close_retry = true;
-                pthread_mutex_unlock (&close_mut);
+		// Invoke the ping status change event callback as "missed" ping
+		if(NULL != on_ping_status_change)
+		{ 
+			on_ping_status_change("missed");
+		}
+                set_close_retry();
             }
             else
-            {			
-                ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",close_retry);
+            {
+				ParodusPrint("heartBeatHandler - close_retry set to %d, hence resetting the heartBeatTimer\n",get_close_retry());
             }
             reset_heartBeatTimer();
         }
@@ -149,17 +169,58 @@ void createSocketConnection(void (* initKeypress)())
             seshat_registered = __registerWithSeshat();
         }
 
-        if(close_retry)
+        if(get_close_retry())
         {
-            ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", close_retry);
+            ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", get_close_retry());
             close_and_unref_connection(get_global_conn());
             set_global_conn(NULL);
+
+            if(get_parodus_cfg()->cloud_disconnect !=NULL)
+            {
+                ParodusPrint("get_parodus_cfg()->cloud_disconnect is %s\n", get_parodus_cfg()->cloud_disconnect);
+		set_cloud_disconnect_time(CLOUD_RECONNECT_TIME);
+		ParodusInfo("Waiting for %d minutes for reconnecting .. \n", get_cloud_disconnect_time());
+
+		sleep (get_cloud_disconnect_time() * 60);
+		ParodusInfo("cloud-disconnect reason reset after %d minutes\n", get_cloud_disconnect_time());
+		free(get_parodus_cfg()->cloud_disconnect);
+		reset_cloud_disconnect_reason(get_parodus_cfg());
+            }
+            start_conn_in_progress ();
             createNopollConnection(ctx);
-        }		
-    } while(!close_retry);
+            stop_conn_in_progress ();
+        }
+       } while(!get_close_retry() && !g_shutdown);
+
+    pthread_mutex_lock (get_global_svc_mut());
+    pthread_cond_signal (get_global_svc_con());
+    pthread_mutex_unlock (get_global_svc_mut());
+    pthread_mutex_lock (get_global_crud_mut());
+    pthread_cond_signal (get_global_crud_con());
+    pthread_mutex_unlock (get_global_crud_mut());
+    pthread_mutex_lock (&g_mutex);
+    pthread_cond_signal (&g_cond);
+    pthread_mutex_unlock (&g_mutex);
+    pthread_mutex_lock (get_global_nano_mut ());
+    pthread_cond_signal (get_global_nano_con());
+    pthread_mutex_unlock (get_global_nano_mut());
+
+    ParodusInfo ("joining threads\n");
+    JoinThread (svc_alive_tid);
+    JoinThread (upstream_tid);
+    JoinThread (downstream_tid);
+    JoinThread (upstream_msg_tid);
+    JoinThread (crud_tid);
+
+    deleteAllClients ();
 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
+    curl_global_cleanup();
+}
+
+void shutdownSocketConnection(void) {
+   g_shutdown = true;
 }
 

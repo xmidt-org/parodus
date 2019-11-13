@@ -31,16 +31,19 @@
 #include "../src/client_list.h"
 #include "../src/ParodusInternal.h"
 #include "../src/partners_check.h"
+#include "../src/close_retry.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 static noPollConn *conn;
 static char *reconnect_reason = "webpa_process_starts";
+bool g_shutdown  = false;
 static ParodusCfg parodusCfg;
 extern size_t metaPackSize;
 extern UpStreamMsg *UpStreamMsgQ;
 int numLoops = 1;
+int deviceIDNull =0;
 wrp_msg_t *temp = NULL;
 extern pthread_mutex_t nano_mut;
 extern pthread_cond_t nano_con;
@@ -65,19 +68,51 @@ reg_list_item_t * get_global_node(void)
     return mock_ptr_type(reg_list_item_t *);
 }
 
+void release_global_node (void)
+{
+}
+
 int get_numOfClients()
 {
     function_called();
     return (int)mock();
 }
+
+void addCRUDmsgToQueue(wrp_msg_t *crudMsg)
+{
+	(void)crudMsg;
+	function_called();
+	return;
+}
+
+int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
+{
+	UNUSED(dest); UNUSED(Msg); UNUSED(msgSize);
+	function_called();
+	return (int)mock();
+}
+
 void sendMessage(noPollConn *conn, void *msg, size_t len)
 {
     (void) conn; (void) msg; (void) len;
     function_called();
 }
 
+void set_parodus_cfg(ParodusCfg *cfg)
+{
+    memcpy(&parodusCfg, cfg, sizeof(ParodusCfg));
+}
+
 ParodusCfg *get_parodus_cfg(void) 
 {
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	parStrncpy(cfg.hw_mac , "14cfe2142xxx", sizeof(cfg.hw_mac));
+	if(deviceIDNull)
+	{
+		parStrncpy(cfg.hw_mac , "", sizeof(cfg.hw_mac));
+	}
+	set_parodus_cfg(&cfg);
     return &parodusCfg;
 }
 
@@ -180,6 +215,13 @@ int nn_shutdown (int s, int how)
     return (int)mock();
 }
 
+int nn_close (int s)
+{
+    UNUSED(s);
+    function_called();
+    return (int)mock();
+}
+
 int nn_setsockopt (int s, int level, int option, const void *optval, size_t optvallen)
 {
     UNUSED(s); UNUSED(level); UNUSED(option); UNUSED(optval); UNUSED(optvallen);
@@ -225,10 +267,16 @@ void test_handleUpstreamNull()
     UpStreamMsgQ = NULL;
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
+    will_return(nn_setsockopt, 0);
+    expect_function_call(nn_setsockopt);
     will_return(nn_bind, 1);
     expect_function_call(nn_bind);
     will_return(nn_recv, 12);
     expect_function_call(nn_recv);
+    will_return(nn_shutdown, 0);
+    expect_function_call(nn_shutdown);
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
     handle_upstream();
 }
 
@@ -244,10 +292,16 @@ void test_handle_upstream()
     UpStreamMsgQ->next->next = NULL;
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
+    will_return(nn_setsockopt, 0);
+    expect_function_call(nn_setsockopt);
     will_return(nn_bind, 1);
     expect_function_call(nn_bind);
     will_return(nn_recv, 12);
     expect_function_call(nn_recv);
+    will_return(nn_shutdown, 0);
+    expect_function_call(nn_shutdown);
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
     handle_upstream();
     free(UpStreamMsgQ->next);
     free(UpStreamMsgQ);
@@ -257,6 +311,8 @@ void err_handleUpstreamBindFailure()
 {
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
+    will_return(nn_setsockopt, 0);
+    expect_function_call(nn_setsockopt);
     will_return(nn_bind, -1);
     expect_function_call(nn_bind);
     handle_upstream();
@@ -290,6 +346,39 @@ void test_processUpstreamMessage()
 
     will_return(validate_partner_id, 1);
     expect_function_call(validate_partner_id);
+
+    will_return(appendEncodedData, 100);
+    expect_function_call(appendEncodedData);
+
+    expect_function_call(sendMessage);
+    will_return(nn_freemsg, 0);
+    expect_function_call(nn_freemsg);
+    expect_function_call(wrp_free_struct);
+
+    processUpstreamMessage();
+    free(temp);
+    free(UpStreamMsgQ->next);
+    free(UpStreamMsgQ);
+}
+
+void test_processUpstreamReqMessage()
+{
+    numLoops = 1;
+    metaPackSize = 20;
+    UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->msg = "First Message";
+    UpStreamMsgQ->len = 13;
+    UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+    UpStreamMsgQ->next->msg = "Second Message";
+    UpStreamMsgQ->next->len = 15;
+    UpStreamMsgQ->next->next = NULL;
+
+    temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+    memset(temp,0,sizeof(wrp_msg_t));
+    temp->msg_type = 3;
+
+    will_return(wrp_to_struct, 12);
+    expect_function_call(wrp_to_struct);
 
     will_return(appendEncodedData, 100);
     expect_function_call(appendEncodedData);
@@ -365,14 +454,17 @@ void test_processUpstreamMessageRegMsg()
     will_return(wrp_to_struct, 12);
     expect_function_call(wrp_to_struct);
 
-    will_return(get_numOfClients, 1);
-    expect_function_call(get_numOfClients);
-
     will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
 
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
+
     will_return(nn_shutdown, 1);
     expect_function_call(nn_shutdown);
+
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
 
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
@@ -423,6 +515,9 @@ void test_processUpstreamMessageRegMsgNoClients()
 
     will_return(wrp_to_struct, 12);
     expect_function_call(wrp_to_struct);
+
+    will_return(get_global_node, (intptr_t)head);
+    expect_function_call(get_global_node);
 
     will_return(get_numOfClients, 0);
     expect_function_call(get_numOfClients);
@@ -521,20 +616,26 @@ void err_processUpstreamMessageRegMsg()
     will_return(wrp_to_struct, 12);
     expect_function_call(wrp_to_struct);
 
-    will_return(get_numOfClients, 1);
-    expect_function_call(get_numOfClients);
-
     will_return(get_global_node, (intptr_t)head);
     expect_function_call(get_global_node);
 
+    will_return(get_numOfClients, 1);
+    expect_function_call(get_numOfClients);
+
     will_return(nn_shutdown, -1);
     expect_function_call(nn_shutdown);
+
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
 
     will_return(nn_socket, -1);
     expect_function_call(nn_socket);
 
     will_return(nn_shutdown, 1);
     expect_function_call(nn_shutdown);
+
+    will_return(nn_close, 0);
+    expect_function_call(nn_close);
 
     will_return(nn_socket, 1);
     expect_function_call(nn_socket);
@@ -574,6 +675,21 @@ void test_sendUpstreamMsgToServer()
     expect_function_call(sendMessage);
     sendUpstreamMsgToServer(&bytes, 110);
     free(bytes);
+}
+
+void test_sendUpstreamMsg_close_retry()
+{
+	set_close_retry();
+	void *bytes = NULL;
+	wrp_msg_t msg;
+	memset(&msg, 0, sizeof(wrp_msg_t));
+	msg.msg_type = WRP_MSG_TYPE__EVENT;
+	wrp_struct_to( &msg, WRP_BYTES, &bytes );
+	metaPackSize = 10;
+	will_return(appendEncodedData, 100);
+	expect_function_call(appendEncodedData);
+	sendUpstreamMsgToServer(&bytes, 110);
+	free(bytes);
 }
 
 void err_sendUpstreamMsgToServer()
@@ -628,10 +744,132 @@ void test_processUpstreamMsgCrud_nnfree()
     expect_function_call(wrp_free_struct);
     processUpstreamMessage();
     free(UpStreamMsgQ);
+    crud_test = 0;
 }
 
+void test_processUpstreamMsg_cloud_status()
+{
+    numLoops = 1;
+    metaPackSize = 20;
+	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->msg = "First Message";
+	UpStreamMsgQ->len = 13;
+	UpStreamMsgQ->next= NULL;
+	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	memset(temp,0,sizeof(wrp_msg_t));
+	temp->msg_type = 6;
+	temp->u.crud.dest = "mac:14cfe2142xxx/parodus/cloud-status";
+	temp->u.crud.source = "mac:14cfe2142xxx/config";
+	temp->u.crud.transaction_uuid = "123";
 
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
 
+	expect_function_call(addCRUDmsgToQueue);
+
+	will_return(nn_freemsg, 0);
+	expect_function_call(nn_freemsg);
+	expect_function_call(wrp_free_struct);
+    processUpstreamMessage();
+    free(temp);
+    free(UpStreamMsgQ);
+    UpStreamMsgQ = NULL;
+}
+
+void test_processUpstreamMsg_sendToClient()
+{
+	numLoops = 2;
+	metaPackSize = 20;
+	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->msg = strdup("First Message");
+	UpStreamMsgQ->len = 13;
+	UpStreamMsgQ->next= NULL;
+	UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->next->msg = strdup("Second Message");
+	UpStreamMsgQ->next->len = 15;
+	UpStreamMsgQ->next->next = NULL;
+
+	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	memset(temp,0,sizeof(wrp_msg_t));
+	temp->msg_type = 6;
+	temp->u.crud.dest = strdup("mac:14cfe2142xxx/config");
+	temp->u.crud.source = strdup("mac:14cfe2142xxx/parodus/cloud-status");
+	temp->u.crud.transaction_uuid = strdup("123");
+
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+
+	will_return(sendMsgtoRegisteredClients, 1);
+	expect_function_call(sendMsgtoRegisteredClients);
+
+	expect_function_call(wrp_free_struct);
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+	will_return(sendMsgtoRegisteredClients, 0);
+	expect_function_call(sendMsgtoRegisteredClients);
+
+	expect_function_call(wrp_free_struct);
+	processUpstreamMessage();
+	free(temp);
+	free(UpStreamMsgQ);
+	UpStreamMsgQ = NULL;
+}
+
+void test_processUpstreamMsg_serviceNameNULL()
+{
+	numLoops = 1;
+	metaPackSize = 20;
+	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->msg = strdup("First Message");
+	UpStreamMsgQ->len = 13;
+	UpStreamMsgQ->next= NULL;
+	UpStreamMsgQ->next = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->next->msg = strdup("Second Message");
+	UpStreamMsgQ->next->len = 15;
+	UpStreamMsgQ->next->next = NULL;
+
+	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	memset(temp,0,sizeof(wrp_msg_t));
+	temp->msg_type = 6;
+	temp->u.crud.dest = strdup("mac:14cfe2142xxx/");
+	temp->u.crud.source = strdup("mac:14cfe2142xxx/parodus/cloud-status");
+	temp->u.crud.transaction_uuid = strdup("123");
+
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+	expect_function_call(wrp_free_struct);
+	processUpstreamMessage();
+	free(temp);
+	free(UpStreamMsgQ);
+	UpStreamMsgQ = NULL;
+}
+
+void err_processUpstreamMsg_deviceID()
+{
+	numLoops = 1;
+	metaPackSize = 20;
+	deviceIDNull = 1;
+	UpStreamMsgQ = (UpStreamMsg *) malloc(sizeof(UpStreamMsg));
+	UpStreamMsgQ->msg = "First Message";
+	UpStreamMsgQ->len = 13;
+	UpStreamMsgQ->next= NULL;
+	temp = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+	memset(temp,0,sizeof(wrp_msg_t));
+	temp->msg_type = 6;
+	temp->u.crud.dest = "mac:14cfe2142xxx/parodus/cloud-status";
+	temp->u.crud.source = "mac:14cfe2142xxx/config";
+	temp->u.crud.transaction_uuid = "123";
+
+	will_return(wrp_to_struct, 12);
+	expect_function_call(wrp_to_struct);
+	will_return(nn_freemsg, 0);
+	expect_function_call(nn_freemsg);
+	expect_function_call(wrp_free_struct);
+	processUpstreamMessage();
+	free(temp);
+	free(UpStreamMsgQ);
+	UpStreamMsgQ = NULL;
+}
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -646,6 +884,7 @@ int main(void)
         cmocka_unit_test(err_handleUpstreamBindFailure),
         cmocka_unit_test(err_handleUpstreamSockFailure),
         cmocka_unit_test(test_processUpstreamMessage),
+        cmocka_unit_test(test_processUpstreamReqMessage),
         cmocka_unit_test(test_processUpstreamMessageInvalidPartner),
         cmocka_unit_test(test_processUpstreamMessageRegMsg),
         cmocka_unit_test(test_processUpstreamMessageRegMsgNoClients),
@@ -654,12 +893,17 @@ int main(void)
         cmocka_unit_test(err_processUpstreamMessageMetapackFailure),
         cmocka_unit_test(err_processUpstreamMessageRegMsg),
         cmocka_unit_test(test_sendUpstreamMsgToServer),
+        cmocka_unit_test(test_sendUpstreamMsg_close_retry),
         cmocka_unit_test(err_sendUpstreamMsgToServer),
         cmocka_unit_test(test_get_global_UpStreamMsgQ),
         cmocka_unit_test(test_set_global_UpStreamMsgQ),
         cmocka_unit_test(test_get_global_nano_con),
         cmocka_unit_test(test_get_global_nano_mut),
         cmocka_unit_test(test_processUpstreamMsgCrud_nnfree),
+        cmocka_unit_test(test_processUpstreamMsg_cloud_status),
+        cmocka_unit_test(test_processUpstreamMsg_sendToClient),
+	cmocka_unit_test(test_processUpstreamMsg_serviceNameNULL),
+	cmocka_unit_test(err_processUpstreamMsg_deviceID)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

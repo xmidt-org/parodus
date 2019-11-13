@@ -341,6 +341,7 @@ void test_createConnection()
 
     int ret = createNopollConnection(ctx);
     assert_int_equal(ret, nopoll_true);
+    assert_string_equal(get_parodus_cfg()->cloud_status, CLOUD_STATUS_ONLINE);
     free(cfg);
     if (g_jwt_server_ip !=NULL)
     {

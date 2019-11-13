@@ -5,8 +5,45 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Refactor of connection code (simplification).
+- Security: Added support to use auth token during initial connect to cloud
+- Fix re-registration fails that lose a socket
+- Fix mutex error in service alive
+- Security: Mutual Authentication (mTLS or two way TLS)
+- Rename command line options for MTLS cert and Key
+- Update to use nanomsg v. 1.1.4
+- requestNewAuthToken will clear the token if it fails.
+- request auth token on every retry, not just after 403
+- update to use nopoll v 1.0.2
+- Add pause/resume heartBeatTimer
+- parodus event handler to listen to interface_down and interface_up event
+- Pause connection retry during interface_down event
+
+## [1.0.2] - 2019-02-08
+- Refactored connection.c and updated corresponding unit tests
 - Additional `/cloud-status` and `/cloud-disconnect` fields.
+- Switched from nanomsg (Release 1.1.2) to NNG (Release v1.0.1)
+- Memory leak fixes
+- Changed connection logic (connection.c) for retries, and added unit test
+- Partner-id comparison made case insensitive
+- Reverted from NNG to nanomag (v1.1.2)
+- reverted temporary CMake reference to https://github.com/bill1600/seshat
+- Added log for time difference of parodus connect time and boot time
+- added NULL check for device mac id in upstream retrieve message handling
+- backoff retry to include find_servers in loop (connection.c)
+- backoff max is max count not max delay
+- used mutex protection to make client list and nn_sends thread safe
+- put mutex lock into get_global_node
+- change svc alive from a thread to a function called every 30 sec from main
+- shut down tasks properly
+- fix memory leaks
+- Fixed memory leak in upstream event message flow
+- Fixed crash in CRUD request processing
+- Fixed issue on RETRIEVE respone processing
+- Enabled valgrind
+- Fixed main loop to keep calling svc_alive_task during a cloud disconnect and retry
+- change svc alive back to a separate thread.  Shut it down with pthread_cond_timedwait
+- Refactored Upsteam RETRIEVE flow
+- Fix re-registration to call nn_shutdown and nn_close, so we don't lose a socket.
 
 ## [1.0.1] - 2018-07-18
 ### Added
@@ -39,6 +76,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Initial creation
 
 [Unreleased]: https://github.com/Comcast/parodus/compare/1.0.1...HEAD
+[1.0.2]: https://github.com/Comcast/parodus/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/Comcast/parodus/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/Comcast/parodus/compare/79fa7438de2b14ae64f869d52f5c127497bf9c3f...1.0.0
 

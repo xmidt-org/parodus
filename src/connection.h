@@ -34,8 +34,14 @@ extern "C" {
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
-extern bool close_retry;
-extern pthread_mutex_t close_mut;
+/**
+* parodusOnPingStatusChangeHandler - Function pointer
+* Used to define callback function to do additional processing 
+* when websocket Ping status change event 
+* i.e. ping_miss or ping receive after miss
+*/
+typedef void (*parodusOnPingStatusChangeHandler) (char * status);
+parodusOnPingStatusChangeHandler on_ping_status_change;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -56,6 +62,18 @@ void set_global_reconnect_reason(char *reason);
 
 bool get_global_reconnect_status();
 void set_global_reconnect_status(bool status);
+
+int get_cloud_disconnect_time();
+void set_cloud_disconnect_time(int disconnTime);
+
+/**
+ * @brief Interface to self heal connection in progress getting stuck
+ */
+void start_conn_in_progress (void);
+void stop_conn_in_progress (void);
+
+// To Register parodusOnPingStatusChangeHandler Callback function
+void registerParodusOnPingStatusChangeHandler(parodusOnPingStatusChangeHandler on_ping_status_change);
 
 #ifdef __cplusplus
 }

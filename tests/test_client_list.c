@@ -26,6 +26,9 @@
 #define TEST_CLIENT1_URL "tcp://127.0.0.1:6677"
 #define TEST_CLIENT2_URL "tcp://127.0.0.1:6655"
 
+pthread_t test_tid;
+pthread_t test_tid2;
+
 static void *client_rcv_task();
 static void *client2_rcv_task();
 
@@ -58,7 +61,7 @@ void test_client_addtolist()
 	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
 	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
 	
-	StartThread(client_rcv_task);
+	StartThread(client_rcv_task, &test_tid);
 	
 	status = addToList(&message);
 	ParodusPrint("addToList status is %d\n", status);
@@ -73,7 +76,7 @@ void test_client_addtolist()
 		CU_ASSERT_STRING_EQUAL( temp->service_name, message->u.reg.service_name );
 		CU_ASSERT_STRING_EQUAL( temp->url, message->u.reg.url );
 	}
-
+	release_global_node ();
 	wrp_free_struct(message);
 	free(bytes);
 	ParodusInfo("test_client_addtolist done..\n");	
@@ -189,7 +192,7 @@ void test_addtolist_multiple_clients()
 	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
 	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
 	
-	StartThread(client2_rcv_task);
+	StartThread(client2_rcv_task, &test_tid2);
 	
 	status = addToList(&message);
 	ParodusPrint("addToList status is %d\n", status);
@@ -206,7 +209,7 @@ void test_addtolist_multiple_clients()
 		CU_ASSERT_STRING_EQUAL( temp->url, message->u.reg.url );
 		
 	}
-
+	release_global_node ();
 	wrp_free_struct(message);
 	free(bytes);
 	ParodusInfo("test_addtolist_multiple_clients done..\n");	

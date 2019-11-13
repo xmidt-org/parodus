@@ -1,6 +1,6 @@
 # parodus
 
-[![Build Status](https://travis-ci.org/Comcast/parodus.svg?branch=master)](https://travis-ci.org/Comcast/parodus)
+[![Build Status](https://travis-ci.org/xmidt-org/parodus.svg?branch=master)](https://travis-ci.org/xmidt-org/parodus)
 [![codecov.io](http://codecov.io/github/Comcast/parodus/coverage.svg?branch=master)](http://codecov.io/github/Comcast/parodus?branch=master)
 [![Coverity](https://img.shields.io/coverity/scan/11192.svg)](https://scan.coverity.com/projects/comcast-parodus)
 [![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/Comcast/parodus/blob/master/LICENSE)
@@ -55,9 +55,9 @@ make test
 
 - /force-ipv6 -Forcefully connect parodus to ipv6 address (optional argument)
 
-- /token-read-script -Script to get auth token for establishing secure connection (absolute path where that script is present) -optional argument
+- /client-cert-path -MTLS client cert location to request auth token for establishing secure connection [absolute path where client cert is present] (optional argument)
 
-- /token-acquisition-script -Script to create new auth token for establishing secure connection (absolute path where that script is present) -optional argument 
+- /token-server-url -complete server url with API path to request new auth token for establishing secure connection (optional argument)
 
 - /crud-config-file -Config json file to store objects during create, retrieve, update and delete (CRUD) operations -optional argument 
 
@@ -75,6 +75,12 @@ make test
 
 - /jwt-public-key-file -JWT token validation key
 
+# if ENABLE_MUTUAL_AUTH is enabled
+
+- /mtls-client-cert-path - Provide the client cert for establishing a mutual auth secure websocket connection
+
+- /mtls-client-key-path - Provide the client cert key for establishing a mutual auth secure websocket connection
+
 ```
 
 # Sample parodus start commands:
@@ -82,17 +88,17 @@ make test
 ```
 # Seshat & FEATURE_DNS_QUERY Enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-txt-url=somebody.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --seshat-url=tcp://127.0.0.1:7777 --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-txt-url=somebody.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --seshat-url=tcp://127.0.0.1:7777 --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
 
 
 # Seshat is not enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-txt-url=somebody.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-txt-url=somebody.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
 
 
 # When both Seshat & FEATURE_DNS_QUERY not Enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --token-read-script=/usr/ccsp/parodus/parodus_token1.sh --token-acquisition-script=/usr/ccsp/parodus/parodus_token2.sh --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
 
 ```
 

@@ -39,6 +39,12 @@ void reset_heartBeatTimer();
 // Increment value of heartBeatTimer to desired value
 void increment_heartBeatTimer(unsigned int inc_time_ms);
 
+// Pause heartBeatTimer, i.e. stop incrementing
+void pause_heartBeatTimer();
+
+// Resume heartBeatTimer, i.e. resume incrementing
+void resume_heartBeatTimer();
+
 #ifdef __cplusplus
 }
 #endif

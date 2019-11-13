@@ -23,7 +23,6 @@
  
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 
 #include "spin_thread.h"
 #include "parodus_log.h"
@@ -31,12 +30,12 @@
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
-void StartThread(void *(*start_routine) (void *))
+void StartThread(void *(*start_routine) (void *), pthread_t *threadId)
 {
     int err = 0;
-	pthread_t threadId;
+	pthread_t __threadId;
 
-	err = pthread_create(&threadId, NULL, start_routine, NULL);
+	err = pthread_create(&__threadId, NULL, start_routine, NULL);
 	if (err != 0) 
 	{
 		ParodusError("Error creating thread :[%s]\n", strerror(err));
@@ -44,8 +43,13 @@ void StartThread(void *(*start_routine) (void *))
 	}
 	else
 	{
-		ParodusPrint("Thread created Successfully %lu\n", (unsigned long) threadId);
+		*threadId = __threadId;
+		ParodusPrint("Thread created Successfully %lu\n", (unsigned long) __threadId);
 	}    
 }
 
-         
+
+void JoinThread (pthread_t threadId)
+{
+  pthread_join (threadId, NULL);
+}

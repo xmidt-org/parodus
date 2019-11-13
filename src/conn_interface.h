@@ -45,6 +45,7 @@ extern UpStreamMsg *UpStreamMsgQ;
  *  and creates the intial connection and manages the connection wait, close mechanisms.
  */
 void createSocketConnection(void (* initKeypress)());
+void shutdownSocketConnection(void);
    
 #ifdef __cplusplus
 }

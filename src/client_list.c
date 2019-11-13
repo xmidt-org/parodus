@@ -30,6 +30,7 @@
 /*----------------------------------------------------------------------------*/
 static int numOfClients = 0;
 static reg_list_item_t * g_head = NULL;
+pthread_mutex_t client_mut=PTHREAD_MUTEX_INITIALIZER;
 
 /*----------------------------------------------------------------------------*/
 /*                             External functions                             */
@@ -37,8 +38,15 @@ static reg_list_item_t * g_head = NULL;
 
 reg_list_item_t * get_global_node(void)
 {
+    pthread_mutex_lock (&client_mut);
     return g_head;
 }
+
+void release_global_node (void)
+{
+    pthread_mutex_unlock (&client_mut);
+}
+
 
 int get_numOfClients()
 {
@@ -52,11 +60,12 @@ int addToList( wrp_msg_t **msg)
     int rc = -1;
     int sock;
     int retStatus = -1;
+
     sock = nn_socket( AF_SP, NN_PUSH );
     ParodusPrint("sock created for adding entries to list: %d\n", sock);
     if(sock >= 0)
     {
-            int t = NANOMSG_SOCKET_TIMEOUT_MSEC;
+            int t = NANO_SOCKET_SEND_TIMEOUT_MS;
             rc = nn_setsockopt(sock, NN_SOL_SOCKET, NN_SNDTIMEO, &t, sizeof(t));
             if(rc < 0)
             {
@@ -67,7 +76,11 @@ int addToList( wrp_msg_t **msg)
             if(rc < 0)
             {
                 ParodusError ("Unable to connect socket (errno=%d, %s)\n",errno, strerror(errno));
-                nn_close (sock);
+		if (nn_close (sock) < 0)
+                {
+                   ParodusError ("nn_close socket=%d (err=%d, %s)\n", 
+			sock, errno, strerror(errno));
+		}
                 
             }
             else
@@ -78,6 +91,7 @@ int addToList( wrp_msg_t **msg)
 		{
     			memset( new_node, 0, sizeof( reg_list_item_t ) );
     			new_node->sock = sock;
+                        new_node->endpoint = rc;
     			ParodusPrint("new_node->sock is %d\n", new_node->sock);
     			
     			
@@ -210,11 +224,21 @@ int deleteFromList(char* service_name)
 			}
 			
 			ParodusPrint("Deleting the node\n");
+                        if(nn_shutdown(curr_node->sock, curr_node->endpoint) < 0)
+                        {
+                           ParodusError ("nn_shutdown socket=%d endpt=%d, err=%d\n", 
+				curr_node->sock, curr_node->endpoint, errno);
+                        }
+			if (nn_close (curr_node->sock) < 0)
+                        {
+                           ParodusError ("nn_close socket=%d err=%d\n", 
+				curr_node->sock, errno);
+                        }
 			free( curr_node );
 			curr_node = NULL;
 			ParodusInfo("Deleted successfully and returning..\n");
 			numOfClients =numOfClients - 1;
-			ParodusPrint("numOfClients after delte is %d\n", numOfClients);
+			ParodusPrint("numOfClients after delete is %d\n", numOfClients);
 			return 0;
 		}
 		
@@ -223,4 +247,50 @@ int deleteFromList(char* service_name)
 	}
 	ParodusError("Could not find the entry to delete from list\n");
 	return -1;
+}
+
+void deleteAllClients (void)
+{
+  reg_list_item_t *next_node = NULL;
+
+  while (NULL != g_head)
+  {
+    next_node = g_head->next;
+    free (g_head);
+    g_head = next_node;
+  }
+  if (numOfClients > 0) {
+    ParodusInfo ("Deleted %d clients\n", numOfClients);
+    numOfClients = 0;
+  }
+}
+
+/*
+*@dest : Client destination to send message
+*@Msg:	Msg to send it to client (No free done here), user responsibilites to free the msg
+*@msgSize : Total size of the msg to send to client
+*/
+int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize)
+{
+	int bytes =0;
+	reg_list_item_t *temp = NULL;
+	temp = get_global_node();
+	//Checking for individual clients & Sending msg to registered client
+	while (NULL != temp)
+	{
+		ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
+		// Sending message to registered clients
+		if( strcmp(dest, temp->service_name) == 0)
+		{
+			bytes = nn_send(temp->sock, *Msg, msgSize, 0);
+			release_global_node ();
+			ParodusInfo("sent downstream message to reg_client '%s'\n", temp->url);
+			ParodusPrint("downstream bytes sent:%d\n", bytes);
+			return 1;
+		}
+		ParodusPrint("checking the next item in the list\n");
+		temp= temp->next;
+	}
+	release_global_node ();
+	return 0;
 }

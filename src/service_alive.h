@@ -24,6 +24,8 @@
 #ifndef _SERVICE_ALIVE_H_
 #define _SERVICE_ALIVE_H_
 
+#include <pthread.h>
+
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
@@ -33,7 +35,8 @@ extern "C" {
 #endif
   
 void *serviceAliveTask();
-
+pthread_cond_t *get_global_svc_con(void);
+pthread_mutex_t *get_global_svc_mut(void);
 
 #ifdef __cplusplus
 }

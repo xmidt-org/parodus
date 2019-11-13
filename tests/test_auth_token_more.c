@@ -22,76 +22,79 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include <CUnit/Basic.h>
+
+#include "../src/config.h"
+#include "../src/auth_token.h"
 #include "../src/ParodusInternal.h"
-#include "../src/thread_tasks.h"
-#include "../src/client_list.h"
 
+extern int requestNewAuthToken(char *newToken, size_t len, int r_count);
 
-/*----------------------------------------------------------------------------*/
-/*                            File Scoped Variables                           */
-/*----------------------------------------------------------------------------*/
-bool g_shutdown  = false;
-ParodusMsg *ParodusMsgQ;
-pthread_mutex_t g_mutex;
-pthread_cond_t g_cond;
-int numLoops;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
+typedef void CURL;
 
-int get_numOfClients()
+typedef enum {
+  CURLINFO_RESPONSE_CODE    = 2,
+  CURLINFO_TOTAL_TIME
+} CURLINFO;
+
+struct token_data test_data;
+
+CURL *curl_easy_init  ()
 {
-    function_called();
-    return (int)mock();
+	function_called();
+	return (CURL *) mock();
 }
 
-reg_list_item_t * get_global_node(void)
+int curl_easy_perform(CURL *curl)
 {
-    function_called();
-    return mock_ptr_type(reg_list_item_t *);
+	UNUSED(curl);
+	char *msg = "response";
+	int rtn;
+
+	function_called();
+	rtn = (int) mock();
+	if (0 == rtn)
+	  write_callback_fn (msg, 1, strlen(msg), &test_data);
+	return rtn;
 }
 
-void listenerOnMessage(void * msg, size_t msgSize )
+int curl_easy_getinfo(CURL *curl, CURLINFO CURLINFO_RESPONSE_CODE, long response_code)
 {
-    check_expected((intptr_t)msg);
-    check_expected(msgSize);
-    function_called();
-}
-
-int pthread_cond_wait(pthread_cond_t *restrict cond, pthread_mutex_t *restrict mutex)
-{
-    UNUSED(cond); UNUSED(mutex);
-    function_called();
-    return (int)mock();
+	UNUSED(curl);
+	UNUSED(CURLINFO_RESPONSE_CODE);
+	UNUSED(response_code);
+	function_called();
+	return (int) mock();
 }
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
-
-void test_messageHandlerTask()
+void test_requestNewAuthToken_init_fail ()
 {
-    ParodusMsgQ = (ParodusMsg *) malloc (sizeof(ParodusMsg));
-    ParodusMsgQ->payload = "First message";
-    ParodusMsgQ->len = 9;
-    ParodusMsgQ->next = NULL;
-    
-    numLoops = 1;
+	char token[32];
+	ParodusCfg cfg;
+	int output = -1;
+	memset(&cfg,0,sizeof(cfg));
 
-    expect_value(listenerOnMessage, (intptr_t)msg, (intptr_t)ParodusMsgQ->payload);
-    expect_value(listenerOnMessage, msgSize, ParodusMsgQ->len);
-    expect_function_call(listenerOnMessage);
-    
-    messageHandlerTask();
+	cfg.token_server_url = strdup("https://dev.comcast.net/token");
+	parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
+	parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+	parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+
+	set_parodus_cfg(&cfg);
+
+	will_return (curl_easy_init, NULL);
+	expect_function_calls (curl_easy_init, 1);
+
+	requestNewAuthToken (token, sizeof(token), 2);
+	assert_int_equal (output, -1);
+	assert_int_equal (0, (int) token[0]);
+	free(cfg.token_server_url);
 }
 
-void err_messageHandlerTask()
-{
-    numLoops = 1;
-    will_return(pthread_cond_wait, 0);
-    expect_function_call(pthread_cond_wait);
-    
-    messageHandlerTask();
-}
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -99,8 +102,7 @@ void err_messageHandlerTask()
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(test_messageHandlerTask),
-        cmocka_unit_test(err_messageHandlerTask),
+	cmocka_unit_test(test_requestNewAuthToken_init_fail)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

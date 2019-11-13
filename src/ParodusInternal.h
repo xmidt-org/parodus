@@ -50,7 +50,8 @@
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
 #define UNUSED(x) (void )(x)
-#define NANOMSG_SOCKET_TIMEOUT_MSEC                      2000
+#define NANO_SOCKET_SEND_TIMEOUT_MS                     2000
+#define NANO_SOCKET_RCV_TIMEOUT_MS			500
 
 #ifndef TEST
 #define FOREVER()   1
@@ -58,6 +59,12 @@
 extern int numLoops;
 #define FOREVER()   numLoops--
 #endif
+
+// Return values for find_servers() in connection.c
+#define FIND_SUCCESS 0
+#define FIND_INVALID_DEFAULT -2
+#define FIND_JWT_FAIL -1
+
 
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
@@ -77,9 +84,57 @@ typedef struct {
 	int rr_len;
 } rr_rec_t;
 
+//------------ Used in comnection.c -----------------
+typedef struct {
+  int allow_insecure;
+  char *server_addr;  // must be freed
+  unsigned int port;
+} server_t;
+
+typedef struct {
+  server_t defaults;	// from command line
+  server_t jwt;		// from jwt endpoint claim
+  server_t redirect;	// from redirect response to
+			//  nopoll_conn_wait_until_connection_ready
+} server_list_t;
+
+//---- Used in connection.c for expire timer
+typedef struct {
+  int running;
+  struct timespec start_time;
+  struct timespec end_time;
+} expire_timer_t;
+
+//--- Used in connection.c for backoff delay timer
+typedef struct {
+  int count;
+  int max_count;
+  int delay;
+} backoff_timer_t;
+
+//--- Used in connection.c for init_header_info
+typedef struct {
+  char *conveyHeader;	// Do not free
+  char *device_id;	// Need to free
+  char *user_agent;	// Need to free
+} header_info_t;
+
+// connection context which is defined in createNopollConnection
+// and passed into functions keep_retrying_connect, connect_and_wait,
+// wait_connection_ready, and nopoll_connect 
+typedef struct {
+  noPollCtx *nopoll_ctx;
+  server_list_t server_list;
+  server_t *current_server;
+  header_info_t header_info;
+  char *extra_headers;		// need to be freed
+  expire_timer_t connect_timer;
+} create_connection_ctx_t;
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+extern bool g_shutdown;
 extern ParodusMsg *ParodusMsgQ;
 int numLoops;
 /*----------------------------------------------------------------------------*/
@@ -101,6 +156,25 @@ void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
 
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
+
+
+/*------------------------------------------------------------------------------*/
+/*                        For interface_down_event Flag                         */
+/*------------------------------------------------------------------------------*/
+
+// Get value of interface_down_event
+bool get_interface_down_event();
+
+// Reset value of interface_down_event to false
+void reset_interface_down_event();
+
+// Set value of interface_down_event to true
+void set_interface_down_event();
+
+pthread_cond_t *get_interface_down_con();
+
+pthread_mutex_t *get_interface_down_mut();
+  
 
 #ifdef __cplusplus
 }

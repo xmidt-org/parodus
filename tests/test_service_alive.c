@@ -33,6 +33,18 @@ static void *keep_alive_thread();
 static void add_client();
 int sock1;
 pthread_t threadId;
+pthread_mutex_t crud_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t crud_con=PTHREAD_COND_INITIALIZER;
+
+pthread_cond_t *get_global_crud_con(void)
+{
+    return &crud_con;
+}
+
+pthread_mutex_t *get_global_crud_mut(void)
+{
+    return &crud_mut;
+}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
@@ -48,12 +60,14 @@ void *CRUDHandlerTask()
 {
 	return NULL;
 }
+
 static void add_client()
 {
 	const wrp_msg_t reg = { .msg_type = WRP_MSG_TYPE__SVC_REGISTRATION,
 	  .u.reg.service_name = "service_client",
 	  .u.reg.url = TEST_SERVICE_URL};
 	  
+	pthread_t test_tid;
 	void *bytes;
 	int size =0;
 	int rv;
@@ -71,7 +85,7 @@ static void add_client()
 	ParodusPrint("decoded service_name:%s\n", message->u.reg.service_name);
 	ParodusPrint("decoded dest:%s\n", message->u.reg.url);
 	
-	StartThread(client_rcv_task);
+	StartThread(client_rcv_task, &test_tid);
 	status = addToList(&message);
 	ParodusPrint("addToList status is %d\n", status);
 	
@@ -134,7 +148,10 @@ static void *keep_alive_thread()
 	//ParodusPrint("keep_alive threadId is %d\n", threadId);
 	sleep(2);
 	ParodusPrint("Starting serviceAliveTask..\n");
-	serviceAliveTask();
+	while (true) {
+	  serviceAliveTask();
+	  sleep (30);
+	}
 	return 0;
 }
 

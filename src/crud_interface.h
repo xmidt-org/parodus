@@ -24,6 +24,8 @@
 #ifndef _CRUD_INTERFACE_H_
 #define _CRUD_INTERFACE_H_
 
+#include <pthread.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,9 +44,9 @@ typedef struct CrudMsg__
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-//void *CRUDHandlerTask();
-//void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
 void addCRUDresponseToUpstreamQ(void *response_bytes, ssize_t response_size);
+pthread_cond_t *get_global_crud_con(void);
+pthread_mutex_t *get_global_crud_mut(void);
 
 #ifdef __cplusplus
 }

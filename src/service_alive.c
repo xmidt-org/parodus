@@ -31,9 +31,41 @@
 /*----------------------------------------------------------------------------*/
 #define KEEPALIVE_INTERVAL_SEC                         	30
 
+pthread_mutex_t svc_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t svc_con=PTHREAD_COND_INITIALIZER;
+
+/*----------------------------------------------------------------------------*/
+/*                             Utiliy Functions                               */
+/*----------------------------------------------------------------------------*/
+static int wait__ (unsigned int secs)
+{
+  int shutdown_flag;
+  struct timespec svc_alive_timer;
+
+  clock_gettime(CLOCK_REALTIME, &svc_alive_timer);
+  svc_alive_timer.tv_sec += secs;
+  pthread_mutex_lock(&svc_mut);
+  pthread_cond_timedwait (&svc_con, &svc_mut, &svc_alive_timer);
+  shutdown_flag = g_shutdown;
+  pthread_mutex_unlock (&svc_mut);
+  return shutdown_flag;
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+
+pthread_cond_t *get_global_svc_con(void)
+{
+    return &svc_con;
+}
+
+pthread_mutex_t *get_global_svc_mut(void)
+{
+    return &svc_mut;
+}
+
+
 /*
  * @brief To handle registered services to indicate that the service is still alive.
  */
@@ -58,10 +90,10 @@ void *serviceAliveTask()
 	        while(1)
 	        {
 		        ParodusPrint("serviceAliveTask: numOfClients registered is %d\n", get_numOfClients());
+		        temp = get_global_node();
 		        if(get_numOfClients() > 0)
 		        {
 			        //sending svc msg to all the clients every 30s
-			        temp = get_global_node();
 			        size = (size_t) nbytes;
 			        while(NULL != temp)
 			        {
@@ -82,8 +114,9 @@ void *serviceAliveTask()
 				        byte = 0;
 				        if(ret == 0)
 				        {
-					        ParodusPrint("Deletion from list is success, doing resync with head\n");
+						release_global_node ();
 					        temp= get_global_node();
+					        ParodusInfo("Deletion from list is success, doing resync with head\n");
 					        ret = -1;
 				        }
 				        else
@@ -91,15 +124,20 @@ void *serviceAliveTask()
 					        temp= temp->next;
 				        }
 			        }
+				release_global_node ();
 		         	ParodusPrint("Waiting for 30s to send keep alive msg \n");
-		         	sleep(KEEPALIVE_INTERVAL_SEC);
+		         	if (wait__ (KEEPALIVE_INTERVAL_SEC))
+				  break;
 	            	}
 	            	else
 	            	{
+				release_global_node ();
 	            		ParodusInfo("No clients are registered, waiting ..\n");
-	            		sleep(50);
+	            		if (wait__ (50))
+				  break;
 	            	}
 	        }
+		free (svc_bytes);
 	}
 	return 0;
 }

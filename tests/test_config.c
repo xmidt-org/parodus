@@ -25,14 +25,17 @@
 #include <CUnit/Basic.h>
 
 #include "../src/config.h"
+#include "../src/auth_token.h"
 #include "../src/ParodusInternal.h"
 
 extern int parse_mac_address (char *target, const char *arg);
 extern int server_is_http (const char *full_url,
 	const char **server_ptr);
-extern int parse_webpa_url(const char *full_url, 
+extern int parse_webpa_url__(const char *full_url, 
 	char *server_addr, int server_addr_buflen,
 	char *port_buf, int port_buflen);
+extern int parse_webpa_url (const char *full_url,
+	char **server_addr, unsigned int *port);
 extern unsigned int get_algo_mask (const char *algo_str);
 extern unsigned int parse_num_arg (const char *arg, const char *arg_name);
 
@@ -49,6 +52,7 @@ void create_token_script(char *fname)
     sprintf(command, "chmod +x %s",fname);
     system(command);
 }
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
@@ -180,9 +184,10 @@ void test_parseCommandLine()
 #endif
 		"--force-ipv4",
 		"--force-ipv6",
-		"--token-read-script=/tmp/token.sh",
-		"--token-acquisition-script=/tmp/token.sh",
+		"--boot-time-retry-wait=10",
 		"--ssl-cert-path=/etc/ssl/certs/ca-certificates.crt",
+		"--client-cert-path=testcert",
+		"--token-server-url=https://dev.comcast.net/token",
 #ifdef FEATURE_DNS_QUERY
 		"--acquire-jwt=1",
 		"--dns-txt-url=mydns.mycom.net",
@@ -210,6 +215,7 @@ void test_parseCommandLine()
     assert_string_equal( parodusCfg.hw_last_reboot_reason, "unknown");	
     assert_string_equal( parodusCfg.fw_name, "TG1682_DEV_master_2016000000sdy");	
     assert_int_equal( (int) parodusCfg.webpa_ping_timeout,180);	
+    assert_int_equal( (int) parodusCfg.boot_retry_wait,10);
     assert_string_equal( parodusCfg.webpa_interface_used, "br0");	
     assert_string_equal( parodusCfg.webpa_url, "http://127.0.0.1");
     assert_int_equal( (int) parodusCfg.webpa_backoff_max,0);
@@ -220,18 +226,20 @@ void test_parseCommandLine()
     assert_string_equal(  parodusCfg.seshat_url, "ipc://127.0.0.1:7777");
 #endif
     assert_int_equal( (int) parodusCfg.flags, FLAGS_IPV6_ONLY|FLAGS_IPV4_ONLY);
-    sprintf(expectedToken,"secure-token-%s-%s",parodusCfg.hw_serial_number,parodusCfg.hw_mac);
-    getAuthToken(&parodusCfg);
-    set_parodus_cfg(&parodusCfg);
     
+    set_parodus_cfg(&parodusCfg);
+    getAuthToken(&parodusCfg);
     assert_string_equal(  get_parodus_cfg()->webpa_auth_token,expectedToken);
     assert_string_equal(  parodusCfg.cert_path,"/etc/ssl/certs/ca-certificates.crt");
+	assert_string_equal(  parodusCfg.client_cert_path,"testcert");
+	assert_string_equal(  parodusCfg.token_server_url,"https://dev.comcast.net/token");
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) parodusCfg.acquire_jwt, 1);
     assert_string_equal(parodusCfg.dns_txt_url, "mydns.mycom.net");
     assert_int_equal( (int) parodusCfg.jwt_algo, 1024);
 	assert_string_equal ( get_parodus_cfg()->jwt_key, jwt_key);
 #endif
+	assert_int_equal( (int) parodusCfg.boot_retry_wait, 10);
 	assert_string_equal(parodusCfg.crud_config_file, "parodus_cfg.json");
 }
 
@@ -313,13 +321,13 @@ void test_loadParodusCfg()
     Cfg->jwt_algo = 1025;
     parStrncpy(Cfg->jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd",sizeof(Cfg->jwt_key));
 #endif
-    parStrncpy(Cfg->token_acquisition_script , "/tmp/token.sh", sizeof(Cfg->token_acquisition_script));
-    parStrncpy(Cfg->token_read_script , "/tmp/token.sh", sizeof(Cfg->token_read_script));
     parStrncpy(Cfg->cert_path, "/etc/ssl.crt",sizeof(Cfg->cert_path));
 #ifdef ENABLE_SESHAT
     parStrncpy(Cfg->seshat_url, "ipc://tmp/seshat_service.url", sizeof(Cfg->seshat_url));
 #endif
 	Cfg->crud_config_file = strdup("parodus_cfg.json");
+	Cfg->client_cert_path = strdup("testcert");
+	Cfg->token_server_url = strdup("https://dev.comcast.net/token");
     memset(&tmpcfg,0,sizeof(ParodusCfg));
     loadParodusCfg(Cfg,&tmpcfg);
 
@@ -330,14 +338,14 @@ void test_loadParodusCfg()
     assert_string_equal( tmpcfg.local_url, "tcp://10.0.0.1:6000");
     assert_string_equal( tmpcfg.partner_id, "shaw");
     assert_string_equal( tmpcfg.webpa_protocol, protocol);
+	assert_string_equal(tmpcfg.client_cert_path, "testcert");
+	assert_string_equal(tmpcfg.token_server_url, "https://dev.comcast.net/token");
 #ifdef FEATURE_DNS_QUERY
 	assert_int_equal( (int) tmpcfg.acquire_jwt, 1);
     assert_string_equal(tmpcfg.dns_txt_url, "mydns");
     assert_int_equal( (int) tmpcfg.jwt_algo, 1025);
     assert_string_equal(tmpcfg.jwt_key, "AGdyuwyhwl2ow2ydsoioiygkshwdthuwd");
 #endif
-    assert_string_equal(  tmpcfg.token_acquisition_script,"/tmp/token.sh");
-    assert_string_equal(  tmpcfg.token_read_script,"/tmp/token.sh");
     assert_string_equal(tmpcfg.cert_path, "/etc/ssl.crt");
 #ifdef ENABLE_SESHAT
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
@@ -413,6 +421,7 @@ void test_setDefaultValuesToCfg()
     assert_int_equal((int)cfg->flags, 0);
     assert_string_equal(cfg->webpa_path_url, WEBPA_PATH_URL);
     assert_string_equal(cfg->webpa_uuid, "1234567-345456546");
+    assert_string_equal(cfg->cloud_status, CLOUD_STATUS_OFFLINE);
 }
 
 void err_setDefaultValuesToCfg()
@@ -453,59 +462,87 @@ void test_server_is_http ()
 	
 }
 
-void test_parse_webpa_url ()
+void test_parse_webpa_url__ ()
 {
 	char addr_buf[80];
 	char port_buf[8];
-	assert_int_equal (parse_webpa_url ("mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), -1);
-	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("https://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "8080");
-	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/",
+	assert_int_equal (parse_webpa_url__ ("https://mydns.mycom.net/",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "443");
-	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/api/v2/",
+	assert_int_equal (parse_webpa_url__ ("https://mydns.mycom.net/api/v2/",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "443");
-	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net:8080",
+	assert_int_equal (parse_webpa_url__ ("http://mydns.mycom.net:8080",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "8080");
-	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net",
+	assert_int_equal (parse_webpa_url__ ("http://mydns.mycom.net",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "mydns.mycom.net");
 	assert_string_equal (port_buf, "80");
-    assert_int_equal (parse_webpa_url ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
+    assert_int_equal (parse_webpa_url__ ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "8080");
-    assert_int_equal (parse_webpa_url ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+    assert_int_equal (parse_webpa_url__ ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "443");
-    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
+    assert_int_equal (parse_webpa_url__ ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "8080");
-    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+    assert_int_equal (parse_webpa_url__ ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa]",
 		addr_buf, 80, port_buf, 8), 1);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "80");
-    assert_int_equal (parse_webpa_url ("http://2001:558:fc18:2:f816:3eff:fe7f:6efa]",
+    assert_int_equal (parse_webpa_url__ ("http://2001:558:fc18:2:f816:3eff:fe7f:6efa]",
 		addr_buf, 80, port_buf, 8), -1);
-    assert_int_equal (parse_webpa_url ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa",
+    assert_int_equal (parse_webpa_url__ ("http://[2001:558:fc18:2:f816:3eff:fe7f:6efa",
 		addr_buf, 80, port_buf, 8), -1);
-    assert_int_equal (parse_webpa_url ("[2001:558:fc18:2:f816:3eff:fe7f:6efa",
+    assert_int_equal (parse_webpa_url__ ("[2001:558:fc18:2:f816:3eff:fe7f:6efa",
 		addr_buf, 80, port_buf, 8), -1);
-	assert_int_equal (parse_webpa_url ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080/api/v2/",
+	assert_int_equal (parse_webpa_url__ ("https://[2001:558:fc18:2:f816:3eff:fe7f:6efa]:8080/api/v2/",
 		addr_buf, 80, port_buf, 8), 0);
 	assert_string_equal (addr_buf, "2001:558:fc18:2:f816:3eff:fe7f:6efa");
 	assert_string_equal (port_buf, "8080");
 		
+}
+
+void test_parse_webpa_url ()
+{
+	char *addr;
+	unsigned int port;
+	assert_int_equal (parse_webpa_url ("mydns.mycom.net:8080",
+		&addr, &port), -1);
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net:8080",
+		&addr, &port), 0);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 8080);
+	free (addr);
+	assert_int_equal (parse_webpa_url ("https://mydns.mycom.net/",
+		&addr, &port), 0);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 443);
+	free (addr);
+	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net:8080",
+		&addr, &port), 1);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 8080);
+	free (addr);
+	assert_int_equal (parse_webpa_url ("http://mydns.mycom.net",
+		&addr, &port), 1);
+	assert_string_equal (addr, "mydns.mycom.net");
+	assert_int_equal (port, 80);
+	free(addr);
 }
 
 void test_get_algo_mask ()
@@ -519,7 +556,6 @@ void test_get_algo_mask ()
 	assert_true (get_algo_mask ("ES256:RS256") == (unsigned int) -1);
 #endif	
 }
-
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -537,11 +573,12 @@ int main(void)
         cmocka_unit_test(test_parse_mac_address),
         cmocka_unit_test(test_get_algo_mask),
         cmocka_unit_test(test_server_is_http),
+        cmocka_unit_test(test_parse_webpa_url__),
         cmocka_unit_test(test_parse_webpa_url),
         cmocka_unit_test(test_parseCommandLine),
         cmocka_unit_test(test_parseCommandLineNull),
         cmocka_unit_test(err_parseCommandLine),
-        cmocka_unit_test(test_parodusGitVersion),
+        //cmocka_unit_test(test_parodusGitVersion),
         cmocka_unit_test(test_setDefaultValuesToCfg),
         cmocka_unit_test(err_setDefaultValuesToCfg),
     };

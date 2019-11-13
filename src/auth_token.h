@@ -15,32 +15,43 @@
  *
  */
 /**
- * @file spin_thread.h
+ * @file auth_token.h
  *
- * @description This file is used to define thread function
+ * @description This file is to fetch authorization token during parodus cloud connection.
  *
  */
  
-#ifndef _SPIN_THREAD_H_
-#define _SPIN_THREAD_H_
-
-#include <pthread.h>
+#ifndef _AUTH_TOKEN_H_ 
+#define _AUTH_TOKEN_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /*----------------------------------------------------------------------------*/
+/*                                   Macros                                   */
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/*                               Data Structures                              */
+/*----------------------------------------------------------------------------*/
+
+struct token_data {
+    size_t size;
+    char* data;
+};
+
+/*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
-void StartThread(void *(*start_routine) (void *), pthread_t *threadId);
-void JoinThread (pthread_t threadId);
+int requestNewAuthToken(char *newToken, size_t len, int r_count);
+void getAuthToken(ParodusCfg *cfg);
+size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct token_data *data);
+char* generate_trans_uuid();
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-
-
