@@ -168,6 +168,10 @@ void createSocketConnection(void (* initKeypress)())
         if( false == seshat_registered ) {
             seshat_registered = __registerWithSeshat();
         }
+        
+        if (get_interface_down_event ())
+          if (0 != wait_while_interface_down ())
+            break;
 
 	// If interface down event is set, wait till interface is up again.
 	if(get_interface_down_event()) 
@@ -229,5 +233,7 @@ void createSocketConnection(void (* initKeypress)())
 void shutdownSocketConnection(char *reason) {
    set_global_shutdown_reason (reason);
    g_shutdown = true;
+   reset_interface_down_event ();
+   terminate_backoff_delay ();
 }
 
