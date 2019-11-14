@@ -643,7 +643,7 @@ int wait_while_interface_down()
 	close_and_unref_connection (get_global_conn());
 	set_global_conn(NULL);
 
-	while (!get_interface_down_event ()) {
+	while (get_interface_down_event ()) {
 
 	  pthread_mutex_lock(get_interface_down_mut());
   	  rtn = pthread_cond_wait(get_interface_down_con(), get_interface_down_mut());
