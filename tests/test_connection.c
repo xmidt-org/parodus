@@ -85,6 +85,34 @@ char* getWebpaConveyHeader()
 }
 
 
+void set_interface_down_event()
+{
+        interface_down_event = true;
+}
+
+void reset_interface_down_event() 
+{
+	pthread_mutex_lock (&interface_down_mut);
+	interface_down_event = false;
+	pthread_cond_signal(&interface_down_con);
+	pthread_mutex_unlock (&interface_down_mut);
+}
+
+bool get_interface_down_event() 
+{
+	return interface_down_event;
+}
+
+pthread_cond_t *get_interface_down_con(void)
+{
+    return &interface_down_con;
+}
+
+pthread_mutex_t *get_interface_down_mut(void)
+{
+    return &interface_down_mut;
+}
+
 noPollConn * nopoll_conn_new_opts (noPollCtx  * ctx, noPollConnOpts  * opts, const char  * host_ip, const char  * host_port, const char  * host_name,const char  * get_url,const char  * protocols, const char * origin)
 {
     UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); 
@@ -156,34 +184,6 @@ void nopoll_conn_close (noPollConn *conn)
 void nopoll_conn_close_ext (noPollConn *conn, int status, const char *reason, int reason_size)
 {
     UNUSED(conn); UNUSED(status); UNUSED(reason); UNUSED(reason_size);
-}
-
-void set_interface_down_event()
-{
-        interface_down_event = true;
-}
-
-void reset_interface_down_event() 
-{
-	pthread_mutex_lock (&interface_down_mut);
-	interface_down_event = false;
-	pthread_cond_signal(&interface_down_con);
-	pthread_mutex_unlock (&interface_down_mut);
-}
-
-bool get_interface_down_event() 
-{
-	return interface_down_event;
-}
-
-pthread_cond_t *get_interface_down_con(void)
-{
-    return &interface_down_con;
-}
-
-pthread_mutex_t *get_interface_down_mut(void)
-{
-    return &interface_down_mut;
 }
 
 int checkHostIp(char * serverIP)
