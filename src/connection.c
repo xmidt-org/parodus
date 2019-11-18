@@ -509,7 +509,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
   if(wait_status == 307 || wait_status == 302 || wait_status == 303)    // only when there is a http redirect
   {
 	char *redirect_ptr = redirectURL;
-	ParodusError("Received temporary redirection response message %s\n", redirectURL);
+	ParodusInfo("Received temporary redirection response message %s\n", redirectURL);
 	// Extract server Address and port from the redirectURL
 	if (strncmp (redirect_ptr, "Redirect:", 9) == 0)
 	    redirect_ptr += 9;
