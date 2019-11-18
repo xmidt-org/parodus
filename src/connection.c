@@ -267,7 +267,7 @@ void start_conn_in_progress (void);
  *  1   shutdown
  *  0    delay taken
 */  
-static int backoff_delay (backoff_timer_t *timer)
+int backoff_delay (backoff_timer_t *timer)
 {
   struct timespec ts;
   int rtn;
