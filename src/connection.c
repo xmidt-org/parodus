@@ -543,7 +543,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 // Return codes for connect_and_wait
 #define CONN_WAIT_SUCCESS	 0
 #define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302, 303, or 403
-#define CONN_WAIT_RETRY_DNS 	 2
+#define CONN_WAIT_FAIL 	 2
 
 int connect_and_wait (create_connection_ctx_t *ctx)
 {
@@ -587,7 +587,7 @@ int connect_and_wait (create_connection_ctx_t *ctx)
       continue;
     }
     
-    return CONN_WAIT_RETRY_DNS;
+    return CONN_WAIT_FAIL;
   }
 }
 
@@ -596,7 +596,7 @@ int connect_and_wait (create_connection_ctx_t *ctx)
 // a) success, or
 // b) need to requery dns
 int keep_trying_to_connect (create_connection_ctx_t *ctx, 
-	backoff_timer_t *backoff_timer)
+	backoff_timer_t *backoff_timer, int query_dns_status)
 {
     int rtn;
     
@@ -625,7 +625,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
               != BACKOFF_DELAY_TAKEN) // shutdown or cond wait error
           return false;
       }
-      if (rtn == CONN_WAIT_RETRY_DNS)
+      if ((rtn == CONN_WAIT_FAIL) && (query_dns_status != FIND_SUCCESS))
         return false;  //find_server again
       // else retry
     }
@@ -694,7 +694,7 @@ int createNopollConnection(noPollCtx *ctx)
 	  if (query_dns_status == FIND_INVALID_DEFAULT)
 		return nopoll_false;
 	  set_current_server (&conn_ctx);
-	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
+	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer, query_dns_status))
 		break;
 	  // retry dns query
 	}
