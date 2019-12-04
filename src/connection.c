@@ -625,8 +625,12 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
               != BACKOFF_DELAY_TAKEN) // shutdown or cond wait error
           return false;
       }
-      if ((rtn == CONN_WAIT_FAIL) && (query_dns_status != FIND_SUCCESS))
-        return false;  //find_server again
+      if (rtn == CONN_WAIT_FAIL) {
+		if (query_dns_status != FIND_SUCCESS)
+          return false;  //find_server again
+        free_server (&ctx->server_list.redirect);
+        set_current_server (ctx);
+      }
       // else retry
     }
     return false;
