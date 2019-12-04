@@ -626,8 +626,12 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
           return false;
       }
       if (rtn == CONN_WAIT_FAIL) {
+		/* if we don't have a valid jwt, then we must requery dns */
 		if (query_dns_status != FIND_SUCCESS)
-          return false;  //find_server again
+          return false;
+          
+        /* if we already have a valid jwt, then we clear the redirect url
+         * and retry using the jwt url */
         free_server (&ctx->server_list.redirect);
         set_current_server (ctx);
       }
