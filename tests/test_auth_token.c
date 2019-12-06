@@ -54,12 +54,21 @@ int curl_easy_perform(CURL *curl)
 	  write_callback_fn (msg, 1, strlen(msg), &test_data);
 	return rtn;
 }
+int g_response_code=0;
+void setGlobalResponseCode (int response_code)
+{
+	g_response_code = response_code;
+}
 
 int curl_easy_getinfo(CURL *curl, CURLINFO CURLINFO_RESPONSE_CODE, long response_code)
 {
 	UNUSED(curl);
 	UNUSED(CURLINFO_RESPONSE_CODE);
-	UNUSED(response_code);
+	if (0 != g_response_code)
+	{
+		response_code= g_response_code;
+		ParodusInfo("response_code is %ld\n", response_code);
+	}
 	function_called();
 	return (int) mock();
 }
@@ -166,6 +175,7 @@ void test_requestNewAuthToken ()
 
   test_data.size = 0;
   test_data.data = token;
+  setGlobalResponseCode(200);
   will_return (curl_easy_perform, 0);
   expect_function_calls (curl_easy_perform, 1);
   will_return (curl_easy_getinfo, 0);
@@ -216,6 +226,7 @@ void test_getAuthToken ()
 	/* To test curl success case */
 	test_data.size = 0;
 	test_data.data = cfg.webpa_auth_token;
+	setGlobalResponseCode(200);
 	will_return (curl_easy_perform, 0);
 	expect_function_calls (curl_easy_perform, 1);
 
