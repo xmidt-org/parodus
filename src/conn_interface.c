@@ -73,6 +73,7 @@ void createSocketConnection(void (* initKeypress)())
 {
     //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
+    server_list_t server_list;  
     bool seshat_registered = false;
     int create_conn_rtn = 0;
     unsigned int webpa_ping_timeout_ms = 1000 * get_parodus_cfg()->webpa_ping_timeout;
@@ -95,8 +96,9 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_log_set_handler (ctx, __report_log, NULL);
     #endif
 
+    set_server_list_null (&server_list);
     start_conn_in_progress ();
-    create_conn_rtn = createNopollConnection(ctx);
+    create_conn_rtn = createNopollConnection(ctx, &server_list);
     stop_conn_in_progress ();
     if(!create_conn_rtn)
     {
@@ -191,7 +193,7 @@ void createSocketConnection(void (* initKeypress)())
 		reset_cloud_disconnect_reason(get_parodus_cfg());
             }
             start_conn_in_progress ();
-            createNopollConnection(ctx);
+            createNopollConnection(ctx, &server_list);
             stop_conn_in_progress ();
         }
        } while(!get_close_retry() && !g_shutdown);

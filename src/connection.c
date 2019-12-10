@@ -373,7 +373,7 @@ char *build_extra_hdrs (header_info_t *header_info)
 //--------------------------------------------------------------------
 void set_current_server (create_connection_ctx_t *ctx)
 {
-  ctx->current_server = get_current_server (&ctx->server_list);
+  ctx->current_server = get_current_server (ctx->server_list);
 }
 
 void free_extra_headers (create_connection_ctx_t *ctx)
@@ -399,7 +399,8 @@ void free_connection_ctx (create_connection_ctx_t *ctx)
 {
   free_extra_headers (ctx);
   free_header_info (&ctx->header_info);
-  free_server_list (&ctx->server_list);
+  if (NULL != ctx->server_list)
+    free_server_list (ctx->server_list);
 }
 
 
@@ -416,8 +417,10 @@ int find_servers (server_list_t *server_list)
 
   free_server_list (server_list);
   // parse default server URL
-  if (parse_server_url (get_parodus_cfg()->webpa_url, default_server) < 0)
-     return FIND_INVALID_DEFAULT;	// must have valid default url
+  if (parse_server_url (get_parodus_cfg()->webpa_url, default_server) < 0) {
+	ParodusError ("Invalid Default URL\n");
+    return FIND_INVALID_DEFAULT;
+  }
   ParodusInfo("default server_Address %s\n", default_server->server_addr);
   ParodusInfo("default port %u\n", default_server->port);
 #ifdef FEATURE_DNS_QUERY
@@ -435,6 +438,18 @@ int find_servers (server_list_t *server_list)
   return FIND_SUCCESS;
 }
 
+#if false
+int find_servers (server_list_t *server_list)
+{
+	int rtn = find_servers__ (server_list);
+	if (rtn == FIND_INVALID_DEFAULT)
+	{
+		ParodusError ("Invalid Default URL\n");
+		abort();
+	}
+	return rtn;
+}
+#endif
 
 //--------------------------------------------------------------------
 // connect to current server
@@ -513,8 +528,8 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 	// Extract server Address and port from the redirectURL
 	if (strncmp (redirect_ptr, "Redirect:", 9) == 0)
 	    redirect_ptr += 9;
-	free_server (&ctx->server_list.redirect);
-	if (parse_server_url (redirect_ptr, &ctx->server_list.redirect) < 0) {
+	free_server (&ctx->server_list->redirect);
+	if (parse_server_url (redirect_ptr, &ctx->server_list->redirect) < 0) {
 	  ParodusError ("Redirect url error %s\n", redirectURL);
   	  free (redirectURL);
 	  return WAIT_FAIL;
@@ -596,7 +611,7 @@ int connect_and_wait (create_connection_ctx_t *ctx)
 // a) success, or
 // b) need to requery dns
 int keep_trying_to_connect (create_connection_ctx_t *ctx, 
-	backoff_timer_t *backoff_timer, int query_dns_status)
+	backoff_timer_t *backoff_timer)
 {
     int rtn;
     
@@ -626,14 +641,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
           return false;
       }
       if (rtn == CONN_WAIT_FAIL) {
-		/* if we don't have a valid jwt, then we must requery dns */
-		if (query_dns_status != FIND_SUCCESS)
-          return false;
-          
-        /* if we already have a valid jwt, then we clear the redirect url
-         * and retry using the jwt url */
-        free_server (&ctx->server_list.redirect);
-        set_current_server (ctx);
+        return false;
       }
       // else retry
     }
@@ -669,11 +677,10 @@ int wait_while_interface_down()
  * @brief createNopollConnection interface to create WebSocket client connections.
  *Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
  */
-int createNopollConnection(noPollCtx *ctx)
+int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 {
   create_connection_ctx_t conn_ctx;
   int max_retry_count;
-  int query_dns_status;
   struct timespec connect_time,*connectTimePtr;
   connectTimePtr = &connect_time;
   backoff_timer_t backoff_timer;
@@ -693,18 +700,29 @@ int createNopollConnection(noPollCtx *ctx)
 	conn_ctx.nopoll_ctx = ctx;
 	init_expire_timer (&conn_ctx.connect_timer);
 	init_header_info (&conn_ctx.header_info);
-        set_server_list_null (&conn_ctx.server_list);
-        init_backoff_timer (&backoff_timer, max_retry_count);
+	/* look up server information if we don't already have it */
+	if (server_is_null (&server_list->defaults))
+	  if (find_servers (server_list) == FIND_INVALID_DEFAULT) {
+        return nopoll_false;		  
+      }
+	conn_ctx.server_list = server_list;
+    init_backoff_timer (&backoff_timer, max_retry_count);
   
 	while (!g_shutdown)
 	{
-	  query_dns_status = find_servers (&conn_ctx.server_list);
-	  if (query_dns_status == FIND_INVALID_DEFAULT)
-		return nopoll_false;
 	  set_current_server (&conn_ctx);
-	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer, query_dns_status))
+	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
 		break;
-	  // retry dns query
+	  /* if we failed to connect, don't reuse the redirect server */	
+      free_server (&conn_ctx.server_list->redirect);
+#ifdef FEATURE_DNS_QUERY
+      /* if we don't already have a valid jwt, look up server information */
+      if (server_is_null (&conn_ctx.server_list->jwt))
+        if (find_servers (conn_ctx.server_list) == FIND_INVALID_DEFAULT) {
+		  /* since we already found a default server, we don't expect FIND_INVALID_DEFAULT */
+		  g_shutdown = true;
+	    }
+#endif		
 	}
       
 	if(conn_ctx.current_server->allow_insecure <= 0)
@@ -734,8 +752,7 @@ int createNopollConnection(noPollCtx *ctx)
 	}
 
 	free_extra_headers (&conn_ctx);
-        free_header_info (&conn_ctx.header_info);
-        free_server_list (&conn_ctx.server_list);
+    free_header_info (&conn_ctx.header_info);
         
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): reset_close_retry\n");

@@ -47,9 +47,20 @@ pthread_cond_t svc_con=PTHREAD_COND_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-int createNopollConnection(noPollCtx *ctx)
+void set_server_list_null (server_list_t *server_list)
 {
-    UNUSED(ctx);
+	UNUSED(server_list);
+}
+
+int find_servers (server_list_t *server_list)
+{
+	UNUSED(server_list);
+	return FIND_SUCCESS;
+}
+
+int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
+{
+    UNUSED(ctx); UNUSED(server_list);
     function_called();
     return (int) mock();
 }
