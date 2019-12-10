@@ -438,19 +438,6 @@ int find_servers (server_list_t *server_list)
   return FIND_SUCCESS;
 }
 
-#if false
-int find_servers (server_list_t *server_list)
-{
-	int rtn = find_servers__ (server_list);
-	if (rtn == FIND_INVALID_DEFAULT)
-	{
-		ParodusError ("Invalid Default URL\n");
-		abort();
-	}
-	return rtn;
-}
-#endif
-
 //--------------------------------------------------------------------
 // connect to current server
 int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
