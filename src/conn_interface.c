@@ -33,6 +33,7 @@
 #include "spin_thread.h"
 #include "service_alive.h"
 #include "seshat_interface.h"
+#include "event_handler.h"
 #include "crud_interface.h"
 #include "heartBeat.h"
 #include "close_retry.h"
@@ -96,6 +97,8 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_log_set_handler (ctx, __report_log, NULL);
     #endif
 
+    EventHandler();
+    
     set_server_list_null (&server_list);
     start_conn_in_progress ();
     create_conn_rtn = createNopollConnection(ctx, &server_list);
