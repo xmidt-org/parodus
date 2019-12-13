@@ -108,6 +108,7 @@ typedef struct {
 
 //--- Used in connection.c for backoff delay timer
 typedef struct {
+  unsigned long start_time;
   struct timespec ts;
   int count;
   int max_count;
