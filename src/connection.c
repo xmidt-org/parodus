@@ -738,7 +738,7 @@ int createNopollConnection(noPollCtx *ctx)
 	set_global_reconnect_status(false);
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
-    stop_conn_in_progress (backoff_timer.start_time);
+    stop_conn_in_progress ();
 	return nopoll_true;
 }          
 
@@ -805,7 +805,7 @@ void close_and_unref_connection(noPollConn *conn)
     }
 }
 
-void write_conn_in_prog_file (const char *msg, unsigned long start_time)
+void write_conn_in_prog_file (bool is_starting, unsigned long start_time)
 {
   int fd;
   FILE *fp;
@@ -826,19 +826,22 @@ void write_conn_in_prog_file (const char *msg, unsigned long start_time)
     return;
   }
   timestamp = (unsigned long) time(NULL);
-  fprintf (fp, "{%s=%lu,%lu}\n", msg, start_time, timestamp);
-   
+  if (is_starting)
+    fprintf (fp, "{START=%lu,%lu}\n", start_time, timestamp);
+  else
+    fprintf (fp, "{STOP=%lu}\n", timestamp);
+  
   fclose (fp);
 }
 
 void start_conn_in_progress (unsigned long start_time)
 {
-  write_conn_in_prog_file ("START", start_time);
+  write_conn_in_prog_file (true, start_time);
 }   
 
-void stop_conn_in_progress (unsigned long start_time)
+void stop_conn_in_progress (void)
 {
-  write_conn_in_prog_file ("STOP", start_time);
+  write_conn_in_prog_file (false, 0);
 }   
 
 

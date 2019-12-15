@@ -96,9 +96,8 @@ void start_conn_in_progress (unsigned long start_time)
 	UNUSED(start_time);
 }   
 
-void stop_conn_in_progress (unsigned long start_time)
+void stop_conn_in_progress (void)
 {
-	UNUSED(start_time);
 }   
 
 void reset_interface_down_event (void)
