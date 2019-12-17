@@ -38,9 +38,14 @@
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list);
+long g_response_code;
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+int getGlobalResponseCode()
+{
+	return g_response_code;
+}
 /*
 * @brief Initialize curl object with required options. create newToken using libcurl.
 * @param[out] newToken auth token string obtained from JWT curl response
@@ -62,7 +67,6 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 	char *uuid_header = NULL;
 	char *transaction_uuid = NULL;
 	double total;
-	long response_code;
 
 	struct token_data data;
 	data.size = 0;
@@ -118,8 +122,8 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 		/* Perform the request, res will get the return code */
 		res = curl_easy_perform(curl);
 
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
-		ParodusInfo("themis curl response %d http_code %d\n", res, response_code);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &g_response_code);
+		ParodusInfo("themis curl response %d http_code %d\n", res, g_response_code);
 
 		time_res = curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &total);
 		if(time_res == 0)
@@ -137,9 +141,17 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 		}
 		else
 		{
-			if(response_code == 200)
+			if(getGlobalResponseCode() == 200)
 			{
 				ParodusInfo("cURL success\n");
+			}
+			else
+			{
+				ParodusError("Failed response from auth token server %s\n", data.data);
+				curl_easy_cleanup(curl);
+				data.size = 0;
+				memset (data.data, 0, len);
+				return -1;
 			}
 		}
 		curl_easy_cleanup(curl);
