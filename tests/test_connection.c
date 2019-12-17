@@ -39,6 +39,7 @@ extern void init_expire_timer (expire_timer_t *timer);
 extern int check_timer_expired (expire_timer_t *timer, long timeout_ms);
 extern void init_backoff_timer (backoff_timer_t *timer, int max_count);
 extern int update_backoff_delay (backoff_timer_t *timer);
+extern int backoff_delay (backoff_timer_t *timer);
 extern int init_header_info (header_info_t *header_info);
 extern void free_header_info (header_info_t *header_info);
 extern char *build_extra_hdrs (header_info_t *header_info);
@@ -1040,10 +1041,68 @@ void test_create_nopoll_connection()
 
 }
 
+#define BACKOFF_ERR -1
+#define BACKOFF_SHUTDOWN   1
+#define BACKOFF_DELAY_TAKEN 0
+
+backoff_timer_t test_timer;
+
+void *c()
+{
+  sleep (5);
+  g_shutdown = true;
+  terminate_backoff_delay ();
+  pthread_exit(0);
+  return NULL;
+}
+
+void test_backoff_delay ()
+{
+  int rtn;
+  pthread_t thread_c;
+
+  init_backoff_timer (&test_timer, 5);
+  rtn = backoff_delay (&test_timer); // delay will be 3
+  assert_int_equal (rtn, BACKOFF_DELAY_TAKEN);
+
+  update_backoff_delay (&test_timer);  // delay will be 7
+  pthread_create(&thread_c, NULL, c, NULL);
+  rtn = backoff_delay (&test_timer);  // delay will be 15
+  assert_int_equal (rtn, BACKOFF_SHUTDOWN);
+  g_shutdown = false;
+}
+
 void test_get_interface_down_event()
 {
     assert_false(get_interface_down_event());
     set_interface_down_event();
+}
+
+void *b(void *arg)
+{   
+    sleep(5);
+    if (arg)
+      g_shutdown = true;
+    reset_interface_down_event();
+    pthread_exit(0);
+    return NULL;
+}
+
+void test_wait_while_interface_down()
+{
+  int rtn;
+  pthread_t thread_b;
+
+  set_interface_down_event ();
+  pthread_create(&thread_b, NULL, b, NULL);
+  rtn = wait_while_interface_down ();
+  assert_int_equal (rtn, 0);
+  
+  set_interface_down_event ();
+  pthread_create(&thread_b, NULL, b, &rtn);
+  rtn = wait_while_interface_down ();
+  assert_int_equal (rtn, -1);
+  g_shutdown = false;
 }
 
 void *a()
@@ -1211,6 +1270,8 @@ int main(void)
         cmocka_unit_test(test_connect_and_wait),
         cmocka_unit_test(test_keep_trying),
 	cmocka_unit_test(test_create_nopoll_connection),
+	    cmocka_unit_test (test_backoff_delay),
+	    cmocka_unit_test (test_wait_while_interface_down),
         cmocka_unit_test(test_get_interface_down_event),
         cmocka_unit_test(test_interface_down_retry)
     };
