@@ -100,9 +100,7 @@ void createSocketConnection(void (* initKeypress)())
     EventHandler();
     
     set_server_list_null (&server_list);
-    start_conn_in_progress ();
     create_conn_rtn = createNopollConnection(ctx, &server_list);
-    stop_conn_in_progress ();
     if(!create_conn_rtn)
     {
 		ParodusError("Unrecovered error, terminating the process\n");
@@ -195,9 +193,7 @@ void createSocketConnection(void (* initKeypress)())
 		free(get_parodus_cfg()->cloud_disconnect);
 		reset_cloud_disconnect_reason(get_parodus_cfg());
             }
-            start_conn_in_progress ();
             createNopollConnection(ctx, &server_list);
-            stop_conn_in_progress ();
         }
        } while(!get_close_retry() && !g_shutdown);
 

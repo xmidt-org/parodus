@@ -38,7 +38,7 @@
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
-#define UPDATE_HEALTH_FILE_INTERVAL_SECS		450
+#define UPDATE_HEALTH_FILE_INTERVAL_SECS		300
 
 /* Close codes defined in RFC 6455, section 11.7. */
 enum {
@@ -233,6 +233,7 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
   timer->max_count = max_count;
   timer->delay = 1;
   clock_gettime (CLOCK_REALTIME, &timer->ts);
+  timer->start_time = time(NULL);
 }
 
 void terminate_backoff_delay (void)
@@ -256,7 +257,7 @@ int update_backoff_delay (backoff_timer_t *timer)
 #define BACKOFF_SHUTDOWN   1
 #define BACKOFF_DELAY_TAKEN 0
 
-void start_conn_in_progress (void);
+void start_conn_in_progress (unsigned long start_time);
 
 /* backoff_delay
  * 
@@ -275,7 +276,7 @@ static int backoff_delay (backoff_timer_t *timer)
   // periodically update the health file.
   clock_gettime (CLOCK_REALTIME, &ts);
   if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
-    start_conn_in_progress ();
+    start_conn_in_progress (timer->start_time);
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
   }	  
 
@@ -617,7 +618,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
       if(get_interface_down_event()) {
 	    if (0 != wait_while_interface_down())
 	      return false;
-	    start_conn_in_progress();
+	    start_conn_in_progress(backoff_timer->start_time);
 	    ParodusInfo("Interface is back up, re-initializing the convey header\n");
 	    // Reset the reconnect reason by initializing the convey header again
 	    ((header_info_t *)(&ctx->header_info))->conveyHeader = getWebpaConveyHeader();
@@ -749,7 +750,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	set_global_reconnect_status(false);
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
-
+    stop_conn_in_progress ();
 	return nopoll_true;
 }          
 
@@ -816,7 +817,7 @@ void close_and_unref_connection(noPollConn *conn)
     }
 }
 
-void write_conn_in_prog_file (const char *msg)
+void write_conn_in_prog_file (bool is_starting, unsigned long start_time)
 {
   int fd;
   FILE *fp;
@@ -837,18 +838,22 @@ void write_conn_in_prog_file (const char *msg)
     return;
   }
   timestamp = (unsigned long) time(NULL);
-  fprintf (fp, "{%s=%lu}\n", msg, timestamp);
+  if (is_starting)
+    fprintf (fp, "{START=%lu,%lu}\n", start_time, timestamp);
+  else
+    fprintf (fp, "{STOP=%lu}\n", timestamp);
+  
   fclose (fp);
 }
 
-void start_conn_in_progress (void)
+void start_conn_in_progress (unsigned long start_time)
 {
-  write_conn_in_prog_file ("START");
+  write_conn_in_prog_file (true, start_time);
 }   
 
 void stop_conn_in_progress (void)
 {
-  write_conn_in_prog_file ("STOP");
+  write_conn_in_prog_file (false, 0);
 }   
 
 

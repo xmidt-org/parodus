@@ -15,5 +15,10 @@
  *
  */
 
-void EventHandler();
-#define LOGGING_INTERVAL_SECS    ( 60 * 60 )
+/* This is a stub file that will be overridden in a patch */
+
+#include "event_handler.h"
+
+void EventHandler()
+{
+}
