@@ -15,14 +15,12 @@
  */
 #include <stdarg.h>
 
-#include <CUnit/Basic.h>
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
 #include <cmocka.h>
 #include <assert.h>
-#include <CUnit/Basic.h>
 #include <nopoll.h>
 #include <pthread.h>
 
