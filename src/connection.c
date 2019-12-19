@@ -38,7 +38,7 @@
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
-#define UPDATE_HEALTH_FILE_INTERVAL_SECS		450
+#define UPDATE_HEALTH_FILE_INTERVAL_SECS		300
 
 /* Close codes defined in RFC 6455, section 11.7. */
 enum {
@@ -233,6 +233,7 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
   timer->max_count = max_count;
   timer->delay = 1;
   clock_gettime (CLOCK_REALTIME, &timer->ts);
+  timer->start_time = time(NULL);
 }
 
 void terminate_backoff_delay (void)
@@ -256,7 +257,7 @@ int update_backoff_delay (backoff_timer_t *timer)
 #define BACKOFF_SHUTDOWN   1
 #define BACKOFF_DELAY_TAKEN 0
 
-void start_conn_in_progress (void);
+void start_conn_in_progress (unsigned long start_time);
 
 /* backoff_delay
  * 
@@ -267,7 +268,7 @@ void start_conn_in_progress (void);
  *  1   shutdown
  *  0    delay taken
 */  
-int backoff_delay (backoff_timer_t *timer)
+static int backoff_delay (backoff_timer_t *timer)
 {
   struct timespec ts;
   int rtn;
@@ -275,7 +276,7 @@ int backoff_delay (backoff_timer_t *timer)
   // periodically update the health file.
   clock_gettime (CLOCK_REALTIME, &ts);
   if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
-    start_conn_in_progress ();
+    start_conn_in_progress (timer->start_time);
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
   }	  
 
@@ -373,7 +374,7 @@ char *build_extra_hdrs (header_info_t *header_info)
 //--------------------------------------------------------------------
 void set_current_server (create_connection_ctx_t *ctx)
 {
-  ctx->current_server = get_current_server (&ctx->server_list);
+  ctx->current_server = get_current_server (ctx->server_list);
 }
 
 void free_extra_headers (create_connection_ctx_t *ctx)
@@ -399,7 +400,8 @@ void free_connection_ctx (create_connection_ctx_t *ctx)
 {
   free_extra_headers (ctx);
   free_header_info (&ctx->header_info);
-  free_server_list (&ctx->server_list);
+  if (NULL != ctx->server_list)
+    free_server_list (ctx->server_list);
 }
 
 
@@ -416,8 +418,10 @@ int find_servers (server_list_t *server_list)
 
   free_server_list (server_list);
   // parse default server URL
-  if (parse_server_url (get_parodus_cfg()->webpa_url, default_server) < 0)
-     return FIND_INVALID_DEFAULT;	// must have valid default url
+  if (parse_server_url (get_parodus_cfg()->webpa_url, default_server) < 0) {
+	ParodusError ("Invalid Default URL\n");
+    return FIND_INVALID_DEFAULT;
+  }
   ParodusInfo("default server_Address %s\n", default_server->server_addr);
   ParodusInfo("default port %u\n", default_server->port);
 #ifdef FEATURE_DNS_QUERY
@@ -434,7 +438,6 @@ int find_servers (server_list_t *server_list)
 #endif
   return FIND_SUCCESS;
 }
-
 
 //--------------------------------------------------------------------
 // connect to current server
@@ -513,8 +516,8 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 	// Extract server Address and port from the redirectURL
 	if (strncmp (redirect_ptr, "Redirect:", 9) == 0)
 	    redirect_ptr += 9;
-	free_server (&ctx->server_list.redirect);
-	if (parse_server_url (redirect_ptr, &ctx->server_list.redirect) < 0) {
+	free_server (&ctx->server_list->redirect);
+	if (parse_server_url (redirect_ptr, &ctx->server_list->redirect) < 0) {
 	  ParodusError ("Redirect url error %s\n", redirectURL);
   	  free (redirectURL);
 	  return WAIT_FAIL;
@@ -543,7 +546,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 // Return codes for connect_and_wait
 #define CONN_WAIT_SUCCESS	 0
 #define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302, 303, or 403
-#define CONN_WAIT_RETRY_DNS 	 2
+#define CONN_WAIT_FAIL 	 2
 
 int connect_and_wait (create_connection_ctx_t *ctx)
 {
@@ -587,7 +590,7 @@ int connect_and_wait (create_connection_ctx_t *ctx)
       continue;
     }
     
-    return CONN_WAIT_RETRY_DNS;
+    return CONN_WAIT_FAIL;
   }
 }
 
@@ -615,7 +618,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
       if(get_interface_down_event()) {
 	    if (0 != wait_while_interface_down())
 	      return false;
-	    start_conn_in_progress();
+	    start_conn_in_progress(backoff_timer->start_time);
 	    ParodusInfo("Interface is back up, re-initializing the convey header\n");
 	    // Reset the reconnect reason by initializing the convey header again
 	    ((header_info_t *)(&ctx->header_info))->conveyHeader = getWebpaConveyHeader();
@@ -625,8 +628,9 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
               != BACKOFF_DELAY_TAKEN) // shutdown or cond wait error
           return false;
       }
-      if (rtn == CONN_WAIT_RETRY_DNS)
-        return false;  //find_server again
+      if (rtn == CONN_WAIT_FAIL) {
+        return false;
+      }
       // else retry
     }
     return false;
@@ -661,11 +665,10 @@ int wait_while_interface_down()
  * @brief createNopollConnection interface to create WebSocket client connections.
  *Loads the WebPA config file and creates the intial connection and manages the connection wait, close mechanisms.
  */
-int createNopollConnection(noPollCtx *ctx)
+int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 {
   create_connection_ctx_t conn_ctx;
   int max_retry_count;
-  int query_dns_status;
   struct timespec connect_time,*connectTimePtr;
   connectTimePtr = &connect_time;
   backoff_timer_t backoff_timer;
@@ -685,18 +688,30 @@ int createNopollConnection(noPollCtx *ctx)
 	conn_ctx.nopoll_ctx = ctx;
 	init_expire_timer (&conn_ctx.connect_timer);
 	init_header_info (&conn_ctx.header_info);
-        set_server_list_null (&conn_ctx.server_list);
-        init_backoff_timer (&backoff_timer, max_retry_count);
+	/* look up server information if we don't already have it */
+	if (server_is_null (&server_list->defaults))
+	  if (find_servers (server_list) == FIND_INVALID_DEFAULT) {
+        return nopoll_false;		  
+      }
+	conn_ctx.server_list = server_list;
+    init_backoff_timer (&backoff_timer, max_retry_count);
+    start_conn_in_progress (backoff_timer.start_time); 
   
 	while (!g_shutdown)
 	{
-	  query_dns_status = find_servers (&conn_ctx.server_list);
-	  if (query_dns_status == FIND_INVALID_DEFAULT)
-		return nopoll_false;
 	  set_current_server (&conn_ctx);
 	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
 		break;
-	  // retry dns query
+	  /* if we failed to connect, don't reuse the redirect server */	
+      free_server (&conn_ctx.server_list->redirect);
+#ifdef FEATURE_DNS_QUERY
+      /* if we don't already have a valid jwt, look up server information */
+      if (server_is_null (&conn_ctx.server_list->jwt))
+        if (find_servers (conn_ctx.server_list) == FIND_INVALID_DEFAULT) {
+		  /* since we already found a default server, we don't expect FIND_INVALID_DEFAULT */
+		  g_shutdown = true;
+	    }
+#endif		
 	}
       
 	if(conn_ctx.current_server->allow_insecure <= 0)
@@ -726,8 +741,7 @@ int createNopollConnection(noPollCtx *ctx)
 	}
 
 	free_extra_headers (&conn_ctx);
-        free_header_info (&conn_ctx.header_info);
-        free_server_list (&conn_ctx.server_list);
+    free_header_info (&conn_ctx.header_info);
         
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): reset_close_retry\n");
@@ -737,7 +751,7 @@ int createNopollConnection(noPollCtx *ctx)
 	set_global_reconnect_status(false);
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
-
+    stop_conn_in_progress ();
 	return nopoll_true;
 }          
 
@@ -804,7 +818,7 @@ void close_and_unref_connection(noPollConn *conn)
     }
 }
 
-void write_conn_in_prog_file (const char *msg)
+void write_conn_in_prog_file (bool is_starting, unsigned long start_time)
 {
   int fd;
   FILE *fp;
@@ -825,18 +839,22 @@ void write_conn_in_prog_file (const char *msg)
     return;
   }
   timestamp = (unsigned long) time(NULL);
-  fprintf (fp, "{%s=%lu}\n", msg, timestamp);
+  if (is_starting)
+    fprintf (fp, "{START=%lu,%lu}\n", start_time, timestamp);
+  else
+    fprintf (fp, "{STOP=%lu}\n", timestamp);
+  
   fclose (fp);
 }
 
-void start_conn_in_progress (void)
+void start_conn_in_progress (unsigned long start_time)
 {
-  write_conn_in_prog_file ("START");
+  write_conn_in_prog_file (true, start_time);
 }   
 
 void stop_conn_in_progress (void)
 {
-  write_conn_in_prog_file ("STOP");
+  write_conn_in_prog_file (false, 0);
 }   
 
 

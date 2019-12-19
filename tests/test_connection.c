@@ -39,7 +39,6 @@ extern void init_expire_timer (expire_timer_t *timer);
 extern int check_timer_expired (expire_timer_t *timer, long timeout_ms);
 extern void init_backoff_timer (backoff_timer_t *timer, int max_count);
 extern int update_backoff_delay (backoff_timer_t *timer);
-extern int backoff_delay (backoff_timer_t *timer);
 extern int init_header_info (header_info_t *header_info);
 extern void free_header_info (header_info_t *header_info);
 extern char *build_extra_hdrs (header_info_t *header_info);
@@ -398,16 +397,19 @@ void test_extra_headers ()
 
 void test_set_current_server()
 {
+  server_list_t server_list;
   create_connection_ctx_t ctx;
-  memset (&ctx, 0xFF, sizeof(ctx));
+  memset (&server_list, 0xFF, sizeof(server_list));
+  memset (&ctx, 0, sizeof(ctx));
+  ctx.server_list = &server_list;
   set_current_server (&ctx);
-  assert_ptr_equal (&ctx.server_list.redirect, ctx.current_server);
-  set_server_null (&ctx.server_list.redirect);
+  assert_ptr_equal (&ctx.server_list->redirect, ctx.current_server);
+  set_server_null (&ctx.server_list->redirect);
   set_current_server (&ctx);
-  assert_ptr_equal (&ctx.server_list.jwt, ctx.current_server);
-  set_server_null (&ctx.server_list.jwt);
+  assert_ptr_equal (&ctx.server_list->jwt, ctx.current_server);
+  set_server_null (&ctx.server_list->jwt);
   set_current_server (&ctx);
-  assert_ptr_equal (&ctx.server_list.defaults, ctx.current_server);
+  assert_ptr_equal (&ctx.server_list->defaults, ctx.current_server);
 }
 
 void init_cfg_header_info (ParodusCfg *cfg)
@@ -623,10 +625,12 @@ void test_nopoll_connect ()
 
 void test_wait_connection_ready ()
 {
+  server_list_t server_list;
   create_connection_ctx_t ctx;
 
+  set_server_list_null (&server_list);
   memset(&ctx,0,sizeof(ctx));
-  set_server_list_null (&ctx.server_list);
+  ctx.server_list = &server_list;
 
   mock_wait_status = 0;
   mock_redirect = NULL;
@@ -655,22 +659,22 @@ void test_wait_connection_ready ()
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
-  assert_string_equal (ctx.server_list.redirect.server_addr, "mydns.mycom.net");
-  assert_int_equal (ctx.server_list.redirect.port, 8080);
-  assert_int_equal (0, ctx.server_list.redirect.allow_insecure);
-  assert_ptr_equal (ctx.current_server, &ctx.server_list.redirect);
-  free_server (&ctx.server_list.redirect);
+  assert_string_equal (ctx.server_list->redirect.server_addr, "mydns.mycom.net");
+  assert_int_equal (ctx.server_list->redirect.port, 8080);
+  assert_int_equal (0, ctx.server_list->redirect.allow_insecure);
+  assert_ptr_equal (ctx.current_server, &ctx.server_list->redirect);
+  free_server (&ctx.server_list->redirect);
   
   mock_wait_status = 303;
   mock_redirect = "http://mydns.mycom.net";
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
   assert_int_equal (wait_connection_ready (&ctx), WAIT_ACTION_RETRY);
-  assert_string_equal (ctx.server_list.redirect.server_addr, "mydns.mycom.net");
-  assert_int_equal (ctx.server_list.redirect.port, 80);
-  assert_int_equal (1, ctx.server_list.redirect.allow_insecure);
-  assert_ptr_equal (ctx.current_server, &ctx.server_list.redirect);
-  free_server (&ctx.server_list.redirect);
+  assert_string_equal (ctx.server_list->redirect.server_addr, "mydns.mycom.net");
+  assert_int_equal (ctx.server_list->redirect.port, 80);
+  assert_int_equal (1, ctx.server_list->redirect.allow_insecure);
+  assert_ptr_equal (ctx.current_server, &ctx.server_list->redirect);
+  free_server (&ctx.server_list->redirect);
   
     mock_wait_status = 403;
     will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
@@ -688,6 +692,7 @@ void test_wait_connection_ready ()
 
 void test_connect_and_wait ()
 {
+  server_list_t server_list;
   create_connection_ctx_t ctx;
   noPollCtx test_nopoll_ctx;
   server_t test_server;
@@ -704,7 +709,9 @@ void test_connect_and_wait ()
 
   mock_wait_status = 0;
   
+  set_server_list_null (&server_list);
   memset(&ctx,0,sizeof(ctx));
+  ctx.server_list = &server_list;
   ctx.nopoll_ctx = &test_nopoll_ctx;
   ctx.current_server = &test_server;
   ctx.extra_headers = test_extra_headers;
@@ -819,9 +826,9 @@ void test_connect_and_wait ()
 void test_keep_trying ()
 {
   int rtn;	
+  server_list_t server_list;
   create_connection_ctx_t ctx;
   noPollCtx test_nopoll_ctx;
-  server_t test_server;
   backoff_timer_t backoff_timer;
   ParodusCfg Cfg;
 
@@ -831,14 +838,16 @@ void test_keep_trying ()
 
   mock_wait_status = 0;
 
+  set_server_list_null (&server_list);
   memset(&ctx,0,sizeof(ctx));
+  ctx.server_list = &server_list;
   ctx.nopoll_ctx = &test_nopoll_ctx;
-  ctx.current_server = &test_server;
 
-  test_server.allow_insecure = 1;
-  test_server.server_addr = "mydns.mycom.net";
-  test_server.port = 8080;
-
+  server_list.defaults.allow_insecure = 1;
+  server_list.defaults.server_addr = "mydns.mycom.net";
+  server_list.defaults.port = 8080;
+  set_current_server (&ctx);
+  
   Cfg.flags = 0;
   set_parodus_cfg(&Cfg);
 
@@ -852,7 +861,7 @@ void test_keep_trying ()
   rtn = keep_trying_to_connect (&ctx, &backoff_timer);
   assert_int_equal (rtn, true);
 
-  test_server.allow_insecure = 0;
+  server_list.defaults.allow_insecure = 0;
   Cfg.flags = FLAGS_IPV4_ONLY;
   set_parodus_cfg(&Cfg);
 
@@ -919,9 +928,12 @@ void test_create_nopoll_connection()
 {
   int rtn;
   ParodusCfg cfg;
+  server_list_t server_list;
   noPollCtx test_nopoll_ctx;
 
+  set_server_list_null (&server_list);
   memset(&cfg,0,sizeof(cfg));
+
   cfg.flags = 0;
   parStrncpy (cfg.webpa_url, "mydns.mycom.net:8080", sizeof(cfg.webpa_url));
   cfg.boot_time = 25;
@@ -934,11 +946,12 @@ void test_create_nopoll_connection()
   parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
   parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
   set_parodus_cfg(&cfg);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_false);
 
   parStrncpy (cfg.webpa_url, "http://mydns.mycom.net:8080", sizeof(cfg.webpa_url));
   set_parodus_cfg(&cfg);
+  set_server_list_null (&server_list);
 
   mock_wait_status = 0;
   
@@ -948,12 +961,13 @@ void test_create_nopoll_connection()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
 
   parStrncpy (cfg.webpa_url, "https://mydns.mycom.net:8080", sizeof(cfg.webpa_url));
   cfg.flags = 0;
   set_parodus_cfg(&cfg);
+  set_server_list_null (&server_list);
 
   will_return (nopoll_conn_tls_new6, &connection1);
   expect_function_call (nopoll_conn_tls_new6);
@@ -965,8 +979,10 @@ void test_create_nopoll_connection()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
+
+  set_server_list_null (&server_list);
 
   will_return (nopoll_conn_tls_new6, &connection1);
   expect_function_call (nopoll_conn_tls_new6);
@@ -992,13 +1008,14 @@ void test_create_nopoll_connection()
   mock_wait_status = 0;
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
 
 #ifdef FEATURE_DNS_QUERY
   cfg.acquire_jwt = 1;
   cfg.flags = FLAGS_IPV4_ONLY;
   set_parodus_cfg(&cfg);
+  set_server_list_null (&server_list);
   
   will_return (allow_insecure_conn, -1);
   expect_function_call (allow_insecure_conn);
@@ -1016,11 +1033,32 @@ void test_create_nopoll_connection()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
     
+  set_server_list_null (&server_list);
+  mock_server_addr = "mydns.myjwtcom.net";
+  mock_port = 80;
+  will_return (allow_insecure_conn, 0);
+  expect_function_call (allow_insecure_conn);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_false);
+  expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
+  will_return (nopoll_conn_tls_new, &connection1);
+  expect_function_call (nopoll_conn_tls_new);
+  will_return (nopoll_conn_is_ok, nopoll_true);
+  expect_function_call (nopoll_conn_is_ok);
+  will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
+  expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
+  assert_int_equal (rtn, nopoll_true);
+
   cfg.flags = 0;
   set_parodus_cfg(&cfg);
+  set_server_list_null (&server_list);
 
   will_return (allow_insecure_conn, -1);
   expect_function_call (allow_insecure_conn);
@@ -1035,74 +1073,16 @@ void test_create_nopoll_connection()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
 #endif
 
-}
-
-#define BACKOFF_ERR -1
-#define BACKOFF_SHUTDOWN   1
-#define BACKOFF_DELAY_TAKEN 0
-
-backoff_timer_t test_timer;
-
-void *c()
-{
-  sleep (5);
-  g_shutdown = true;
-  terminate_backoff_delay ();
-  pthread_exit(0);
-  return NULL;
-}
-
-void test_backoff_delay ()
-{
-  int rtn;
-  pthread_t thread_c;
-
-  init_backoff_timer (&test_timer, 5);
-  rtn = backoff_delay (&test_timer); // delay will be 3
-  assert_int_equal (rtn, BACKOFF_DELAY_TAKEN);
-
-  update_backoff_delay (&test_timer);  // delay will be 7
-  pthread_create(&thread_c, NULL, c, NULL);
-  rtn = backoff_delay (&test_timer);  // delay will be 15
-  assert_int_equal (rtn, BACKOFF_SHUTDOWN);
-  g_shutdown = false;
 }
 
 void test_get_interface_down_event()
 {
     assert_false(get_interface_down_event());
     set_interface_down_event();
-}
-
-void *b(void *arg)
-{   
-    sleep(5);
-    if (arg)
-      g_shutdown = true;
-    reset_interface_down_event();
-    pthread_exit(0);
-    return NULL;
-}
-
-void test_wait_while_interface_down()
-{
-  int rtn;
-  pthread_t thread_b;
-
-  set_interface_down_event ();
-  pthread_create(&thread_b, NULL, b, NULL);
-  rtn = wait_while_interface_down ();
-  assert_int_equal (rtn, 0);
-  
-  set_interface_down_event ();
-  pthread_create(&thread_b, NULL, b, &rtn);
-  rtn = wait_while_interface_down ();
-  assert_int_equal (rtn, -1);
-  g_shutdown = false;
 }
 
 void *a()
@@ -1119,6 +1099,7 @@ void test_interface_down_retry()
   int rtn;
   ParodusCfg cfg;
   noPollCtx test_nopoll_ctx;
+  server_list_t server_list;
   pthread_t thread_a;
 
   pthread_create(&thread_a, NULL, a, NULL);
@@ -1136,7 +1117,8 @@ void test_interface_down_retry()
   parStrncpy(cfg.fw_name , "2.364s2", sizeof(cfg.fw_name));
   parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
   set_parodus_cfg(&cfg);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  set_server_list_null (&server_list);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_false);
 
   parStrncpy (cfg.webpa_url, "http://mydns.mycom.net:8080", sizeof(cfg.webpa_url));
@@ -1150,7 +1132,8 @@ void test_interface_down_retry()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  set_server_list_null (&server_list);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
 
   parStrncpy (cfg.webpa_url, "https://mydns.mycom.net:8080", sizeof(cfg.webpa_url));
@@ -1167,7 +1150,8 @@ void test_interface_down_retry()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  set_server_list_null (&server_list);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
 
   will_return (nopoll_conn_tls_new6, &connection1);
@@ -1194,7 +1178,8 @@ void test_interface_down_retry()
   mock_wait_status = 0;
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  set_server_list_null (&server_list);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
 
 #ifdef FEATURE_DNS_QUERY
@@ -1218,7 +1203,8 @@ void test_interface_down_retry()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  set_server_list_null (&server_list);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
     
   cfg.flags = 0;
@@ -1237,7 +1223,8 @@ void test_interface_down_retry()
   expect_function_call (nopoll_conn_is_ok);
   will_return (nopoll_conn_wait_for_status_until_connection_ready, nopoll_true);
   expect_function_call (nopoll_conn_wait_for_status_until_connection_ready);
-  rtn = createNopollConnection (&test_nopoll_ctx);
+  set_server_list_null (&server_list);
+  rtn = createNopollConnection (&test_nopoll_ctx, &server_list);
   assert_int_equal (rtn, nopoll_true);
 #endif
    pthread_join(thread_a, NULL);
@@ -1269,9 +1256,7 @@ int main(void)
         cmocka_unit_test(test_wait_connection_ready),
         cmocka_unit_test(test_connect_and_wait),
         cmocka_unit_test(test_keep_trying),
-	cmocka_unit_test(test_create_nopoll_connection),
-	    cmocka_unit_test (test_backoff_delay),
-	    cmocka_unit_test (test_wait_while_interface_down),
+	    cmocka_unit_test(test_create_nopoll_connection),
         cmocka_unit_test(test_get_interface_down_event),
         cmocka_unit_test(test_interface_down_retry)
     };
