@@ -38,7 +38,7 @@
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
-#define UPDATE_HEALTH_FILE_INTERVAL_SECS		300
+#define UPDATE_HEALTH_FILE_INTERVAL_SECS		240
 
 /* Close codes defined in RFC 6455, section 11.7. */
 enum {
