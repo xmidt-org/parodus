@@ -700,8 +700,11 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	while (!g_shutdown)
 	{
 	  set_current_server (&conn_ctx);
-	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
+	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer)) {
+		// Don't reuse the redirect server during reconnect
+		free_server (&conn_ctx.server_list->redirect);
 		break;
+	  }
 	  /* if we failed to connect, don't reuse the redirect server */	
       free_server (&conn_ctx.server_list->redirect);
 #ifdef FEATURE_DNS_QUERY
@@ -741,7 +744,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	}
 
 	free_extra_headers (&conn_ctx);
-    free_header_info (&conn_ctx.header_info);
+	free_header_info (&conn_ctx.header_info);
         
 	// Reset close_retry flag and heartbeatTimer once the connection retry is successful
 	ParodusPrint("createNopollConnection(): reset_close_retry\n");
