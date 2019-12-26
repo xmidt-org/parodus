@@ -324,6 +324,86 @@ void test_write_callback_fn ()
 	free(data.data);
 }
 
+void test_requestNewAuthToken_non200 ()
+{
+  char token[1024];
+  ParodusCfg cfg;
+  int output;
+  memset(&cfg,0,sizeof(cfg));
+
+  cfg.token_server_url = strdup("https://dev.comcast.net/token");
+  parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
+  parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+  parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+  parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+  set_parodus_cfg(&cfg);
+
+  test_data.size = 0;
+  test_data.data = token;
+  setGlobalResponseCode(404);
+  will_return (curl_easy_perform, 0);
+  expect_function_calls (curl_easy_perform, 1);
+  will_return (curl_easy_getinfo, 0);
+  expect_function_calls (curl_easy_getinfo, 1);
+
+  will_return (curl_easy_getinfo, 0);
+  expect_function_calls (curl_easy_getinfo, 1);
+
+  output = requestNewAuthToken (token, sizeof(token), 1);
+  assert_int_equal (output, -1);
+  assert_string_equal (token, "");
+  ParodusInfo("requestNewAuthToken output: %d token empty len: %lu\n", output, strlen(token));
+  free(cfg.token_server_url);
+}
+
+void test_getAuthTokenFailure_non200 ()
+{
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+
+	cfg.token_server_url = strdup("https://dev.comcast.net/token");
+	cfg.client_cert_path = strdup("testcert");
+	parStrncpy(cfg.cert_path , "/etc/ssl/certs/ca-certificates.crt", sizeof(cfg.cert_path));
+	parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+	parStrncpy(cfg.hw_serial_number, "Fer23u948590", sizeof(cfg.hw_serial_number));
+	parStrncpy(cfg.hw_mac , "123567892366", sizeof(cfg.hw_mac));
+	set_parodus_cfg(&cfg);
+
+	will_return (curl_easy_perform, 0);
+	expect_function_calls (curl_easy_perform, 1);
+
+	will_return (curl_easy_getinfo, 0);
+	expect_function_calls (curl_easy_getinfo, 1);
+
+	will_return (curl_easy_getinfo, 0);
+	expect_function_calls (curl_easy_getinfo, 1);
+
+	will_return (curl_easy_perform, 0);
+	expect_function_calls (curl_easy_perform, 1);
+
+	will_return (curl_easy_getinfo, 0);
+	expect_function_calls (curl_easy_getinfo, 1);
+
+	will_return (curl_easy_getinfo, 0);
+	expect_function_calls (curl_easy_getinfo, 1);
+
+	will_return (curl_easy_perform, 0);
+	expect_function_calls (curl_easy_perform, 1);
+
+	will_return (curl_easy_getinfo, 0);
+	expect_function_calls (curl_easy_getinfo, 1);
+
+	will_return (curl_easy_getinfo, 0);
+	expect_function_calls (curl_easy_getinfo, 1);
+	setGlobalResponseCode(504);
+	getAuthToken(&cfg);
+
+	assert_string_equal( cfg.webpa_auth_token, "");
+
+	free(cfg.client_cert_path);
+	free(cfg.token_server_url);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -339,6 +419,8 @@ int main(void)
 	cmocka_unit_test(getAuthToken_MacNull),
 	cmocka_unit_test(test_getAuthToken),
 	cmocka_unit_test(test_getAuthTokenFailure),
+	cmocka_unit_test(test_requestNewAuthToken_non200),
+	cmocka_unit_test(test_getAuthTokenFailure_non200)
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
