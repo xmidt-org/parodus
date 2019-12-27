@@ -33,6 +33,7 @@
 #include "spin_thread.h"
 #include "service_alive.h"
 #include "seshat_interface.h"
+#include "event_handler.h"
 #include "crud_interface.h"
 #include "heartBeat.h"
 #include "close_retry.h"
@@ -73,6 +74,7 @@ void createSocketConnection(void (* initKeypress)())
 {
     //ParodusCfg *tmpCfg = (ParodusCfg*)config_in;
     noPollCtx *ctx;
+    server_list_t server_list;  
     bool seshat_registered = false;
     int create_conn_rtn = 0;
     unsigned int webpa_ping_timeout_ms = 1000 * get_parodus_cfg()->webpa_ping_timeout;
@@ -95,9 +97,10 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_log_set_handler (ctx, __report_log, NULL);
     #endif
 
-    start_conn_in_progress ();
-    create_conn_rtn = createNopollConnection(ctx);
-    stop_conn_in_progress ();
+    EventHandler();
+    
+    set_server_list_null (&server_list);
+    create_conn_rtn = createNopollConnection(ctx, &server_list);
     if(!create_conn_rtn)
     {
 		ParodusError("Unrecovered error, terminating the process\n");
@@ -190,9 +193,7 @@ void createSocketConnection(void (* initKeypress)())
 		free(get_parodus_cfg()->cloud_disconnect);
 		reset_cloud_disconnect_reason(get_parodus_cfg());
             }
-            start_conn_in_progress ();
-            createNopollConnection(ctx);
-            stop_conn_in_progress ();
+            createNopollConnection(ctx, &server_list);
         }
        } while(!get_close_retry() && !g_shutdown);
 

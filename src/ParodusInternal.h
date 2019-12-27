@@ -108,6 +108,7 @@ typedef struct {
 
 //--- Used in connection.c for backoff delay timer
 typedef struct {
+  unsigned long start_time;
   struct timespec ts;
   int count;
   int max_count;
@@ -126,7 +127,7 @@ typedef struct {
 // wait_connection_ready, and nopoll_connect 
 typedef struct {
   noPollCtx *nopoll_ctx;
-  server_list_t server_list;
+  server_list_t *server_list;
   server_t *current_server;
   header_info_t header_info;
   char *extra_headers;		// need to be freed
