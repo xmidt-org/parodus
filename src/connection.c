@@ -39,6 +39,7 @@
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
 #define UPDATE_HEALTH_FILE_INTERVAL_SECS		240
+#define NOPOLL_TIMEOUT                          25000000   /* Setting to 25 seconds */
 
 /* Close codes defined in RFC 6455, section 11.7. */
 enum {
@@ -451,6 +452,9 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
    char port_buf[8];
 
    sprintf (port_buf, "%u", server->port);
+   nopoll_conn_connect_timeout(nopoll_ctx, NOPOLL_TIMEOUT);
+   ParodusInfo("Nopoll default connect timeout set to 25s");
+
    if (server->allow_insecure > 0) {
       ParodusPrint("secure false\n");
       opts = createConnOpts(ctx->extra_headers, false); 
