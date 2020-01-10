@@ -102,6 +102,7 @@ typedef struct
     char *client_cert_path;
     char *token_server_url;
     char *connection_health_file;
+    char *close_reason_file;
     char *mtls_client_key_path;
     char *mtls_client_cert_path;
 	char *crud_config_file;

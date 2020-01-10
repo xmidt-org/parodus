@@ -35,6 +35,11 @@
 bool LastReasonStatus;
 pthread_mutex_t close_mut;
 
+char *get_global_reconnect_reason()
+{
+    return "parodus_stopping";
+}
+
 void set_global_reconnect_reason(char *reason)
 {
 	UNUSED(reason);

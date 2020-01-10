@@ -137,7 +137,9 @@ static void sig_handler(int sig)
 	}
 	else if ( sig == SIGUSR2 ) 
 	{
+		signal(SIGUSR2, sig_handler); /* reset it to this function */
 		ParodusInfo("SIGUSR2 received!\n");
+		shutdownSocketConnection(SHUTDOWN_REASON_SIGUSR2);
 	}
 	else if ( sig == SIGCHLD ) 
 	{

@@ -157,6 +157,8 @@ char* getWebpaConveyHeader();
 void *CRUDHandlerTask();
 void addCRUDmsgToQueue(wrp_msg_t *crudMsg);
 
+int readFromFile(const char *file_name, char **data);
+
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
 

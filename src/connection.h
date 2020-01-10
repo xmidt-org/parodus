@@ -35,6 +35,7 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 #define SHUTDOWN_REASON_PARODUS_STOP    "parodus_stopping"
 #define SHUTDOWN_REASON_SYSTEM_RESTART  "system_restarting"
+#define SHUTDOWN_REASON_SIGUSR2 		"SIGUSR2"
 
 /**
 * parodusOnPingStatusChangeHandler - Function pointer

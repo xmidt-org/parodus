@@ -224,7 +224,8 @@ target_link_libraries (test_crud_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #   test_crud_internal
 #-------------------------------------------------------------------------------
 add_test(NAME test_crud_internal COMMAND ${MEMORY_CHECK} ./test_crud_internal)
-add_executable(test_crud_internal test_crud_internal.c ../src/config.c ../src/close_retry.c ../src/string_helpers.c ../src/crud_internal.c )
+add_executable(test_crud_internal test_crud_internal.c ../src/config.c ../src/close_retry.c 
+  ../src/ParodusInternal.c ../src/string_helpers.c ../src/crud_internal.c )
 target_link_libraries (test_crud_internal -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
