@@ -26,6 +26,7 @@
 #include "nopoll_helpers.h"
 #include "nopoll_handlers.h"
 #include "time.h"
+#include "config.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -49,6 +50,14 @@ void setMessageHandlers()
     nopoll_conn_set_on_close(get_global_conn(), (noPollOnCloseHandler)listenerOnCloseMessage, NULL);
 }
 
+static int cloud_status_is_online (void)
+{
+	const char *status = get_parodus_cfg()->cloud_status;
+	if (NULL == status)
+	  return false;
+	return (strcmp (status, CLOUD_STATUS_ONLINE) == 0);
+}
+
 /** To send upstream msgs to server ***/
 
 void sendMessage(noPollConn *conn, void *msg, size_t len)
@@ -57,9 +66,14 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
     static int connErr=0;
     long timeDiff = 0;
 
+    if (!cloud_status_is_online ()) {
+		ParodusError ("Cloud Status not ONLINE at nopoll send\n");
+		return;
+	}
+
     ParodusInfo("sendMessage length %zu\n", len);
 
-    if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
+    if(nopoll_conn_is_ok(conn) && conn->handshake_ok)
     {
         //bytesWritten = nopoll_conn_send_binary(conn, msg, len);
         bytesWritten = sendResponse(conn, msg, len);

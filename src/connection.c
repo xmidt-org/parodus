@@ -815,8 +815,8 @@ void close_and_unref_connection(noPollConn *conn)
 	reason_len = (int) strlen (reason);
 	status = CloseNormalClosure;
       }
-      nopoll_conn_close_ext(conn, status, reason, reason_len);
       get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
+      nopoll_conn_close_ext(conn, status, reason, reason_len);
       ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
     }
 }
