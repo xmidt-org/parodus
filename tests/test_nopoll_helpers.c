@@ -269,14 +269,14 @@ void connStuck_sendMessage()
     will_return(__nopoll_conn_send_common, len);
     expect_function_calls(__nopoll_conn_send_common, 1);
 
-    sendMessage(conn, "Hello Parodus!", len);
+    sendMessage(NULL, "Hello Parodus!", len);
 
     /* When timer exceeds more than 10 mins kill the process */
     expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
     will_return(nopoll_conn_is_ok, nopoll_false);
     expect_function_call(nopoll_conn_is_ok);
 
-    sendMessage(NULL, "Hello Parodus!", len);
+    sendMessage(conn, "Hello Parodus!", len);
 
     expect_function_call(getCurrentTime);
 
@@ -353,7 +353,7 @@ int main(void)
         cmocka_unit_test(err_sendResponseFlushWrites),
         cmocka_unit_test(err_sendResponseConnNull),
         cmocka_unit_test(test_sendMessage),
-        /* cmocka_unit_test(connStuck_sendMessage), */
+        cmocka_unit_test(connStuck_sendMessage),
         cmocka_unit_test(err_sendMessage),
         cmocka_unit_test(err_sendMessageConnNull),
         cmocka_unit_test(test_reportLog),
