@@ -33,8 +33,7 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
- static noPollConn conn_struct;
- static noPollConn *conn = &conn_struct;
+ static noPollConn *conn = NULL;
  static ParodusCfg cfg;
  
 /*----------------------------------------------------------------------------*/
@@ -226,8 +225,6 @@ void test_sendMessage()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    conn_struct.handshake_ok = nopoll_true;
-
     expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len);
@@ -262,8 +259,6 @@ void connStuck_sendMessage()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    conn_struct.handshake_ok = nopoll_true;
-    
     expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len);
@@ -305,8 +300,6 @@ void err_sendMessage()
     will_return(nopoll_conn_is_ok, nopoll_true);
     expect_function_call(nopoll_conn_is_ok);
 
-    conn_struct.handshake_ok = nopoll_true;
-    
     expect_value(__nopoll_conn_send_common, (intptr_t)conn,(intptr_t) conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len-2);

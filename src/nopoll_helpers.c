@@ -73,7 +73,7 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
 
     ParodusInfo("sendMessage length %zu\n", len);
 
-    if(nopoll_conn_is_ok(conn) && conn->handshake_ok)
+    if(nopoll_conn_is_ok(conn))
     {
         //bytesWritten = nopoll_conn_send_binary(conn, msg, len);
         bytesWritten = sendResponse(conn, msg, len);
