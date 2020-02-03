@@ -65,7 +65,8 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
     int bytesWritten = 0;
 
     if (!cloud_status_is_online ()) {
-		ParodusError ("Cloud Status not ONLINE at nopoll send\n");
+        ParodusError("Failed to send msg upstream as connection is not OK\n");
+        OnboardLog("Failed to send msg upstream as connection is not OK\n");
 		return;
 	}
 

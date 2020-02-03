@@ -59,7 +59,7 @@ nopoll_bool nopoll_conn_is_ready( noPollConn *conn )
 
 ParodusCfg *get_parodus_cfg(void)
 {
-    cfg.cloud_status = CLOUD_STATUS_ONLINE;
+	function_called();
     return &cfg;
 }
 
@@ -221,6 +221,9 @@ void test_sendMessage()
 {
     int len = strlen("Hello Parodus!");
     
+    cfg.cloud_status = CLOUD_STATUS_ONLINE;
+    expect_function_calls (get_parodus_cfg, 1);
+    
     expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len);
@@ -229,10 +232,23 @@ void test_sendMessage()
     sendMessage(conn, "Hello Parodus!", len);
 }
 
+void test_sendMessageOffline()
+{
+    int len = strlen("Hello Parodus!");
+    
+    cfg.cloud_status = CLOUD_STATUS_OFFLINE;
+    expect_function_calls (get_parodus_cfg, 1);
+    sendMessage(conn, "Hello Parodus!", len);
+    
+}
+
 void err_sendMessage()
 {
     int len = strlen("Hello Parodus!");
     
+    cfg.cloud_status = CLOUD_STATUS_ONLINE;
+    expect_function_calls (get_parodus_cfg, 1);
+
     expect_value(__nopoll_conn_send_common, (intptr_t)conn,(intptr_t) conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len-2);
@@ -250,6 +266,9 @@ void err_sendMessageConnNull()
 {
     int len = strlen("Hello Parodus!");
     
+    cfg.cloud_status = CLOUD_STATUS_ONLINE;
+    expect_function_calls (get_parodus_cfg, 1);
+
     expect_value(__nopoll_conn_send_common, (intptr_t)conn, NULL);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len);
@@ -278,6 +297,7 @@ int main(void)
         cmocka_unit_test(err_sendResponseFlushWrites),
         cmocka_unit_test(err_sendResponseConnNull),
         cmocka_unit_test(test_sendMessage),
+        cmocka_unit_test(test_sendMessageOffline),
         cmocka_unit_test(err_sendMessage),
         cmocka_unit_test(err_sendMessageConnNull),
         cmocka_unit_test(test_reportLog),
