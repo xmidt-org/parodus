@@ -257,7 +257,7 @@ void add_timespec (struct timespec *t1, struct timespec *t2)
 	}
 }
 
-void calc_random_expiration (backoff_timer_t *timer, struct timespec *ts)
+void calc_random_expiration (int random_num, backoff_timer_t *timer, struct timespec *ts)
 {
 	struct timespec ts_delay = {3, 0};
 	unsigned delay_secs = update_backoff_delay (timer); // 0,1,3,7,15,31
@@ -268,7 +268,7 @@ void calc_random_expiration (backoff_timer_t *timer, struct timespec *ts)
 	if (0 != delay_secs) {
 	  /* pick a random # in range 0..250000
 	   * 250000 chosen because it is easy to scale into the range we want */
-	  r262144 = (unsigned) (random() >> 13); /* random (0..262144) */
+	  r262144 = (unsigned) (random_num >> 13); /* random (0..262144) */
 	  r250000 = (r262144*15625) >> 14;
 	  
 	  /* scale into range 4000000 usecs * delay_secs */
@@ -321,7 +321,7 @@ static int backoff_delay (backoff_timer_t *timer)
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
   }	  
 
-  calc_random_expiration (timer, &ts);
+  calc_random_expiration (random (), timer, &ts);
 
   pthread_mutex_lock (&backoff_delay_mut);
   // The condition variable will only be set if we shut down.

@@ -37,6 +37,8 @@ extern void init_expire_timer (expire_timer_t *timer);
 extern int check_timer_expired (expire_timer_t *timer, long timeout_ms);
 extern void init_backoff_timer (backoff_timer_t *timer, int max_count);
 extern int update_backoff_delay (backoff_timer_t *timer);
+void add_timespec (struct timespec *t1, struct timespec *t2);
+void calc_random_expiration (int random_num, backoff_timer_t *timer, struct timespec *ts);
 extern int init_header_info (header_info_t *header_info);
 extern void free_header_info (header_info_t *header_info);
 extern char *build_extra_hdrs (header_info_t *header_info);
@@ -333,13 +335,61 @@ void test_expire_timer()
 
 void test_backoff_delay_timer()
 {
+  struct timespec t1;
+  struct timespec t2;
   backoff_timer_t btimer;
+
   init_backoff_timer (&btimer, 5);
+  /* the actual max delay is 4*result + 3 secs */
+  assert_int_equal (0, update_backoff_delay (&btimer));
+  assert_int_equal (1, update_backoff_delay (&btimer));
   assert_int_equal (3, update_backoff_delay (&btimer));
   assert_int_equal (7, update_backoff_delay (&btimer));
   assert_int_equal (15, update_backoff_delay (&btimer));
-  assert_int_equal (31, update_backoff_delay (&btimer));
-  assert_int_equal (31, update_backoff_delay (&btimer));
+  assert_int_equal (15, update_backoff_delay (&btimer));
+
+  t1.tv_sec = 3; t1.tv_nsec = 0;
+  t2.tv_sec = 3; t2.tv_nsec = 0;
+  add_timespec (&t1, &t2);
+  assert_int_equal (6, t2.tv_sec);
+  assert_int_equal (0, t2.tv_nsec);
+
+  t1.tv_sec = 3; t1.tv_nsec = 500*1000000;
+  t2.tv_sec = 3; t2.tv_nsec = 499*1000000;
+  add_timespec (&t1, &t2);
+  assert_int_equal (6, t2.tv_sec);
+  assert_int_equal (999*1000000, t2.tv_nsec);
+  
+  t1.tv_sec = 3; t1.tv_nsec = 500*1000000;
+  t2.tv_sec = 3; t2.tv_nsec = 501*1000000;
+  add_timespec (&t1, &t2);
+  assert_int_equal (7, t2.tv_sec);
+  assert_int_equal (1000000, t2.tv_nsec);
+  
+  init_backoff_timer (&btimer, 5);
+  t1.tv_sec = 0; t1.tv_nsec = 0;
+  /* max delay is 3, random is 0 */
+  calc_random_expiration (0, &btimer, &t1);
+  assert_int_equal (3, t1.tv_sec);
+  assert_int_equal (0, t1.tv_nsec);  
+
+  t1.tv_sec = 0; t1.tv_nsec = 0;
+  /* max delay is 7, random is INT_MAX/2 */
+  calc_random_expiration (1073741824, &btimer, &t1);
+  assert_int_equal (5, t1.tv_sec);
+  assert_int_equal (0, t1.tv_nsec);  
+
+  t1.tv_sec = 0; t1.tv_nsec = 0;
+  /* max delay is 15, random is INT_MAX/4 */
+  calc_random_expiration (536870912, &btimer, &t1);
+  assert_int_equal (6, t1.tv_sec);
+  assert_int_equal (0, t1.tv_nsec);  
+
+  t1.tv_sec = 0; t1.tv_nsec = 0;
+  /* max delay is 31, random is INT_MAX/8 */
+  calc_random_expiration (268435456, &btimer, &t1);
+  assert_int_equal (6, t1.tv_sec);
+  assert_int_equal (500*1000000, t1.tv_nsec);  
 }
 
 
