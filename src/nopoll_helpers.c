@@ -26,6 +26,7 @@
 #include "nopoll_helpers.h"
 #include "nopoll_handlers.h"
 #include "time.h"
+#include "config.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -49,59 +50,33 @@ void setMessageHandlers()
     nopoll_conn_set_on_close(get_global_conn(), (noPollOnCloseHandler)listenerOnCloseMessage, NULL);
 }
 
+static int cloud_status_is_online (void)
+{
+	const char *status = get_parodus_cfg()->cloud_status;
+	if (NULL == status)
+	  return false;
+	return (strcmp (status, CLOUD_STATUS_ONLINE) == 0);
+}
+
 /** To send upstream msgs to server ***/
 
 void sendMessage(noPollConn *conn, void *msg, size_t len)
 {
     int bytesWritten = 0;
-    static int connErr=0;
-    long timeDiff = 0;
+
+    if (!cloud_status_is_online ()) {
+        ParodusError("Failed to send msg upstream as connection is not OK\n");
+        OnboardLog("Failed to send msg upstream as connection is not OK\n");
+		return;
+	}
 
     ParodusInfo("sendMessage length %zu\n", len);
 
-    if(nopoll_conn_is_ok(conn) && nopoll_conn_is_ready(conn))
+    bytesWritten = sendResponse(conn, msg, len);
+    ParodusPrint("Number of bytes written: %d\n", bytesWritten);
+    if (bytesWritten != (int) len) 
     {
-        //bytesWritten = nopoll_conn_send_binary(conn, msg, len);
-        bytesWritten = sendResponse(conn, msg, len);
-        ParodusPrint("Number of bytes written: %d\n", bytesWritten);
-        if (bytesWritten != (int) len) 
-        {
-            ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
-        }
-	connErr = 0;
-    }
-    else
-    {
-                ParodusError("Failed to send msg upstream as connection is not OK\n");
-                OnboardLog("Failed to send msg upstream as connection is not OK\n");
-
-                if(get_interface_down_event())
-                {     
-                     ParodusError("Unable to connect to server since interface is down\n");
-                }
-                else
-                {
-			if (connErr == 0)
-			{
-				getCurrentTime(connStuck_startPtr);
-				ParodusInfo("Conn got stuck, initialized the first timer\n");
-				connErr = 1;
-			}
-			else
-			{
-				getCurrentTime(connStuck_endPtr);
-				timeDiff = timeValDiff(connStuck_startPtr, connStuck_endPtr);
-				ParodusPrint("checking timeout difference:%ld\n", timeDiff);
-
-				if( timeDiff >= (10*60*1000))
-				{
-					ParodusError("conn got stuck for over 10 minutes; crashing service.\n");
-					OnboardLog("conn got stuck for over 10 minutes; crashing service.\n");
-					kill(getpid(),SIGTERM);
-				}
-
-			}
-                 }
+        ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
     }
 }
 
