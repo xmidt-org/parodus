@@ -231,20 +231,19 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
 {
   timer->count = 1;
   timer->max_count = max_count;
-  timer->delay = 0;
+  timer->delay = 1;
   clock_gettime (CLOCK_REALTIME, &timer->ts);
   timer->start_time = time(NULL);
 }
 
 unsigned update_backoff_delay (backoff_timer_t *timer)
 {
-  int next_delay = timer->delay;
   if (timer->count < timer->max_count) {
     timer->count += 1;
-    timer->delay = next_delay + next_delay + 1;
-    // 0,1,3,7,15,31 ..
+    timer->delay = timer->delay + timer->delay + 1;
+    // 3,7,15,31 ..
   }
-  return (unsigned) next_delay;
+  return (unsigned) timer->delay;
 }  
 
 void add_timespec (struct timespec *t1, struct timespec *t2)
@@ -257,31 +256,36 @@ void add_timespec (struct timespec *t1, struct timespec *t2)
 	}
 }
 
-void calc_random_expiration (int random_num, backoff_timer_t *timer, struct timespec *ts)
+unsigned calc_random_secs (int random_num, unsigned max_secs)
 {
+  unsigned delay_secs = (unsigned) random_num & max_secs;
+  if (delay_secs < 3)
+    return delay_secs + 3;
+  else
+    return delay_secs;
+}
+
+unsigned calc_random_nsecs (int random_num)
+{
+	/* random _num is in range 0..2147483648 */
+	unsigned n = (unsigned) random_num >> 1;
+	/* n is in range 0..1073741824 */
+	if (n < 1000000000)
+	  return n;
+	return n - 1000000000;
+}
+
+void calc_random_expiration (int random_num1, int random_num2, backoff_timer_t *timer, struct timespec *ts)
+{
+	unsigned max_secs = update_backoff_delay (timer); // 3,7,15,31
 	struct timespec ts_delay = {3, 0};
-	unsigned delay_secs = update_backoff_delay (timer); // 0,1,3,7,15,31
-	unsigned r262144 = 0;
-	unsigned r250000 = 0;
-	unsigned rdelay = 0;
 	
-	if (0 != delay_secs) {
-	  /* pick a random # in range 0..250000
-	   * 250000 chosen because it is easy to scale into the range we want */
-	  r262144 = (unsigned) (random_num >> 13); /* random (0..262144) */
-	  r250000 = (r262144*15625) >> 14;
-	  
-	  /* scale into range 4000000 usecs * delay_secs */
-	  rdelay = r250000 * delay_secs;
-	  
-	  /* secs = rdelay * (4000000 / 250000) / 1000000 */
-	  ts_delay.tv_sec = rdelay / 62500;  /* (rdelay*4) / 250000 */
-	  ts_delay.tv_nsec = (rdelay % 62500) * 16000; 
-	  
-	  ts_delay.tv_sec += 3; /* minimum 3 sec delay */
+	if (max_secs > 3) {
+	  ts_delay.tv_sec = calc_random_secs (random_num1, max_secs);
+	  ts_delay.tv_nsec = calc_random_nsecs (random_num2);
 	}
-    ParodusInfo("Waiting max delay %u r250000 %u backoffRetryTime %ld secs %ld usecs\n", 
-      (4*delay_secs)+3, r250000, ts_delay.tv_sec, ts_delay.tv_nsec/1000);
+    ParodusInfo("Waiting max delay %u backoffRetryTime %ld secs %ld usecs\n", 
+      max_secs, ts_delay.tv_sec, ts_delay.tv_nsec/1000);
       
 	/* Add delay to expire time */
     add_timespec (&ts_delay, ts);
@@ -321,7 +325,7 @@ static int backoff_delay (backoff_timer_t *timer)
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
   }	  
 
-  calc_random_expiration (random (), timer, &ts);
+  calc_random_expiration (random(), random(), timer, &ts);
 
   pthread_mutex_lock (&backoff_delay_mut);
   // The condition variable will only be set if we shut down.
