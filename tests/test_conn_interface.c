@@ -120,6 +120,10 @@ bool get_interface_down_event (void)
 	return false;
 }
 
+void set_interface_down_event (void)
+{
+}
+
 int wait_while_interface_down (void)
 {
 	return 0;

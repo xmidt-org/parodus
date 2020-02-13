@@ -23,6 +23,7 @@
 
 #include "../src/parodus_log.h"
 #include "../src/nopoll_helpers.h"
+#include "../src/config.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -32,7 +33,9 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
- static noPollConn *conn;
+ static noPollConn *conn = NULL;
+ static ParodusCfg cfg;
+ 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -52,6 +55,12 @@ nopoll_bool nopoll_conn_is_ready( noPollConn *conn )
 	check_expected((intptr_t)conn);
 	
     return (nopoll_bool)mock();
+}
+
+ParodusCfg *get_parodus_cfg(void)
+{
+	function_called();
+    return &cfg;
 }
 
 int  __nopoll_conn_send_common (noPollConn * conn, const char * content, long length, nopoll_bool  has_fin, long       sleep_in_header, noPollOpCode frame_type)
@@ -212,13 +221,8 @@ void test_sendMessage()
 {
     int len = strlen("Hello Parodus!");
     
-    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)conn);
-    will_return(nopoll_conn_is_ok, nopoll_true);
-    expect_function_call(nopoll_conn_is_ok);
-    
-    expect_value(nopoll_conn_is_ready, (intptr_t)conn, (intptr_t)conn);
-    will_return(nopoll_conn_is_ready, nopoll_true);
-    expect_function_call(nopoll_conn_is_ready);
+    cfg.cloud_status = CLOUD_STATUS_ONLINE;
+    expect_function_calls (get_parodus_cfg, 1);
     
     expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
     expect_value(__nopoll_conn_send_common, length, len);
@@ -228,81 +232,23 @@ void test_sendMessage()
     sendMessage(conn, "Hello Parodus!", len);
 }
 
-void connStuck_sendMessage()
+void test_sendMessageOffline()
 {
-   int len = strlen("Hello Parodus!");
-
-    /* Initialize the timer when connection gets stuck */
-    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
-    will_return(nopoll_conn_is_ok, nopoll_false);
-    expect_function_call(nopoll_conn_is_ok);
-
-    expect_function_call(getCurrentTime);
-    sendMessage(NULL, "Hello Parodus!", len);
-
-    /* When connection recovers within 10 mins, it should be able to re-connect */
-    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
-    will_return(nopoll_conn_is_ok, nopoll_false);
-    expect_function_call(nopoll_conn_is_ok);
-
-    expect_function_call(getCurrentTime);
-
-    will_return(timeValDiff, 5*60*1000);
-    expect_function_call(timeValDiff);
-
-    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)conn);
-    will_return(nopoll_conn_is_ok, nopoll_true);
-    expect_function_call(nopoll_conn_is_ok);
-
-    expect_value(nopoll_conn_is_ready, (intptr_t)conn, (intptr_t)conn);
-    will_return(nopoll_conn_is_ready, nopoll_true);
-    expect_function_call(nopoll_conn_is_ready);
-
-    expect_value(__nopoll_conn_send_common, (intptr_t)conn, (intptr_t)conn);
-    expect_value(__nopoll_conn_send_common, length, len);
-    will_return(__nopoll_conn_send_common, len);
-    expect_function_calls(__nopoll_conn_send_common, 1);
-
+    int len = strlen("Hello Parodus!");
+    
+    cfg.cloud_status = CLOUD_STATUS_OFFLINE;
+    expect_function_calls (get_parodus_cfg, 1);
     sendMessage(conn, "Hello Parodus!", len);
-
-    /* When timer exceeds more than 10 mins kill the process */
-    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
-    will_return(nopoll_conn_is_ok, nopoll_false);
-    expect_function_call(nopoll_conn_is_ok);
-
-    sendMessage(NULL, "Hello Parodus!", len);
-
-    expect_function_call(getCurrentTime);
-
-    sendMessage(NULL, "Hello Parodus!", len);
-
-    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
-    will_return(nopoll_conn_is_ok, nopoll_false);
-    expect_function_call(nopoll_conn_is_ok);
-
-    expect_function_call(getCurrentTime);
-
-    will_return(timeValDiff, 10*60*1000);
-    expect_function_call(timeValDiff);
-
-    will_return(kill, 1);
-    expect_function_call(kill);
-
-    sendMessage(NULL, "Hello Parodus!", len);
+    
 }
 
 void err_sendMessage()
 {
     int len = strlen("Hello Parodus!");
     
-    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)conn);
-    will_return(nopoll_conn_is_ok, nopoll_true);
-    expect_function_call(nopoll_conn_is_ok);
-    
-    expect_value(nopoll_conn_is_ready, (intptr_t)conn, (intptr_t)conn);
-    will_return(nopoll_conn_is_ready, nopoll_true);
-    expect_function_call(nopoll_conn_is_ready);
-    
+    cfg.cloud_status = CLOUD_STATUS_ONLINE;
+    expect_function_calls (get_parodus_cfg, 1);
+
     expect_value(__nopoll_conn_send_common, (intptr_t)conn,(intptr_t) conn);
     expect_value(__nopoll_conn_send_common, length, len);
     will_return(__nopoll_conn_send_common, len-2);
@@ -320,11 +266,13 @@ void err_sendMessageConnNull()
 {
     int len = strlen("Hello Parodus!");
     
-    expect_value(nopoll_conn_is_ok, (intptr_t)conn, (intptr_t)NULL);
-    will_return(nopoll_conn_is_ok, nopoll_false);
-    expect_function_call(nopoll_conn_is_ok);
+    cfg.cloud_status = CLOUD_STATUS_ONLINE;
+    expect_function_calls (get_parodus_cfg, 1);
 
-    expect_function_call(getCurrentTime);
+    expect_value(__nopoll_conn_send_common, (intptr_t)conn, NULL);
+    expect_value(__nopoll_conn_send_common, length, len);
+    will_return(__nopoll_conn_send_common, len);
+    expect_function_calls(__nopoll_conn_send_common, 1);
 
     sendMessage(NULL, "Hello Parodus!", len);
 }
@@ -349,7 +297,7 @@ int main(void)
         cmocka_unit_test(err_sendResponseFlushWrites),
         cmocka_unit_test(err_sendResponseConnNull),
         cmocka_unit_test(test_sendMessage),
-        cmocka_unit_test(connStuck_sendMessage),
+        cmocka_unit_test(test_sendMessageOffline),
         cmocka_unit_test(err_sendMessage),
         cmocka_unit_test(err_sendMessageConnNull),
         cmocka_unit_test(test_reportLog),
