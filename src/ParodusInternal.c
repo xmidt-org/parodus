@@ -131,6 +131,27 @@ char* getWebpaConveyHeader()
     return NULL;
 }
 
+int readFromFile(const char *file_name, char **data)
+{
+	FILE *fp;
+	int ch_count = 0;
+	fp = fopen(file_name, "r+");
+	if (fp == NULL)
+	{
+		ParodusError("Failed to open file %s (errno %d)\n", file_name, errno);
+		return 0;
+	}
+	fseek(fp, 0, SEEK_END);
+	ch_count = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	*data = (char *) malloc(sizeof(char) * (ch_count + 1));
+	fread(*data, 1, ch_count,fp);
+	(*data)[ch_count] ='\0';
+	fclose(fp);
+	return 1;
+}
+
+
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *diff)
 {

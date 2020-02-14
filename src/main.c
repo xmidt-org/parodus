@@ -133,11 +133,17 @@ static void sig_handler(int sig)
 	{
 		signal(SIGUSR1, sig_handler); /* reset it to this function */
 		ParodusInfo("SIGUSR1 received!\n");
-		shutdownSocketConnection(SHUTDOWN_REASON_SYSTEM_RESTART);
 	}
 	else if ( sig == SIGUSR2 ) 
 	{
+		signal(SIGUSR2, sig_handler); /* reset it to this function */
 		ParodusInfo("SIGUSR2 received!\n");
+	}
+	else if ( sig == SIGTERM ) 
+	{
+		signal(SIGTERM, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGTERM received!\n");
+		shutdownSocketConnection(SHUTDOWN_REASON_SIGTERM);
 	}
 	else if ( sig == SIGCHLD ) 
 	{

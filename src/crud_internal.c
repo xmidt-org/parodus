@@ -58,22 +58,7 @@ int writeToJSON(char *data)
 
 int readFromJSON(char **data)
 {
-	FILE *fp;
-	int ch_count = 0;
-	fp = fopen(get_parodus_cfg()->crud_config_file, "r+");
-	if (fp == NULL)
-	{
-		ParodusError("Failed to open file %s\n", get_parodus_cfg()->crud_config_file);
-		return 0;
-	}
-	fseek(fp, 0, SEEK_END);
-	ch_count = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	*data = (char *) malloc(sizeof(char) * (ch_count + 1));
-	fread(*data, 1, ch_count,fp);
-	(*data)[ch_count] ='\0';
-	fclose(fp);
-	return 1;
+	return readFromFile (get_parodus_cfg()->crud_config_file, data);
 }
 /*
 *	@res_obj 	json object to add it in crud config json file

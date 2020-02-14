@@ -196,6 +196,13 @@ void close_and_unref_connection(noPollConn *conn)
     function_called();
 }
 
+int readFromFile(const char *file_name, char **data)
+{
+	UNUSED(file_name);
+	*data = strdup ("parodus_stopping");
+	return 1;
+}
+
 void nopoll_cleanup_library	()	
 {
     function_called();
