@@ -543,7 +543,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
 	case 'R':
 	  cfg->close_reason_file = strdup(optarg);
-	  ParodusInfo("sigusr2_close_reason_file is %s\n", cfg->close_reason_file);
+	  ParodusInfo("sigterm_close_reason_file is %s\n", cfg->close_reason_file);
 	  break;
 
 	case 'C':
