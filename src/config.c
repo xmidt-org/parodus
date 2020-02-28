@@ -366,6 +366,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"token-server-url",        required_argument, 0, 'U'},
 	{"crud-config-file",        required_argument, 0, 'C'},
 	{"connection-health-file",  required_argument, 0, 'S'},
+	{"close-reason-file",  		required_argument, 0, 'R'},
 	{"mtls-client-key-path",    required_argument, 0, 'K'},
 	{"mtls-client-cert-path",    required_argument, 0,'M'},
         {0, 0, 0, 0}
@@ -384,6 +385,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	parStrncpy (cfg->jwt_key, "", sizeof(cfg->jwt_key));
 	cfg->crud_config_file = NULL;
 	cfg->connection_health_file = NULL;
+	cfg->close_reason_file = NULL;
 	cfg->client_cert_path = NULL;
 	cfg->token_server_url = NULL;
 	cfg->cloud_status = NULL;
@@ -394,8 +396,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
       /* getopt_long stores the option index here. */
       int option_index = 0;
-      c = getopt_long (argc, argv, "m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C:S:K:M",
-				long_options, &option_index);
+      c = getopt_long (argc, argv, 
+			"m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C:S:R:K:M",
+			long_options, &option_index);
 
       /* Detect the end of the options. */
       if (c == -1)
@@ -538,17 +541,22 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	  ParodusInfo("connection_health_file is %s\n", cfg->connection_health_file);
 	  break;
 
+	case 'R':
+	  cfg->close_reason_file = strdup(optarg);
+	  ParodusInfo("sigterm_close_reason_file is %s\n", cfg->close_reason_file);
+	  break;
+
 	case 'C':
 	  cfg->crud_config_file = strdup(optarg);
 	  ParodusInfo("crud_config_file is %s\n", cfg->crud_config_file);
 	  break;
 
-		case 'P':
+	case 'P':
 		cfg->client_cert_path = strdup(optarg);
 		ParodusInfo("client_cert_path is %s\n", cfg->client_cert_path);
 		break;
 
-		case 'U':
+	case 'U':
 		cfg->token_server_url = strdup(optarg);
 		ParodusInfo("token_server_url is %s\n", cfg->token_server_url);
 		break;
@@ -637,6 +645,7 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     ParodusPrint("cfg->webpa_uuid is :%s\n", cfg->webpa_uuid);
     cfg->crud_config_file = NULL;
     cfg->connection_health_file = NULL;
+    cfg->close_reason_file = NULL;
     cfg->client_cert_path = NULL;
     cfg->token_server_url = NULL;
 	
@@ -795,6 +804,15 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     else
     {
         ParodusPrint("connection_health_file is NULL. set to empty\n");
+    }
+
+    if(config->close_reason_file != NULL)
+    {
+        cfg->close_reason_file = strdup(config->close_reason_file);
+    }
+    else
+    {
+        ParodusPrint("close_reason_file is NULL. set to empty\n");
     }
 
     if(config->crud_config_file != NULL)
