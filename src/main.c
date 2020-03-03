@@ -96,6 +96,9 @@ int main( int argc, char **argv)
 #endif	
     ParodusCfg *cfg;
 
+	ParodusInfo ("RAND_MAX is %ld (0x%lx)\n", RAND_MAX, RAND_MAX);
+	srandom (getpid());
+
     /* TODO not ideal, but it fixes a more major problem for now. */
     cfg = get_parodus_cfg();
     memset(cfg,0,sizeof(ParodusCfg));

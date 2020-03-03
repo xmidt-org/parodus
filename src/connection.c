@@ -236,22 +236,67 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
   timer->start_time = time(NULL);
 }
 
-void terminate_backoff_delay (void)
-{
-	pthread_mutex_lock (&backoff_delay_mut);
-	pthread_cond_signal(&backoff_delay_con);
-	pthread_mutex_unlock (&backoff_delay_mut);
-}
-
-int update_backoff_delay (backoff_timer_t *timer)
+unsigned update_backoff_delay (backoff_timer_t *timer)
 {
   if (timer->count < timer->max_count) {
     timer->count += 1;
     timer->delay = timer->delay + timer->delay + 1;
     // 3,7,15,31 ..
   }
-  return timer->delay;
+  return (unsigned) timer->delay;
 }  
+
+void add_timespec (struct timespec *t1, struct timespec *t2)
+{
+	t2->tv_sec += t1->tv_sec;
+	t2->tv_nsec += t1->tv_nsec;
+	if (t2->tv_nsec >= 1000000000) {
+	  t2->tv_sec += 1;
+	  t2->tv_nsec -= 1000000000;
+	}
+}
+
+unsigned calc_random_secs (int random_num, unsigned max_secs)
+{
+  unsigned delay_secs = (unsigned) random_num & max_secs;
+  if (delay_secs < 3)
+    return delay_secs + 3;
+  else
+    return delay_secs;
+}
+
+unsigned calc_random_nsecs (int random_num)
+{
+	/* random _num is in range 0..2147483648 */
+	unsigned n = (unsigned) random_num >> 1;
+	/* n is in range 0..1073741824 */
+	if (n < 1000000000)
+	  return n;
+	return n - 1000000000;
+}
+
+void calc_random_expiration (int random_num1, int random_num2, backoff_timer_t *timer, struct timespec *ts)
+{
+	unsigned max_secs = update_backoff_delay (timer); // 3,7,15,31
+	struct timespec ts_delay = {3, 0};
+	
+	if (max_secs > 3) {
+	  ts_delay.tv_sec = calc_random_secs (random_num1, max_secs);
+	  ts_delay.tv_nsec = calc_random_nsecs (random_num2);
+	}
+    ParodusInfo("Waiting max delay %u backoffRetryTime %ld secs %ld usecs\n", 
+      max_secs, ts_delay.tv_sec, ts_delay.tv_nsec/1000);
+      
+	/* Add delay to expire time */
+    add_timespec (&ts_delay, ts);
+}
+
+void terminate_backoff_delay (void)
+{
+	pthread_mutex_lock (&backoff_delay_mut);
+	pthread_cond_signal(&backoff_delay_con);
+	pthread_mutex_unlock (&backoff_delay_mut);
+}
 
 #define BACKOFF_ERR -1
 #define BACKOFF_SHUTDOWN   1
@@ -280,9 +325,7 @@ static int backoff_delay (backoff_timer_t *timer)
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
   }	  
 
-  update_backoff_delay (timer);
-  ParodusInfo("Waiting with backoffRetryTime %d seconds\n", timer->delay);
-  ts.tv_sec += timer->delay;
+  calc_random_expiration (random(), random(), timer, &ts);
 
   pthread_mutex_lock (&backoff_delay_mut);
   // The condition variable will only be set if we shut down.
