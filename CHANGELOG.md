@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - change health file update interval to 240sec
 - use jitter in backoff delay
 - sendMessage to check cloud status == ONLINE before sending
+- when killed with SIGTERM, close will use msg in close reason file.
 
 ## [1.0.2] - 2019-02-08
 - Refactored connection.c and updated corresponding unit tests

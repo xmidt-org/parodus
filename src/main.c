@@ -140,7 +140,14 @@ static void sig_handler(int sig)
 	}
 	else if ( sig == SIGUSR2 ) 
 	{
+		signal(SIGUSR2, sig_handler); /* reset it to this function */
 		ParodusInfo("SIGUSR2 received!\n");
+	}
+	else if ( sig == SIGTERM ) 
+	{
+		signal(SIGTERM, sig_handler); /* reset it to this function */
+		ParodusInfo("SIGTERM received!\n");
+		shutdownSocketConnection(SHUTDOWN_REASON_SIGTERM);
 	}
 	else if ( sig == SIGCHLD ) 
 	{

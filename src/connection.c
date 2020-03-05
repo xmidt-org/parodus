@@ -847,19 +847,37 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 	return opts;   
 }
 
-
+static void close_conn ( noPollConn *conn, const char *specified_reason)
+{
+	const char *effective_reason = specified_reason;
+	
+	if (NULL == effective_reason) {
+          effective_reason = SHUTDOWN_REASON_SYSTEM_RESTART;
+    }
+    else if (strcmp (effective_reason, SHUTDOWN_REASON_SIGTERM) == 0) {
+		char *sigterm_reason;
+        if (readFromFile (get_parodus_cfg()->close_reason_file, &sigterm_reason) &&
+            (strlen(sigterm_reason) != 0)) 
+        {
+          nopoll_conn_close_ext(conn, CloseNormalClosure, sigterm_reason, 
+			strlen (sigterm_reason));
+		  ParodusInfo ("Closed by SIGTERM, reason: %s\n", sigterm_reason);
+		  free (sigterm_reason);
+		  return;
+		}
+		/* file could not be read. use canned message. */
+        effective_reason = SHUTDOWN_REASON_SYSTEM_RESTART;
+        ParodusError ("Closed by SIGTERM, but no reason file\n");
+    }
+    nopoll_conn_close_ext(conn, CloseNormalClosure, effective_reason, 
+      strlen (effective_reason)); 
+}    		
+		
 void close_and_unref_connection(noPollConn *conn)
 {
     if (conn) {
-      const char *reason = get_global_shutdown_reason();
-      int reason_len = 0;
-      int status = CloseNoStatus;
-      if (NULL != reason) {
-	reason_len = (int) strlen (reason);
-	status = CloseNormalClosure;
-      }
+      close_conn (conn, get_global_shutdown_reason ());
       get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
-      nopoll_conn_close_ext(conn, status, reason, reason_len);
       ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
     }
 }

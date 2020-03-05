@@ -116,6 +116,13 @@ pthread_mutex_t *get_interface_down_mut(void)
     return &interface_down_mut;
 }
 
+int readFromFile(const char *file_name, char **data)
+{
+	UNUSED(file_name);
+	*data = strdup ("parodus_stopping");
+	return 1;
+}
+
 noPollConn * nopoll_conn_new_opts (noPollCtx  * ctx, noPollConnOpts  * opts, const char  * host_ip, const char  * host_port, const char  * host_name,const char  * get_url,const char  * protocols, const char * origin)
 {
     UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); 
