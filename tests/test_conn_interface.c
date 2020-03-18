@@ -33,6 +33,7 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+static char *reconnect_reason = "webpa_process_starts";
 UpStreamMsg *UpStreamMsgQ;
 ParodusMsg *ParodusMsgQ;
 pthread_mutex_t g_mutex=PTHREAD_MUTEX_INITIALIZER;
@@ -75,6 +76,21 @@ noPollMutexUnlock 	mutex_unlock
     function_called();
 }
 
+char *get_global_reconnect_reason()
+{
+    return reconnect_reason;
+}
+
+char *get_global_shutdown_reason()
+{
+    return SHUTDOWN_REASON_PARODUS_STOP;
+}
+
+void set_global_shutdown_reason(char *reason)
+{
+    UNUSED(reason);
+}
+
 void start_conn_in_progress (void)
 {
 }   
@@ -82,6 +98,24 @@ void start_conn_in_progress (void)
 void stop_conn_in_progress (void)
 {
 }   
+
+void reset_interface_down_event (void)
+{
+}
+
+bool get_interface_down_event (void)
+{
+	return false;
+}
+
+int wait_while_interface_down (void)
+{
+	return 0;
+}
+
+void terminate_backoff_delay (void)
+{
+}
 
 void packMetaData()
 {

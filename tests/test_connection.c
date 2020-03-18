@@ -181,6 +181,11 @@ void nopoll_conn_close (noPollConn *conn)
     UNUSED(conn);
 }
 
+void nopoll_conn_close_ext (noPollConn *conn, int status, const char *reason, int reason_size)
+{
+    UNUSED(conn); UNUSED(status); UNUSED(reason); UNUSED(reason_size);
+}
+
 int checkHostIp(char * serverIP)
 {
     UNUSED(serverIP);
@@ -1035,7 +1040,6 @@ void test_create_nopoll_connection()
 
 }
 
-
 void test_get_interface_down_event()
 {
     assert_false(get_interface_down_event());
@@ -1179,8 +1183,6 @@ void test_interface_down_retry()
 #endif
    pthread_join(thread_a, NULL);
 } 
-
-
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */

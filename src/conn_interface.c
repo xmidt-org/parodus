@@ -168,6 +168,10 @@ void createSocketConnection(void (* initKeypress)())
         if( false == seshat_registered ) {
             seshat_registered = __registerWithSeshat();
         }
+        
+        if (get_interface_down_event ())
+          if (0 != wait_while_interface_down ())
+            break;
 
         if(get_close_retry())
         {
@@ -214,13 +218,18 @@ void createSocketConnection(void (* initKeypress)())
 
     deleteAllClients ();
 
+    ParodusInfo ("reconnect reason at close %s\n", get_global_reconnect_reason());
+    ParodusInfo ("shutdown reason at close %s\n", get_global_shutdown_reason()); 
     close_and_unref_connection(get_global_conn());
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
     curl_global_cleanup();
 }
 
-void shutdownSocketConnection(void) {
+void shutdownSocketConnection(char *reason) {
+   set_global_shutdown_reason (reason);
    g_shutdown = true;
+   reset_interface_down_event ();
+   terminate_backoff_delay ();
 }
 

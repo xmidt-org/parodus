@@ -38,11 +38,34 @@
 
 #define HTTP_CUSTOM_HEADER_COUNT                    	5
 #define INITIAL_CJWT_RETRY                    	-2
+#define UPDATE_HEALTH_FILE_INTERVAL_SECS		450
+
+/* Close codes defined in RFC 6455, section 11.7. */
+enum {
+	CloseNormalClosure           = 1000,
+	CloseGoingAway               = 1001,
+	CloseProtocolError           = 1002,
+	CloseUnsupportedData         = 1003,
+	CloseNoStatus		     = 1005,
+	CloseAbnormalClosure         = 1006,
+	CloseInvalidFramePayloadData = 1007,
+	ClosePolicyViolation         = 1008,
+	CloseMessageTooBig           = 1009,
+	CloseMandatoryExtension      = 1010,
+	CloseInternalServerErr       = 1011,
+	CloseServiceRestart          = 1012,
+	CloseTryAgainLater           = 1013,
+	CloseTLSHandshake            = 1015
+};
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
+pthread_mutex_t backoff_delay_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t backoff_delay_con=PTHREAD_COND_INITIALIZER;
+
+static char *shutdown_reason = SHUTDOWN_REASON_PARODUS_STOP;  /* goes in the close message */
 static char *reconnect_reason = "webpa_process_starts";
 static int cloud_disconnect_max_time = 5;
 static noPollConn *g_conn = NULL;
@@ -63,6 +86,16 @@ noPollConn *get_global_conn(void)
 void set_global_conn(noPollConn *conn)
 {
     g_conn = conn;
+}
+
+char *get_global_shutdown_reason()
+{
+    return shutdown_reason;
+}
+
+void set_global_shutdown_reason(char *reason)
+{
+    shutdown_reason = reason;
 }
 
 char *get_global_reconnect_reason()
@@ -199,6 +232,14 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
   timer->count = 1;
   timer->max_count = max_count;
   timer->delay = 1;
+  clock_gettime (CLOCK_REALTIME, &timer->ts);
+}
+
+void terminate_backoff_delay (void)
+{
+	pthread_mutex_lock (&backoff_delay_mut);
+	pthread_cond_signal(&backoff_delay_con);
+	pthread_mutex_unlock (&backoff_delay_mut);
 }
 
 int update_backoff_delay (backoff_timer_t *timer)
@@ -211,18 +252,50 @@ int update_backoff_delay (backoff_timer_t *timer)
   return timer->delay;
 }  
 
-static void backoff_delay (backoff_timer_t *timer)
-{
-  update_backoff_delay (timer);
+#define BACKOFF_ERR -1
+#define BACKOFF_SHUTDOWN   1
+#define BACKOFF_DELAY_TAKEN 0
 
-  // Update retry time for conn progress
-  if(timer->count == timer->max_count) 
-  {
-	start_conn_in_progress();
+void start_conn_in_progress (void);
+
+/* backoff_delay
+ * 
+ * delays for the number of seconds specified in parameter timer
+ * g_shutdown can break out of the delay.
+ *
+ * returns -1 pthread_cond_timedwait error
+ *  1   shutdown
+ *  0    delay taken
+*/  
+static int backoff_delay (backoff_timer_t *timer)
+{
+  struct timespec ts;
+  int rtn;
+
+  // periodically update the health file.
+  clock_gettime (CLOCK_REALTIME, &ts);
+  if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
+    start_conn_in_progress ();
+    timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
+  }	  
+
+  update_backoff_delay (timer);
+  ParodusInfo("Waiting with backoffRetryTime %d seconds\n", timer->delay);
+  ts.tv_sec += timer->delay;
+
+  pthread_mutex_lock (&backoff_delay_mut);
+  // The condition variable will only be set if we shut down.
+  rtn = pthread_cond_timedwait (&backoff_delay_con, &backoff_delay_mut, &ts);
+  pthread_mutex_unlock (&backoff_delay_mut);
+
+  if (g_shutdown)
+    return BACKOFF_SHUTDOWN;
+  if ((rtn != 0) && (rtn != ETIMEDOUT)) {
+    ParodusError ("pthread_cond_timedwait error (%d) in backoff_delay.\n", rtn);
+    return BACKOFF_ERR;
   }
 
-  ParodusInfo("Waiting with backoffRetryTime %d seconds\n", timer->delay);
-  sleep (timer->delay);
+  return BACKOFF_DELAY_TAKEN;
 }  
 
 //--------------------------------------------------------------------
@@ -436,7 +509,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
   if(wait_status == 307 || wait_status == 302 || wait_status == 303)    // only when there is a http redirect
   {
 	char *redirect_ptr = redirectURL;
-	ParodusError("Received temporary redirection response message %s\n", redirectURL);
+	ParodusInfo("Received temporary redirection response message %s\n", redirectURL);
 	// Extract server Address and port from the redirectURL
 	if (strncmp (redirect_ptr, "Redirect:", 9) == 0)
 	    redirect_ptr += 9;
@@ -527,7 +600,7 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 {
     int rtn;
     
-    while (true)
+    while (!g_shutdown)
     {
       set_extra_headers (ctx);
 
@@ -537,13 +610,50 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
 
       if (rtn == CONN_WAIT_ACTION_RETRY) // if redirected or build_headers
         continue;
-      backoff_delay (backoff_timer); // 3,7,15,31 ..
+      // If interface down event is set, stop retry
+      // and wait till interface is up again.
+      if(get_interface_down_event()) {
+	    if (0 != wait_while_interface_down())
+	      return false;
+	    start_conn_in_progress();
+	    ParodusInfo("Interface is back up, re-initializing the convey header\n");
+	    // Reset the reconnect reason by initializing the convey header again
+	    ((header_info_t *)(&ctx->header_info))->conveyHeader = getWebpaConveyHeader();
+	    ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
+      } else { 
+        if (backoff_delay (backoff_timer) // 3,7,15,31 ..
+              != BACKOFF_DELAY_TAKEN) // shutdown or cond wait error
+          return false;
+      }
       if (rtn == CONN_WAIT_RETRY_DNS)
         return false;  //find_server again
       // else retry
     }
+    return false;
 }
 
+int wait_while_interface_down()
+
+{
+	int rtn;
+	
+	ParodusError("Interface is down, hence waiting until its up\n");
+	close_and_unref_connection (get_global_conn());
+	set_global_conn(NULL);
+
+	while (get_interface_down_event ()) {
+	  pthread_mutex_lock(get_interface_down_mut());
+  	  rtn = pthread_cond_wait(get_interface_down_con(), get_interface_down_mut());
+      pthread_mutex_unlock (get_interface_down_mut());
+  	  if (rtn != 0)
+  	    ParodusError 
+  	      ("Error on pthread_cond_wait (%d) in wait_while_interface_down\n", rtn);
+  	  if ((rtn != 0) || g_shutdown) {
+	    return -1;
+	  }
+	}
+    return 0;
+}
 
 //--------------------------------------------------------------------
 
@@ -587,19 +697,6 @@ int createNopollConnection(noPollCtx *ctx)
 	  if (keep_trying_to_connect (&conn_ctx, &backoff_timer))
 		break;
 	  // retry dns query
-
-	  // If interface down event is set, stop retry
-	  // and wait till interface is up again.
-	  if(get_interface_down_event()) {
-		ParodusError("Interface is down, hence pausing retry and waiting until its up\n");
-		pthread_mutex_lock(get_interface_down_mut());
-		pthread_cond_wait(get_interface_down_con(), get_interface_down_mut());
-		pthread_mutex_unlock (get_interface_down_mut());
-		ParodusInfo("Interface is back up, re-initializing the convey header\n");
-		// Reset the reconnect reason by initializing the convey header again
-		((header_info_t *)(&conn_ctx.header_info))->conveyHeader = getWebpaConveyHeader();
-		ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
-	  }
 	}
       
 	if(conn_ctx.current_server->allow_insecure <= 0)
@@ -694,10 +791,16 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 void close_and_unref_connection(noPollConn *conn)
 {
     if (conn) {
-        nopoll_conn_close(conn);
-
-	get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
-      	ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
+      const char *reason = get_global_shutdown_reason();
+      int reason_len = 0;
+      int status = CloseNoStatus;
+      if (NULL != reason) {
+	reason_len = (int) strlen (reason);
+	status = CloseNormalClosure;
+      }
+      nopoll_conn_close_ext(conn, status, reason, reason_len);
+      get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
+      ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
     }
 }
 
