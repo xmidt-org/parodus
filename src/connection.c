@@ -745,6 +745,10 @@ int createNopollConnection(noPollCtx *ctx)
 static char* build_extra_headers( const char *auth, const char *device_id,
                                   const char *user_agent, const char *convey )
 {
+	ParodusInfo("auth token: %s\n", (NULL != auth) ? auth: "");
+	ParodusInfo("device_id: %s\n", device_id);
+	ParodusInfo("user_agent: %s\n", user_agent);
+	ParodusInfo("convey: %s\n", convey);
     return nopoll_strdup_printf(
             "%s%s"
             "\r\nX-WebPA-Device-Name: %s"
@@ -784,6 +788,10 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 	}
 	nopoll_conn_opts_set_interface (opts,get_parodus_cfg()->webpa_interface_used);	
 	nopoll_conn_opts_set_extra_headers (opts,extra_headers); 
+	ParodusInfo("nopoll_conn_opts_set_extra_headers, len %d, value: %s\n", strlen(extra_headers), extra_headers);
+	FILE *fp = fopen("/tmp/parodus_extra_headers.txt", "w");
+    	fprintf(fp, "%s", extra_headers);
+    	fclose(fp);
 	return opts;   
 }
 
