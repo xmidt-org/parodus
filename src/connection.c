@@ -302,7 +302,7 @@ void terminate_backoff_delay (void)
 #define BACKOFF_SHUTDOWN   1
 #define BACKOFF_DELAY_TAKEN 0
 
-void start_conn_in_progress (unsigned long start_time);
+void start_conn_in_progress (unsigned long start_time, bool redir_handshake_err);
 
 /* backoff_delay
  * 
@@ -313,7 +313,7 @@ void start_conn_in_progress (unsigned long start_time);
  *  1   shutdown
  *  0    delay taken
 */  
-static int backoff_delay (backoff_timer_t *timer)
+static int backoff_delay (backoff_timer_t *timer, bool redir_handshake_err)
 {
   struct timespec ts;
   int rtn;
@@ -321,7 +321,7 @@ static int backoff_delay (backoff_timer_t *timer)
   // periodically update the health file.
   clock_gettime (CLOCK_REALTIME, &ts);
   if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
-    start_conn_in_progress (timer->start_time);
+    start_conn_in_progress (timer->start_time, redir_handshake_err);
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
   }	  
 
@@ -538,6 +538,7 @@ int nopoll_connect (create_connection_ctx_t *ctx, int is_ipv6)
 #define WAIT_SUCCESS	0
 #define WAIT_ACTION_RETRY	1	// if wait_status is 307, 302, 303, or 403
 #define WAIT_FAIL 	2
+#define WAIT_REDIR_FAIL		3	// fail after redirect
 
 #define FREE_NON_NULL_PTR(ptr) if (NULL != ptr) free(ptr)
 
@@ -579,6 +580,10 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 	OnboardLog("Received Unauthorized response with status: %d\n", wait_status);
     return WAIT_ACTION_RETRY;
   }
+  if (!server_is_null (&ctx->server_list->redirect)) {
+    ParodusError("Client connection timeout after redirect\n");	
+    return WAIT_REDIR_FAIL;
+  }
   ParodusError("Client connection timeout\n");	
   ParodusError("RDK-10037 - WebPA Connection Lost\n");
   return WAIT_FAIL;
@@ -590,6 +595,7 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 #define CONN_WAIT_SUCCESS	 0
 #define CONN_WAIT_ACTION_RETRY	 1	// if wait_status is 307, 302, 303, or 403
 #define CONN_WAIT_FAIL 	 2
+#define CONN_WAIT_REDIR_FAIL	 3  // fail after redirect
 
 int connect_and_wait (create_connection_ctx_t *ctx)
 {
@@ -609,13 +615,13 @@ int connect_and_wait (create_connection_ctx_t *ctx)
     wait_rtn = WAIT_FAIL;
     if (nopoll_connected) {
       if(nopoll_conn_is_ok(get_global_conn())) { 
-	ParodusPrint("Connected to Server but not yet ready\n");
-	wait_rtn = wait_connection_ready (ctx);
+        ParodusPrint("Connected to Server but not yet ready\n");
+        wait_rtn = wait_connection_ready (ctx);
         if (wait_rtn == WAIT_SUCCESS)
           return CONN_WAIT_SUCCESS;
       } else { // nopoll_conn not ok
-	ParodusError("Error connecting to server\n");
-	ParodusError("RDK-10037 - WebPA Connection Lost\n");
+        ParodusError("Error connecting to server\n");
+        ParodusError("RDK-10037 - WebPA Connection Lost\n");
       }
     } // nopoll_connected
     
@@ -632,7 +638,9 @@ int connect_and_wait (create_connection_ctx_t *ctx)
       is_ipv6 = false;
       continue;
     }
-    
+
+    if (wait_rtn == WAIT_REDIR_FAIL)
+      return CONN_WAIT_REDIR_FAIL;    
     return CONN_WAIT_FAIL;
   }
 }
@@ -661,13 +669,13 @@ int keep_trying_to_connect (create_connection_ctx_t *ctx,
       if(get_interface_down_event()) {
 	    if (0 != wait_while_interface_down())
 	      return false;
-	    start_conn_in_progress(backoff_timer->start_time);
+	    start_conn_in_progress(backoff_timer->start_time, false);
 	    ParodusInfo("Interface is back up, re-initializing the convey header\n");
 	    // Reset the reconnect reason by initializing the convey header again
 	    ((header_info_t *)(&ctx->header_info))->conveyHeader = getWebpaConveyHeader();
-	    ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);  
+	    ParodusInfo("Received reconnect_reason as:%s\n", reconnect_reason);
       } else { 
-        if (backoff_delay (backoff_timer) // 3,7,15,31 ..
+        if (backoff_delay (backoff_timer, rtn==CONN_WAIT_REDIR_FAIL) // 3,7,15,31 ..
               != BACKOFF_DELAY_TAKEN) // shutdown or cond wait error
           return false;
       }
@@ -738,7 +746,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
       }
 	conn_ctx.server_list = server_list;
     init_backoff_timer (&backoff_timer, max_retry_count);
-    start_conn_in_progress (backoff_timer.start_time); 
+    start_conn_in_progress (backoff_timer.start_time, false); 
   
 	while (!g_shutdown)
 	{
@@ -760,6 +768,12 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 #endif		
 	}
       
+    if (g_shutdown) {
+      free_extra_headers (&conn_ctx);
+      free_header_info (&conn_ctx.header_info);
+      return nopoll_false;
+    }
+		  
 	if(conn_ctx.current_server->allow_insecure <= 0)
 	{
 		ParodusInfo("Connected to server over SSL\n");
@@ -882,7 +896,8 @@ void close_and_unref_connection(noPollConn *conn)
     }
 }
 
-void write_conn_in_prog_file (bool is_starting, unsigned long start_time)
+void write_conn_in_prog_file (bool is_starting, 
+  unsigned long start_time, const char *code)
 {
   int fd;
   FILE *fp;
@@ -904,21 +919,24 @@ void write_conn_in_prog_file (bool is_starting, unsigned long start_time)
   }
   timestamp = (unsigned long) time(NULL);
   if (is_starting)
-    fprintf (fp, "{START=%lu,%lu}\n", start_time, timestamp);
+    fprintf (fp, "{START=%s,%lu,%lu}\n", code, start_time, timestamp);
   else
     fprintf (fp, "{STOP=%lu}\n", timestamp);
   
   fclose (fp);
 }
 
-void start_conn_in_progress (unsigned long start_time)
+void start_conn_in_progress (unsigned long start_time, bool redir_handshake_err)
 {
-  write_conn_in_prog_file (true, start_time);
+  if (redir_handshake_err)
+    write_conn_in_prog_file (true, start_time, "R");
+  else
+    write_conn_in_prog_file (true, start_time, "C");
 }   
 
 void stop_conn_in_progress (void)
 {
-  write_conn_in_prog_file (false, 0);
+  write_conn_in_prog_file (false, 0, "");
 }   
 
 

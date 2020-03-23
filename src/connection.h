@@ -76,7 +76,7 @@ void set_cloud_disconnect_time(int disconnTime);
 /**
  * @brief Interface to self heal connection in progress getting stuck
  */
-void start_conn_in_progress (unsigned long start_time);
+void start_conn_in_progress (unsigned long start_time, bool redir_handshake_err);
 void stop_conn_in_progress (void);
 
 // To Register parodusOnPingStatusChangeHandler Callback function

@@ -102,9 +102,9 @@ void set_global_shutdown_reason(char *reason)
     UNUSED(reason);
 }
 
-void start_conn_in_progress (unsigned long start_time)
-{
-	UNUSED(start_time);
+void start_conn_in_progress (unsigned long start_time, bool redir_handshake_err)
+{ 
+	UNUSED(start_time); UNUSED(redir_handshake_err);
 }   
 
 void stop_conn_in_progress (void)
