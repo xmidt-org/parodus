@@ -580,8 +580,8 @@ int wait_connection_ready (create_connection_ctx_t *ctx)
 	OnboardLog("Received Unauthorized response with status: %d\n", wait_status);
     return WAIT_ACTION_RETRY;
   }
-  if (!server_is_null (&ctx->server_list->redirect)) {
-    ParodusError("Client connection timeout after redirect\n");	
+  if ((wait_status == 0) && !server_is_null (&ctx->server_list->redirect)) {
+    ParodusError("Client connection timeout after no response from redirect URL\n");	
     return WAIT_REDIR_FAIL;
   }
   ParodusError("Client connection timeout\n");	
