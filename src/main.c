@@ -27,6 +27,7 @@
 #include "breakpad_wrapper.h"
 #endif
 #include "signal.h"
+#include "privilege.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -103,7 +104,8 @@ int main( int argc, char **argv)
     cfg = get_parodus_cfg();
     memset(cfg,0,sizeof(ParodusCfg));
     
-    ParodusInfo("********** Starting component: Parodus **********\n "); 
+    ParodusInfo("********** Starting component: Parodus **********\n ");
+    drop_root_privilege();
     setDefaultValuesToCfg(cfg);
     if (0 != parseCommandLine(argc,argv,cfg)) {
 		abort();
