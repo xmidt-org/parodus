@@ -179,7 +179,7 @@ void createSocketConnection(void (* initKeypress)())
         if(get_close_retry())
         {
             ParodusInfo("close_retry is %d, hence closing the connection and retrying\n", get_close_retry());
-            close_and_unref_connection(get_global_conn());
+            close_and_unref_connection(get_global_conn(), false);
             set_global_conn(NULL);
 
             if(get_parodus_cfg()->cloud_disconnect !=NULL)
@@ -220,8 +220,7 @@ void createSocketConnection(void (* initKeypress)())
     deleteAllClients ();
 
     ParodusInfo ("reconnect reason at close %s\n", get_global_reconnect_reason());
-    ParodusInfo ("shutdown reason at close %s\n", get_global_shutdown_reason()); 
-    close_and_unref_connection(get_global_conn());
+    close_and_unref_connection(get_global_conn(), true);
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
     curl_global_cleanup();

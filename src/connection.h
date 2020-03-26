@@ -56,7 +56,7 @@ int createNopollConnection(noPollCtx *, server_list_t *);
 /**
  * @brief Interface to terminate WebSocket client connections and clean up resources.
  */
-void close_and_unref_connection(noPollConn *);
+void close_and_unref_connection(noPollConn *conn, bool is_shutting_down);
 
 noPollConn *get_global_conn(void);
 void set_global_conn(noPollConn *);
