@@ -190,9 +190,9 @@ void set_global_reconnect_status(bool status)
     function_called();
 }
 
-void close_and_unref_connection(noPollConn *conn)
+void close_and_unref_connection(noPollConn *conn, bool is_shutting_down)
 {
-    UNUSED(conn);
+    UNUSED(conn); UNUSED(is_shutting_down);
     function_called();
 }
 

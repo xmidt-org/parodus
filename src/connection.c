@@ -620,7 +620,7 @@ int connect_and_wait (create_connection_ctx_t *ctx)
     } // nopoll_connected
     
     if (nopoll_connected) {
-	close_and_unref_connection(get_global_conn());
+      close_and_unref_connection(get_global_conn(), false);
 	set_global_conn(NULL);
     }
 
@@ -685,7 +685,7 @@ int wait_while_interface_down()
 	int rtn;
 	
 	ParodusError("Interface is down, hence waiting until its up\n");
-	close_and_unref_connection (get_global_conn());
+	close_and_unref_connection (get_global_conn(), false);
 	set_global_conn(NULL);
 
 	while (get_interface_down_event ()) {
@@ -847,21 +847,24 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 	return opts;   
 }
 
-static void close_conn ( noPollConn *conn, const char *specified_reason)
+static void close_conn ( noPollConn *conn, bool is_shutting_down)
 {
-	const char *effective_reason = specified_reason;
+	const char *effective_reason = get_global_shutdown_reason();
 	
 	if (NULL == effective_reason) {
           effective_reason = SHUTDOWN_REASON_SYSTEM_RESTART;
     }
     else if (strcmp (effective_reason, SHUTDOWN_REASON_SIGTERM) == 0) {
 		char *sigterm_reason;
-        if (readFromFile (get_parodus_cfg()->close_reason_file, &sigterm_reason) &&
+		char *reason_file = get_parodus_cfg()->close_reason_file;
+        if ((NULL != reason_file) && readFromFile (reason_file, &sigterm_reason) &&
             (strlen(sigterm_reason) != 0)) 
         {
           nopoll_conn_close_ext(conn, CloseNormalClosure, sigterm_reason, 
 			strlen (sigterm_reason));
 		  ParodusInfo ("Closed by SIGTERM, reason: %s\n", sigterm_reason);
+		  if (is_shutting_down)
+            ParodusInfo ("shutdown reason at close %s\n", sigterm_reason); 
 		  free (sigterm_reason);
 		  return;
 		}
@@ -871,12 +874,14 @@ static void close_conn ( noPollConn *conn, const char *specified_reason)
     }
     nopoll_conn_close_ext(conn, CloseNormalClosure, effective_reason, 
       strlen (effective_reason)); 
+    if (is_shutting_down)
+      ParodusInfo ("shutdown reason at close %s\n", effective_reason); 
 }    		
 		
-void close_and_unref_connection(noPollConn *conn)
+void close_and_unref_connection(noPollConn *conn, bool is_shutting_down)
 {
     if (conn) {
-      close_conn (conn, get_global_shutdown_reason ());
+      close_conn (conn, is_shutting_down);
       get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
       ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
     }

@@ -268,7 +268,7 @@ void test_set_global_reconnect_reason()
 
 void test_closeConnection()
 {
-    close_and_unref_connection(get_global_conn());
+    close_and_unref_connection(get_global_conn(), false);
 }
 
 void test_server_is_null()
