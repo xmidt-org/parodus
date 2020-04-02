@@ -79,6 +79,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Security
 - Added command line arguments for secure token read and acquire.  Token presented to cloud for authentication verification.
+- Added support for override functions to support drop root capabilities for parodus process
 
 ## [1.0.0] - 2017-11-17
 ### Added
