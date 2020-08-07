@@ -225,7 +225,7 @@ target_link_libraries (test_crud_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 add_test(NAME test_crud_internal COMMAND ${MEMORY_CHECK} ./test_crud_internal)
 add_executable(test_crud_internal test_crud_internal.c ../src/config.c ../src/close_retry.c 
-  ../src/ParodusInternal.c ../src/string_helpers.c ../src/crud_internal.c )
+  ../src/ParodusInternal.c ../src/string_helpers.c ../src/crud_internal.c ../src/client_list.c)
 target_link_libraries (test_crud_internal -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 
 #-------------------------------------------------------------------------------
@@ -236,7 +236,7 @@ add_executable(test_upstream test_upstream.c ../src/upstream.c ../src/close_retr
 target_link_libraries (test_upstream -lcmocka gcov -lcunit -lcimplog
  -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
- -lssl -lcrypto -lrt -lm)
+ -lssl -lcrypto -lrt -lm -lnanomsg)
 
 #-------------------------------------------------------------------------------
 #   test_upstream_sock
@@ -287,6 +287,7 @@ set(CONIFC_SRC test_conn_interface.c
   ../src/heartBeat.c
   ../src/close_retry.c
   ../src/event_handler.c
+  ../src/client_list.c
 )
 if (ENABLE_SESHAT)
 set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface.c)

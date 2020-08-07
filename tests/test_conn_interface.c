@@ -291,9 +291,6 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
    diff->tv_nsec = 1000;
 }
 
-void deleteAllClients (void)
-{
-}
 
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */

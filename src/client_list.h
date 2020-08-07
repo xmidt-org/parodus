@@ -56,7 +56,7 @@ int sendMsgtoRegisteredClients(char *dest,const char **Msg,size_t msgSize);
 
 reg_list_item_t * get_global_node(void);
 void release_global_node (void);
-
+int checkClientStatus();
 #ifdef __cplusplus
 }
 #endif

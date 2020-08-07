@@ -26,6 +26,9 @@
 #include "config.h"
 #include "connection.h"
 #include "close_retry.h"
+#include "client_list.h"
+
+#define SERVICE_STATUS "service-status"
 
 static void freeObjArray(char *(*obj)[], int size);
 static int writeIntoCrudJson(cJSON *res_obj, char * object, cJSON *objValue, int freeFlag);
@@ -33,6 +36,7 @@ static int parse_dest_elements_to_string(wrp_msg_t *reqMsg, char *(*obj)[]);
 static char* strdupptr( const char *s, const char *e );
 static int ConnDisconnectFromCloud(char *reason);
 static int validateDisconnectString(char *reason);
+static int getClientStatus(char *service, cJSON **jsonresponse);
 
 int writeToJSON(char *data)
 {
@@ -639,10 +643,17 @@ int retrieveObject( wrp_msg_t *reqMsg, wrp_msg_t **response )
 		}
 
 		ParodusInfo( "Number of object level %d\n", objlevel );
-
-		if(objlevel == 3 && ((obj[3] !=NULL) && strstr(obj[3] ,"tags") == NULL))
+		if((objlevel == 3 && ((obj[3] !=NULL) && strstr(obj[3] ,"tags") == NULL)) || (objlevel == 4 && ((obj[3] !=NULL) && strstr(obj[3] ,"service-status") != NULL)))
 		{
-			inMemStatus = retrieveFromMemory(obj[3], &inMemResponse );
+			//To support dest "mac:14xxxxxxxxxx/parodus/service-status/service" to retrieve online/offline status of registered clients.
+			if(strstr(obj[3] ,"service-status") !=NULL)
+			{
+				inMemStatus = getClientStatus(obj[4], &inMemResponse );
+			}
+			else
+			{
+				inMemStatus = retrieveFromMemory(obj[3], &inMemResponse );
+			}
 
 			if(inMemStatus == 0)
 			{
@@ -1612,4 +1623,28 @@ static int validateDisconnectString(char *reason)
 		rv = -1;
 	}
 	return rv;
+}
+
+static int getClientStatus(char *service, cJSON **jsonresponse)
+{
+	char regstatus[16] ={0};
+	*jsonresponse = cJSON_CreateObject();
+
+	if(service == NULL)
+	{
+		ParodusError("service is NULL\n");
+		return -1;
+	}
+
+	if(checkClientStatus(service))
+	{
+		strncpy(regstatus, "online", sizeof(regstatus)-1);
+	}
+	else
+	{
+		strncpy(regstatus, "offline", sizeof(regstatus)-1);
+	}
+	ParodusPrint("getClientStatus: service:%s value:%s\n", service, regstatus);
+	cJSON_AddItemToObject( *jsonresponse, SERVICE_STATUS , cJSON_CreateString(regstatus));
+	return 0;
 }

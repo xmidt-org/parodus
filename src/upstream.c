@@ -417,12 +417,43 @@ void *processUpstreamMessage()
 								{
 									ParodusError("Failed to get device_id\n");
 								}
-						} else if (WRP_MSG_TYPE__SVC_ALIVE != msgType) {
+						}
+						else if((WRP_MSG_TYPE__UPDATE == msgType) || (WRP_MSG_TYPE__DELETE == msgType))
+						{
+							ParodusPrint("UPDATE/DELETE request\n");
+							ret = getDeviceId(&device_id, &device_id_len);
+							if(ret == 0)
+							{
+								ParodusPrint("device_id %s device_id_len %lu\n", device_id, device_id_len);
+								/* Match dest based on device_id. Check dest start with: "mac:112233445xxx" ? */
+								if( 0 == strncasecmp(device_id, msg->u.crud.dest, device_id_len-1) )
+								{
+									/* For this device. For nanomsg clients.*/
+									getServiceNameAndSendResponse(msg, &message->msg, message->len);
+								}
+								else
+								{
+									/* Not for this device. Send upstream */
+									ParodusInfo("sendUpstreamMsgToServer \n");
+									sendUpstreamMsgToServer(&message->msg, message->len);
+								}
+								if(device_id != NULL)
+								{
+									free(device_id);
+									device_id = NULL;
+								}
+							}
+							else
+							{
+								ParodusError("Failed to get device_id\n");
+							}
+						 }
+						 else if (WRP_MSG_TYPE__SVC_ALIVE != msgType) {
 						  /* Don't reply to service alive message */
 							sendUpstreamMsgToServer(&message->msg, message->len);
-						}
 					}
-            	}
+			  }
+		    }
            	}
             else
             {
