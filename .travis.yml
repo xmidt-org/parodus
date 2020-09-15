@@ -32,7 +32,7 @@ after_success:
 
 stages:
   - test
-  - coverity
+  #- coverity
   - tag
   - release
 
