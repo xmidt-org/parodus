@@ -8,7 +8,7 @@ branches:
 
 env:
   global:
-    - DISABLE_VALGRIND="true" # For now, fix ASAP
+    - DISABLE_VALGRIND="false"
     - TRAVIS_REPO_OWNER=${TRAVIS_REPO_SLUG%/*}
     - TRAVIS_REPO_NAME=${TRAVIS_REPO_SLUG#*/}
 
@@ -19,8 +19,7 @@ install:
 script:
     - mkdir build
     - pushd build
-    - cmake .. -DDISABLE_VALGRIND:BOOL=${DISABLE_VALGRIND}
-    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=false -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true
+    - cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=${DISABLE_VALGRIND} -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true
     - export ARGS="-V"
     - build-wrapper-linux-x86-64 --out-dir bw-output make all test
     - popd
