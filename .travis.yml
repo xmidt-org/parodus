@@ -8,7 +8,7 @@ branches:
 
 env:
   global:
-    - DISABLE_VALGRIND="false"
+    - DISABLE_VALGRIND="true" # For now, fix ASAP
     - TRAVIS_REPO_OWNER=${TRAVIS_REPO_SLUG%/*}
     - TRAVIS_REPO_NAME=${TRAVIS_REPO_SLUG#*/}
 
