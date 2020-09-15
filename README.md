@@ -5,6 +5,7 @@
 [![Coverity](https://img.shields.io/coverity/scan/11192.svg)](https://scan.coverity.com/projects/comcast-parodus)
 [![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/Comcast/parodus/blob/master/LICENSE)
 [![GitHub release](https://img.shields.io/github/release/Comcast/parodus.svg)](CHANGELOG.md)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=xmidt-org_parodus&metric=alert_status)](https://sonarcloud.io/dashboard?id=xmidt-org_parodus)
 
 
 C implementation of the XMiDT client coordinator
