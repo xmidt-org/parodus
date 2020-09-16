@@ -42,7 +42,8 @@ pthread_mutex_t nano_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t nano_con=PTHREAD_COND_INITIALIZER;
 pthread_mutex_t svc_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t svc_con=PTHREAD_COND_INITIALIZER;
-
+int numLoops;
+parodusOnPingStatusChangeHandler on_ping_status_change;
  
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */

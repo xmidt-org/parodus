@@ -62,10 +62,8 @@ extern int keep_trying_to_connect (create_connection_ctx_t *ctx,
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
-bool close_retry;
 bool LastReasonStatus;
 bool interface_down_event = false;
-pthread_mutex_t close_mut; 
 pthread_mutex_t interface_down_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t interface_down_con=PTHREAD_COND_INITIALIZER;
 

@@ -62,6 +62,8 @@ enum {
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
+parodusOnPingStatusChangeHandler on_ping_status_change;
+
 pthread_mutex_t backoff_delay_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t backoff_delay_con=PTHREAD_COND_INITIALIZER;
 

@@ -32,9 +32,6 @@
 #include "../src/connection.h"
 #include "../src/close_retry.h"
 
-bool LastReasonStatus;
-pthread_mutex_t close_mut;
-
 char *get_global_reconnect_reason()
 {
     return "parodus_stopping";

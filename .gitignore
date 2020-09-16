@@ -34,3 +34,5 @@
 tags
 
 build/
+
+tests/jwt_key.tst

@@ -214,8 +214,13 @@ int parse_webpa_url__ (const char *full_url,
     if(openBracket != NULL){
         //Remove [ from server address
         char *remove = server_addr;
+        int i;
+
+        // Strings can overlap, so don't use strncpy()
         remove++;
-        parStrncpy (server_addr, remove, server_addr_buflen);
+        for( i = 0; i < server_addr_buflen; i++ ) {
+            server_addr[i] = remove[i];
+        }
         closeBracket = strchr(server_addr,']');
         if(closeBracket != NULL){
             //Remove ] by making it as null
