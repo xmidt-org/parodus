@@ -160,6 +160,7 @@ extern unsigned int get_algo_mask (const char *algo_str);
 
 pthread_mutex_t crud_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t crud_con=PTHREAD_COND_INITIALIZER;
+int numLoops;
 
 pthread_cond_t *get_global_crud_con(void)
 {

@@ -28,14 +28,11 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-volatile unsigned int heartBeatTimer;
 bool LastReasonStatus;
 bool interface_down_event = false;
 int closeReason = 0;
-pthread_mutex_t close_mut; 
 pthread_mutex_t interface_down_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t interface_down_con=PTHREAD_COND_INITIALIZER;
-bool close_retry;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/

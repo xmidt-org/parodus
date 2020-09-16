@@ -54,7 +54,9 @@ int curl_easy_perform(CURL *curl)
 	  write_callback_fn (msg, 1, strlen(msg), &test_data);
 	return rtn;
 }
-int g_response_code=0;
+
+extern int g_response_code;
+
 void setGlobalResponseCode (int response_code)
 {
 	g_response_code = response_code;

@@ -116,6 +116,8 @@ void test_setParodusConfig()
     assert_string_equal(cfg.jwt_key, temp->jwt_key);
 #endif
 	assert_string_equal(cfg.crud_config_file, temp->crud_config_file);
+
+    free(cfg.crud_config_file);
 }
 
 void test_getParodusConfig()
@@ -299,8 +301,9 @@ void test_loadParodusCfg()
 {
     ParodusCfg  tmpcfg;
     ParodusCfg *Cfg = NULL;
-    Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
     char protocol[32] = {'\0'};
+    Cfg = (ParodusCfg*)malloc(sizeof(ParodusCfg));
+    memset(Cfg, 0, sizeof(ParodusCfg));
 
     parStrncpy(Cfg->hw_model, "TG1682", sizeof(Cfg->hw_model));
     parStrncpy(Cfg->hw_serial_number, "Fer23u948590", sizeof(Cfg->hw_serial_number));
@@ -351,6 +354,14 @@ void test_loadParodusCfg()
     assert_string_equal(tmpcfg.seshat_url, "ipc://tmp/seshat_service.url");
 #endif
 	assert_string_equal(tmpcfg.crud_config_file, "parodus_cfg.json");
+
+    free(tmpcfg.client_cert_path);
+    free(tmpcfg.token_server_url);
+    free(tmpcfg.crud_config_file);
+
+    free(Cfg->crud_config_file);
+    free(Cfg->client_cert_path);
+    free(Cfg->token_server_url);
     free(Cfg);
 }
 
@@ -422,6 +433,8 @@ void test_setDefaultValuesToCfg()
     assert_string_equal(cfg->webpa_path_url, WEBPA_PATH_URL);
     assert_string_equal(cfg->webpa_uuid, "1234567-345456546");
     assert_string_equal(cfg->cloud_status, CLOUD_STATUS_OFFLINE);
+
+    free(cfg);
 }
 
 void err_setDefaultValuesToCfg()

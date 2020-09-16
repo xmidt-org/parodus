@@ -44,7 +44,7 @@ extern "C" {
 * i.e. ping_miss or ping receive after miss
 */
 typedef void (*parodusOnPingStatusChangeHandler) (char * status);
-parodusOnPingStatusChangeHandler on_ping_status_change;
+extern parodusOnPingStatusChangeHandler on_ping_status_change;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
