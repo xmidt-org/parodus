@@ -90,9 +90,9 @@ target_link_libraries (test_spin_thread_e ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 #   test_spin_thread success
 #-------------------------------------------------------------------------------
-add_test(NAME test_spin_thread_s COMMAND ${MEMORY_CHECK} ./test_spin_thread_s)
-add_executable(test_spin_thread_s test_spin_thread_s.c ../src/spin_thread.c)
-target_link_libraries (test_spin_thread_s ${PARODUS_COMMON_LIBS} )
+# add_test(NAME test_spin_thread_s COMMAND ${MEMORY_CHECK} ./test_spin_thread_s)
+# add_executable(test_spin_thread_s test_spin_thread_s.c ../src/spin_thread.c)
+# target_link_libraries (test_spin_thread_s ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   test_string_helpers 
