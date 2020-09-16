@@ -97,9 +97,9 @@ target_link_libraries (test_spin_thread_e ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 #   test_string_helpers 
 #-------------------------------------------------------------------------------
-add_test(NAME test_string_helpers COMMAND ${MEMORY_CHECK} ./test_string_helpers)
-add_executable(test_string_helpers test_string_helpers.c ../src/string_helpers.c)
-target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS} )
+# add_test(NAME test_string_helpers COMMAND ${MEMORY_CHECK} ./test_string_helpers)
+# add_executable(test_string_helpers test_string_helpers.c ../src/string_helpers.c)
+# target_link_libraries (test_string_helpers ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   test_nopoll_handlers
