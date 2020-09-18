@@ -2,7 +2,6 @@ language: c
 
 branches:
   only:
-    - main
     - master
     - /^v[0-9]+\.[0-9]+\.[0-9]+$/
 
@@ -101,7 +100,7 @@ jobs:
     # this issue for systems that rely on the checksum being constant
     - stage: tag
       name: "Tag For Release"
-      if: branch = main && type = push
+      if: branch = master && type = push
       before_script:
         - echo -e "machine github.com\n  login $GH_TOKEN" > ~/.netrc
       script:
@@ -118,7 +117,7 @@ jobs:
 
     - stage: release
       name: "Make a Release"
-      if: branch != main
+      if: branch != master
       script:
         - export VERSION=${TRAVIS_TAG##*v}
         - git archive --format=tar.gz --prefix=${TRAVIS_REPO_NAME}-${VERSION}/ -o ${TRAVIS_REPO_NAME}-${VERSION}.tar.gz ${TRAVIS_TAG}
@@ -140,7 +139,7 @@ jobs:
 
     - stage: coverity
       name: "Coverity build"
-      if: branch = main
+      if: branch = master
       os: linux
       dist: trusty
       compiler: gcc
@@ -161,7 +160,7 @@ jobs:
           notification_email: weston_schmidt@alumni.purdue.edu
           build_command_prepend: "mkdir coverity_build && cd coverity_build && cmake .."
           build_command: "make"
-          branch_pattern: main
+          branch_pattern: master
       after_success: skip
 
   allow_failures:
