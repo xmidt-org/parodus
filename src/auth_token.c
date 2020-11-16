@@ -37,7 +37,7 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list);
+void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *partnerid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list);
 long g_response_code;
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -65,6 +65,7 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 	char *mac_header = NULL;
 	char *serial_header = NULL;
 	char *uuid_header = NULL;
+	char *partnerid_header = NULL;
 	char *transaction_uuid = NULL;
 	double total;
 
@@ -77,7 +78,7 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 	{
 		data.data[0] = '\0';
 
-		createCurlheader(mac_header, serial_header, uuid_header, transaction_uuid, list, &headers_list);
+		createCurlheader(mac_header, serial_header, uuid_header, partnerid_header, transaction_uuid, list, &headers_list);
 
 		curl_easy_setopt(curl, CURLOPT_URL, get_parodus_cfg()->token_server_url);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT_SEC);
@@ -266,10 +267,11 @@ char* generate_trans_uuid()
  * @param[in] mac_header mac address header key value pair
  * @param[in] serial_header serial number key value pair
  * @param[in] uuid_header transaction uuid key value pair
+ * @param[in] partnerid_header partnerid key value pair
  * @param[in] list temp curl header list
  * @param[out] header_list output curl header list
 */
-void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list)
+void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *partnerid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list)
 {
 	mac_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
 	if(mac_header !=NULL)
@@ -309,6 +311,16 @@ void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, 
 	else
 	{
 		ParodusError("Failed to generate transaction_uuid\n");
+	}
+
+	partnerid_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
+	if(partnerid_header !=NULL)
+	{
+		snprintf(partnerid_header, MAX_BUF_SIZE, "X-Midt-Partner-Id: %s", get_parodus_cfg()->partner_id);
+		ParodusInfo("partnerid_header formed %s\n", partnerid_header);
+		list = curl_slist_append(list, partnerid_header);
+		free(partnerid_header);
+		partnerid_header = NULL;
 	}
 	*header_list = list;
 }
