@@ -75,7 +75,7 @@ typedef struct
     char hw_serial_number[64];
     char hw_manufacturer[64];
     char hw_mac[64];
-    char hw_last_reboot_reason[64];
+    char hw_last_reboot_reason[128];
     char fw_name[64];
     unsigned int boot_time;
     unsigned int webpa_ping_timeout;
