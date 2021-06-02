@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <fcntl.h> 
 #include "config.h"
+#include "connection.h"
 #include "auth_token.h"
 #include "ParodusInternal.h"
 #include <cjwt/cjwt.h>
@@ -31,13 +32,14 @@
 #include <curl/curl.h>
 #include <uuid/uuid.h>
 
-#define MAX_BUF_SIZE	        128
+#define MAX_BUF_SIZE	        256
 #define CURL_TIMEOUT_SEC	25L
 #define MAX_CURL_RETRY_COUNT 	3
+
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *partnerid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list);
+void createCurlheader(struct curl_slist *list, struct curl_slist **header_list);
 long g_response_code;
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -62,11 +64,6 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 	struct curl_slist *list = NULL;
 	struct curl_slist *headers_list = NULL;
 
-	char *mac_header = NULL;
-	char *serial_header = NULL;
-	char *uuid_header = NULL;
-	char *partnerid_header = NULL;
-	char *transaction_uuid = NULL;
 	double total;
 
 	struct token_data data;
@@ -78,7 +75,7 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 	{
 		data.data[0] = '\0';
 
-		createCurlheader(mac_header, serial_header, uuid_header, partnerid_header, transaction_uuid, list, &headers_list);
+		createCurlheader(list, &headers_list);
 
 		curl_easy_setopt(curl, CURLOPT_URL, get_parodus_cfg()->token_server_url);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT_SEC);
@@ -264,63 +261,60 @@ char* generate_trans_uuid()
 }
 
 /* @brief function to create curl header contains mac, serial number and uuid.
- * @param[in] mac_header mac address header key value pair
- * @param[in] serial_header serial number key value pair
- * @param[in] uuid_header transaction uuid key value pair
- * @param[in] partnerid_header partnerid key value pair
+ * @param[in] h the auth headers to populate
  * @param[in] list temp curl header list
  * @param[out] header_list output curl header list
 */
-void createCurlheader(char *mac_header, char *serial_header, char *uuid_header, char *partnerid_header, char *transaction_uuid, struct curl_slist *list, struct curl_slist **header_list)
+void createCurlheader(struct curl_slist *list, struct curl_slist **header_list)
 {
-	mac_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
-	if(mac_header !=NULL)
-	{
-		snprintf(mac_header, MAX_BUF_SIZE, "X-Midt-Mac-Address: %s", get_parodus_cfg()->hw_mac);
-		ParodusPrint("mac_header formed %s\n", mac_header);
-		list = curl_slist_append(list, mac_header);
-		free(mac_header);
-		mac_header = NULL;
-	}
+    char buf[MAX_BUF_SIZE];
+    char *uuid = NULL;
 
-	serial_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
-	if(serial_header !=NULL)
-	{
-		snprintf(serial_header, MAX_BUF_SIZE, "X-Midt-Serial-Number: %s", get_parodus_cfg()->hw_serial_number);
-		ParodusPrint("serial_header formed %s\n", serial_header);
-		list = curl_slist_append(list, serial_header);
-		free(serial_header);
-		serial_header = NULL;
-	}
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Mac-Address: %s", get_parodus_cfg()->hw_mac);
+    ParodusPrint("mac_header formed %s\n", buf);
+    list = curl_slist_append(list, buf);
 
-	transaction_uuid = generate_trans_uuid();
-	if(transaction_uuid !=NULL)
-	{
-		uuid_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
-		if(uuid_header !=NULL)
-		{
-			snprintf(uuid_header, MAX_BUF_SIZE, "X-Midt-Uuid: %s", transaction_uuid);
-			ParodusInfo("uuid_header formed %s\n", uuid_header);
-			list = curl_slist_append(list, uuid_header);
-			free(transaction_uuid);
-			transaction_uuid = NULL;
-			free(uuid_header);
-			uuid_header = NULL;
-		}
-	}
-	else
-	{
-		ParodusError("Failed to generate transaction_uuid\n");
-	}
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Serial-Number: %s", get_parodus_cfg()->hw_serial_number);
+    ParodusPrint("serial_header formed %s\n", buf);
+    list = curl_slist_append(list, buf);
 
-	partnerid_header = (char *) malloc(sizeof(char)*MAX_BUF_SIZE);
-	if(partnerid_header !=NULL)
-	{
-		snprintf(partnerid_header, MAX_BUF_SIZE, "X-Midt-Partner-Id: %s", get_parodus_cfg()->partner_id);
-		ParodusInfo("partnerid_header formed %s\n", partnerid_header);
-		list = curl_slist_append(list, partnerid_header);
-		free(partnerid_header);
-		partnerid_header = NULL;
-	}
-	*header_list = list;
+    uuid = generate_trans_uuid();
+    if(uuid !=NULL) {
+        snprintf(buf, MAX_BUF_SIZE, "X-Midt-Uuid: %s", uuid);
+        ParodusInfo("uuid_header formed %s\n", buf);
+        list = curl_slist_append(list, buf);
+        free(uuid);
+    } else {
+        ParodusError("Failed to generate transaction_uuid\n");
+    }
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Partner-Id: %s", get_parodus_cfg()->partner_id);
+    ParodusInfo("partnerid_header formed %s\n", buf);
+    list = curl_slist_append(list, buf);
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Hardware-Model: %s", get_parodus_cfg()->hw_model);
+    list = curl_slist_append(list, buf);
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Hardware-Manufacturer: %s", get_parodus_cfg()->hw_manufacturer);
+    list = curl_slist_append(list, buf);
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Firmware-Name: %s", get_parodus_cfg()->fw_name);
+    list = curl_slist_append(list, buf);
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Protocol: %s", get_parodus_cfg()->webpa_protocol);
+    list = curl_slist_append(list, buf);
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Interface-Used: %s", get_parodus_cfg()->webpa_interface_used);
+    list = curl_slist_append(list, buf);
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Last-Reboot-Reason: %s", get_parodus_cfg()->hw_last_reboot_reason);
+    list = curl_slist_append(list, buf);
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Last-Reconnect-Reason: %s", get_global_reconnect_reason());
+    list = curl_slist_append(list, buf);
+
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Boot-Retry-Wait: %d", get_parodus_cfg()->boot_retry_wait);
+    list = curl_slist_append(list, buf);
+
+    *header_list = list;
 }

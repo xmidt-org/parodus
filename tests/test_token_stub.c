@@ -26,11 +26,11 @@
 #include <pthread.h>
 #include "../src/token.h"
 
+int numLoops;
 
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
-
 
 pthread_mutex_t crud_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t crud_con=PTHREAD_COND_INITIALIZER;
