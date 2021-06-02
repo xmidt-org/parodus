@@ -74,6 +74,12 @@ int curl_easy_getinfo(CURL *curl, CURLINFO CURLINFO_RESPONSE_CODE, long response
 	function_called();
 	return (int) mock();
 }
+
+char* get_global_reconnect_reason()
+{
+    return "none";
+}
+
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/
