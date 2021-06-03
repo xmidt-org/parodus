@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: 2021 Comcast Cable Communications Management, LLC
+# SPDX-License-Identifier: Apache-2.0
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    paths-ignore:
+      - 'AUTHORS'
+      - 'LICENSE'
+      - 'NOTICE'
+      - '**.md'
+      - '.gitignore'
+    tags-ignore:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+    branches:
+      - main
+      - master
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: [ ubuntu-latest ]
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      # Install the dependent packages
+      - name: Install packages
+        run: |
+          sudo apt update
+          sudo apt-get -y install valgrind libcunit1 libcunit1-doc libcunit1-dev libmsgpack-dev gcovr libtool
+          pip install codecov
+
+      - name: Make Build Directory
+        run: mkdir build
+
+      - name: Get Sonarcloud Binaries
+        working-directory: build
+        run: |
+          ../.github/scripts/get_sonarcloud.sh
+
+      - name: CMake
+        working-directory: build
+        run: |
+          cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=${DISABLE_VALGRIND} -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true
+
+
+      - name: Build
+        working-directory: build
+        run: |
+          build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output make all test
+
+      - name: Merge GCOV Reports for Sonarcloud
+        working-directory: build
+        run: |
+          gcovr --sonarqube coverage.xml -r ..
+
+      - name: Upload SonarCloud
+        run: |
+          build/sonar-scanner/bin/sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Codecov.io
+        uses: codecov/codecov-action@v1
+        with:
+          directory: .
+          fail_ci_if_error: true

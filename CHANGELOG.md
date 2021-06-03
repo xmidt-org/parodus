@@ -5,18 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Security: Added support to use auth token during initial connect to cloud
-- Fix re-registration fails that lose a socket
-- Fix mutex error in service alive
-- Security: Mutual Authentication (mTLS or two way TLS)
-- Rename command line options for MTLS cert and Key
-- Update to use nanomsg v. 1.1.4
-- requestNewAuthToken will clear the token if it fails.
-- request auth token on every retry, not just after 403
-- update to use nopoll v 1.0.2
-- Add pause/resume heartBeatTimer
-- parodus event handler to listen to interface_down and interface_up event
-- Pause connection retry during interface_down event
+- Add additional HTTP headers for call to Themis from Convey
+
+## [1.1.4]
+- on connect retry, requery jwt only if it failed before 
+- put two timestamps in connection health file; start conn and current
+- change health file update interval to 240sec
+- use jitter in backoff delay
+- sendMessage to check cloud status == ONLINE before sending
+- when killed with SIGTERM, close will use msg in close reason file.
+
+## [1.1.3]
 - Add callback handler for ping status change event
 - Fixed nopoll_conn_unref crash
 - Update retry timestamp in connection-health-file
@@ -24,12 +23,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - provide signal handlers so we shut down properly when INCLUDE_BREAKPAD active
 - send status code and reason in websocket close message
 - dont try to install handler for signal 9
-- on connect retry, requery jwt only if it failed before 
-- put two timestamps in connection health file; start conn and current
-- change health file update interval to 240sec
-- use jitter in backoff delay
-- sendMessage to check cloud status == ONLINE before sending
-- when killed with SIGTERM, close will use msg in close reason file.
+
+## [1.1.2]
+- Add pause/resume heartBeatTimer
+- parodus event handler to listen to interface_down and interface_up event
+- Pause connection retry during interface_down event
+
+## [1.1.1]
+- Update to use nanomsg v. 1.1.4
+- requestNewAuthToken will clear the token if it fails.
+- request auth token on every retry, not just after 403
+- update to use nopoll v 1.0.2
+
+## [1.0.4]
+- Fix re-registration fails that lose a socket
+- Fix mutex error in service alive
+- Security: Mutual Authentication (mTLS or two way TLS)
+- Rename command line options for MTLS cert and Key
+
+## [1.0.3]
+- Security: Added support to use auth token during initial connect to cloud
 
 ## [1.0.2] - 2019-02-08
 - Refactored connection.c and updated corresponding unit tests
@@ -89,7 +102,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Initial creation
 
-[Unreleased]: https://github.com/Comcast/parodus/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/Comcast/parodus/compare/1.1.4...HEAD
+[1.1.4]: https://github.com/Comcast/parodus/compare/1.1.3...1.1.4
+[1.1.3]: https://github.com/Comcast/parodus/compare/1.1.2...1.1.3
+[1.1.2]: https://github.com/Comcast/parodus/compare/1.1.1...1.1.2
+[1.1.1]: https://github.com/Comcast/parodus/compare/1.0.4...1.1.1
+[1.0.4]: https://github.com/Comcast/parodus/compare/1.0.3...1.0.4
+[1.0.3]: https://github.com/Comcast/parodus/compare/1.0.2...1.0.3
 [1.0.2]: https://github.com/Comcast/parodus/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/Comcast/parodus/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/Comcast/parodus/compare/79fa7438de2b14ae64f869d52f5c127497bf9c3f...1.0.0
