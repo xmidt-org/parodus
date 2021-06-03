@@ -5,9 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-- Add additional HTTP headers for call to Themis from Convey
 
-## [1.1.4]
+## [v1.1.5]
+- Add additional HTTP headers for call to Themis from Convey
+- Change default branch name to `main`
+
+## [v1.1.4]
 - on connect retry, requery jwt only if it failed before 
 - put two timestamps in connection health file; start conn and current
 - change health file update interval to 240sec
@@ -102,8 +105,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - Initial creation
 
-[Unreleased]: https://github.com/Comcast/parodus/compare/1.1.4...HEAD
-[1.1.4]: https://github.com/Comcast/parodus/compare/1.1.3...1.1.4
+[Unreleased]: https://github.com/Comcast/parodus/compare/v1.1.5...HEAD
+[1.1.5]: https://github.com/Comcast/parodus/compare/v1.1.4...v1.1.5
+[1.1.4]: https://github.com/Comcast/parodus/compare/1.1.3...v1.1.4
 [1.1.3]: https://github.com/Comcast/parodus/compare/1.1.2...1.1.3
 [1.1.2]: https://github.com/Comcast/parodus/compare/1.1.1...1.1.2
 [1.1.1]: https://github.com/Comcast/parodus/compare/1.0.4...1.1.1
