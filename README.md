@@ -1,11 +1,16 @@
+<!--
+SPDX-FileCopyrightText: 2016-2021 Comcast Cable Communications Management, LLC
+SPDX-License-Identifier: Apache-2.0
+-->
 # parodus
 
-[![Build Status](https://travis-ci.org/xmidt-org/parodus.svg?branch=master)](https://travis-ci.org/xmidt-org/parodus)
-[![codecov.io](http://codecov.io/github/xmidt-org/parodus/coverage.svg?branch=master)](http://codecov.io/github/Comcast/parodus?branch=master)
+[![Build Status](https://github.com/xmidt-org/parodus/workflows/CI/badge.svg)](https://github.com/xmidt-org/parodus/actions)
+[![codecov.io](http://codecov.io/github/xmidt-org/parodus/coverage.svg?branch=master)](http://codecov.io/github/xmidt-org/parodus?branch=master)
 [![Coverity](https://img.shields.io/coverity/scan/11192.svg)](https://scan.coverity.com/projects/comcast-parodus)
-[![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/Comcast/parodus/blob/master/LICENSE)
-[![GitHub release](https://img.shields.io/github/release/Comcast/parodus.svg)](CHANGELOG.md)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=xmidt-org_parodus&metric=alert_status)](https://sonarcloud.io/dashboard?id=xmidt-org_parodus)
+[![Language Grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/xmidt-org/parodus.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/xmidt-org/parodus/context:cpp)
+[![Apache V2 License](http://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/xmidt-org/parodus/blob/master/LICENSE)
+[![GitHub release](https://img.shields.io/github/release/xmidt-org/parodus.svg)](CHANGELOG.md)
 
 
 C implementation of the XMiDT client coordinator
