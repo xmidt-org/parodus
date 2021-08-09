@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 - Add additional HTTP headers for call to Themis from Convey
+- Add callback handler for initial cloud connection status change event
 
 ## [1.1.4]
 - on connect retry, requery jwt only if it failed before 

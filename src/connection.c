@@ -62,6 +62,8 @@ enum {
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
+parodusOnConnStatusChangeHandler on_conn_status_change;
+
 parodusOnPingStatusChangeHandler on_ping_status_change;
 
 pthread_mutex_t backoff_delay_mut=PTHREAD_MUTEX_INITIALIZER;
@@ -752,6 +754,13 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	  }
 	  /* if we failed to connect, don't reuse the redirect server */	
       free_server (&conn_ctx.server_list->redirect);
+
+      /* On initial connect failure, invoke conn status change event as "fail" */
+      if(NULL != on_conn_status_change && init)
+      {
+    	  on_conn_status_change("failed");
+      }
+
 #ifdef FEATURE_DNS_QUERY
       /* if we don't already have a valid jwt, look up server information */
       if (server_is_null (&conn_ctx.server_list->jwt))
@@ -775,6 +784,12 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	
 	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
+
+	/* On initial connect success, invoke conn status change event as "success" */
+	if(NULL != on_conn_status_change && init)
+	{
+		on_conn_status_change("success");
+	}
 
 	// Invoke the ping status change event callback as "received" ping
 	if(NULL != on_ping_status_change)
@@ -932,5 +947,10 @@ void stop_conn_in_progress (void)
 void registerParodusOnPingStatusChangeHandler(parodusOnPingStatusChangeHandler callback_func)
 {
 	on_ping_status_change = callback_func;
+}
+
+void registerParodusOnConnStatusChangeHandler(parodusOnConnStatusChangeHandler callback_func)
+{
+	on_conn_status_change = callback_func;
 }
 
