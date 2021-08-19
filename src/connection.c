@@ -756,7 +756,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
       free_server (&conn_ctx.server_list->redirect);
 
       /* On initial connect failure, invoke conn status change event as "fail" */
-      if(NULL != on_conn_status_change && init)
+      if((NULL != on_conn_status_change) && init)
       {
     	  on_conn_status_change("failed");
       }
@@ -786,7 +786,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
 
 	/* On initial connect success, invoke conn status change event as "success" */
-	if(NULL != on_conn_status_change && init)
+	if((NULL != on_conn_status_change) && init)
 	{
 		on_conn_status_change("success");
 	}
