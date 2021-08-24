@@ -719,6 +719,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
   struct timespec connect_time,*connectTimePtr;
   connectTimePtr = &connect_time;
   backoff_timer_t backoff_timer;
+  static int init_conn_failure=1;
   
   if(ctx == NULL) {
         return nopoll_false;
@@ -755,10 +756,11 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	  /* if we failed to connect, don't reuse the redirect server */	
       free_server (&conn_ctx.server_list->redirect);
 
-      /* On initial connect failure, invoke conn status change event as "fail" */
-      if((NULL != on_conn_status_change) && init)
+      /* On initial connect failure, invoke conn status change event as "failed" only 1 time*/
+      if((NULL != on_conn_status_change) && init && init_conn_failure)
       {
     	  on_conn_status_change("failed");
+	  init_conn_failure=0;
       }
 
 #ifdef FEATURE_DNS_QUERY
