@@ -196,7 +196,7 @@ void createSocketConnection(void (* initKeypress)())
             createNopollConnection(ctx, &server_list);
         }
 	 //process exit only when g_shutdown is true.
-       } while(!g_shutdown);
+       } while(FOREVER() && !g_shutdown);
 
     pthread_mutex_lock (get_global_svc_mut());
     pthread_cond_signal (get_global_svc_con());
