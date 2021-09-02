@@ -699,7 +699,8 @@ int wait_while_interface_down()
   	  if (rtn != 0)
   	    ParodusError 
   	      ("Error on pthread_cond_wait (%d) in wait_while_interface_down\n", rtn);
-  	  if ((rtn != 0) || g_shutdown) {
+	  if (g_shutdown) {
+	    ParodusInfo("Received g_shutdown during interface down wait, returning\n");
 	    return -1;
 	  }
 	}

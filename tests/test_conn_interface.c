@@ -44,7 +44,7 @@ pthread_mutex_t svc_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t svc_con=PTHREAD_COND_INITIALIZER;
 int numLoops;
 parodusOnPingStatusChangeHandler on_ping_status_change;
- 
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -335,6 +335,7 @@ void test_createSocketConnection()
 
 void test_createSocketConnection1()
 {
+    numLoops =0;
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0, sizeof(ParodusCfg));
@@ -364,11 +365,11 @@ void test_createSocketConnection1()
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
     createSocketConnection(NULL);
-    
 }
 
 void test_PingMissIntervalTime()
 {
+    numLoops = 6;
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(ParodusCfg));
@@ -386,7 +387,6 @@ void test_PingMissIntervalTime()
     //Max ping timeout is 6 sec
     cfg.webpa_ping_timeout = 6;
     set_parodus_cfg(&cfg);
-    
     reset_close_retry();
     expect_function_call(nopoll_thread_handlers);
     
@@ -422,11 +422,11 @@ void test_PingMissIntervalTime()
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
     createSocketConnection(NULL);
-    
 }
 
 void err_createSocketConnection()
 {
+    numLoops =0;
     set_close_retry();
     reset_heartBeatTimer();
     expect_function_call(nopoll_thread_handlers);
@@ -459,6 +459,7 @@ void err_createSocketConnection()
 
 void test_createSocketConnection_cloud_disconn()
 {
+        numLoops =0;
 	ParodusCfg cfg;
 	memset(&cfg,0,sizeof(ParodusCfg));
 	cfg.cloud_disconnect = strdup("XPC");
