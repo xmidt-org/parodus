@@ -34,7 +34,7 @@ uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer)
     ParodusPrint("timer->tv_sec : %lu\n",timer->tv_sec);
     ParodusPrint("timer->tv_nsec : %lu\n",timer->tv_nsec);
     systime = (uint64_t)timer->tv_sec * 1000000L + timer->tv_nsec/ 1000;
-    return systime;	
+    return systime;
 }
 
 long timeValDiff(struct timespec *starttime, struct timespec *finishtime)
