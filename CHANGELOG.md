@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add additional HTTP headers for call to Themis from Convey
 - Add callback handler for initial cloud connection status change event
 - Fix Parodus connection stuck on interface up down received together
+- Update to use nopoll version 1.0.3
 
 ## [1.1.4]
 - on connect retry, requery jwt only if it failed before 
