@@ -47,6 +47,7 @@ typedef struct UpStreamMsg__
 void packMetaData();
 void *handle_upstream();
 void *processUpstreamMessage();
+void registerRBUSlistener();
 int getDeviceId(char **device_id, size_t *device_id_len);
 void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size);
 void getServiceNameAndSendResponse(wrp_msg_t *msg, void **msg_bytes, size_t msg_size);
