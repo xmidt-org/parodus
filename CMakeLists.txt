@@ -200,6 +200,10 @@ include_directories(${INCLUDE_DIR}/libseshat)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_SESHAT ")
 endif (ENABLE_SESHAT)
 
+if (ENABLE_WEBCFGBIN)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_WEBCFGBIN ")
+endif (ENABLE_WEBCFGBIN)
+
 # libcjwt external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(cjwt
