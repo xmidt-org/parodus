@@ -113,7 +113,7 @@ void createSocketConnection(void (* initKeypress)())
     StartThread(handle_upstream, &upstream_tid);
     StartThread(processUpstreamMessage, &upstream_msg_tid);
     #ifdef ENABLE_WEBCFGBIN
-    registerRBUSlistener();
+    subscribeRBUSevent();
     #endif 
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask, &downstream_tid);
