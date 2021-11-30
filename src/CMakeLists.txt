@@ -23,6 +23,9 @@ else()
 set(SOURCES ${SOURCES} seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 
+if (ENABLE_WEBCFGBIN)
+set(SOURCES ${SOURCES} upstream_rbus.c)
+endif (ENABLE_WEBCFGBIN)
 
 add_executable(parodus ${SOURCES})
 
