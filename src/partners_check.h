@@ -30,6 +30,10 @@ extern "C" {
 
 #include "wrp-c.h"
 
+#define PARTNER_ID_TEST_PARTNER		"test-partner"
+#define PARTNER_ID_COMCAST		"comcast"
+
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/

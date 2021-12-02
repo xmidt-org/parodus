@@ -251,6 +251,44 @@ void test_validate_partner_id_for_event_withoutId()
     free(partner_ids);
 }
 
+void test_partner_validate_partner_id_for_req()
+{   
+    static partners_t partner_ids = {1,{"comcast"}};
+    wrp_msg_t *msg = (wrp_msg_t*) malloc(sizeof(wrp_msg_t));
+    memset(msg, 0, sizeof(wrp_msg_t));
+    msg->msg_type = WRP_MSG_TYPE__REQ;
+    msg->u.req.partner_ids = &partner_ids;
+    
+    ParodusCfg cfg; 
+    memset(&cfg, 0, sizeof(ParodusCfg));
+    parStrncpy(cfg.partner_id, "*,test-partner", sizeof(cfg.partner_id));
+    
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
+    expect_function_call(get_parodus_cfg);
+    int ret = validate_partner_id(msg, NULL);
+    assert_int_equal(ret, 1);
+    free(msg);
+}
+
+void test_partner_wildcard_validate_partner_id_for_req()
+{   
+    static partners_t partner_ids = {1,{"*"}};
+    wrp_msg_t *msg = (wrp_msg_t*) malloc(sizeof(wrp_msg_t));
+    memset(msg, 0, sizeof(wrp_msg_t));
+    msg->msg_type = WRP_MSG_TYPE__REQ;
+    msg->u.req.partner_ids = &partner_ids;
+    
+    ParodusCfg cfg;
+    memset(&cfg, 0, sizeof(ParodusCfg));
+    parStrncpy(cfg.partner_id, "*,test-partner", sizeof(cfg.partner_id));
+    
+    will_return(get_parodus_cfg, (intptr_t)&cfg);
+    expect_function_call(get_parodus_cfg);
+    int ret = validate_partner_id(msg, NULL);
+    assert_int_equal(ret, 1);
+    free(msg);
+}
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -268,6 +306,8 @@ int main(void)
         cmocka_unit_test(test_validate_partner_id_for_event_listNULL),
         cmocka_unit_test(test_validate_partner_id_for_event_withoutId),
         cmocka_unit_test(err_validate_partner_id_for_event),
+	cmocka_unit_test(test_partner_validate_partner_id_for_req),
+	cmocka_unit_test(test_partner_wildcard_validate_partner_id_for_req),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

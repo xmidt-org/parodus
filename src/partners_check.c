@@ -23,6 +23,7 @@
 
 #include "ParodusInternal.h"
 #include "config.h"
+#include "partners_check.h"
 
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
@@ -168,6 +169,12 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
 		                    matchFlag = 1;
 		                    break;
 		                }
+				if((strcasecmp(partnersList->partner_ids[j],PARTNER_ID_TEST_PARTNER) == 0) && (strcasecmp(msg->u.req.partner_ids->partner_ids[i], PARTNER_ID_COMCAST) == 0))                   
+                                {
+                                    ParodusInfo("test_partner_id match found\n");
+                                    matchFlag = 1;
+                                    break;
+                                }
 			}
 			else
 				ParodusError("partner Id in partnersList is NULL but count is not 0");
