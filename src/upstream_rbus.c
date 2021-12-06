@@ -40,7 +40,6 @@ void subscribeRBUSevent()
 	rbusError_t err;
     int rc = RBUS_ERROR_SUCCESS;
 	rbusHandle_t rbus_Handle;
-
 	err = rbus_open(&rbus_Handle, "parodus");
 	if (err)
 	{
@@ -62,12 +61,14 @@ void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event
     int rv=-1;
 	wrp_msg_t *event_msg;
 	void *bytes;
+	const uint8_t* bytesVal = NULL;
     int len;
     rbusValue_t value = NULL;
 
     value = rbusObject_GetValue(event->data, "value");
-    bytes = rbusValue_GetBytes(value, &len);
+    bytesVal = rbusValue_GetBytes(value, &len);
 
+	bytes = (void*) bytesVal;
 	rv = wrp_to_struct( bytes, len, WRP_BYTES, &event_msg );
 	if(rv > 0)
 	{
@@ -119,5 +120,6 @@ void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event
 
 void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscription, rbusError_t error)
 {
+	(void)handle;
 	ParodusInfo("subscribeAsyncHandler event %s, error %d - %s\n",subscription->eventName, error, rbusError_ToString(error));
 }
