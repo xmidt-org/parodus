@@ -43,6 +43,13 @@ include_directories(${INCLUDE_DIR}
                     ${INCLUDE_DIR}/cjwt
 					)	
 
+if (ENABLE_WEBCFGBIN)
+include_directories(${INCLUDE_DIR}/rbus
+		    ${INCLUDE_DIR}/rbus-core
+		    ${INCLUDE_DIR}/rtmessage
+)
+endif (ENABLE_WEBCFGBIN)
+
 # Get git commit hash 
 #-------------------------------------------------------------------------------
 execute_process(
@@ -228,6 +235,51 @@ include_directories(${INCLUDE_DIR}
 					)		
 
 endif (FEATURE_DNS_QUERY)
+
+if (ENABLE_WEBCFGBIN)
+# rtMessage external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(rtMessage
+     #DEPENDS cJSON
+     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/rtMessage
+     GIT_REPOSITORY https://github.com/rdkcmf/rdk-rtmessage.git
+     GIT_TAG rdk-next
+     CMAKE_ARGS += -DBUILD_RTMESSAGE_LIB=ON
+                   -DBUILD_RTMESSAGE_SAMPLE_APP=ON
+                   -DBUILD_FOR_DESKTOP=OFF
+		   -DCJSON_BUILD=OFF
+                   -DBUILD_DATAPROVIDER_LIB=ON
+                   -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+)
+add_library(librtMessage STATIC SHARED IMPORTED)
+add_dependencies(librtMessage rtMessage)
+
+# rbus-core external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(rbus-core
+     DEPENDS rtMessage
+     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/rbus-core
+     GIT_REPOSITORY https://github.com/rdkcmf/rbuscore.git
+     GIT_TAG rdk-next
+     CMAKE_ARGS += -DBUILD_FOR_DESKTOP=ON -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
+                   -DBUILD_TESTING=OFF
+)
+add_library(librbus-core STATIC SHARED IMPORTED)
+add_dependencies(librbus-core rbus-core)
+
+# rbus external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(rbus
+     DEPENDS rtMessage rbus-core
+     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/rbus
+     GIT_REPOSITORY https://github.com/rdkcmf/rbus.git
+     GIT_TAG rdk-next
+     CMAKE_ARGS += -DBUILD_FOR_DESKTOP=ON -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+)
+
+add_library(librbus STATIC SHARED IMPORTED)
+add_dependencies(librbus rbus)
+endif (ENABLE_WEBCFGBIN)
 
 if (BUILD_TESTING)
 # cmocka external dependency

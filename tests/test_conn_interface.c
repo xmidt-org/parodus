@@ -172,6 +172,18 @@ int serviceAliveTask()
     return 0;
 }
 
+int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
+{
+	UNUSED(msg); UNUSED(partnerIds);
+	return 0;
+}
+
+void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
+{
+	UNUSED(resp_bytes); UNUSED(resp_size);
+	return;
+}
+
 int nopoll_loop_wait(noPollCtx * ctx,long timeout)
 {
     UNUSED(ctx); UNUSED(timeout);

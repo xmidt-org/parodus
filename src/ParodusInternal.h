@@ -161,7 +161,9 @@ int readFromFile(const char *file_name, char **data);
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
 
-
+#ifdef ENABLE_WEBCFGBIN
+void subscribeRBUSevent();
+#endif
 /*------------------------------------------------------------------------------*/
 /*                        For interface_down_event Flag                         */
 /*------------------------------------------------------------------------------*/
