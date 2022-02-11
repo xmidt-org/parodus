@@ -42,17 +42,17 @@ static void* asyncMethodHandler(void *p)
 	rbusObject_t outParams;
 	rbusValue_t value;
 	rbusError_t err;
-	ParodusInfo("Enter asyncMethodHandler\n");
+	ParodusInfo("Enter asyncMethodHandler. sending aync response back\n");
 
 	//This should be a consumer that awake when xpc ack is received.
-	ParodusInfo("sleep of 10s for sending aync response back\n");
-	sleep(10);
-	ParodusInfo("sleep done\n");
+	//ParodusInfo("sleep of 10s for sending aync response back\n");
+	//sleep(10);
+	//ParodusInfo("sleep done\n");
 	data = p;
 	rbusValue_Init(&value);
 	rbusValue_SetString(value, "Async method response from parodus");
 	rbusObject_Init(&outParams, NULL);
-	rbusObject_SetValue(outParams, "value", value);
+	rbusObject_SetValue(outParams, "parodus_ack_response", value);
 	rbusValue_Release(value);
 	if(returnStatus)
 	{
@@ -88,7 +88,26 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 {
 	(void) handle;
 	ParodusInfo("methodHandler called: %s\n", methodName);
-	//rbusObject_fwrite(inParams, 1, stdout);
+	rbusObject_fwrite(inParams, 1, stdout);
+
+	ParodusInfo("Print InParams..\n");
+	rbusValue_t name = rbusObject_GetValue(inParams, "name");
+
+        //if(name && (rbusValue_GetType(name) == RBUS_STRING))
+        //{
+		ParodusInfo("name type: %d\n", rbusValue_GetType(name));
+		char * nameStr = rbusValue_ToString(name, NULL, 0);
+		//char * nameStr = rbusValue_GetString(name, NULL);
+		ParodusInfo("name received is %s\n", nameStr);
+
+		ParodusInfo("payload..\n");
+		rbusValue_t payload = rbusObject_GetValue(inParams, "payload");
+		ParodusInfo("payload type: %d\n", rbusValue_GetType(payload));
+		//char * payloadStr = rbusValue_GetString(payload, NULL);
+		char * payloadStr = rbusValue_ToString(payload, NULL, 0);
+		ParodusInfo("payloadStr received is %s\n", payloadStr);
+	//}
+	ParodusInfo("Print InParams done\n");
 	if(strcmp(methodName, XMIDT_SEND_METHOD) == 0)
 	{
 		pthread_t pid;
