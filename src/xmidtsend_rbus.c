@@ -83,31 +83,128 @@ static void* asyncMethodHandler(void *p)
 	return NULL;
 }
 
+void displayInputParameters(rbusObject_t inParams)
+{
+	//contentType
+	rbusValue_t contenttype = rbusObject_GetValue(inParams, "contentType");
+	if(contenttype)
+	{
+		if(rbusValue_GetType(contenttype) == RBUS_STRING)
+		{
+			char * contenttypeStr = rbusValue_GetString(contenttype, NULL);
+			ParodusInfo("contenttype value received is %s\n", contenttypeStr);
+		}
+	}
+	else
+	{
+		ParodusError("contenttype is empty\n");
+	}
+
+	//msg_type
+	rbusValue_t msg_type = rbusObject_GetValue(inParams, "msg_type");
+	if(msg_type)
+	{
+		if(rbusValue_GetType(msg_type) == RBUS_STRING)
+		{
+			char *msg_typeStr = rbusValue_GetString(msg_type, NULL);
+			ParodusInfo("msg_type value received is %s\n", msg_typeStr);
+		}
+	}
+	else
+	{
+		ParodusError("msg_type is empty\n");
+	}
+
+	//source
+	rbusValue_t source = rbusObject_GetValue(inParams, "source");
+	if(source)
+	{
+		if(rbusValue_GetType(source) == RBUS_STRING)
+		{
+			char * sourceStr = rbusValue_GetString(source, NULL);
+			ParodusInfo("source value received is %s\n", sourceStr);
+		}
+	}
+	else
+	{
+		ParodusError("source is empty\n");
+	}
+
+	//dest_root
+	rbusValue_t dest_root = rbusObject_GetValue(inParams, "dest_root");
+	if(dest_root)
+	{
+		if(rbusValue_GetType(dest_root) == RBUS_STRING)
+		{
+			char * dest_rootStr = rbusValue_GetString(dest_root, NULL);
+			ParodusInfo("dest_root value received is %s\n", dest_rootStr);
+		}
+	}
+	else
+	{
+		ParodusError("dest_root is empty\n");
+	}
+
+	//dest_path
+	rbusValue_t dest_path = rbusObject_GetValue(inParams, "dest_path");
+	if(dest_path)
+	{
+		if(rbusValue_GetType(dest_path) == RBUS_STRING)
+		{
+			char * dest_pathStr = rbusValue_GetString(dest_path, NULL);
+			ParodusInfo("dest_path value received is %s\n", dest_pathStr);
+		}
+	}
+	else
+	{
+		ParodusError("dest_path is empty\n");
+	}
+
+	//payload
+	rbusValue_t payload = rbusObject_GetValue(inParams, "payload");
+	if(payload)
+	{
+		if((rbusValue_GetType(payload) == RBUS_STRING))
+		{
+			char * payloadStr = rbusValue_GetString(payload, NULL);
+			ParodusInfo("payload received is %s\n", payloadStr);
+		}
+	}
+	else
+	{
+		ParodusError("payload is empty\n");
+	}
+
+	//payloadlen
+	ParodusInfo("check payloadlen\n");
+	rbusValue_t payloadlen = rbusObject_GetValue(inParams, "payloadlen");
+	ParodusInfo("payloadlen value object\n");
+	if(payloadlen)
+	{
+		ParodusInfo("payloadlen is not empty\n");
+		if(rbusValue_GetType(payloadlen) == RBUS_INT32)
+		{
+			ParodusInfo("payloadlen type %d RBUS_INT32 %d\n", rbusValue_GetType(payloadlen), RBUS_INT32);
+			int payloadlength = rbusValue_GetInt32(payloadlen);
+			ParodusInfo("payloadlen received is %d\n", payloadlength);
+		}
+	}
+	else
+	{
+		ParodusError("payloadlen is empty\n");
+	}
+}
 
 static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
 	(void) handle;
 	ParodusInfo("methodHandler called: %s\n", methodName);
-	rbusObject_fwrite(inParams, 1, stdout);
+	//rbusObject_fwrite(inParams, 1, stdout);
 
-	ParodusInfo("Print InParams..\n");
-	rbusValue_t name = rbusObject_GetValue(inParams, "name");
+	ParodusInfo("displayInputParameters ..\n");
+	displayInputParameters(inParams);
+	ParodusInfo("displayInputParameters done\n");
 
-        //if(name && (rbusValue_GetType(name) == RBUS_STRING))
-        //{
-		ParodusInfo("name type: %d\n", rbusValue_GetType(name));
-		char * nameStr = rbusValue_ToString(name, NULL, 0);
-		//char * nameStr = rbusValue_GetString(name, NULL);
-		ParodusInfo("name received is %s\n", nameStr);
-
-		ParodusInfo("payload..\n");
-		rbusValue_t payload = rbusObject_GetValue(inParams, "payload");
-		ParodusInfo("payload type: %d\n", rbusValue_GetType(payload));
-		//char * payloadStr = rbusValue_GetString(payload, NULL);
-		char * payloadStr = rbusValue_ToString(payload, NULL, 0);
-		ParodusInfo("payloadStr received is %s\n", payloadStr);
-	//}
-	ParodusInfo("Print InParams done\n");
 	if(strcmp(methodName, XMIDT_SEND_METHOD) == 0)
 	{
 		pthread_t pid;
