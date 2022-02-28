@@ -33,6 +33,7 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
 
 static ParodusCfg parodusCfg;
 static unsigned int rsa_algorithms = 
@@ -480,8 +481,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'i':
-          parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
-          ParodusInfo("webpa_interface_used is %s\n",cfg->webpa_interface_used);
+          parStrncpy(getWebpaInterface(), optarg,sizeof(getWebpaInterface()));
+          ParodusInfo("webpa_interface_used is %s\n",getWebpaInterface());
           break;
           
         case 'l':
@@ -724,7 +725,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if(strlen(config->webpa_interface_used )!=0)
     {
-        parStrncpy(cfg->webpa_interface_used, config->webpa_interface_used,sizeof(cfg->webpa_interface_used));
+        parStrncpy(getWebpaInterface(), config->webpa_interface_used,sizeof(getWebpaInterface()));
     }
     else
     {
@@ -848,4 +849,18 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
 }
 
+#ifdef WAN_FAILOVER_SUPPORTED
+void setWebpaInterface(char *value)
+{
+	pthread_mutex_lock (&config_mut);
+	parStrncpy(cfg->webpa_interface_used, value, sizeof(cfg->webpa_interface_used));
+	pthread_mutex_unlock (&config_mut);
+}
 
+char * getWebpaInterface(void)
+{
+	pthread_mutex_lock (&config_mut);
+	return cfg->webpa_interface_used;
+	pthread_mutex_unlock (&config_mut);
+}
+#endif

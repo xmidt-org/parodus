@@ -164,6 +164,10 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
 #ifdef ENABLE_WEBCFGBIN
 void subscribeRBUSevent();
 #endif
+
+#ifdef WAN_FAILOVER_SUPPORTED
+int subscribeCurrentActiveInterfaceEvent();
+#endif
 /*------------------------------------------------------------------------------*/
 /*                        For interface_down_event Flag                         */
 /*------------------------------------------------------------------------------*/
