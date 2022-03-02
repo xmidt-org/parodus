@@ -103,7 +103,7 @@ void test_setParodusConfig()
     assert_string_equal(cfg.hw_last_reboot_reason, temp->hw_last_reboot_reason);
     assert_string_equal(cfg.webpa_path_url, temp->webpa_path_url);
     assert_string_equal(cfg.webpa_url, temp->webpa_url);
-    assert_string_equal(cfg.webpa_interface_used, temp->webpa_interface_used);
+    assert_string_equal(cfg.webpa_interface_used, getWebpaInterface());
     assert_string_equal(cfg.webpa_protocol, temp->webpa_protocol);
     assert_string_equal(cfg.webpa_uuid, temp->webpa_uuid);
     assert_string_equal(cfg.partner_id, temp->partner_id);

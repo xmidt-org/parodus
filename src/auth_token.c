@@ -80,9 +80,9 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 		curl_easy_setopt(curl, CURLOPT_URL, get_parodus_cfg()->token_server_url);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT_SEC);
 
-		if(get_parodus_cfg()->webpa_interface_used !=NULL && strlen(get_parodus_cfg()->webpa_interface_used) >0)
+		if(getWebpaInterface() !=NULL && strlen(getWebpaInterface()) >0)
 		{
-			curl_easy_setopt(curl, CURLOPT_INTERFACE, get_parodus_cfg()->webpa_interface_used);
+			curl_easy_setopt(curl, CURLOPT_INTERFACE, getWebpaInterface());
 		}
 		/* set callback for writing received data */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_fn);
@@ -304,7 +304,7 @@ void createCurlheader(struct curl_slist *list, struct curl_slist **header_list)
     snprintf(buf, MAX_BUF_SIZE, "X-Midt-Protocol: %s", get_parodus_cfg()->webpa_protocol);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Interface-Used: %s", get_parodus_cfg()->webpa_interface_used);
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Interface-Used: %s", getWebpaInterface());
     list = curl_slist_append(list, buf);
 
     snprintf(buf, MAX_BUF_SIZE, "X-Midt-Last-Reboot-Reason: %s", get_parodus_cfg()->hw_last_reboot_reason);

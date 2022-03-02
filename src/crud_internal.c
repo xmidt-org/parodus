@@ -537,13 +537,13 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(WEBPA_INTERFACE, keyName)==0)
 	{
-		if((get_parodus_cfg()->webpa_interface_used !=NULL)&& (strlen(get_parodus_cfg()->fw_name)==0))
+		if((getWebpaInterface() !=NULL)&& (strlen(get_parodus_cfg()->fw_name)==0))
 		{
 			ParodusError("retrieveFromMemory: webpa_interface_used value is NULL\n");
 			return -1;
 		}
-		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->webpa_interface_used);
-		cJSON_AddItemToObject( *jsonresponse, WEBPA_INTERFACE , cJSON_CreateString(get_parodus_cfg()->webpa_interface_used));
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,getWebpaInterface());
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_INTERFACE , cJSON_CreateString(getWebpaInterface()));
 	}
 	else if(strcmp(WEBPA_URL, keyName)==0)
 	{

@@ -38,7 +38,9 @@ void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event
 
 void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscription, rbusError_t error);
 
+#ifdef WAN_FAILOVER_SUPPORTED
 void eventReceiveHandler( rbusHandle_t rbus_handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription );
+#endif
 
 /* API to register RBUS listener to receive messages from webconfig */
 void subscribeRBUSevent()
@@ -57,6 +59,7 @@ void subscribeRBUSevent()
         ParodusInfo("rbusEvent_Subscribe was successful\n");
 }
 
+#ifdef WAN_FAILOVER_SUPPORTED
 /* API to subscribe Active Interface name on value change event*/
 int subscribeCurrentActiveInterfaceEvent()
 {
@@ -78,7 +81,8 @@ int subscribeCurrentActiveInterfaceEvent()
         	ParodusInfo("Device.X_RDK_WanManager.CurrentActiveInterface subscribe successful\n");
 	}       
 	return rc;	
-}   
+} 
+#endif
 
 void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
 {
@@ -151,6 +155,7 @@ void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscr
 	ParodusInfo("subscribeAsyncHandler event %s, error %d - %s\n",subscription->eventName, error, rbusError_ToString(error));
 }
 
+#ifdef WAN_FAILOVER_SUPPORTED
 void eventReceiveHandler( rbusHandle_t rbus_handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription )
 {
     (void)rbus_handle;
@@ -166,5 +171,6 @@ void eventReceiveHandler( rbusHandle_t rbus_handle, rbusEvent_t const* event, rb
 	ParodusInfo("New Interface value g_interface = %s\n",get_global_interface());
     }	
     if(oldValue)
-        ParodusInfo("   Old Value: %s\n", rbusValue_GetString(oldValue, NULL));
+        ParodusInfo("Old Value: %s\n", rbusValue_GetString(oldValue, NULL));
 }
+#endif

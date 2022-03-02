@@ -95,7 +95,7 @@ void packMetaData()
             {LAST_RECONNECT_REASON, get_global_reconnect_reason()},
             {WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol},
             {WEBPA_UUID,get_parodus_cfg()->webpa_uuid},
-            {WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used},
+            {WEBPA_INTERFACE, getWebpaInterface()},
             {PARTNER_ID, get_parodus_cfg()->partner_id}
         };
 

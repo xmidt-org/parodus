@@ -853,14 +853,20 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
 void setWebpaInterface(char *value)
 {
 	pthread_mutex_lock (&config_mut);
-	parStrncpy(cfg->webpa_interface_used, value, sizeof(cfg->webpa_interface_used));
-	pthread_mutex_unlock (&config_mut);
-}
-
-char * getWebpaInterface(void)
-{
-	pthread_mutex_lock (&config_mut);
-	return cfg->webpa_interface_used;
+	parStrncpy(get_parodus_cfg()->webpa_interface_used, value, sizeof(get_parodus_cfg()->webpa_interface_used));
 	pthread_mutex_unlock (&config_mut);
 }
 #endif
+
+char * getWebpaInterface(void)
+{
+	#ifdef WAN_FAILOVER_SUPPORTED	
+		ParodusPrint("WAN_FAILOVER_SUPPORTED mode \n");
+		pthread_mutex_lock (&config_mut);
+		return get_parodus_cfg()->webpa_interface_used;
+		pthread_mutex_unlock (&config_mut);
+	else
+		ParodusPrint("Erouter0 interface \n");
+		return get_parodus_cfg()->webpa_interface_used;		
+}
+

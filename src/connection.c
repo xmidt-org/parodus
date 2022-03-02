@@ -862,7 +862,7 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 	    nopoll_conn_opts_ssl_peer_verify (opts, nopoll_true);
 	    nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
 	}
-	nopoll_conn_opts_set_interface (opts,get_parodus_cfg()->webpa_interface_used);	
+	nopoll_conn_opts_set_interface (opts,getWebpaInterface());	
 	nopoll_conn_opts_set_extra_headers (opts,extra_headers); 
 	return opts;   
 }
