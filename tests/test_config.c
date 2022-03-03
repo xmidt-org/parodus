@@ -208,13 +208,11 @@ void test_parseCommandLine()
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
-
 #ifdef FEATURE_DNS_QUERY
 	write_key_to_file ("../../tests/jwt_key.tst", jwt_key);
 #endif
     create_token_script("/tmp/token.sh");
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), 0);
-
     assert_string_equal( parodusCfg.hw_model, "TG1682");
     assert_string_equal( parodusCfg.hw_serial_number, "Fer23u948590");
     assert_string_equal( parodusCfg.hw_manufacturer, "ARRISGroup,Inc.");

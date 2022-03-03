@@ -34,6 +34,7 @@
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
+char webpa_interface[64]={'\0'};
 
 static ParodusCfg parodusCfg;
 static unsigned int rsa_algorithms = 
@@ -481,8 +482,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           break;
 
         case 'i':
-          parStrncpy(getWebpaInterface(), optarg,sizeof(getWebpaInterface()));
-          ParodusInfo("webpa_interface_used is %s\n",getWebpaInterface());
+          parStrncpy(cfg->webpa_interface_used, optarg,sizeof(cfg->webpa_interface_used));
+          ParodusInfo("webpa_interface_used is %s\n",cfg->webpa_interface_used);
           break;
           
         case 'l':
@@ -858,15 +859,18 @@ void setWebpaInterface(char *value)
 }
 #endif
 
-char * getWebpaInterface(void)
+char *getWebpaInterface(void)
 {
 	#ifdef WAN_FAILOVER_SUPPORTED	
-		ParodusPrint("WAN_FAILOVER_SUPPORTED mode \n");
-		pthread_mutex_lock (&config_mut);
-		return get_parodus_cfg()->webpa_interface_used;
+		ParodusInfo("WAN_FAILOVER_SUPPORTED mode \n");
+		pthread_mutex_lock (&config_mut);	
+		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
 		pthread_mutex_unlock (&config_mut);
-	else
-		ParodusPrint("Erouter0 interface \n");
-		return get_parodus_cfg()->webpa_interface_used;		
+	#else
+		ParodusInfo("Erouter0 interface \n");
+		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
+	#endif
+		ParodusInfo("webpa_interface:%s\n", webpa_interface);
+		return webpa_interface;
 }
 

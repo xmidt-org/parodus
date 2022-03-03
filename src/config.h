@@ -140,7 +140,7 @@ void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
 void set_cloud_disconnect_reason(ParodusCfg *cfg, char *disconn_reason);
 void reset_cloud_disconnect_reason(ParodusCfg *cfg);
-char * getWebpaInterface(void);
+char *getWebpaInterface(void);
 void setWebpaInterface(char *value);
 /**
  * parse a webpa url. Extract the server address, the port

@@ -46,6 +46,7 @@ extern size_t metaPackSize;
 extern UpStreamMsg *UpStreamMsgQ;
 int numLoops = 1;
 int deviceIDNull =0;
+char webpa_interface[64]={'\0'};
 wrp_msg_t *reg_msg = NULL;
 extern pthread_mutex_t nano_mut;
 extern pthread_cond_t nano_con;
@@ -99,6 +100,28 @@ ParodusCfg *get_parodus_cfg(void)
 	}
 	set_parodus_cfg(&cfg);
     return &parodusCfg;
+}
+
+char *getWebpaInterface(void)
+{
+    ParodusCfg cfg;
+    memset(&cfg,0,sizeof(cfg));
+    #ifdef WAN_FAILOVER_SUPPORTED
+        parStrncpy(cfg.webpa_interface_used , "wl0", sizeof(cfg.webpa_interface_used));
+    else
+        parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
+    #endif
+    set_parodus_cfg(&cfg);
+    #ifdef WAN_FAILOVER_SUPPORTED	
+	ParodusPrint("WAN_FAILOVER_SUPPORTED mode \n");
+	pthread_mutex_lock (&config_mut);	
+	parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
+	pthread_mutex_unlock (&config_mut);
+    else
+	ParodusPrint("Erouter0 interface \n");
+	parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
+    #endif
+	return webpa_interface;
 }
 
 /*-------------------------------------------

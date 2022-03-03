@@ -240,7 +240,7 @@ if (ENABLE_WEBCFGBIN)
 # rtMessage external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(rtMessage
-     #DEPENDS cJSON
+     DEPENDS cJSON
      PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/rtMessage
      GIT_REPOSITORY https://github.com/rdkcmf/rdk-rtmessage.git
      GIT_TAG rdk-next
