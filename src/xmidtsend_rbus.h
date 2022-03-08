@@ -31,13 +31,21 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
+typedef struct XmidtMsg__
+{
+	void *msg;
+	size_t len;
+	struct XmidtMsg__ *next;
+} XmidtMsg;
 
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
 rbusHandle_t get_parodus_rbus_Handle(void);
-
+int addToXmidtUpstreamQ(void* inParams);
+void* processXmidtUpstreamMsg();
+void processXmidtData();
 #ifdef __cplusplus
 }
 #endif

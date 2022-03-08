@@ -30,11 +30,39 @@
 
 #define XMIDT_SEND_METHOD "Device.X_RDK_Xmidt.SendData"
 static bool returnStatus = true;
+static pthread_t processThreadId = 0;
+
 typedef struct MethodData 
 {
     rbusMethodAsyncHandle_t asyncHandle;
     rbusObject_t inParams;
 } MethodData;
+
+XmidtMsg *XmidtMsgQ = NULL;
+
+pthread_mutex_t xmidt_mut=PTHREAD_MUTEX_INITIALIZER;
+
+pthread_cond_t xmidt_con=PTHREAD_COND_INITIALIZER;
+
+XmidtMsg * get_global_XmidtMsgQ(void)
+{
+    return XmidtMsgQ;
+}
+
+void set_global_XmidtMsgQ(XmidtMsg * xUpStreamQ)
+{
+    XmidtMsgQ = xUpStreamQ;
+}
+
+pthread_cond_t *get_global_xmidt_con(void)
+{
+    return &xmidt_con;
+}
+
+pthread_mutex_t *get_global_xmidt_mut(void)
+{
+    return &xmidt_mut;
+}
 
 static void* asyncMethodHandler(void *p)
 {
@@ -195,6 +223,109 @@ void displayInputParameters(rbusObject_t inParams)
 	}
 }
 
+/*
+ * @brief To handle xmidt rbus messages which is received from components.
+ */
+
+int addToXmidtUpstreamQ(void* inParams)
+{
+	XmidtMsg *message;
+
+	ParodusInfo("******** Start of addToXmidtUpstreamQ ********\n");
+
+	while( FOREVER() )
+	{
+		ParodusInfo ("Upstream message received from nanomsg client\n");
+		message = (XmidtMsg *)malloc(sizeof(XmidtMsg));
+
+		if(message)
+		{
+			message->msg =inParams;
+			message->len =bytes;
+			message->next=NULL;
+			pthread_mutex_lock (&xmidt_mut);
+			//Producer adds the rbus msg into queue
+			if(XmidtMsgQ == NULL)
+			{
+				XmidtMsgQ = message;
+
+				ParodusInfo("Producer added message\n");
+				pthread_cond_signal(&xmidt_con);
+				pthread_mutex_unlock (&xmidt_mut);
+				ParodusInfo("mutex unlock in producer thread\n");
+			}
+			else
+			{
+				XmidtMsg *temp = XmidtMsgQ;
+				while(temp->next)
+				{
+					temp = temp->next;
+				}
+				temp->next = message;
+				pthread_mutex_unlock (&xmidt_mut);
+			}
+		}
+		else
+		{
+			ParodusError("failure in allocation for message\n");
+		}
+	}
+	ParodusInfo ("End of addToXmidtUpstreamQ\n");
+	return 0;
+}
+
+
+//Xmidt consumer thread to process the rbus method data.
+void processXmidtData()
+{
+	int err = 0;
+	err = pthread_create(&processThreadId, NULL, processXmidtUpstreamMsg, NULL);
+	if (err != 0)
+	{
+		ParodusError("Error creating processXmidtData thread :[%s]\n", strerror(err));
+	}
+	else
+	{
+		ParodusInfo("processXmidtData thread created Successfully\n");
+	}
+
+}
+
+//Consumer to Parse and process rbus data.
+void* processXmidtUpstreamMsg()
+{
+	rbusObject_t *inParam = NULL;
+
+	while(FOREVER())
+	{
+		pthread_mutex_lock (&xmidt_mut);
+		ParodusInfo("mutex lock in xmidt consumer thread\n");
+		if(XmidtMsgQ != NULL)
+		{
+			XmidtMsg *Data = XmidtMsgQ;
+			XmidtMsgQ = XmidtMsgQ->next;
+			pthread_mutex_unlock (&xmidt_mut);
+			ParodusInfo("mutex unlock in xmidt consumer thread\n");
+
+			ParodusInfo("Data->data is %s\n", Data->data);
+			rv = parseData(Data->data, &inParam);
+		}
+		else
+		{
+			if (g_shutdown)
+			{
+				pthread_mutex_unlock (&xmidt_mut);
+				break;
+			}
+			ParodusInfo("Before pthread cond wait in xmidt consumer thread\n");
+			pthread_cond_wait(&xmidt_con, &xmidt_mut);
+			pthread_mutex_unlock (&xmidt_mut);
+			ParodusInfo("mutex unlock in xmidt consumer thread after cond wait\n");
+		}
+	}
+	return NULL;
+}
+
 static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
 	(void) handle;
@@ -212,6 +343,8 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 		data->asyncHandle = asyncHandle;
 		data->inParams = inParams;
 		rbusObject_Retain(inParams);
+		//xmidt send producer
+		addToXmidtUpstreamQ((void*) inParams);
 		if(pthread_create(&pid, NULL, asyncMethodHandler, data) || pthread_detach(pid)) 
 		{
 			ParodusError("sendDataHandler failed to create thread\n");
