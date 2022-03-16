@@ -113,20 +113,9 @@ static void* asyncMethodHandler(void *p)
 
 void displayInputParameters(rbusObject_t inParams)
 {
-	rbusValue_t contenttype = rbusObject_GetValue(inParams, "contentType");
-	if(contenttype)
-	{
-		if(rbusValue_GetType(contenttype) == RBUS_STRING)
-		{
-			char * contenttypeStr = rbusValue_GetString(contenttype, NULL);
-			ParodusInfo("contenttype value received is %s\n", contenttypeStr);
-		}
-	}
-	else
-	{
-		ParodusError("contenttype is empty\n");
-	}
+	ParodusInfo("In displayInputParameters\n");
 
+	ParodusInfo("check msg_type\n");
 	rbusValue_t msg_type = rbusObject_GetValue(inParams, "msg_type");
 	if(msg_type)
 	{
@@ -139,6 +128,23 @@ void displayInputParameters(rbusObject_t inParams)
 	else
 	{
 		ParodusError("msg_type is empty\n");
+	}
+
+	rbusValue_t contenttype = rbusObject_GetValue(inParams, "content_type");
+	ParodusInfo("After GetValue contentType\n");
+	if(contenttype)
+	{
+		ParodusInfo("check contenttype type\n");
+		if(rbusValue_GetType(contenttype) == RBUS_STRING)
+		{
+			ParodusInfo("content type is STRING\n");
+			char * contenttypeStr = rbusValue_GetString(contenttype, NULL);
+			ParodusInfo("contenttype value received is %s\n", contenttypeStr);
+		}
+	}
+	else
+	{
+		ParodusError("contenttype is empty\n");
 	}
 
 	rbusValue_t source = rbusObject_GetValue(inParams, "source");
@@ -203,7 +209,7 @@ void displayInputParameters(rbusObject_t inParams)
  * @brief To handle xmidt rbus messages received from various components.
  */
 
-void addToXmidtUpstreamQ(rbusObject_t* inParams)
+void addToXmidtUpstreamQ(void* inParams)
 {
 	XmidtMsg *message;
 
@@ -294,16 +300,23 @@ void* processXmidtUpstreamMsg()
 	return NULL;
 }
 
-void parseData(rbusObject_t * msg)
+void parseData(void* msg)
 {
-	rbusObject_t inParamObj = NULL;
+	rbusObject_t inParamObj;
 
-	inParamObj = *msg;
+	ParodusInfo("Type cast to rbusObj..\n");
+	inParamObj = *(rbusObject_t*)(msg);
 
 	ParodusInfo("print in params from consumer..\n");
-	displayInputParameters(inParamObj);
-	ParodusInfo("print inparams done\n");
-
+	if(inParamObj !=NULL)
+	{
+		displayInputParameters(inParamObj);
+		ParodusInfo("print inparams done\n");
+	}
+	else
+	{
+		ParodusError("inParamObj is NULL\n");
+	}
 	processXmidtEvent(inParamObj);
 	ParodusInfo("processXmidtEvent done\n");
 
@@ -325,12 +338,16 @@ int processXmidtEvent(rbusObject_t inParams)
 	int ret = -1;
 	int rv = 1;
 
+	ParodusInfo("In processXmidtEvent\n");
 	//contentType
-	rbusValue_t contenttype = rbusObject_GetValue(inParams, "contentType");
+	rbusValue_t contenttype = rbusObject_GetValue(inParams, "content_type");
+	ParodusInfo("content_type GetValue\n");
 	if(contenttype)
 	{
+		ParodusInfo("contenttype check type\n");
 		if(rbusValue_GetType(contenttype) == RBUS_STRING)
 		{
+			ParodusInfo("contenttype is string\n");
 			contenttypeStr = rbusValue_GetString(contenttype, NULL);
 			ParodusInfo("contenttype value received is %s\n", contenttypeStr);
 		}
@@ -342,6 +359,7 @@ int processXmidtEvent(rbusObject_t inParams)
 	}
 
 	//msg_type
+	ParodusInfo("check msg_type.\n");
 	rbusValue_t msg_type = rbusObject_GetValue(inParams, "msg_type");
 	if(msg_type)
 	{
@@ -432,8 +450,8 @@ int processXmidtEvent(rbusObject_t inParams)
 	}
 
 	//payloadlen
-	ParodusInfo("check payloadLen\n");
-	rbusValue_t payloadlen = rbusObject_GetValue(inParams, "payloadLen");
+	ParodusInfo("check payloadlen\n");
+	rbusValue_t payloadlen = rbusObject_GetValue(inParams, "payloadlen");
 	if(payloadlen)
 	{
 		ParodusPrint("payloadlen is not empty\n");
@@ -479,6 +497,7 @@ void sendXmidtEventToServer(char *source, char *destination, char* contenttype, 
 	ssize_t msg_len;
 	void *msg_bytes;
 
+	ParodusInfo("In sendXmidtEventToServer\n");
 	if(source != NULL && destination != NULL && contenttype != NULL && payload != NULL)
 	{
 		notif_wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
@@ -515,8 +534,8 @@ void sendXmidtEventToServer(char *source, char *destination, char* contenttype, 
 				ParodusInfo("sendUpstreamMsgToServer\n");
 				sendUpstreamMsgToServer(&msg_bytes, msg_len);
 			}
-			ParodusInfo("B4 wrp_free_struct.\n");
-			wrp_free_struct(notif_wrp_msg);
+			ParodusInfo("B4 wrp_free_struct disabled.\n");
+			//wrp_free_struct(notif_wrp_msg);
 			ParodusInfo("After wrp_free_struct\n");
 			free(msg_bytes);
 			msg_bytes = NULL;
@@ -531,25 +550,25 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 	ParodusInfo("methodHandler called: %s\n", methodName);
 	//rbusObject_fwrite(inParams, 1, stdout);
 
-	//ParodusInfo("displayInputParameters ..\n");
-	//displayInputParameters(inParams);
-	//ParodusInfo("displayInputParameters done\n");
+	ParodusInfo("displayInputParameters ..\n");
+	displayInputParameters(inParams);
+	ParodusInfo("displayInputParameters done\n");
 
 	if(strcmp(methodName, XMIDT_SEND_METHOD) == 0)
 	{
-		/*pthread_t pid;
+		pthread_t pid;
 		MethodData* data = malloc(sizeof(MethodData));
 		data->asyncHandle = asyncHandle;
 		data->inParams = inParams;
-		rbusObject_Retain(inParams);*/
+		rbusObject_Retain(inParams);
 		//xmidt send producer
-		addToXmidtUpstreamQ(&inParams);
+		addToXmidtUpstreamQ((void*) inParams);
 		/**** For now, disable async ack send to t2 nack ***/
-		/*if(pthread_create(&pid, NULL, asyncMethodHandler, data) || pthread_detach(pid)) 
+		if(pthread_create(&pid, NULL, asyncMethodHandler, data) || pthread_detach(pid))
 		{
 			ParodusError("sendDataHandler failed to create thread\n");
 			return RBUS_ERROR_BUS_ERROR;
-		}*/
+		}
 		ParodusInfo("sendDataHandler created async thread, returned %d\n", RBUS_ERROR_ASYNC_RESPONSE);
 		return RBUS_ERROR_ASYNC_RESPONSE;
 	}
