@@ -221,7 +221,7 @@ int displayInputParameters(rbusObject_t inParams)
  * @brief To handle xmidt rbus messages received from various components.
  */
 
-void addToXmidtUpstreamQ(void* inParams)
+void addToXmidtUpstreamQ(rbusObject_t inParams)
 {
 	XmidtMsg *message;
 
@@ -312,12 +312,14 @@ void* processXmidtUpstreamMsg()
 	return NULL;
 }
 
-void parseData(void* msg)
+void parseData(rbusObject_t msg)
 {
 	rbusObject_t inParamObj;
 
-	ParodusInfo("Type cast to rbusObj..\n");
-	inParamObj = *(rbusObject_t*)(msg);
+	//ParodusInfo("Type cast to rbusObj..\n");
+	//inParamObj = *(rbusObject_t*)(msg);
+
+	inParamObj = msg ;
 
 	ParodusInfo("print in params from consumer..\n");
 	if(inParamObj !=NULL)

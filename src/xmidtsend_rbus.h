@@ -33,7 +33,7 @@ extern "C" {
 /*----------------------------------------------------------------------------*/
 typedef struct XmidtMsg__
 {
-	void *msg;
+	rbusObject_t msg;
 	struct XmidtMsg__ *next;
 } XmidtMsg;
 
@@ -42,10 +42,10 @@ typedef struct XmidtMsg__
 /*----------------------------------------------------------------------------*/
 
 rbusHandle_t get_parodus_rbus_Handle(void);
-void addToXmidtUpstreamQ(void* inParams);
+void addToXmidtUpstreamQ(rbusObject_t inParams);
 void* processXmidtUpstreamMsg();
 void processXmidtData();
-void parseData(void* msg);
+void parseData(rbusObject_t msg);
 int processXmidtEvent(rbusObject_t inParams);
 void sendXmidtEventToServer(char *source, char *destination, char*contenttype, int qos, void *payload, unsigned int payload_len);
 #ifdef __cplusplus
