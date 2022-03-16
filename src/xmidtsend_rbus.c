@@ -111,16 +111,27 @@ static void* asyncMethodHandler(void *p)
 	return NULL;
 }
 
-void displayInputParameters(rbusObject_t inParams)
+int displayInputParameters(rbusObject_t inParams)
 {
-	ParodusInfo("In displayInputParameters\n");
+	ParodusInfo("In displayInputParameters..\n");
+
+	rbusValue_t check = rbusObject_GetValue(inParams, "check");
+	ParodusInfo("After check\n");
+	if(check)
+	{
+		ParodusInfo("Rbus check method. Not proceeding to process this inparam\n");
+		return 0;
+	}
 
 	ParodusInfo("check msg_type\n");
 	rbusValue_t msg_type = rbusObject_GetValue(inParams, "msg_type");
+	ParodusInfo("After check msg_type\n");
 	if(msg_type)
 	{
+		ParodusInfo("msg_type GetType\n");
 		if(rbusValue_GetType(msg_type) == RBUS_STRING)
 		{
+			ParodusInfo("get msg_type string\n");
 			char *msg_typeStr = rbusValue_GetString(msg_type, NULL);
 			ParodusInfo("msg_type value received is %s\n", msg_typeStr);
 		}
@@ -203,6 +214,7 @@ void displayInputParameters(rbusObject_t inParams)
 	{
 		ParodusError("payloadlen is empty\n");
 	}
+	return 1;
 }
 
 /*
@@ -310,8 +322,8 @@ void parseData(void* msg)
 	ParodusInfo("print in params from consumer..\n");
 	if(inParamObj !=NULL)
 	{
-		displayInputParameters(inParamObj);
-		ParodusInfo("print inparams done\n");
+		int status = displayInputParameters(inParamObj);
+		ParodusInfo("print inparams done. status %d\n", status);
 	}
 	else
 	{
@@ -551,31 +563,38 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 	//rbusObject_fwrite(inParams, 1, stdout);
 
 	ParodusInfo("displayInputParameters ..\n");
-	displayInputParameters(inParams);
+	int displayStatus = displayInputParameters(inParams);
 	ParodusInfo("displayInputParameters done\n");
 
-	if(strcmp(methodName, XMIDT_SEND_METHOD) == 0)
+	if(displayStatus)
 	{
-		pthread_t pid;
-		MethodData* data = malloc(sizeof(MethodData));
-		data->asyncHandle = asyncHandle;
-		data->inParams = inParams;
-		rbusObject_Retain(inParams);
-		//xmidt send producer
-		addToXmidtUpstreamQ((void*) inParams);
-		/**** For now, disable async ack send to t2 nack ***/
-		if(pthread_create(&pid, NULL, asyncMethodHandler, data) || pthread_detach(pid))
+		if(strcmp(methodName, XMIDT_SEND_METHOD) == 0)
 		{
-			ParodusError("sendDataHandler failed to create thread\n");
+			pthread_t pid;
+			MethodData* data = malloc(sizeof(MethodData));
+			data->asyncHandle = asyncHandle;
+			data->inParams = inParams;
+			rbusObject_Retain(inParams);
+			//xmidt send producer
+			addToXmidtUpstreamQ(inParams);
+			/**** For now, disable async ack send to t2 nack ***/
+			if(pthread_create(&pid, NULL, asyncMethodHandler, data) || pthread_detach(pid))
+			{
+				ParodusError("sendDataHandler failed to create thread\n");
+				return RBUS_ERROR_BUS_ERROR;
+			}
+			ParodusInfo("sendDataHandler created async thread, returned %d\n", RBUS_ERROR_ASYNC_RESPONSE);
+			return RBUS_ERROR_ASYNC_RESPONSE;
+		}
+		else
+		{
+			ParodusError("Method %s received is not supported\n", methodName);
 			return RBUS_ERROR_BUS_ERROR;
 		}
-		ParodusInfo("sendDataHandler created async thread, returned %d\n", RBUS_ERROR_ASYNC_RESPONSE);
-		return RBUS_ERROR_ASYNC_RESPONSE;
 	}
 	else
 	{
-		ParodusError("Method %s received is not supported\n", methodName);
-		return RBUS_ERROR_BUS_ERROR;
+		ParodusError("displayStatus is not correct\n");
 	}
 }
 
