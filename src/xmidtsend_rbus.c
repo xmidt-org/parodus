@@ -100,13 +100,14 @@ static void* asyncMethodHandler(void *p)
 	{
 		ParodusInfo("asyncMethodHandler sent response to t2:%d\n", err);
 	}
-	rbusObject_Release(data->inParams);
+	ParodusInfo("Disabled inParams free\n");
+	//rbusObject_Release(data->inParams);
 	rbusObject_Release(outParams);
-	if(data !=NULL)
+	/*if(data !=NULL)
 	{
 		free(data);
 		data = NULL;
-	}
+	}*/
 	ParodusInfo("Exit asyncMethodHandler\n");
 	return NULL;
 }
@@ -123,7 +124,7 @@ int displayInputParameters(rbusObject_t inParams)
 		return 0;
 	}
 
-	ParodusInfo("check msg_type\n");
+	/*ParodusInfo("check msg_type\n");
 	rbusValue_t msg_type = rbusObject_GetValue(inParams, "msg_type");
 	ParodusInfo("After check msg_type\n");
 	if(msg_type)
@@ -213,7 +214,7 @@ int displayInputParameters(rbusObject_t inParams)
 	else
 	{
 		ParodusError("payloadlen is empty\n");
-	}
+	}*/
 	return 1;
 }
 
@@ -355,13 +356,13 @@ int processXmidtEvent(rbusObject_t inParams)
 	ParodusInfo("In processXmidtEvent\n");
 	//contentType
 	rbusValue_t contenttype = rbusObject_GetValue(inParams, "content_type");
-	ParodusInfo("content_type GetValue\n");
+	//ParodusInfo("content_type GetValue\n");
 	if(contenttype)
 	{
-		ParodusInfo("contenttype check type\n");
+		//ParodusInfo("contenttype check type\n");
 		if(rbusValue_GetType(contenttype) == RBUS_STRING)
 		{
-			ParodusInfo("contenttype is string\n");
+			//ParodusInfo("contenttype is string\n");
 			contenttypeStr = rbusValue_GetString(contenttype, NULL);
 			ParodusInfo("contenttype value received is %s\n", contenttypeStr);
 		}
@@ -564,9 +565,9 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 	ParodusInfo("methodHandler called: %s\n", methodName);
 	//rbusObject_fwrite(inParams, 1, stdout);
 
-	ParodusInfo("displayInputParameters ..\n");
+	//ParodusInfo("displayInputParameters ..\n");
 	int displayStatus = displayInputParameters(inParams);
-	ParodusInfo("displayInputParameters done\n");
+	//ParodusInfo("displayInputParameters done\n");
 
 	if(displayStatus)
 	{
