@@ -717,10 +717,9 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 {
   create_connection_ctx_t conn_ctx;
   int max_retry_count;
-  struct timespec connect_time,*connectTimePtr;
-  connectTimePtr = &connect_time;
   backoff_timer_t backoff_timer;
   static int init_conn_failure=1;
+  struct sysinfo l_sSysInfo;
   
   if(ctx == NULL) {
         return nopoll_false;
@@ -800,9 +799,9 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 		on_ping_status_change("received");
 	}
 
-	if((get_parodus_cfg()->boot_time != 0) && init) {
-		getCurrentTime(connectTimePtr);
-		ParodusInfo("connect_time-diff-boot_time=%d\n", connectTimePtr->tv_sec - get_parodus_cfg()->boot_time);
+	if(init) {
+		sysinfo(&l_sSysInfo);
+		ParodusInfo("connect_time-diff-boot_time=%ld\n", l_sSysInfo.uptime);
 		init = 0; //set init to 0 so that this is logged only during process start up and not during reconnect
 	}
 
