@@ -30,16 +30,23 @@
 
 #define WEBCFG_UPSTREAM_EVENT "Webconfig.Upstream"
 
+static rbusHandle_t rbus_Handle;
+
 void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription);
 
 void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscription, rbusError_t error);
+
+rbusHandle_t get_parodus_rbus_Handle(void)
+{
+     return rbus_Handle;
+}
 
 /* API to register RBUS listener to receive messages from webconfig */
 void subscribeRBUSevent()
 {
 	rbusError_t err;
     int rc = RBUS_ERROR_SUCCESS;
-	rbusHandle_t rbus_Handle;
+	//rbusHandle_t rbus_Handle;
 	err = rbus_open(&rbus_Handle, "parodus");
 	if (err)
 	{
