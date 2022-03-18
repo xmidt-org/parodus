@@ -66,15 +66,15 @@ void subscribeRBUSevent()
 int subscribeCurrentActiveInterfaceEvent()
 {
 	int rc = RBUS_ERROR_SUCCESS;
-	ParodusInfo("Subscribing to Device.X_RDK_WanManager.CurrentActiveInterfaceEvent..\n");
-	rc = rbusEvent_Subscribe(rbus_Handle,WEBPA_INTERFACE,eventReceiveHandler,"parodusInterface",20);
+	ParodusPrint("Subscribing to Device.X_RDK_WanManager.CurrentActiveInterfaceEvent\n");
+	rc = rbusEvent_SubscribeAsync(rbus_Handle,WEBPA_INTERFACE,eventReceiveHandler,subscribeAsyncHandler,"parodusInterface",10*20);
         if(rc != RBUS_ERROR_SUCCESS)
 	{
-		ParodusInfo("Device.X_RDK_WanManager.CurrentActiveInterface subscribe failed : %d\n", rc);
+		ParodusError("%s subscribe failed : %d\n", WEBPA_INTERFACE, rc);
         }
 	else
 	{
-        	ParodusInfo("Device.X_RDK_WanManager.CurrentActiveInterface subscribe successful\n");
+        	ParodusInfo("%s subscribe successful\n", WEBPA_INTERFACE);
 	}       
 	return rc;	
 } 
@@ -154,15 +154,16 @@ void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscr
 #ifdef WAN_FAILOVER_SUPPORTED
 void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription )
 {
-    ParodusInfo("Handling event inside eventReceiveHandler\n");
+    (void)subscription;
+    ParodusPrint("Handling event inside eventReceiveHandler\n");
     (void)rbus_Handle;
     char * interface = NULL;
     rbusValue_t newValue = rbusObject_GetValue(event->data, "value");
     rbusValue_t oldValue = rbusObject_GetValue(event->data, "oldValue");
-    ParodusInfo("Consumer receiver ValueChange event for param %s\n", event->name);
+    ParodusInfo("Consumer received ValueChange event for param %s\n", event->name);
 
     if(newValue) {    
-        ParodusInfo("New Value: %s\n", rbusValue_GetString(newValue, NULL));
+        ParodusPrint("New Value: %s\n", rbusValue_GetString(newValue, NULL));
         interface = (char *) rbusValue_GetString(newValue, NULL);
 	setWebpaInterface(interface);
 	ParodusInfo("New Interface value = %s\n",interface);

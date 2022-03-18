@@ -64,6 +64,7 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 	struct curl_slist *list = NULL;
 	struct curl_slist *headers_list = NULL;
 
+	char webpa_interface[64]={'\0'};
 	double total;
 
 	struct token_data data;
@@ -80,9 +81,10 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 		curl_easy_setopt(curl, CURLOPT_URL, get_parodus_cfg()->token_server_url);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT_SEC);
 
-		if(getWebpaInterface() !=NULL && strlen(getWebpaInterface()) >0)
+		parStrncpy(webpa_interface, getWebpaInterface(), sizeof(webpa_interface));
+		if(webpa_interface !=NULL && strlen(webpa_interface) >0)
 		{
-			curl_easy_setopt(curl, CURLOPT_INTERFACE, getWebpaInterface());
+			curl_easy_setopt(curl, CURLOPT_INTERFACE, webpa_interface);
 		}
 		/* set callback for writing received data */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_fn);

@@ -33,7 +33,9 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+#ifdef WAN_FAILOVER_SUPPORTED
 pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
+#endif
 char webpa_interface[64]={'\0'};
 
 static ParodusCfg parodusCfg;
@@ -867,7 +869,6 @@ char *getWebpaInterface(void)
 		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
 		pthread_mutex_unlock (&config_mut);
 	#else
-		ParodusInfo("Erouter0 interface \n");
 		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
 	#endif
 		ParodusInfo("webpa_interface:%s\n", webpa_interface);
