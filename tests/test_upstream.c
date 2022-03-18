@@ -49,6 +49,7 @@ wrp_msg_t *temp = NULL;
 extern pthread_mutex_t nano_mut;
 extern pthread_cond_t nano_con;
 static int crud_test = 0;
+pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -123,7 +124,7 @@ char *getWebpaInterface(void)
     memset(&cfg,0,sizeof(cfg));
     #ifdef WAN_FAILOVER_SUPPORTED
         parStrncpy(cfg.webpa_interface_used , "wl0", sizeof(cfg.webpa_interface_used));
-    else
+    #else
         parStrncpy(cfg.webpa_interface_used , "eth0", sizeof(cfg.webpa_interface_used));
     #endif
     set_parodus_cfg(&cfg);
@@ -132,7 +133,7 @@ char *getWebpaInterface(void)
 	pthread_mutex_lock (&config_mut);	
 	parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
 	pthread_mutex_unlock (&config_mut);
-    else
+    #else
 	ParodusPrint("Erouter0 interface \n");
 	parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
     #endif

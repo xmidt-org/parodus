@@ -154,6 +154,7 @@ void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscr
 #ifdef WAN_FAILOVER_SUPPORTED
 void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription )
 {
+    (void)subscription;
     ParodusInfo("Handling event inside eventReceiveHandler\n");
     (void)rbus_Handle;
     char * interface = NULL;
