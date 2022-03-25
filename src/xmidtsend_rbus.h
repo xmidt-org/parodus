@@ -24,30 +24,48 @@
 #ifndef _XMIDTSEND_RBUS_H_
 #define _XMIDTSEND_RBUS_H_
 #include <rbus.h>
+#include <uuid/uuid.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#define XMIDT_SEND_METHOD "Device.X_RDK_Xmidt.SendData"
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
 typedef struct XmidtMsg__
 {
-	rbusObject_t msg;
+	wrp_msg_t *msg;
+	rbusMethodAsyncHandle_t asyncHandle;
 	struct XmidtMsg__ *next;
 } XmidtMsg;
 
+typedef enum
+{
+    INVALID_MSG_TYPE = 1,
+    MISSING_SOURCE,
+    MISSING_DEST,
+    MISSING_CONTENT_TYPE,
+    MISSING_PAYLOAD,
+    MISSING_PAYLOADLEN,
+    ENQUEUE_FAILURE = 100,
+    CLIENT_DISCONNECT = 101
+} XMIDT_STATUS;
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 
 rbusHandle_t get_parodus_rbus_Handle(void);
-void addToXmidtUpstreamQ(rbusObject_t inParams);
+void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
 void* processXmidtUpstreamMsg();
 void processXmidtData();
-void parseData(rbusObject_t msg);
-int processXmidtEvent(rbusObject_t inParams);
-void sendXmidtEventToServer(char *source, char *destination, char*contenttype, int qos, void *payload, unsigned int payload_len);
+int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
+void sendXmidtEventToServer(wrp_msg_t * msg);
+int checkInputParameters(rbusObject_t inParams);
+char* generate_transaction_uuid();
+void parseRbusInparamsToWrp(rbusObject_t inParams, wrp_msg_t **eventMsg);
+void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode);
+int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
 #ifdef __cplusplus
 }
 #endif
