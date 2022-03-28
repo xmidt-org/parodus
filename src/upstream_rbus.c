@@ -30,7 +30,7 @@
 
 #define WEBCFG_UPSTREAM_EVENT "Webconfig.Upstream"
 #ifdef WAN_FAILOVER_SUPPORTED
-#define WEBPA_INTERFACE "Device.X_RDK_WanManager.CurrentActiveInterfaceEvent"
+#define WEBPA_INTERFACE "Device.X_RDK_WanManager.CurrentActiveInterface"
 #endif
 
 rbusHandle_t rbus_Handle;
@@ -66,16 +66,12 @@ void subscribeRBUSevent()
 int subscribeCurrentActiveInterfaceEvent()
 {
 	int rc = RBUS_ERROR_SUCCESS;
-	ParodusPrint("Subscribing to Device.X_RDK_WanManager.CurrentActiveInterfaceEvent\n");
+	ParodusPrint("Subscribing to Device.X_RDK_WanManager.CurrentActiveInterface Event\n");
 	rc = rbusEvent_SubscribeAsync(rbus_Handle,WEBPA_INTERFACE,eventReceiveHandler,subscribeAsyncHandler,"parodusInterface",10*20);
         if(rc != RBUS_ERROR_SUCCESS)
 	{
-		ParodusError("%s subscribe failed : %d\n", WEBPA_INTERFACE, rc);
-        }
-	else
-	{
-        	ParodusInfo("%s subscribe successful\n", WEBPA_INTERFACE);
-	}       
+		ParodusError("%s subscribe failed : %d - %s\n", WEBPA_INTERFACE, rc, rbusError_ToString(rc));
+        }   
 	return rc;	
 } 
 #endif
@@ -163,12 +159,11 @@ void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rb
     ParodusInfo("Consumer received ValueChange event for param %s\n", event->name);
 
     if(newValue) {    
-        ParodusPrint("New Value: %s\n", rbusValue_GetString(newValue, NULL));
         interface = (char *) rbusValue_GetString(newValue, NULL);
 	setWebpaInterface(interface);
-	ParodusInfo("New Interface value = %s\n",interface);
     }	
-    if(oldValue)
-        ParodusInfo("Old Value: %s\n", rbusValue_GetString(oldValue, NULL));
+    if(newValue !=NULL && oldValue!=NULL && interface!=NULL) {
+            ParodusInfo("New Value: %s Old Value: %s New Interface Value: %s\n", rbusValue_GetString(newValue, NULL), rbusValue_GetString(oldValue, NULL), interface);
+    }
 }
 #endif

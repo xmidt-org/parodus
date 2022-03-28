@@ -864,14 +864,14 @@ void setWebpaInterface(char *value)
 char *getWebpaInterface(void)
 {
 	#ifdef WAN_FAILOVER_SUPPORTED	
-		ParodusInfo("WAN_FAILOVER_SUPPORTED mode \n");
+		ParodusPrint("WAN_FAILOVER_SUPPORTED mode \n");
 		pthread_mutex_lock (&config_mut);	
 		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
 		pthread_mutex_unlock (&config_mut);
 	#else
 		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
 	#endif
-		ParodusInfo("webpa_interface:%s\n", webpa_interface);
+		ParodusPrint("webpa_interface:%s\n", webpa_interface);
 		return webpa_interface;
 }
 

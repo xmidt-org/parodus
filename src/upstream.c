@@ -83,8 +83,6 @@ void packMetaData()
     //Pack the metadata initially to reuse for every upstream msg sending to server
     ParodusPrint("-------------- Packing metadata ----------------\n");
     sprintf(boot_time, "%d", get_parodus_cfg()->boot_time);
-    char webpa_interface[64]={'\0'};
-    sprintf(webpa_interface, "%s", getWebpaInterface());
     struct data meta_pack[METADATA_COUNT] = {
             {HW_MODELNAME, get_parodus_cfg()->hw_model},
             {HW_SERIALNUMBER, get_parodus_cfg()->hw_serial_number},
@@ -96,7 +94,7 @@ void packMetaData()
             {LAST_RECONNECT_REASON, get_global_reconnect_reason()},
             {WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol},
             {WEBPA_UUID,get_parodus_cfg()->webpa_uuid},
-            {WEBPA_INTERFACE,webpa_interface},
+            {WEBPA_INTERFACE, getWebpaInterface()},
             {PARTNER_ID, get_parodus_cfg()->partner_id}
         };
     const data_t metapack = {METADATA_COUNT, meta_pack};
