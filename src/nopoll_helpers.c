@@ -52,7 +52,7 @@ void setMessageHandlers()
 
 static int cloud_status_is_online (void)
 {
-	const char *status = get_parodus_cfg()->cloud_status;
+	const char *status = get_cloud_status();
 	if (NULL == status)
 	  return false;
 	return (strcmp (status, CLOUD_STATUS_ONLINE) == 0);
