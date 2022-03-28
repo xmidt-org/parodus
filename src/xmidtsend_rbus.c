@@ -27,6 +27,7 @@
 #include "ParodusInternal.h"
 #include "partners_check.h"
 #include "xmidtsend_rbus.h"
+#include "config.h"
 
 static pthread_t processThreadId = 0;
 static int XmidtQsize = 0;
@@ -36,6 +37,8 @@ XmidtMsg *XmidtMsgQ = NULL;
 pthread_mutex_t xmidt_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t xmidt_con=PTHREAD_COND_INITIALIZER;
+
+static int cloud_status_check (void);
 
 XmidtMsg * get_global_XmidtMsgQ(void)
 {
@@ -57,12 +60,35 @@ pthread_mutex_t *get_global_xmidt_mut(void)
     return &xmidt_mut;
 }
 
+bool highQosValueCheck(int qos)
+{
+	if(qos > 24)
+	{
+		ParodusInfo("The qos value is high\n");
+		return true;
+	}
+	else
+	{
+		ParodusInfo("The qos value is low\n");
+	}
+
+	return false;
+}
 /*
  * @brief To handle xmidt rbus messages received from various components.
  */
 void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	XmidtMsg *message;
+
+	ParodusInfo("XmidtQsize is %d\n" , XmidtQsize);
+	if(XmidtQsize == MAX_QUEUE_SIZE)
+	{
+		char * errorMsg = strdup("Max Queue Size Exceeded");
+		ParodusInfo("Queue Size Exceeded\n");
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED);
+		free(errorMsg);
+	}
 
 	ParodusInfo ("Add Xmidt Upstream message to queue\n");
 	message = (XmidtMsg *)malloc(sizeof(XmidtMsg));
@@ -105,6 +131,16 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	return;
 }
 
+//To remove an event from Queue
+void xmidtQDequeue()
+{
+	if(XmidtMsgQ != NULL)
+	{
+		wrp_free_struct(XmidtMsgQ->msg);
+		XmidtMsgQ = XmidtMsgQ->next;
+		XmidtQsize -= 1;
+	}
+}
 
 //Xmidt consumer thread to process the rbus events.
 void processXmidtData()
@@ -134,7 +170,7 @@ void* processXmidtUpstreamMsg()
 		if(XmidtMsgQ != NULL)
 		{
 			XmidtMsg *Data = XmidtMsgQ;
-			XmidtMsgQ = XmidtMsgQ->next;
+			
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusInfo("mutex unlock in xmidt consumer thread\n");
 			ret = processData(Data->msg, Data->asyncHandle);
@@ -197,6 +233,7 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 			free(errorMsg);
 			errorMsg = NULL;
 		}
+		xmidtQDequeue();
 		ParodusInfo("ack done\n");
 	}
 	return 0;
@@ -271,6 +308,9 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 	char sourceStr[64] = {'\0'};
 	char *device_id = NULL;
 	size_t device_id_len = 0;
+	int sendRetStatus = 1;
+	char *errorMsg = NULL;
+	int qos = 0;
 
 	ParodusInfo("In sendXmidtEventToServer\n");
 	notif_wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
@@ -334,6 +374,59 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 		free(msg_bytes);
 		msg_bytes = NULL;
 		ParodusInfo("sendXmidtEventToServer done\n");
+
+		ParodusInfo("Printing interface value %d\n", get_interface_down_event()?1:0);
+		if(sendRetStatus)     //If SendMessage is failed condition
+		{
+			ParodusInfo("sendXmidtEventToServer is Failed\n");
+			if(highQosValueCheck(qos))
+			{
+				errorMsg = strdup("sendXmidtEventToServer Failed , Enqueue event since QOS is High");
+				ParodusInfo("The event is having high qos retry again \n");
+				//createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, CLIENT_DISCONNECT);
+				waitTillConnectionIsUp(); //Loop inside until connection is up
+			}
+			else
+			{
+				errorMsg = strdup("sendXmidtEventToServer Failed , Dequeue event since QOS is Low");
+				ParodusInfo("The event is having low qos proceed to dequeue\n");
+				//createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, ENQUEUE_FAILURE);
+				pthread_mutex_lock (&xmidt_mut);
+				xmidtQDequeue();
+				pthread_mutex_unlock (&xmidt_mut);
+			}
+		}
+		else
+		{
+			errorMsg = strdup("sendXmidtEventToServer is Success");
+			ParodusInfo("sendXmidtEventToServer done\n");
+			//createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, DELIVERED_SUCCESS);
+			printf("%s\n", errorMsg);
+			pthread_mutex_lock (&xmidt_mut);
+			xmidtQDequeue();
+			pthread_mutex_unlock (&xmidt_mut);
+		}
+	}
+}
+
+static int cloud_status_check (void)
+{
+	const char *status = get_parodus_cfg()->cloud_status;
+	if (NULL == status)
+	  return false;
+	return (strcmp (status, CLOUD_STATUS_ONLINE) == 0);
+}
+
+void waitTillConnectionIsUp()
+{
+	while(FOREVER())
+	{
+		
+		if(cloud_status_check())
+		{
+			break;
+		}
+		
 	}
 }
 
@@ -644,6 +737,7 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 		ParodusError("Method %s received is not supported\n", methodName);
 		return RBUS_ERROR_BUS_ERROR;
 	}
+	return RBUS_ERROR_SUCCESS;
 }
 
 
