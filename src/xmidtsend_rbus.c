@@ -134,12 +134,17 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 //To remove an event from Queue
 void xmidtQDequeue()
 {
+	XmidtMsg *temp = NULL;
+	pthread_mutex_lock (&xmidt_mut);
 	if(XmidtMsgQ != NULL)
 	{
-		wrp_free_struct(XmidtMsgQ->msg);
+		temp = XmidtMsgQ;
 		XmidtMsgQ = XmidtMsgQ->next;
+		wrp_free_struct(temp->msg);
 		XmidtQsize -= 1;
+		free(temp);
 	}
+	pthread_mutex_unlock (&xmidt_mut);
 }
 
 //Xmidt consumer thread to process the rbus events.
@@ -358,6 +363,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 		if(msg->u.event.qos != 0)
 		{
 			notif_wrp_msg->u.event.qos = msg->u.event.qos;
+			qos = notif_wrp_msg->u.event.qos;
 			ParodusInfo("Notification qos: %d\n",notif_wrp_msg->u.event.qos);
 		}
 		ParodusInfo("Encode xmidt wrp msg\n");
@@ -367,7 +373,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 		if(msg_len > 0)
 		{
 			ParodusInfo("sendUpstreamMsgToServer\n");
-			sendUpstreamMsgToServer(&msg_bytes, msg_len);
+			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
 		}
 		wrp_free_struct(notif_wrp_msg);
 		ParodusInfo("After wrp_free_struct\n");
@@ -375,7 +381,6 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 		msg_bytes = NULL;
 		ParodusInfo("sendXmidtEventToServer done\n");
 
-		ParodusInfo("Printing interface value %d\n", get_interface_down_event()?1:0);
 		if(sendRetStatus)     //If SendMessage is failed condition
 		{
 			ParodusInfo("sendXmidtEventToServer is Failed\n");
@@ -383,35 +388,34 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 			{
 				errorMsg = strdup("sendXmidtEventToServer Failed , Enqueue event since QOS is High");
 				ParodusInfo("The event is having high qos retry again \n");
-				//createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, CLIENT_DISCONNECT);
+				createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, CLIENT_DISCONNECT);
 				waitTillConnectionIsUp(); //Loop inside until connection is up
 			}
 			else
 			{
 				errorMsg = strdup("sendXmidtEventToServer Failed , Dequeue event since QOS is Low");
 				ParodusInfo("The event is having low qos proceed to dequeue\n");
-				//createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, ENQUEUE_FAILURE);
-				pthread_mutex_lock (&xmidt_mut);
+				createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, ENQUEUE_FAILURE);
 				xmidtQDequeue();
-				pthread_mutex_unlock (&xmidt_mut);
 			}
 		}
 		else
 		{
 			errorMsg = strdup("sendXmidtEventToServer is Success");
 			ParodusInfo("sendXmidtEventToServer done\n");
-			//createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, DELIVERED_SUCCESS);
-			printf("%s\n", errorMsg);
-			pthread_mutex_lock (&xmidt_mut);
+			createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, DELIVERED_SUCCESS);
 			xmidtQDequeue();
-			pthread_mutex_unlock (&xmidt_mut);
 		}
+	}
+	if(errorMsg != NULL)
+	{
+		free(errorMsg);
 	}
 }
 
 static int cloud_status_check (void)
 {
-	const char *status = get_parodus_cfg()->cloud_status;
+	const char *status = get_cloud_status();
 	if (NULL == status)
 	  return false;
 	return (strcmp (status, CLOUD_STATUS_ONLINE) == 0);
@@ -462,6 +466,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 
 	if(msg->u.event.dest !=NULL)
 	{
+		ParodusInfo("Inside dest\n");
 		rbusValue_Init(&value);
 		rbusValue_SetString(value, msg->u.event.dest);
 		rbusObject_SetValue(outParams, "dest", value);
@@ -470,6 +475,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 
 	if(msg->u.event.content_type !=NULL)
 	{
+		ParodusInfo("Inside content_type\n");
 		rbusValue_Init(&value);
 		rbusValue_SetString(value, msg->u.event.content_type);
 		rbusObject_SetValue(outParams, "content_type", value);
