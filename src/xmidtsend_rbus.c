@@ -38,8 +38,6 @@ pthread_mutex_t xmidt_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t xmidt_con=PTHREAD_COND_INITIALIZER;
 
-static int cloud_status_check (void);
-
 XmidtMsg * get_global_XmidtMsgQ(void)
 {
     return XmidtMsgQ;
@@ -88,6 +86,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		ParodusInfo("Queue Size Exceeded\n");
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED);
 		free(errorMsg);
+		return;
 	}
 
 	ParodusInfo ("Add Xmidt Upstream message to queue\n");
@@ -134,6 +133,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 //To remove an event from Queue
 void xmidtQDequeue()
 {
+	ParodusInfo("Inside dequeue\n");
 	XmidtMsg *temp = NULL;
 	pthread_mutex_lock (&xmidt_mut);
 	if(XmidtMsgQ != NULL)
@@ -170,8 +170,9 @@ void* processXmidtUpstreamMsg()
 
 	while(FOREVER())
 	{
+		ParodusInfo("xmidt mutex b4 lock\n");
 		pthread_mutex_lock (&xmidt_mut);
-		ParodusPrint("mutex lock in xmidt consumer thread\n");
+		ParodusInfo("mutex lock in xmidt consumer thread\n");
 		if(XmidtMsgQ != NULL)
 		{
 			XmidtMsg *Data = XmidtMsgQ;
@@ -224,7 +225,7 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	if(rv)
 	{
 		ParodusInfo("validation successful, send event to server\n");
-		sendXmidtEventToServer(xmidtMsg);
+		sendXmidtEventToServer(xmidtMsg, asyncHandle);
 		return 1;
 	}
 	else
@@ -304,7 +305,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	return 1;
 }
 
-void sendXmidtEventToServer(wrp_msg_t * msg)
+void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	wrp_msg_t *notif_wrp_msg = NULL;
 	ssize_t msg_len;
@@ -375,62 +376,62 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 			ParodusInfo("sendUpstreamMsgToServer\n");
 			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
 		}
-		wrp_free_struct(notif_wrp_msg);
-		ParodusInfo("After wrp_free_struct\n");
-		free(msg_bytes);
-		msg_bytes = NULL;
-		ParodusInfo("sendXmidtEventToServer done\n");
+		else
+		{
+			ParodusInfo("The msg_len is zero\n");
+			xmidtQDequeue();
+			wrp_free_struct(notif_wrp_msg);
+			ParodusInfo("After wrp_free_struct\n");
+			free(msg_bytes);
+			msg_bytes = NULL;
+			return;
+		}
 
-		if(sendRetStatus)     //If SendMessage is failed condition
+		while(sendRetStatus)     //If SendMessage is failed condition
 		{
 			ParodusInfo("sendXmidtEventToServer is Failed\n");
 			if(highQosValueCheck(qos))
 			{
 				errorMsg = strdup("sendXmidtEventToServer Failed , Enqueue event since QOS is High");
 				ParodusInfo("The event is having high qos retry again \n");
-				createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, CLIENT_DISCONNECT);
-				waitTillConnectionIsUp(); //Loop inside until connection is up
+				createOutParamsandSendAck(msg, asyncHandle, errorMsg, CLIENT_DISCONNECT);
+				ParodusInfo("The value of pointer xmidt->msg is %p\n", XmidtMsgQ->msg);
+				//waitTillConnectionIsUp(); //Loop inside until connection is up
+				ParodusInfo("Wait till connection is Up\n");
+
+				pthread_cond_wait(&xmidt_con, &xmidt_mut);
+				pthread_mutex_unlock(&xmidt_mut);
+				ParodusInfo("Received signal proceed to retry\n");
 			}
 			else
 			{
 				errorMsg = strdup("sendXmidtEventToServer Failed , Dequeue event since QOS is Low");
 				ParodusInfo("The event is having low qos proceed to dequeue\n");
-				createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, ENQUEUE_FAILURE);
+				createOutParamsandSendAck(msg, asyncHandle, errorMsg, ENQUEUE_FAILURE);
 				xmidtQDequeue();
+				break;
 			}
+			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
 		}
-		else
+
+		if(sendRetStatus == 0)
 		{
 			errorMsg = strdup("sendXmidtEventToServer is Success");
 			ParodusInfo("sendXmidtEventToServer done\n");
-			createOutParamsandSendAck(XmidtMsgQ->msg, XmidtMsgQ->asyncHandle, errorMsg, DELIVERED_SUCCESS);
+			createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS);
 			xmidtQDequeue();
 		}
+
+		wrp_free_struct(notif_wrp_msg);
+		ParodusInfo("After wrp_free_struct\n");
+		free(msg_bytes);
+		msg_bytes = NULL;
+		ParodusInfo("sendXmidtEventToServer done\n");
 	}
+
 	if(errorMsg != NULL)
 	{
 		free(errorMsg);
-	}
-}
-
-static int cloud_status_check (void)
-{
-	const char *status = get_cloud_status();
-	if (NULL == status)
-	  return false;
-	return (strcmp (status, CLOUD_STATUS_ONLINE) == 0);
-}
-
-void waitTillConnectionIsUp()
-{
-	while(FOREVER())
-	{
-		
-		if(cloud_status_check())
-		{
-			break;
-		}
-		
 	}
 }
 

@@ -182,7 +182,7 @@ pthread_cond_t *get_interface_down_con();
 
 pthread_mutex_t *get_interface_down_mut();
   
-
+pthread_cond_t *get_global_xmidt_con(void);
 #ifdef __cplusplus
 }
 #endif

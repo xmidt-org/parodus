@@ -66,6 +66,10 @@ void set_cloud_status(char *status)
 {
     pthread_mutex_lock(&config_mut);	
     get_parodus_cfg()->cloud_status = strdup(status);
+    if(strcmp (status, CLOUD_STATUS_ONLINE) == 0)
+    {
+          pthread_cond_signal(get_global_xmidt_con());
+    }
     pthread_mutex_unlock(&config_mut);	
 }
 
