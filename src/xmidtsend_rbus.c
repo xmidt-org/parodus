@@ -421,13 +421,21 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			xmidtQDequeue();
 		}
 
-		ParodusInfo("B4 wrp_free_struct\n");
+	}
+	ParodusInfo("B4 wrp_free_struct\n");
+	if(notif_wrp_msg != NULL)
+	{
+		ParodusInfo("Inside the free wrp\n");
 		wrp_free_struct(notif_wrp_msg);
-		ParodusInfo("After wrp_free_struct\n");
+	}
+
+	ParodusInfo("After wrp_free_struct\n");
+	if(msg_bytes != NULL)
+	{
 		free(msg_bytes);
 		msg_bytes = NULL;
-		ParodusInfo("sendXmidtEventToServer done\n");
 	}
+	ParodusInfo("sendXmidtEventToServer done\n");
 
 }
 
