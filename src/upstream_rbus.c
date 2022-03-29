@@ -29,17 +29,25 @@
 #include "partners_check.h"
 
 #define WEBCFG_UPSTREAM_EVENT "Webconfig.Upstream"
+#ifdef WAN_FAILOVER_SUPPORTED
+#define WEBPA_INTERFACE "Device.X_RDK_WanManager.CurrentActiveInterface"
+#endif
+
+rbusHandle_t rbus_Handle;
+rbusError_t err;
 
 void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription);
 
 void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscription, rbusError_t error);
 
+#ifdef WAN_FAILOVER_SUPPORTED
+void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription );
+#endif
+
 /* API to register RBUS listener to receive messages from webconfig */
 void subscribeRBUSevent()
 {
-	rbusError_t err;
     int rc = RBUS_ERROR_SUCCESS;
-	rbusHandle_t rbus_Handle;
 	err = rbus_open(&rbus_Handle, "parodus");
 	if (err)
 	{
@@ -52,6 +60,21 @@ void subscribeRBUSevent()
     else
         ParodusInfo("rbusEvent_Subscribe was successful\n");
 }
+
+#ifdef WAN_FAILOVER_SUPPORTED
+/* API to subscribe Active Interface name on value change event*/
+int subscribeCurrentActiveInterfaceEvent()
+{
+	int rc = RBUS_ERROR_SUCCESS;
+	ParodusPrint("Subscribing to Device.X_RDK_WanManager.CurrentActiveInterface Event\n");
+	rc = rbusEvent_SubscribeAsync(rbus_Handle,WEBPA_INTERFACE,eventReceiveHandler,subscribeAsyncHandler,"parodusInterface",10*20);
+        if(rc != RBUS_ERROR_SUCCESS)
+	{
+		ParodusError("%s subscribe failed : %d - %s\n", WEBPA_INTERFACE, rc, rbusError_ToString(rc));
+        }   
+	return rc;	
+} 
+#endif
 
 void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription)
 {
@@ -123,3 +146,24 @@ void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscr
 	(void)handle;
 	ParodusInfo("subscribeAsyncHandler event %s, error %d - %s\n",subscription->eventName, error, rbusError_ToString(error));
 }
+
+#ifdef WAN_FAILOVER_SUPPORTED
+void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription )
+{
+    (void)subscription;
+    ParodusPrint("Handling event inside eventReceiveHandler\n");
+    (void)rbus_Handle;
+    char * interface = NULL;
+    rbusValue_t newValue = rbusObject_GetValue(event->data, "value");
+    rbusValue_t oldValue = rbusObject_GetValue(event->data, "oldValue");
+    ParodusInfo("Consumer received ValueChange event for param %s\n", event->name);
+
+    if(newValue) {    
+        interface = (char *) rbusValue_GetString(newValue, NULL);
+	setWebpaInterface(interface);
+    }	
+    if(newValue !=NULL && oldValue!=NULL && interface!=NULL) {
+            ParodusInfo("New Value: %s Old Value: %s New Interface Value: %s\n", rbusValue_GetString(newValue, NULL), rbusValue_GetString(oldValue, NULL), interface);
+    }
+}
+#endif
