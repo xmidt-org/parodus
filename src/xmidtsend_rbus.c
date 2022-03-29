@@ -141,9 +141,13 @@ void xmidtQDequeue()
 		XmidtMsgQ = XmidtMsgQ->next;
 		wrp_free_struct(temp->msg);
 		XmidtQsize -= 1;
+		ParodusInfo("B4 free temp\n");
 		free(temp);
+		ParodusInfo("After free temp\n");
 	}
+	ParodusInfo("B4 unlock\n");
 	pthread_mutex_unlock (&xmidt_mut);
+	ParodusInfo("After unlock\n");
 }
 
 //Xmidt consumer thread to process the rbus events.
@@ -417,6 +421,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			xmidtQDequeue();
 		}
 
+		ParodusInfo("B4 wrp_free_struct\n");
 		wrp_free_struct(notif_wrp_msg);
 		ParodusInfo("After wrp_free_struct\n");
 		free(msg_bytes);
