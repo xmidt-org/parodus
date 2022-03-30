@@ -24,6 +24,7 @@
 #ifndef _CONFIG_H_ 
 #define _CONFIG_H_
 
+#include <pthread.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -139,8 +140,10 @@ void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
 void set_cloud_disconnect_reason(ParodusCfg *cfg, char *disconn_reason);
 void reset_cloud_disconnect_reason(ParodusCfg *cfg);
+char *getWebpaInterface(void);
 void set_cloud_status(char *status);
 char *get_cloud_status(void);
+
 /**
  * parse a webpa url. Extract the server address, the port
  * and return whether it's secure or not

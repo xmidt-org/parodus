@@ -92,7 +92,7 @@ void test_set_parodus_cfg()
     CU_ASSERT_STRING_EQUAL(cfg.hw_last_reboot_reason,get_parodus_cfg()->hw_last_reboot_reason);
     CU_ASSERT_STRING_EQUAL(cfg.fw_name,get_parodus_cfg()->fw_name);
     CU_ASSERT_STRING_EQUAL(cfg.webpa_url, get_parodus_cfg()->webpa_url);
-    CU_ASSERT_STRING_EQUAL(cfg.webpa_interface_used , get_parodus_cfg()->webpa_interface_used);
+    CU_ASSERT_STRING_EQUAL(cfg.webpa_interface_used , getWebpaInterface());
     CU_ASSERT_STRING_EQUAL(cfg.webpa_protocol, get_parodus_cfg()->webpa_protocol);
     CU_ASSERT_EQUAL(cfg.boot_time, get_parodus_cfg()->boot_time);
     CU_ASSERT_EQUAL(cfg.webpa_ping_timeout, get_parodus_cfg()->webpa_ping_timeout);
@@ -113,7 +113,7 @@ void test_getWebpaConveyHeader()
     CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->hw_manufacturer, cJSON_GetObjectItem(payload, HW_MANUFACTURER)->valuestring);
     CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->hw_last_reboot_reason, cJSON_GetObjectItem(payload, HW_LAST_REBOOT_REASON)->valuestring);
     CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->fw_name, cJSON_GetObjectItem(payload, FIRMWARE_NAME)->valuestring);
-    CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->webpa_interface_used, cJSON_GetObjectItem(payload, WEBPA_INTERFACE)->valuestring);
+    CU_ASSERT_STRING_EQUAL(getWebpaInterface(), cJSON_GetObjectItem(payload, WEBPA_INTERFACE)->valuestring);
     CU_ASSERT_STRING_EQUAL(get_parodus_cfg()->webpa_protocol, cJSON_GetObjectItem(payload, WEBPA_PROTOCOL)->valuestring);
     CU_ASSERT_EQUAL((int)get_parodus_cfg()->boot_time, cJSON_GetObjectItem(payload, BOOT_TIME)->valueint);
 
