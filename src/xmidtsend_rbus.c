@@ -139,7 +139,6 @@ void xmidtQDequeue()
 	{
 		temp = XmidtMsgQ;
 		XmidtMsgQ = XmidtMsgQ->next;
-		wrp_free_struct(temp->msg);
 		XmidtQsize -= 1;
 		ParodusInfo("B4 free temp\n");
 		free(temp);
