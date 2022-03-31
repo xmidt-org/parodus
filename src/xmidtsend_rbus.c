@@ -740,7 +740,7 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 			//xmidt send producer
 			addToXmidtUpstreamQ(wrpMsg, asyncHandle);
 			ParodusInfo("sendDataHandler returned %d\n", RBUS_ERROR_ASYNC_RESPONSE);
-			//return RBUS_ERROR_ASYNC_RESPONSE;
+			return RBUS_ERROR_ASYNC_RESPONSE;
 		}
 		else
 		{
