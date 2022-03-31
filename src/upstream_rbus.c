@@ -160,10 +160,23 @@ void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rb
 
     if(newValue) {    
         interface = (char *) rbusValue_GetString(newValue, NULL);
-	setWebpaInterface(interface);
+	if(interface != NULL) {
+		setWebpaInterface(interface);
+	}
     }	
-    if(newValue !=NULL && oldValue!=NULL && interface!=NULL) {
-            ParodusInfo("New Value: %s Old Value: %s New Interface Value: %s\n", rbusValue_GetString(newValue, NULL), rbusValue_GetString(oldValue, NULL), interface);
+    if(newValue != NULL && oldValue != NULL && getWebpaInterface() != NULL) {
+            ParodusInfo("New Value: %s Old Value: %s New Interface Value: %s\n", rbusValue_GetString(newValue, NULL), rbusValue_GetString(oldValue, NULL), getWebpaInterface());
     }
+    else {
+	    if(newValue == NULL) {
+		    ParodusError("newValue is NULL\n");
+	    }
+	    if(oldValue == NULL) {
+		    ParodusError("oldValue is NULL\n");
+	    }
+	    if(interface == NULL) {
+		    ParodusError("interface value is NULL\n");
+	    }
+    }	    
 }
 #endif
