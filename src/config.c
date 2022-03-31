@@ -33,9 +33,9 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-#ifdef WAN_FAILOVER_SUPPORTED
+//#ifdef WAN_FAILOVER_SUPPORTED
 pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
-#endif
+//#endif
 char webpa_interface[64]={'\0'};
 
 char cloud_status[32]={'\0'};
