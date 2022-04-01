@@ -103,6 +103,11 @@ void set_global_shutdown_reason(char *reason)
     UNUSED(reason);
 }
 
+int getDeviceId(char **device_id, size_t *device_id_len)
+{
+	UNUSED(device_id); UNUSED(device_id_len);
+	return 0;
+}
 void start_conn_in_progress (unsigned long start_time)
 {
 	UNUSED(start_time);

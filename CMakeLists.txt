@@ -174,7 +174,7 @@ ExternalProject_Add(wrp-c
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
     GIT_REPOSITORY https://github.com/Thanusha-D/wrp-c.git
     #GIT_TAG "1.0.1"
-    GIT_TAG qos_add
+    GIT_TAG qos_trans
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF

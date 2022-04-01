@@ -33,28 +33,25 @@
 #define WEBPA_INTERFACE "Device.X_RDK_WanManager.CurrentActiveInterface"
 #endif
 
-static rbusHandle_t rbus_Handle;
+rbusHandle_t rbus_Handle;
 rbusError_t err;
 
 void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription);
 
 void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscription, rbusError_t error);
 
-#ifdef WAN_FAILOVER_SUPPORTED
-void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription );
-#endif
-
 rbusHandle_t get_parodus_rbus_Handle(void)
 {
      return rbus_Handle;
 }
+#ifdef WAN_FAILOVER_SUPPORTED
+void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription );
+#endif
 
 /* API to register RBUS listener to receive messages from webconfig */
 void subscribeRBUSevent()
 {
-	rbusError_t err;
     int rc = RBUS_ERROR_SUCCESS;
-	//rbusHandle_t rbus_Handle;
 	err = rbus_open(&rbus_Handle, "parodus");
 	if (err)
 	{
