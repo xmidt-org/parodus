@@ -62,7 +62,7 @@ rbusHandle_t get_parodus_rbus_Handle(void);
 void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
 void* processXmidtUpstreamMsg();
 void processXmidtData();
-int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
+void processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
 void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
 int checkInputParameters(rbusObject_t inParams);
 char* generate_transaction_uuid();
