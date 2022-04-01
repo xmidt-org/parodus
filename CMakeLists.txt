@@ -241,7 +241,7 @@ if (ENABLE_WEBCFGBIN)
 # rtMessage external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(rtMessage
-     #DEPENDS cJSON
+     DEPENDS cJSON
      PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/rtMessage
      GIT_REPOSITORY https://github.com/rdkcmf/rdk-rtmessage.git
      GIT_TAG rdk-next
@@ -309,6 +309,10 @@ endif (FEATURE_DNS_QUERY)
 if (ENABLE_WEBCFGBIN)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_WEBCFGBIN ")
 endif (ENABLE_WEBCFGBIN)
+
+if (WAN_FAILOVER_SUPPORTED)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DWAN_FAILOVER_SUPPORTED ")
+endif (WAN_FAILOVER_SUPPORTED)
 
 link_directories ( ${LIBRARY_DIR} ${COMMON_LIBRARY_DIR} ${LIBRARY_DIR64} )
 add_subdirectory(src)

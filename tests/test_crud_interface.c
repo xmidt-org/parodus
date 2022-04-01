@@ -125,6 +125,10 @@ int processCrudRequest(wrp_msg_t *reqMsg, wrp_msg_t **responseMsg )
 	return (int)mock();
 }
 
+char* getWebpaInterface(void)
+{
+   return NULL;
+}
 /*----------------------------------------------------------------------------*/
 /*                                   Tests                                    */
 /*----------------------------------------------------------------------------*/

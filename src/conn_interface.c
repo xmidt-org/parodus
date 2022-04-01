@@ -119,6 +119,9 @@ void createSocketConnection(void (* initKeypress)())
     regXmidtSendDataMethod();
     ParodusInfo("After regXmidtSendDataMethod\n");
     #endif 
+    #ifdef WAN_FAILOVER_SUPPORTED
+    subscribeCurrentActiveInterfaceEvent();
+    #endif 
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask, &downstream_tid);
     StartThread(serviceAliveTask, &svc_alive_tid);
