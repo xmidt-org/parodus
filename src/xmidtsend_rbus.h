@@ -51,6 +51,9 @@ typedef enum
     MISSING_PAYLOAD,
     MISSING_PAYLOADLEN,
     QUEUE_SIZE_EXCEEDED,
+    WRP_MESSAGE_NULL,
+    WRP_ENCODE_FAILURE,
+    WRP_MALLOC_FAILURE,
     ENQUEUE_FAILURE = 100,
     CLIENT_DISCONNECT = 101
 } XMIDT_STATUS;
@@ -72,6 +75,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
 void xmidtQDequeue();
 bool highQosValueCheck(int qos);
 void waitTillConnectionIsUp();
+void sendACK(rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode);
 #ifdef __cplusplus
 }
 #endif

@@ -36,6 +36,10 @@
 //#ifdef WAN_FAILOVER_SUPPORTED
 pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
 //#endif
+//For sending cond signal when cloud status is ONLINE
+pthread_mutex_t cloud_status_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cloud_status_cond=PTHREAD_COND_INITIALIZER;
+
 char webpa_interface[64]={'\0'};
 
 char cloud_status[32]={'\0'};
@@ -45,6 +49,15 @@ static unsigned int rsa_algorithms =
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+pthread_cond_t *get_global_cloud_status_cond(void)
+{
+    return &cloud_status_cond;
+}
+
+pthread_mutex_t *get_global_cloud_status_mut(void)
+{
+    return &cloud_status_mut;
+}
 
 ParodusCfg *get_parodus_cfg(void) 
 {
@@ -74,7 +87,7 @@ void set_cloud_status(char *status)
         get_parodus_cfg()->cloud_status = strdup(status);
         if(strcmp (status, CLOUD_STATUS_ONLINE) == 0)
         {
-              pthread_cond_signal(get_global_xmidt_con());
+              pthread_cond_signal(&cloud_status_cond);
         }
         pthread_mutex_unlock(&config_mut);
     }
