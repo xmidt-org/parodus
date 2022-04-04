@@ -377,9 +377,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			ParodusInfo("sendXmidtEventToServer is Failed\n");
 			if(highQosValueCheck(qos))
 			{
-				errorMsg = strdup("sendXmidtEventToServer Failed , Enqueue event since QOS is High");
 				ParodusInfo("The event is having high qos retry again \n");
-				//createOutParamsandSendAck(msg, asyncHandle, errorMsg, CLIENT_DISCONNECT);
 				ParodusInfo("The value of pointer xmidt->msg is %p\n", XmidtMsgQ->msg);
 				ParodusInfo("Wait till connection is Up\n");
 
