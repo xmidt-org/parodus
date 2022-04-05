@@ -329,6 +329,11 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			{
 				ParodusError("Failed to get device_id\n");
 			}
+			if(device_id != NULL)
+			{
+				free(device_id);
+				device_id = NULL;
+			}
 		}
 
 		if(msg->u.event.dest != NULL)

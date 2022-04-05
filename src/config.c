@@ -84,7 +84,7 @@ void set_cloud_status(char *status)
     if(status != NULL)
     {
         pthread_mutex_lock(&config_mut);
-        get_parodus_cfg()->cloud_status = strdup(status);
+        get_parodus_cfg()->cloud_status = status;
         if(strcmp (status, CLOUD_STATUS_ONLINE) == 0)
         {
               pthread_cond_signal(&cloud_status_cond);
