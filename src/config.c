@@ -33,17 +33,31 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-#ifdef WAN_FAILOVER_SUPPORTED
+//#ifdef WAN_FAILOVER_SUPPORTED
 pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
-#endif
+//#endif
+//For sending cond signal when cloud status is ONLINE
+pthread_mutex_t cloud_status_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cloud_status_cond=PTHREAD_COND_INITIALIZER;
+
 char webpa_interface[64]={'\0'};
 
+char cloud_status[32]={'\0'};
 static ParodusCfg parodusCfg;
 static unsigned int rsa_algorithms = 
 	(1<<alg_rs256) | (1<<alg_rs384) | (1<<alg_rs512);
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+pthread_cond_t *get_global_cloud_status_cond(void)
+{
+    return &cloud_status_cond;
+}
+
+pthread_mutex_t *get_global_cloud_status_mut(void)
+{
+    return &cloud_status_mut;
+}
 
 ParodusCfg *get_parodus_cfg(void) 
 {
@@ -65,6 +79,27 @@ void reset_cloud_disconnect_reason(ParodusCfg *cfg)
 	cfg->cloud_disconnect = NULL;
 }
 
+void set_cloud_status(char *status)
+{
+    if(status != NULL)
+    {
+        pthread_mutex_lock(&config_mut);
+        get_parodus_cfg()->cloud_status = strdup(status);
+        if(strcmp (status, CLOUD_STATUS_ONLINE) == 0)
+        {
+              pthread_cond_signal(&cloud_status_cond);
+        }
+        pthread_mutex_unlock(&config_mut);
+    }
+}
+
+char *get_cloud_status(void)
+{
+    pthread_mutex_lock(&config_mut);
+    parStrncpy(cloud_status, get_parodus_cfg()->cloud_status, sizeof(cloud_status));
+    pthread_mutex_unlock(&config_mut);	
+    return cloud_status;
+}
 
 const char *get_tok (const char *src, int delim, char *result, int resultsize)
 {

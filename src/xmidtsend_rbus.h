@@ -30,6 +30,8 @@ extern "C" {
 #endif
 
 #define XMIDT_SEND_METHOD "Device.X_RDK_Xmidt.SendData"
+#define MAX_QUEUE_SIZE 10
+#define INPARAMS_PATH   "/tmp/inparams.txt"
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -42,12 +44,16 @@ typedef struct XmidtMsg__
 
 typedef enum
 {
-    INVALID_MSG_TYPE = 1,
+    DELIVERED_SUCCESS = 0,
+    INVALID_MSG_TYPE,
     MISSING_SOURCE,
     MISSING_DEST,
     MISSING_CONTENT_TYPE,
     MISSING_PAYLOAD,
     MISSING_PAYLOADLEN,
+    QUEUE_SIZE_EXCEEDED,
+    WRP_ENCODE_FAILURE,
+    MSG_PROCESSING_FAILED,
     ENQUEUE_FAILURE = 100,
     CLIENT_DISCONNECT = 101
 } XMIDT_STATUS;
@@ -59,13 +65,17 @@ rbusHandle_t get_parodus_rbus_Handle(void);
 void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
 void* processXmidtUpstreamMsg();
 void processXmidtData();
-int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
-void sendXmidtEventToServer(wrp_msg_t * msg);
+void processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
+void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
 int checkInputParameters(rbusObject_t inParams);
 char* generate_transaction_uuid();
 void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **eventMsg);
 void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode);
 int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
+void xmidtQDequeue();
+bool highQosValueCheck(int qos);
+void waitTillConnectionIsUp();
+void printRBUSParams(rbusObject_t params, char* file_path);
 #ifdef __cplusplus
 }
 #endif

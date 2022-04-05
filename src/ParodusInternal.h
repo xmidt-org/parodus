@@ -184,8 +184,11 @@ void set_interface_down_event();
 pthread_cond_t *get_interface_down_con();
 
 pthread_mutex_t *get_interface_down_mut();
-  
 
+pthread_cond_t *get_global_cloud_status_cond(void);
+
+pthread_mutex_t *get_global_cloud_status_mut(void);
+  
 #ifdef __cplusplus
 }
 #endif

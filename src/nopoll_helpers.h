@@ -41,7 +41,7 @@ extern "C" {
  */
 int sendResponse(noPollConn * conn,void *str, size_t bufferSize);
 void setMessageHandlers();
-void sendMessage(noPollConn *conn, void *msg, size_t len);
+int sendMessage(noPollConn *conn, void *msg, size_t len);
 
 /**
  * @brief __report_log Nopoll log handler 

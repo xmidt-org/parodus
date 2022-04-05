@@ -577,20 +577,20 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(CLOUD_STATUS, keyName)==0)
 	{
-		if(get_parodus_cfg()->cloud_status ==NULL)
+		if(get_cloud_status() ==NULL)
 		{
 			ParodusError("retrieveFromMemory: cloud_status value is NULL\n");
 			return -1;
 		}
-		else if((get_parodus_cfg()->cloud_status !=NULL) && (strlen(get_parodus_cfg()->cloud_status)==0))
+		else if((get_cloud_status() !=NULL) && (strlen(get_cloud_status())==0))
 		{
 			ParodusError("retrieveFromMemory: cloud_status value is empty\n");
 			return -1;
 		}
 		else
 		{
-			ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n", keyName, get_parodus_cfg()->cloud_status);
-			cJSON_AddItemToObject( *jsonresponse, CLOUD_STATUS , cJSON_CreateString(get_parodus_cfg()->cloud_status));
+			ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n", keyName, get_cloud_status());
+			cJSON_AddItemToObject( *jsonresponse, CLOUD_STATUS , cJSON_CreateString(get_cloud_status()));
 		}
 	}
 	else if(strcmp(BOOT_TIME, keyName)==0)

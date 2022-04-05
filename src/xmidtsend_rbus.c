@@ -27,6 +27,7 @@
 #include "ParodusInternal.h"
 #include "partners_check.h"
 #include "xmidtsend_rbus.h"
+#include "config.h"
 
 static pthread_t processThreadId = 0;
 static int XmidtQsize = 0;
@@ -57,12 +58,35 @@ pthread_mutex_t *get_global_xmidt_mut(void)
     return &xmidt_mut;
 }
 
+bool highQosValueCheck(int qos)
+{
+	if(qos > 24)
+	{
+		ParodusInfo("The qos value is high\n");
+		return true;
+	}
+	else
+	{
+		ParodusInfo("The qos value is low\n");
+	}
+
+	return false;
+}
 /*
  * @brief To handle xmidt rbus messages received from various components.
  */
 void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	XmidtMsg *message;
+
+	ParodusInfo("XmidtQsize is %d\n" , XmidtQsize);
+	if(XmidtQsize == MAX_QUEUE_SIZE)
+	{
+		char * errorMsg = strdup("Max Queue Size Exceeded");
+		ParodusInfo("Queue Size Exceeded\n");
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED);
+		return;
+	}
 
 	ParodusInfo ("Add Xmidt Upstream message to queue\n");
 	message = (XmidtMsg *)malloc(sizeof(XmidtMsg));
@@ -73,7 +97,6 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		message->asyncHandle =asyncHandle;
 		//Increment queue size to handle max queue limit
 		XmidtQsize++;
-		ParodusInfo("XmidtQsize is %d\n" , XmidtQsize);
 		message->next=NULL;
 		pthread_mutex_lock (&xmidt_mut);
 		//Producer adds the rbus msg into queue
@@ -99,12 +122,32 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	}
 	else
 	{
+		char * errorMsg = strdup("Unable to enqueue");
 		ParodusError("failure in allocation for xmidt message\n");
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg , ENQUEUE_FAILURE);
 	}
 	ParodusInfo ("End of addToXmidtUpstreamQ\n");
 	return;
 }
 
+//To remove an event from Queue
+void xmidtQDequeue()
+{
+	XmidtMsg *temp = NULL;
+	pthread_mutex_lock (&xmidt_mut);
+	if(XmidtMsgQ != NULL)
+	{
+		temp = XmidtMsgQ;
+		XmidtMsgQ = XmidtMsgQ->next;
+		XmidtQsize -= 1;
+		free(temp);
+	}
+	else
+	{
+		ParodusError("XmidtMsgQ is NULL\n");
+	}
+	pthread_mutex_unlock (&xmidt_mut);
+}
 
 //Xmidt consumer thread to process the rbus events.
 void processXmidtData()
@@ -125,27 +168,18 @@ void processXmidtData()
 //Consumer to Parse and process rbus data.
 void* processXmidtUpstreamMsg()
 {
-	int ret = 0;
-
 	while(FOREVER())
 	{
+		ParodusInfo("xmidt mutex b4 lock\n");
 		pthread_mutex_lock (&xmidt_mut);
-		ParodusPrint("mutex lock in xmidt consumer thread\n");
+		ParodusInfo("mutex lock in xmidt consumer thread\n");
 		if(XmidtMsgQ != NULL)
 		{
 			XmidtMsg *Data = XmidtMsgQ;
-			XmidtMsgQ = XmidtMsgQ->next;
+			
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusInfo("mutex unlock in xmidt consumer thread\n");
-			ret = processData(Data->msg, Data->asyncHandle);
-			if(ret)
-			{
-				ParodusInfo("xmidt processData is success\n");
-			}
-			else
-			{
-				ParodusError("Failed to process xmidt data\n");
-			}
+			processData(Data->msg, Data->asyncHandle);
 		}
 		else
 		{
@@ -163,7 +197,7 @@ void* processXmidtUpstreamMsg()
 	return NULL;
 }
 
-int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
+void processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	int rv = 0;
 	char *errorMsg = "none";
@@ -173,7 +207,10 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	if (xmidtMsg == NULL)
 	{
 		ParodusError("xmidtMsg is NULL\n");
-		return 0;
+		errorMsg = strdup("Unable to enqueue");
+		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg, ENQUEUE_FAILURE);
+		xmidtQDequeue();
+		return;
 	}
 
 	rv = validateXmidtData(xmidtMsg, &errorMsg, &statuscode);
@@ -181,23 +218,17 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	if(rv)
 	{
 		ParodusInfo("validation successful, send event to server\n");
-		sendXmidtEventToServer(xmidtMsg);
-		return 1;
+		sendXmidtEventToServer(xmidtMsg, asyncHandle);
+		return;
 	}
 	else
 	{
 		ParodusError("validation failed, send failure ack\n");
 		ParodusInfo("errorMsg %s\n", errorMsg);
 		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg , statuscode);
-		ParodusInfo("Free errorMsg\n");
-		if(errorMsg !=NULL)
-		{
-			free(errorMsg);
-			errorMsg = NULL;
-		}
-		ParodusInfo("ack done\n");
+		xmidtQDequeue();
 	}
-	return 0;
+	return;
 }
 
 int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
@@ -260,7 +291,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	return 1;
 }
 
-void sendXmidtEventToServer(wrp_msg_t * msg)
+void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	wrp_msg_t *notif_wrp_msg = NULL;
 	ssize_t msg_len;
@@ -269,6 +300,9 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 	char sourceStr[64] = {'\0'};
 	char *device_id = NULL;
 	size_t device_id_len = 0;
+	int sendRetStatus = 1;
+	char *errorMsg = NULL;
+	int qos = 0;
 
 	ParodusInfo("In sendXmidtEventToServer\n");
 	notif_wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
@@ -278,6 +312,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 		notif_wrp_msg->msg_type = WRP_MSG_TYPE__EVENT;
 
 		ParodusInfo("msg->u.event.source: %s\n",msg->u.event.source);
+
 		if(msg->u.event.source !=NULL)
 		{
 			//To get device_id in the format "mac:112233445xxx"
@@ -295,10 +330,19 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 				ParodusError("Failed to get device_id\n");
 			}
 		}
-		ParodusInfo("destination: %s\n", msg->u.event.dest);
-		notif_wrp_msg->u.event.dest = msg->u.event.dest;
-		notif_wrp_msg->u.event.transaction_uuid = msg->u.event.transaction_uuid;
-		ParodusInfo("Notification transaction_uuid %s\n", notif_wrp_msg->u.event.transaction_uuid);
+
+		if(msg->u.event.dest != NULL)
+		{
+			notif_wrp_msg->u.event.dest = msg->u.event.dest;
+			ParodusInfo("destination: %s\n", notif_wrp_msg->u.event.dest);
+		}
+
+		if(msg->u.event.transaction_uuid != NULL)
+		{
+			notif_wrp_msg->u.event.transaction_uuid = msg->u.event.transaction_uuid;
+			ParodusInfo("Notification transaction_uuid %s\n", notif_wrp_msg->u.event.transaction_uuid);
+		}
+
 		if(msg->u.event.content_type != NULL)
 		{
 			if(strcmp(msg->u.event.content_type , "JSON") == 0)
@@ -307,6 +351,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 			}
 			ParodusInfo("content_type is %s\n",notif_wrp_msg->u.event.content_type);
 		}
+
 		if(msg->u.event.payload != NULL)
 		{
 			ParodusInfo("Notification payload: %s\n",msg->u.event.payload);
@@ -318,6 +363,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 		if(msg->u.event.qos != 0)
 		{
 			notif_wrp_msg->u.event.qos = msg->u.event.qos;
+			qos = notif_wrp_msg->u.event.qos;
 			ParodusInfo("Notification qos: %d\n",notif_wrp_msg->u.event.qos);
 		}
 		ParodusInfo("Encode xmidt wrp msg\n");
@@ -327,14 +373,88 @@ void sendXmidtEventToServer(wrp_msg_t * msg)
 		if(msg_len > 0)
 		{
 			ParodusInfo("sendUpstreamMsgToServer\n");
-			sendUpstreamMsgToServer(&msg_bytes, msg_len);
+			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
 		}
+		else
+		{
+			ParodusInfo("The msg_len is zero\n");
+			errorMsg = strdup("Wrp message encoding failed");
+			createOutParamsandSendAck(msg, asyncHandle, errorMsg, WRP_ENCODE_FAILURE);
+			xmidtQDequeue();
+
+			ParodusInfo("B4 wrp_free_struct\n");
+			if(notif_wrp_msg != NULL)
+			{
+				ParodusInfo("Inside the free wrp\n");
+				wrp_free_struct(notif_wrp_msg);
+			}
+
+			ParodusInfo("After wrp_free_struct\n");
+			if(msg_bytes != NULL)
+			{
+				free(msg_bytes);
+				msg_bytes = NULL;
+			}
+			return;
+		}
+
+		while(sendRetStatus)     //If SendMessage is failed condition
+		{
+			ParodusInfo("sendXmidtEventToServer is Failed\n");
+			if(highQosValueCheck(qos))
+			{
+				ParodusInfo("The event is having high qos retry again \n");
+				ParodusInfo("The value of pointer xmidt->msg is %p\n", XmidtMsgQ->msg);
+				ParodusInfo("Wait till connection is Up\n");
+
+				pthread_mutex_lock(get_global_cloud_status_mut());
+				pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+				pthread_mutex_unlock(get_global_cloud_status_mut());
+				ParodusInfo("Received signal proceed to retry\n");
+			}
+			else
+			{
+				errorMsg = strdup("send failed due to client disconnect");
+				ParodusInfo("The event is having low qos proceed to dequeue\n");
+				createOutParamsandSendAck(msg, asyncHandle, errorMsg, CLIENT_DISCONNECT);
+				xmidtQDequeue();
+				break;
+			}
+			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
+			ParodusInfo("After sendRetStatus async pointer is %p for qos %d\n", asyncHandle, qos);
+		}
+
+		if(sendRetStatus == 0)
+		{
+			errorMsg = strdup("send to server success");
+			createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS);
+			xmidtQDequeue();
+		}
+
+	}
+	else
+	{
+		errorMsg = strdup("Memory allocation failed");
+		ParodusInfo("Memory allocation failed\n");
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg, MSG_PROCESSING_FAILED);
+		xmidtQDequeue();
+	}
+
+	ParodusInfo("B4 wrp_free_struct\n");
+	if(notif_wrp_msg != NULL)
+	{
+		ParodusInfo("Inside the free wrp\n");
 		wrp_free_struct(notif_wrp_msg);
-		ParodusInfo("After wrp_free_struct\n");
+	}
+
+	ParodusInfo("After wrp_free_struct\n");
+	if(msg_bytes != NULL)
+	{
 		free(msg_bytes);
 		msg_bytes = NULL;
-		ParodusInfo("sendXmidtEventToServer done\n");
 	}
+	ParodusInfo("sendXmidtEventToServer done\n");
+
 }
 
 void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode)
@@ -344,51 +464,12 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 	rbusValue_t value;
 	char qosstring[20] = "";
 
-	if(msg == NULL)
-	{
-		ParodusError("msg is NULL\n");
-		return;
-	}
-
 	ParodusInfo("createOutParams\n");
 
 	rbusValue_Init(&value);
 	rbusValue_SetString(value, "event");
 	rbusObject_Init(&outParams, NULL);
 	rbusObject_SetValue(outParams, "msg_type", value);
-	rbusValue_Release(value);
-
-	if(msg->u.event.source !=NULL)
-	{
-		ParodusInfo("msg->u.event.source is %s\n", msg->u.event.source);
-		rbusValue_Init(&value);
-		rbusValue_SetString(value, msg->u.event.source);
-		rbusObject_SetValue(outParams, "source", value);
-		rbusValue_Release(value);
-	}
-
-	if(msg->u.event.dest !=NULL)
-	{
-		rbusValue_Init(&value);
-		rbusValue_SetString(value, msg->u.event.dest);
-		rbusObject_SetValue(outParams, "dest", value);
-		rbusValue_Release(value);
-	}
-
-	if(msg->u.event.content_type !=NULL)
-	{
-		rbusValue_Init(&value);
-		rbusValue_SetString(value, msg->u.event.content_type);
-		rbusObject_SetValue(outParams, "content_type", value);
-		rbusValue_Release(value);
-	}
-
-	rbusValue_Init(&value);
-	ParodusInfo("msg->u.event.qos int %d\n", msg->u.event.qos);
-	snprintf(qosstring, sizeof(qosstring), "%d", msg->u.event.qos);
-	ParodusInfo("qosstring is %s\n", qosstring);
-	rbusValue_SetString(value, qosstring);
-	rbusObject_SetValue(outParams, "qos", value);
 	rbusValue_Release(value);
 
 	ParodusInfo("statuscode %d errorMsg %s\n", statuscode, errorMsg);
@@ -403,27 +484,68 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 		rbusValue_SetString(value, errorMsg);
 		rbusObject_SetValue(outParams, "error_message", value);
 		rbusValue_Release(value);
+		free(errorMsg);
 	}
 
-	if(msg->u.event.transaction_uuid !=NULL)
+	if(msg != NULL)
 	{
+		if(msg->u.event.source !=NULL)
+		{
+			ParodusInfo("msg->u.event.source is %s\n", msg->u.event.source);
+			rbusValue_Init(&value);
+			rbusValue_SetString(value, msg->u.event.source);
+			rbusObject_SetValue(outParams, "source", value);
+			rbusValue_Release(value);
+		}
+
+		if(msg->u.event.dest !=NULL)
+		{
+			ParodusInfo("Inside dest\n");
+			rbusValue_Init(&value);
+			rbusValue_SetString(value, msg->u.event.dest);
+			rbusObject_SetValue(outParams, "dest", value);
+			rbusValue_Release(value);
+		}
+
+		if(msg->u.event.content_type !=NULL)
+		{
+			ParodusInfo("Inside content_type\n");
+			rbusValue_Init(&value);
+			rbusValue_SetString(value, msg->u.event.content_type);
+			rbusObject_SetValue(outParams, "content_type", value);
+			rbusValue_Release(value);
+		}
+
 		rbusValue_Init(&value);
-		rbusValue_SetString(value, msg->u.event.transaction_uuid);
-		rbusObject_SetValue(outParams, "transaction_uuid", value);
+		ParodusInfo("msg->u.event.qos int %d\n", msg->u.event.qos);
+		snprintf(qosstring, sizeof(qosstring), "%d", msg->u.event.qos);
+		ParodusInfo("qosstring is %s\n", qosstring);
+		rbusValue_SetString(value, qosstring);
+		rbusObject_SetValue(outParams, "qos", value);
 		rbusValue_Release(value);
-		ParodusInfo("outParams msg->u.event.transaction_uuid %s\n", msg->u.event.transaction_uuid);
+
+		if(msg->u.event.transaction_uuid !=NULL)
+		{
+			rbusValue_Init(&value);
+			rbusValue_SetString(value, msg->u.event.transaction_uuid);
+			rbusObject_SetValue(outParams, "transaction_uuid", value);
+			rbusValue_Release(value);
+			ParodusInfo("outParams msg->u.event.transaction_uuid %s\n", msg->u.event.transaction_uuid);
+		}
 	}
 
 	if(outParams !=NULL)
 	{
+		rbusObject_fwrite(outParams, 1, stdout);
 		if(asyncHandle == NULL)
 		{
 			ParodusInfo("asyncHandle is NULL\n");
 			return;
 		}
-		ParodusInfo("B4 rbusMethod_SendAsyncResponse ..\n");
-		err = rbusMethod_SendAsyncResponse(asyncHandle, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION, outParams);
-		ParodusInfo("After rbusMethod_SendAsyncResponse\n");
+
+		err = rbusMethod_SendAsyncResponse(asyncHandle, RBUS_ERROR_SUCCESS, outParams);
+		//err = rbusMethod_SendAsyncResponse(asyncHandle, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION, outParams); //for negative case
+		
 		ParodusInfo("err is %d RBUS_ERROR_SUCCESS %d\n", err, RBUS_ERROR_SUCCESS);
 		if(err != RBUS_ERROR_SUCCESS)
 		{
@@ -433,9 +555,8 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 		{
 			ParodusInfo("rbusMethod_SendAsyncResponse success:%d\n", err);
 		}
-		ParodusInfo("Release outParams\n");
+
 		rbusObject_Release(outParams);
-		ParodusInfo("outParams released\n");
 	}
 	else
 	{
@@ -650,6 +771,7 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 	wrp_msg_t *wrpMsg= NULL;
 	ParodusInfo("methodHandler called: %s\n", methodName);
 	//rbusObject_fwrite(inParams, 1, stdout);
+	printRBUSParams(inParams, INPARAMS_PATH);
 
 	if((methodName !=NULL) && (strcmp(methodName, XMIDT_SEND_METHOD) == 0))
 	{
@@ -709,4 +831,20 @@ int regXmidtSendDataMethod()
 	//start xmidt consumer thread .(should we start from conn_interface.c?)
 	processXmidtData();
 	return rc;
+}
+
+//To print and store params output to a file
+void printRBUSParams(rbusObject_t params, char* file_path)
+{
+      ParodusInfo("Inside printRBUSParams\n");
+      if( NULL != params )
+      {
+          FILE *fd = fopen(file_path, "w+");
+          rbusObject_fwrite(params, 1, fd);
+          fclose(fd);
+      }
+      else
+      {
+           ParodusError("Params is NULL\n");
+      }
 }

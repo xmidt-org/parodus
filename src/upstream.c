@@ -594,11 +594,12 @@ void getServiceNameAndSendResponse(wrp_msg_t *msg, void **msg_bytes, size_t msg_
 	}
 }
 
-void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
+int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
 	size_t encodedSize;
 	bool close_retry = false;
+	int sendRetStatus = 1;
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{
@@ -613,12 +614,13 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		//TODO: Upstream and downstream messages in queue should be handled and queue should be empty before parodus forcefully disconnect from cloud.
 		if(!close_retry || (get_parodus_cfg()->cloud_disconnect !=NULL))
 		{
-			sendMessage(get_global_conn(),appendData, encodedSize);
+			sendRetStatus = sendMessage(get_global_conn(),appendData, encodedSize);
 		}
 		else
 		{
 			ParodusInfo("close_retry is %d, unable to send response as connection retry is in progress\n", close_retry);
 			OnboardLog("close_retry is %d, unable to send response as connection retry is in progress\n", close_retry);
+			sendRetStatus = 1;
 		}
 		free(appendData);
 		appendData =NULL;
@@ -626,6 +628,9 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	else
 	{		
 		ParodusError("Failed to send upstream as metadata packing is not successful\n");
+		sendRetStatus = 1;
 	}
+	ParodusInfo("Printing sendRetStatus in send %d\n", sendRetStatus);
 
+	return sendRetStatus;
 }
