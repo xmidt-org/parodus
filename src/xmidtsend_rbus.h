@@ -31,6 +31,7 @@ extern "C" {
 
 #define XMIDT_SEND_METHOD "Device.X_RDK_Xmidt.SendData"
 #define MAX_QUEUE_SIZE 10
+#define INPARAMS_PATH   "/tmp/inparams.txt"
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -51,9 +52,8 @@ typedef enum
     MISSING_PAYLOAD,
     MISSING_PAYLOADLEN,
     QUEUE_SIZE_EXCEEDED,
-    WRP_MESSAGE_NULL,
     WRP_ENCODE_FAILURE,
-    WRP_MALLOC_FAILURE,
+    MSG_PROCESSING_FAILED,
     ENQUEUE_FAILURE = 100,
     CLIENT_DISCONNECT = 101
 } XMIDT_STATUS;
@@ -75,7 +75,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
 void xmidtQDequeue();
 bool highQosValueCheck(int qos);
 void waitTillConnectionIsUp();
-void sendACK(rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode);
+void printRBUSParams(rbusObject_t params, char* file_path);
 #ifdef __cplusplus
 }
 #endif
