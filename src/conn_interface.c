@@ -115,9 +115,7 @@ void createSocketConnection(void (* initKeypress)())
     StartThread(processUpstreamMessage, &upstream_msg_tid);
     #ifdef ENABLE_WEBCFGBIN
     subscribeRBUSevent();
-    ParodusInfo("B4 regXmidtSendDataMethod\n");
     regXmidtSendDataMethod();
-    ParodusInfo("After regXmidtSendDataMethod\n");
     #endif 
     #ifdef WAN_FAILOVER_SUPPORTED
     subscribeCurrentActiveInterfaceEvent();

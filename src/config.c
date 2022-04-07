@@ -33,9 +33,8 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-//#ifdef WAN_FAILOVER_SUPPORTED
 pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
-//#endif
+
 //For sending cond signal when cloud status is ONLINE
 pthread_mutex_t cloud_status_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cloud_status_cond=PTHREAD_COND_INITIALIZER;
@@ -205,7 +204,7 @@ int parse_mac_address (char *target, const char *arg)
 	{
 		mac[j] = tolower(mac[j]);
 	}
-	ParodusInfo("mac in lowercase is %s\n", mac);
+	ParodusPrint("mac in lowercase is %s\n", mac);
 	return 0;
 }
 
