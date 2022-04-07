@@ -185,9 +185,9 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
 int parse_mac_address (char *target, const char *arg)
 {
 	int count = 0;
-	int i;
+	int i, j;
 	char c;
-
+	char *mac = target;
 	for (i=0; (c=arg[i]) != 0; i++) {
 		if (c !=':')
 			count++;
@@ -199,6 +199,13 @@ int parse_mac_address (char *target, const char *arg)
 			*(target++) = c;
 	}
 	*target = 0;	// terminating null
+
+	//convert mac to lowercase
+	for(j = 0; mac[j]; j++)
+	{
+		mac[j] = tolower(mac[j]);
+	}
+	ParodusInfo("mac in lowercase is %s\n", mac);
 	return 0;
 }
 
