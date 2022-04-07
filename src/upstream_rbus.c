@@ -163,7 +163,20 @@ void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rb
 	setWebpaInterface(interface);
     }	
     if(newValue !=NULL && oldValue!=NULL && interface!=NULL) {
-            ParodusInfo("New Value: %s Old Value: %s New Interface Value: %s\n", rbusValue_GetString(newValue, NULL), rbusValue_GetString(oldValue, NULL), interface);
+	ParodusInfo("New Value: %s Old Value: %s New Interface Value: %s\n", rbusValue_GetString(newValue, NULL), rbusValue_GetString(oldValue, NULL), interface);
+	
+	// If interface is already down then reset it and reconnect cloud conn as wan failover event is received
+	if(get_interface_down_event()) 
+	{
+		reset_interface_down_event();
+		ParodusInfo("Interface_down_event is reset\n");
+		resume_heartBeatTimer();
+	}
+	// Close cloud conn and reconnect with the new interface as wan failover event is received
+	set_global_reconnect_reason("WAN_FAILOVER");
+	set_global_reconnect_status(true);
+	set_close_retry();
+
     }
 }
 #endif
