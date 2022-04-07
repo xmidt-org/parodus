@@ -33,9 +33,8 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
-//#ifdef WAN_FAILOVER_SUPPORTED
 pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
-//#endif
+
 //For sending cond signal when cloud status is ONLINE
 pthread_mutex_t cloud_status_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cloud_status_cond=PTHREAD_COND_INITIALIZER;
@@ -84,7 +83,7 @@ void set_cloud_status(char *status)
     if(status != NULL)
     {
         pthread_mutex_lock(&config_mut);
-        get_parodus_cfg()->cloud_status = strdup(status);
+        get_parodus_cfg()->cloud_status = status;
         if(strcmp (status, CLOUD_STATUS_ONLINE) == 0)
         {
               pthread_cond_signal(&cloud_status_cond);
@@ -185,9 +184,9 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
 int parse_mac_address (char *target, const char *arg)
 {
 	int count = 0;
-	int i;
+	int i, j;
 	char c;
-
+	char *mac = target;
 	for (i=0; (c=arg[i]) != 0; i++) {
 		if (c !=':')
 			count++;
@@ -199,6 +198,13 @@ int parse_mac_address (char *target, const char *arg)
 			*(target++) = c;
 	}
 	*target = 0;	// terminating null
+
+	//convert mac to lowercase
+	for(j = 0; mac[j]; j++)
+	{
+		mac[j] = tolower(mac[j]);
+	}
+	ParodusPrint("mac in lowercase is %s\n", mac);
 	return 0;
 }
 

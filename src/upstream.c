@@ -630,7 +630,7 @@ int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		ParodusError("Failed to send upstream as metadata packing is not successful\n");
 		sendRetStatus = 1;
 	}
-	ParodusInfo("Printing sendRetStatus in send %d\n", sendRetStatus);
+	ParodusPrint("sendRetStatus is %d\n", sendRetStatus);
 
 	return sendRetStatus;
 }

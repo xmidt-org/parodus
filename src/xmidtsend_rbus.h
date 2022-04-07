@@ -17,7 +17,7 @@
 /**
  * @file xmidtsend_rbus.h
  *
- * @description This header defines functions required to manage xmidt send messages.
+ * @description This header defines functions required to manage xmidt send messages via rbus.
  *
  */
  
