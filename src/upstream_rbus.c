@@ -40,6 +40,10 @@ void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event
 
 void subscribeAsyncHandler( rbusHandle_t handle, rbusEventSubscription_t* subscription, rbusError_t error);
 
+rbusHandle_t get_parodus_rbus_Handle(void)
+{
+     return rbus_Handle;
+}
 #ifdef WAN_FAILOVER_SUPPORTED
 void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription );
 #endif
@@ -103,6 +107,7 @@ void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event
 		if(ret == 1)
 		{
 		    wrp_msg_t *eventMsg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+		    memset( eventMsg, 0, sizeof( wrp_msg_t ) );
 		    eventMsg->msg_type = event_msg->msg_type;
 		    eventMsg->u.event.content_type=event_msg->u.event.content_type;
 		    eventMsg->u.event.source=event_msg->u.event.source;
@@ -112,6 +117,15 @@ void processWebconfigUpstreamEvent(rbusHandle_t handle, rbusEvent_t const* event
 		    eventMsg->u.event.headers=event_msg->u.event.headers;
 		    eventMsg->u.event.metadata=event_msg->u.event.metadata;
 		    eventMsg->u.event.partner_ids = partnersList;
+		    if(event_msg->u.event.transaction_uuid)
+		    {
+			  ParodusPrint("Inside Trans id in PARODUS_rbus\n");
+		    }
+		    else
+		    {
+			  ParodusPrint("Assigning NULL to trans id RBUS\n");
+			  eventMsg->u.event.transaction_uuid = NULL;
+		    }
 
 		   int size = wrp_struct_to( eventMsg, WRP_BYTES, &bytes );
 		   if(size > 0)

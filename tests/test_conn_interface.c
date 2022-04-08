@@ -103,6 +103,11 @@ void set_global_shutdown_reason(char *reason)
     UNUSED(reason);
 }
 
+int getDeviceId(char **device_id, size_t *device_id_len)
+{
+	UNUSED(device_id); UNUSED(device_id_len);
+	return 0;
+}
 void start_conn_in_progress (unsigned long start_time)
 {
 	UNUSED(start_time);
@@ -178,10 +183,10 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
 	return 0;
 }
 
-void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
+int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	UNUSED(resp_bytes); UNUSED(resp_size);
-	return;
+	return 0;
 }
 
 int nopoll_loop_wait(noPollCtx * ctx,long timeout)

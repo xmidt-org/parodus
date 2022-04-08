@@ -24,7 +24,7 @@ set(SOURCES ${SOURCES} seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 
 if (ENABLE_WEBCFGBIN)
-set(SOURCES ${SOURCES} upstream_rbus.c)
+set(SOURCES ${SOURCES} upstream_rbus.c xmidtsend_rbus.c)
 endif (ENABLE_WEBCFGBIN)
 
 if (WAN_FAILOVER_SUPPORTED)

@@ -784,8 +784,8 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 		OnboardLog("Connected to server\n");
 	}
 	
-	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
-	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
+	set_cloud_status(CLOUD_STATUS_ONLINE);
+	ParodusInfo("cloud_status set as %s after successful connection\n", get_cloud_status());
 
 	/* On initial connect success, invoke conn status change event as "success" */
 	if((NULL != on_conn_status_change) && init)
@@ -901,8 +901,8 @@ void close_and_unref_connection(noPollConn *conn, bool is_shutting_down)
 {
     if (conn) {
       close_conn (conn, is_shutting_down);
-      get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
-      ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
+      set_cloud_status(CLOUD_STATUS_OFFLINE);
+      ParodusInfo("cloud_status set as %s after connection close\n", get_cloud_status());
     }
 }
 
