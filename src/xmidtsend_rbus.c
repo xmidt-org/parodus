@@ -65,6 +65,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		char * errorMsg = strdup("Max Queue Size Exceeded");
 		ParodusError("Queue Size Exceeded\n");
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED);
+		wrp_free_struct(msg);
 		return;
 	}
 
@@ -105,6 +106,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		char * errorMsg = strdup("Unable to enqueue");
 		ParodusError("failure in allocation for xmidt message\n");
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg , ENQUEUE_FAILURE);
+		wrp_free_struct(msg);
 	}
 	return;
 }
@@ -128,6 +130,7 @@ void processXmidtData()
 //Consumer to Parse and process rbus data.
 void* processXmidtUpstreamMsg()
 {
+	int rv = 0;
 	while(FOREVER())
 	{
 		pthread_mutex_lock (&xmidt_mut);
@@ -138,7 +141,18 @@ void* processXmidtUpstreamMsg()
 			
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusPrint("mutex unlock in xmidt consumer thread\n");
-			processData(Data->msg, Data->asyncHandle);
+			rv = processData(Data->msg, Data->asyncHandle);
+			if(!rv)
+			{
+				ParodusPrint("Data->msg wrp free\n");
+				wrp_free_struct(Data->msg);
+			}
+			else
+			{
+				free(Data->msg);
+			}
+			free(Data);
+			Data = NULL;
 		}
 		else
 		{
@@ -157,7 +171,7 @@ void* processXmidtUpstreamMsg()
 }
 
 //To validate and send events upstream
-void processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
+int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	int rv = 0;
 	char *errorMsg = "none";
@@ -170,7 +184,7 @@ void processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		errorMsg = strdup("Unable to enqueue");
 		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg, ENQUEUE_FAILURE);
 		xmidtQDequeue();
-		return;
+		return rv;
 	}
 
 	rv = validateXmidtData(xmidtMsg, &errorMsg, &statuscode);
@@ -179,7 +193,7 @@ void processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		ParodusPrint("validation successful, send event to server\n");
 		sendXmidtEventToServer(xmidtMsg, asyncHandle);
-		return;
+		return rv;
 	}
 	else
 	{
@@ -187,20 +201,17 @@ void processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg , statuscode);
 		xmidtQDequeue();
 	}
-	return;
+	return rv;
 }
 
 //To remove an event from Queue
 void xmidtQDequeue()
 {
-	XmidtMsg *temp = NULL;
 	pthread_mutex_lock (&xmidt_mut);
 	if(XmidtMsgQ != NULL)
 	{
-		temp = XmidtMsgQ;
 		XmidtMsgQ = XmidtMsgQ->next;
 		XmidtQsize -= 1;
-		free(temp);
 	}
 	else
 	{
@@ -408,6 +419,18 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			xmidtQDequeue();
 		}
 
+		ParodusPrint("B4 notif wrp_free_struct\n");
+		if(notif_wrp_msg != NULL)
+		{
+			wrp_free_struct(notif_wrp_msg);
+		}
+
+		if(msg_bytes != NULL)
+		{
+			free(msg_bytes);
+			msg_bytes = NULL;
+		}
+
 	}
 	else
 	{
@@ -417,16 +440,15 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		xmidtQDequeue();
 	}
 
-	ParodusPrint("B4 notif wrp_free_struct\n");
-	if(notif_wrp_msg != NULL)
+	if(msg->u.event.source !=NULL)
 	{
-		wrp_free_struct(notif_wrp_msg);
+		free(msg->u.event.source);
+		msg->u.event.source = NULL;
 	}
-
-	if(msg_bytes != NULL)
+	if(msg->u.event.content_type !=NULL)
 	{
-		free(msg_bytes);
-		msg_bytes = NULL;
+		free(msg->u.event.content_type);
+		msg->u.event.content_type = NULL;
 	}
 }
 
