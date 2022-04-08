@@ -221,7 +221,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	{
 		*errorMsg = strdup("Message format is invalid");
 		*statusCode = INVALID_MSG_TYPE;
-		ParodusError("errorMsg %s statusCode %d\n", *errorMsg, *statusCode);
+		ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
 		return 0;
 	}
 
@@ -229,7 +229,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	{
 		*errorMsg = strdup("Missing source");
 		*statusCode = MISSING_SOURCE;
-		ParodusError("errorMsg %s statusCode %d\n", *errorMsg, *statusCode);
+		ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
 		return 0;
 	}
 
@@ -237,7 +237,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	{
 		*errorMsg = strdup("Missing dest");
 		*statusCode = MISSING_DEST;
-		ParodusError("errorMsg %s statusCode %d\n", *errorMsg, *statusCode);
+		ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
 		return 0;
 	}
 
@@ -245,7 +245,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	{
 		*errorMsg = strdup("Missing content_type");
 		*statusCode = MISSING_CONTENT_TYPE;
-		ParodusError("errorMsg %s statusCode %d\n", *errorMsg, *statusCode);
+		ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
 		return 0;
 	}
 
@@ -253,7 +253,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	{
 		*errorMsg = strdup("Missing payload");
 		*statusCode = MISSING_PAYLOAD;
-		ParodusError("errorMsg %s statusCode %d\n", *errorMsg, *statusCode);
+		ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
 		return 0;
 	}
 
@@ -261,7 +261,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	{
 		*errorMsg = strdup("Missing payloadlen");
 		*statusCode = MISSING_PAYLOADLEN;
-		ParodusError("errorMsg %s statusCode %d\n", *errorMsg, *statusCode);
+		ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
 		return 0;
 	}
 
@@ -487,7 +487,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 
 		rbusValue_Init(&value);
 		snprintf(qosstring, sizeof(qosstring), "%d", msg->u.event.qos);
-		ParodusInfo("qosstring is %s\n", qosstring);
+		ParodusPrint("qosstring is %s\n", qosstring);
 		rbusValue_SetString(value, qosstring);
 		rbusObject_SetValue(outParams, "qos", value);
 		rbusValue_Release(value);
@@ -588,10 +588,17 @@ void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **e
 		if(rbusValue_GetType(msg_type) == RBUS_STRING)
 		{
 			msg_typeStr = (char *) rbusValue_GetString(msg_type, NULL);
-			ParodusInfo("msg_type value received is %s\n", msg_typeStr);
-			if((msg_typeStr !=NULL) && (strcmp(msg_typeStr, "event") ==0))
+			ParodusPrint("msg_type value received is %s\n", msg_typeStr);
+			if(msg_typeStr !=NULL)
 			{
-				msg->msg_type = WRP_MSG_TYPE__EVENT;
+				if(strcmp(msg_typeStr, "event") ==0)
+				{
+					msg->msg_type = WRP_MSG_TYPE__EVENT;
+				}
+				else
+				{
+					ParodusError("msg_type received is not event : %s\n", msg_typeStr);
+				}
 			}
 		}
 	}
@@ -627,7 +634,7 @@ void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **e
 			destStr = (char *)rbusValue_GetString(dest, NULL);
 			if(destStr !=NULL)
 			{
-				ParodusInfo("dest value received is %s\n", destStr);
+				ParodusPrint("dest value received is %s\n", destStr);
 				msg->u.event.dest = strdup(destStr);
 				ParodusPrint("msg->u.event.dest is %s\n", msg->u.event.dest);
 			}
@@ -646,7 +653,7 @@ void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **e
 			contenttypeStr = (char *)rbusValue_GetString(contenttype, NULL);
 			if(contenttypeStr !=NULL)
 			{
-				ParodusInfo("contenttype value received is %s\n", contenttypeStr);
+				ParodusPrint("contenttype value received is %s\n", contenttypeStr);
 				msg->u.event.content_type = strdup(contenttypeStr);
 				ParodusPrint("msg->u.event.content_type is %s\n", msg->u.event.content_type);
 			}
@@ -665,7 +672,7 @@ void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **e
 			payloadStr = (char *)rbusValue_GetString(payload, NULL);
 			if(payloadStr !=NULL)
 			{
-				ParodusInfo("payload received is %s\n", payloadStr);
+				ParodusPrint("payload received is %s\n", payloadStr);
 				msg->u.event.payload = strdup(payloadStr);
 				ParodusPrint("msg->u.event.payload is %s\n", msg->u.event.payload);
 			}
@@ -794,10 +801,10 @@ int regXmidtSendDataMethod()
 	else
 	{
 		ParodusInfo("Register xmidt sendData method %s success\n", XMIDT_SEND_METHOD);
+
+		//start xmidt queue consumer thread .
+		processXmidtData();
 	}
-	
-	//start xmidt queue consumer thread .
-	processXmidtData();
 	return rc;
 }
 
