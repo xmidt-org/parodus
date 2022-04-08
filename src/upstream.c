@@ -328,6 +328,7 @@ void *processUpstreamMessage()
                     if(ret == 1)
                     {
                         wrp_msg_t *eventMsg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+			memset( eventMsg, 0, sizeof( wrp_msg_t ) );
                         eventMsg->msg_type = msgType;
                         eventMsg->u.event.content_type=msg->u.event.content_type;
                         eventMsg->u.event.source=msg->u.event.source;
@@ -337,6 +338,15 @@ void *processUpstreamMessage()
                         eventMsg->u.event.headers=msg->u.event.headers;
                         eventMsg->u.event.metadata=msg->u.event.metadata;
                         eventMsg->u.event.partner_ids = partnersList;
+			if(msg->u.event.transaction_uuid)
+			{
+				ParodusPrint("Inside Trans id in PARODUS\n");
+			}
+			else
+			{
+				ParodusPrint("Assigning NULL to trans id\n");
+				eventMsg->u.event.transaction_uuid = NULL;
+			}
 
                         int size = wrp_struct_to( eventMsg, WRP_BYTES, &bytes );
                         if(size > 0)
