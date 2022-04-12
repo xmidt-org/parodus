@@ -70,7 +70,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 int checkInputParameters(rbusObject_t inParams);
 char* generate_transaction_uuid();
 void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **eventMsg);
-void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode);
+void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, rbusError_t error);
 int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
 void xmidtQDequeue();
 bool highQosValueCheck(int qos);
