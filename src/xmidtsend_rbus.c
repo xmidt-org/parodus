@@ -64,7 +64,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		char * errorMsg = strdup("Max Queue Size Exceeded");
 		ParodusError("Queue Size Exceeded\n");
-		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED);
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		wrp_free_struct(msg);
 		return;
 	}
@@ -105,7 +105,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		char * errorMsg = strdup("Unable to enqueue");
 		ParodusError("failure in allocation for xmidt message\n");
-		createOutParamsandSendAck(msg, asyncHandle, errorMsg , ENQUEUE_FAILURE);
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg , ENQUEUE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		wrp_free_struct(msg);
 	}
 	return;
@@ -182,7 +182,7 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		ParodusError("xmidtMsg is NULL\n");
 		errorMsg = strdup("Unable to enqueue");
-		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg, ENQUEUE_FAILURE);
+		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg, ENQUEUE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		xmidtQDequeue();
 		return rv;
 	}
@@ -198,7 +198,7 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	else
 	{
 		ParodusError("validation failed, send failure ack\n");
-		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg , statuscode);
+		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg , statuscode, RBUS_ERROR_INVALID_INPUT);
 		xmidtQDequeue();
 	}
 	return rv;
@@ -371,7 +371,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		{
 			ParodusError("wrp msg_len is zero\n");
 			errorMsg = strdup("Wrp message encoding failed");
-			createOutParamsandSendAck(msg, asyncHandle, errorMsg, WRP_ENCODE_FAILURE);
+			createOutParamsandSendAck(msg, asyncHandle, errorMsg, WRP_ENCODE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 			xmidtQDequeue();
 
 			ParodusPrint("wrp_free_struct\n");
@@ -405,7 +405,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			{
 				errorMsg = strdup("send failed due to client disconnect");
 				ParodusInfo("The event is having low qos proceed to dequeue\n");
-				createOutParamsandSendAck(msg, asyncHandle, errorMsg, CLIENT_DISCONNECT);
+				createOutParamsandSendAck(msg, asyncHandle, errorMsg, CLIENT_DISCONNECT, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				xmidtQDequeue();
 				break;
 			}
@@ -415,7 +415,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		if(sendRetStatus == 0)
 		{
 			errorMsg = strdup("send to server success");
-			createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS);
+			createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS, RBUS_ERROR_SUCCESS);
 			xmidtQDequeue();
 		}
 
@@ -436,7 +436,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 	{
 		errorMsg = strdup("Memory allocation failed");
 		ParodusError("Memory allocation failed\n");
-		createOutParamsandSendAck(msg, asyncHandle, errorMsg, MSG_PROCESSING_FAILED);
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg, MSG_PROCESSING_FAILED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		xmidtQDequeue();
 	}
 
@@ -452,7 +452,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 	}
 }
 
-void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode)
+void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, rbusError_t error)
 {
 	rbusObject_t outParams;
 	rbusError_t err;
@@ -533,8 +533,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 			return;
 		}
 
-		err = rbusMethod_SendAsyncResponse(asyncHandle, RBUS_ERROR_SUCCESS, outParams);
-		//err = rbusMethod_SendAsyncResponse(asyncHandle, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION, outParams); //for negative case
+		err = rbusMethod_SendAsyncResponse(asyncHandle, error, outParams);
 		
 		if(err != RBUS_ERROR_SUCCESS)
 		{
