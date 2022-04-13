@@ -64,7 +64,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		char * errorMsg = strdup("Max Queue Size Exceeded");
 		ParodusError("Queue Size Exceeded\n");
-		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED, RBUS_ERROR_INVALID_INPUT);
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		wrp_free_struct(msg);
 		return;
 	}
@@ -182,7 +182,7 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		ParodusError("xmidtMsg is NULL\n");
 		errorMsg = strdup("Unable to enqueue");
-		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg, ENQUEUE_FAILURE, RBUS_ERROR_INVALID_INPUT);
+		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg, ENQUEUE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		xmidtQDequeue();
 		return rv;
 	}
@@ -371,7 +371,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		{
 			ParodusError("wrp msg_len is zero\n");
 			errorMsg = strdup("Wrp message encoding failed");
-			createOutParamsandSendAck(msg, asyncHandle, errorMsg, WRP_ENCODE_FAILURE, RBUS_ERROR_INVALID_INPUT);
+			createOutParamsandSendAck(msg, asyncHandle, errorMsg, WRP_ENCODE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 			xmidtQDequeue();
 
 			ParodusPrint("wrp_free_struct\n");
@@ -436,7 +436,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 	{
 		errorMsg = strdup("Memory allocation failed");
 		ParodusError("Memory allocation failed\n");
-		createOutParamsandSendAck(msg, asyncHandle, errorMsg, MSG_PROCESSING_FAILED, RBUS_ERROR_INVALID_INPUT);
+		createOutParamsandSendAck(msg, asyncHandle, errorMsg, MSG_PROCESSING_FAILED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		xmidtQDequeue();
 	}
 
