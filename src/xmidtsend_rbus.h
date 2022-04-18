@@ -51,11 +51,11 @@ typedef enum
     MISSING_CONTENT_TYPE,
     MISSING_PAYLOAD,
     MISSING_PAYLOADLEN,
-    QUEUE_SIZE_EXCEEDED,
-    WRP_ENCODE_FAILURE,
-    MSG_PROCESSING_FAILED,
     ENQUEUE_FAILURE = 100,
-    CLIENT_DISCONNECT = 101
+    CLIENT_DISCONNECT = 101,
+    QUEUE_SIZE_EXCEEDED = 102,
+    WRP_ENCODE_FAILURE = 103,
+    MSG_PROCESSING_FAILED = 104
 } XMIDT_STATUS;
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
@@ -70,7 +70,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 int checkInputParameters(rbusObject_t inParams);
 char* generate_transaction_uuid();
 void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **eventMsg);
-void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode);
+void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, rbusError_t error);
 int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
 void xmidtQDequeue();
 bool highQosValueCheck(int qos);
