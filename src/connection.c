@@ -783,9 +783,6 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 		ParodusInfo("Connected to server\n");
 		OnboardLog("Connected to server\n");
 	}
-	
-	set_cloud_status(CLOUD_STATUS_ONLINE);
-	ParodusInfo("cloud_status set as %s after successful connection\n", get_cloud_status());
 
 	/* On initial connect success, invoke conn status change event as "success" */
 	if((NULL != on_conn_status_change) && init)
@@ -817,6 +814,9 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
     stop_conn_in_progress ();
+	ParodusPrint("set cloud_status\n");
+	set_cloud_status(CLOUD_STATUS_ONLINE);
+	ParodusInfo("cloud_status set as %s after successful connection\n", get_cloud_status());
 	return nopoll_true;
 }          
 
