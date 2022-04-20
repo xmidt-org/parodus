@@ -51,11 +51,11 @@ typedef enum
     MISSING_CONTENT_TYPE,
     MISSING_PAYLOAD,
     MISSING_PAYLOADLEN,
-    QUEUE_SIZE_EXCEEDED,
-    WRP_ENCODE_FAILURE,
-    MSG_PROCESSING_FAILED,
     ENQUEUE_FAILURE = 100,
-    CLIENT_DISCONNECT = 101
+    CLIENT_DISCONNECT = 101,
+    QUEUE_SIZE_EXCEEDED = 102,
+    WRP_ENCODE_FAILURE = 103,
+    MSG_PROCESSING_FAILED = 104
 } XMIDT_STATUS;
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
