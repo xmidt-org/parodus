@@ -132,7 +132,10 @@ void set_cloud_disconnect_time(int disconnTime)
     cloud_disconnect_max_time = disconnTime;
 }
 
-
+int get_parodus_init()
+{
+   return init;
+}
 //--------------------------------------------------------------------
 // createNopollConnection_logic:
 

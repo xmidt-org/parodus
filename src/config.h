@@ -143,7 +143,7 @@ void reset_cloud_disconnect_reason(ParodusCfg *cfg);
 char *getWebpaInterface(void);
 void set_cloud_status(char *status);
 char *get_cloud_status(void);
-
+int get_parodus_init();
 /**
  * parse a webpa url. Extract the server address, the port
  * and return whether it's secure or not

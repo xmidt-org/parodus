@@ -106,6 +106,10 @@ int main( int argc, char **argv)
     
     ParodusInfo("********** Starting component: Parodus **********\n "); 
     drop_root_privilege();
+    #ifdef ENABLE_WEBCFGBIN
+    subscribeRBUSevent();
+    regXmidtSendDataMethod();
+    #endif
     setDefaultValuesToCfg(cfg);
     if (0 != parseCommandLine(argc,argv,cfg)) {
 		abort();
