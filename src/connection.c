@@ -775,7 +775,9 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	    }
 #endif		
 	}
-      
+        ParodusInfo("sleep of 5mins to delay parodus connection\n");
+	sleep(300);
+	ParodusInfo("sleep of 5mins done\n");
 	if(conn_ctx.current_server->allow_insecure <= 0)
 	{
 		ParodusInfo("Connected to server over SSL\n");
