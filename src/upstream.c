@@ -81,7 +81,7 @@ void packMetaData()
 {
     char boot_time[256]={'\0'};
     //Pack the metadata initially to reuse for every upstream msg sending to server
-    ParodusInfo("-------------- Packing metadata ----------------\n");
+    ParodusPrint("-------------- Packing metadata ----------------\n");
     sprintf(boot_time, "%d", get_parodus_cfg()->boot_time);
     struct data meta_pack[METADATA_COUNT] = {
             {HW_MODELNAME, get_parodus_cfg()->hw_model},
@@ -103,7 +103,7 @@ void packMetaData()
 
     if (metaPackSize > 0) 
     {
-	    ParodusInfo("metadata encoding is successful with size %zu\n", metaPackSize);
+	    ParodusPrint("metadata encoding is successful with size %zu\n", metaPackSize);
     }
     else
     {
@@ -613,10 +613,9 @@ int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{
-		ParodusInfo("B4 appendEncodedData. metaPackSize %zu\n", metaPackSize);
 	   	encodedSize = appendEncodedData( &appendData, *resp_bytes, resp_size, metadataPack, metaPackSize );
-		ParodusPrint("metadata appended upstream response %s\n", (char *)appendData);
-		ParodusInfo("encodedSize after appending :%zu\n", encodedSize);
+	   	ParodusPrint("metadata appended upstream response %s\n", (char *)appendData);
+	   	ParodusPrint("encodedSize after appending :%zu\n", encodedSize);
 	   		   
 		ParodusInfo("Sending response to server\n");
 		close_retry = get_close_retry();
@@ -641,7 +640,7 @@ int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		ParodusError("Failed to send upstream as metadata packing is not successful\n");
 		sendRetStatus = 1;
 	}
-	ParodusInfo("sendRetStatus is %d\n", sendRetStatus);
+	ParodusPrint("sendRetStatus is %d\n", sendRetStatus);
 
 	return sendRetStatus;
 }
