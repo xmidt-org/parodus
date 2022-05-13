@@ -113,10 +113,6 @@ void createSocketConnection(void (* initKeypress)())
     UpStreamMsgQ = NULL;
     StartThread(handle_upstream, &upstream_tid);
     StartThread(processUpstreamMessage, &upstream_msg_tid);
-    #ifdef ENABLE_WEBCFGBIN
-    subscribeRBUSevent();
-    regXmidtSendDataMethod();
-    #endif 
     #ifdef WAN_FAILOVER_SUPPORTED
     subscribeCurrentActiveInterfaceEvent();
     #endif 

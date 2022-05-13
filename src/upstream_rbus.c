@@ -27,6 +27,9 @@
 #include "upstream.h"
 #include "ParodusInternal.h"
 #include "partners_check.h"
+#include "close_retry.h"
+#include "connection.h"
+#include "heartBeat.h"
 
 #define WEBCFG_UPSTREAM_EVENT "Webconfig.Upstream"
 #ifdef WAN_FAILOVER_SUPPORTED

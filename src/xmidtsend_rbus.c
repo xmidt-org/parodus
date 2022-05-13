@@ -133,6 +133,14 @@ void* processXmidtUpstreamMsg()
 	int rv = 0;
 	while(FOREVER())
 	{
+		if(get_parodus_init())
+		{
+			ParodusInfo("Initial cloud connection is not established, Xmidt wait till connection up\n");
+			pthread_mutex_lock(get_global_cloud_status_mut());
+			pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+			pthread_mutex_unlock(get_global_cloud_status_mut());
+			ParodusInfo("Received cloud status signal proceed to event processing\n");
+		}
 		pthread_mutex_lock (&xmidt_mut);
 		ParodusPrint("mutex lock in xmidt consumer thread\n");
 		if(XmidtMsgQ != NULL)

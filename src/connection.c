@@ -132,7 +132,10 @@ void set_cloud_disconnect_time(int disconnTime)
     cloud_disconnect_max_time = disconnTime;
 }
 
-
+int get_parodus_init()
+{
+   return init;
+}
 //--------------------------------------------------------------------
 // createNopollConnection_logic:
 
@@ -772,7 +775,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	    }
 #endif		
 	}
-      
+
 	if(conn_ctx.current_server->allow_insecure <= 0)
 	{
 		ParodusInfo("Connected to server over SSL\n");
