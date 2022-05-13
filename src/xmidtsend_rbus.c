@@ -346,8 +346,11 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 
 		if(msg->u.event.content_type != NULL)
 		{
-			notif_wrp_msg->u.event.content_type = msg->u.event.content_type;
-			ParodusInfo("Notification content_type is %s\n",notif_wrp_msg->u.event.content_type);
+			if(strcmp(msg->u.event.content_type , "JSON") == 0)
+			{
+				notif_wrp_msg->u.event.content_type = strdup("application/json");
+			}
+			ParodusPrint("content_type is %s\n",notif_wrp_msg->u.event.content_type);
 		}
 
 		if(msg->u.event.payload != NULL)
@@ -449,6 +452,11 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 	{
 		free(msg->u.event.source);
 		msg->u.event.source = NULL;
+	}
+	if(msg->u.event.content_type !=NULL)
+	{
+		free(msg->u.event.content_type);
+		msg->u.event.content_type = NULL;
 	}
 }
 
