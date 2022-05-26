@@ -267,6 +267,21 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 		ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
 		return 0;
 	}
+	else
+	{
+		ParodusPrint("Validate content_type\n");
+		if ( (strcmp(eventMsg->u.event.content_type, "application/json") == 0) || (strcmp(eventMsg->u.event.content_type, "avro/binary") == 0) || (strcmp(eventMsg->u.event.content_type, "application/msgpack") == 0) || (strcmp(eventMsg->u.event.content_type, "application/binary") == 0) )
+		{
+			ParodusPrint("content_type is valid\n");
+		}
+		else
+		{
+			*errorMsg = strdup("Invalid content_type");
+			*statusCode = INVALID_CONTENT_TYPE;
+			ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
+			return 0;
+		}
+	}
 
 	if(eventMsg->u.event.payload == NULL)
 	{
@@ -346,11 +361,8 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 
 		if(msg->u.event.content_type != NULL)
 		{
-			if(strcmp(msg->u.event.content_type , "JSON") == 0)
-			{
-				notif_wrp_msg->u.event.content_type = strdup("application/json");
-			}
-			ParodusPrint("content_type is %s\n",notif_wrp_msg->u.event.content_type);
+			notif_wrp_msg->u.event.content_type = msg->u.event.content_type;
+			ParodusInfo("content_type is %s\n",notif_wrp_msg->u.event.content_type);
 		}
 
 		if(msg->u.event.payload != NULL)
@@ -452,11 +464,6 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 	{
 		free(msg->u.event.source);
 		msg->u.event.source = NULL;
-	}
-	if(msg->u.event.content_type !=NULL)
-	{
-		free(msg->u.event.content_type);
-		msg->u.event.content_type = NULL;
 	}
 }
 
