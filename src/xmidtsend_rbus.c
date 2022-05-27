@@ -276,21 +276,20 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	}
 	else
 	{
-		ParodusPrint("Validate content_type\n");
 		int i =0, count = 0, valid = 0;
 		count = sizeof(contentTypeList)/sizeof(contentTypeList[0]);
 		for(i = 0; i<count; i++)
 		{
 			if (strcmp(eventMsg->u.event.content_type, contentTypeList[i]) == 0)
 			{
-				ParodusInfo("content_type is valid %s\n", contentTypeList[i]);
+				ParodusPrint("content_type is valid %s\n", contentTypeList[i]);
 				valid = 1;
 				break;
 			}
 		}
 		if (!valid)
 		{
-			ParodusError("content_type is not valid %s\n", eventMsg->u.event.content_type);
+			ParodusError("content_type is not valid, %s\n", eventMsg->u.event.content_type);
 			*errorMsg = strdup("Invalid content_type");
 			*statusCode = INVALID_CONTENT_TYPE;
 			ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
