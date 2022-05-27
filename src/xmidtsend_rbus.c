@@ -38,6 +38,13 @@ pthread_mutex_t xmidt_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t xmidt_con=PTHREAD_COND_INITIALIZER;
 
+const char * contentTypeList[]={
+"application/json",
+"avro/binary",
+"application/msgpack",
+"application/binary"
+};
+
 bool highQosValueCheck(int qos)
 {
 	if(qos > 24)
@@ -270,12 +277,20 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	else
 	{
 		ParodusPrint("Validate content_type\n");
-		if ( (strcmp(eventMsg->u.event.content_type, "application/json") == 0) || (strcmp(eventMsg->u.event.content_type, "avro/binary") == 0) || (strcmp(eventMsg->u.event.content_type, "application/msgpack") == 0) || (strcmp(eventMsg->u.event.content_type, "application/binary") == 0) )
+		int i =0, count = 0, valid = 0;
+		count = sizeof(contentTypeList)/sizeof(contentTypeList[0]);
+		for(i = 0; i<count; i++)
 		{
-			ParodusPrint("content_type is valid\n");
+			if (strcmp(eventMsg->u.event.content_type, contentTypeList[i]) == 0)
+			{
+				ParodusInfo("content_type is valid %s\n", contentTypeList[i]);
+				valid = 1;
+				break;
+			}
 		}
-		else
+		if (!valid)
 		{
+			ParodusError("content_type is not valid %s\n", eventMsg->u.event.content_type);
 			*errorMsg = strdup("Invalid content_type");
 			*statusCode = INVALID_CONTENT_TYPE;
 			ParodusError("errorMsg: %s, statusCode: %d\n", *errorMsg, *statusCode);
