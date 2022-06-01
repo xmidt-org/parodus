@@ -144,6 +144,10 @@ void packMetaData()
     function_called();
 }
 
+int get_parodus_init()
+{
+   return 0;
+}
 
 int get_cloud_disconnect_time(void)
 {

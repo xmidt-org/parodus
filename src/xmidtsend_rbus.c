@@ -30,13 +30,20 @@
 #include "config.h"
 
 static pthread_t processThreadId = 0;
+static pthread_t cloudackThreadId = 0;
 static int XmidtQsize = 0;
 
 XmidtMsg *XmidtMsgQ = NULL;
 
+CloudAck *CloudAckQ = NULL;
+
 pthread_mutex_t xmidt_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t xmidt_con=PTHREAD_COND_INITIALIZER;
+
+pthread_mutex_t cloudack_mut=PTHREAD_MUTEX_INITIALIZER;
+
+pthread_cond_t cloudack_con=PTHREAD_COND_INITIALIZER;
 
 const char * contentTypeList[]={
 "application/json",
@@ -59,6 +66,23 @@ bool highQosValueCheck(int qos)
 
 	return false;
 }
+
+XmidtMsg * get_global_XmidtMsg(void)
+{
+    XmidtMsg *tmp = NULL;
+    pthread_mutex_lock (&xmidt_mut);
+    tmp = XmidtMsgQ;
+    pthread_mutex_unlock (&xmidt_mut);
+    return tmp;
+}
+
+void set_global_XmidtMsg(XmidtMsg *new)
+{
+	pthread_mutex_lock (&xmidt_mut);
+	XmidtMsgQ = new;
+	pthread_mutex_unlock (&xmidt_mut);
+}
+
 /*
  * @brief To handle xmidt rbus messages received from various components.
  */
@@ -83,6 +107,8 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		message->msg = msg;
 		message->asyncHandle =asyncHandle;
+		message->startTime = 0; //TODO: calculate current time and add it
+		message->status = "pending";
 		//Increment queue size to handle max queue limit
 		XmidtQsize++;
 		message->next=NULL;
@@ -138,6 +164,7 @@ void processXmidtData()
 void* processXmidtUpstreamMsg()
 {
 	int rv = 0;
+	char *status = NULL;
 	while(FOREVER())
 	{
 		if(get_parodus_init())
@@ -153,21 +180,32 @@ void* processXmidtUpstreamMsg()
 		if(XmidtMsgQ != NULL)
 		{
 			XmidtMsg *Data = XmidtMsgQ;
-			
-			pthread_mutex_unlock (&xmidt_mut);
-			ParodusPrint("mutex unlock in xmidt consumer thread\n");
-			rv = processData(Data->msg, Data->asyncHandle);
-			if(!rv)
+			status = Data->status;
+			if (status !=NULL && strcmp(status , "pending") == 0)
 			{
-				ParodusPrint("Data->msg wrp free\n");
-				wrp_free_struct(Data->msg);
+				ParodusInfo("xmidt msg status is %s\n", Data->status);
+				pthread_mutex_unlock (&xmidt_mut);
+				ParodusPrint("mutex unlock in xmidt consumer thread\n");
+				rv = processData(Data->msg, Data->asyncHandle);
+				if(!rv)
+				{
+					ParodusPrint("Data->msg wrp free\n");
+					wrp_free_struct(Data->msg);
+				}
+				else
+				{
+					free(Data->msg);
+				}
+				free(Data);
+				Data = NULL;
 			}
 			else
 			{
-				free(Data->msg);
+				ParodusInfo("xmidt msg status is %s, check next msg\n", status);
+				XmidtMsgQ = XmidtMsgQ->next;
+				pthread_mutex_unlock (&xmidt_mut);
+				ParodusInfo("mutex unlock in xmidt consumer\n");
 			}
-			free(Data);
-			Data = NULL;
 		}
 		else
 		{
@@ -448,12 +486,25 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 
 		if(sendRetStatus == 0)
 		{
-			errorMsg = strdup("send to server success");
-			createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS, RBUS_ERROR_SUCCESS);
-			xmidtQDequeue();
+			if(highQosValueCheck(qos))
+			{
+				ParodusInfo("Start processCloudAck consumer\n");
+				processCloudAck();
+				//update msg status from "pending" to "sent".
+				updateXmidtMsgStatus(msg , "sent");
+				//xmidtQDequeue();
+				//ParodusInfo("xmidtQDequeue done for high Qos msg\n");
+			}
+			else
+			{
+				ParodusInfo("Low qos event, send success callback and dequeue\n");
+				errorMsg = strdup("send to server success");
+				createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS, RBUS_ERROR_SUCCESS);
+				xmidtQDequeue();
+			}
 		}
 
-		ParodusPrint("B4 notif wrp_free_struct\n");
+		ParodusInfo("B4 notif wrp_free_struct\n");
 		if(notif_wrp_msg != NULL)
 		{
 			wrp_free_struct(notif_wrp_msg);
@@ -494,7 +545,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 	rbusObject_SetValue(outParams, "msg_type", value);
 	rbusValue_Release(value);
 
-	ParodusPrint("statuscode %d errorMsg %s\n", statuscode, errorMsg);
+	ParodusInfo("statuscode %d errorMsg %s\n", statuscode, errorMsg);
 	rbusValue_Init(&value);
 	rbusValue_SetInt32(value, statuscode);
 	rbusObject_SetValue(outParams, "status", value);
@@ -513,7 +564,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 	{
 		if(msg->u.event.source !=NULL)
 		{
-			ParodusPrint("msg->u.event.source is %s\n", msg->u.event.source);
+			ParodusInfo("msg->u.event.source is %s\n", msg->u.event.source);
 			rbusValue_Init(&value);
 			rbusValue_SetString(value, msg->u.event.source);
 			rbusObject_SetValue(outParams, "source", value);
@@ -522,6 +573,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 
 		if(msg->u.event.dest !=NULL)
 		{
+			ParodusInfo("msg->u.event.dest is %s\n", msg->u.event.dest);
 			rbusValue_Init(&value);
 			rbusValue_SetString(value, msg->u.event.dest);
 			rbusObject_SetValue(outParams, "dest", value);
@@ -530,6 +582,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 
 		if(msg->u.event.content_type !=NULL)
 		{
+			ParodusInfo("msg->u.event.content_type is %s\n", msg->u.event.content_type);
 			rbusValue_Init(&value);
 			rbusValue_SetString(value, msg->u.event.content_type);
 			rbusObject_SetValue(outParams, "content_type", value);
@@ -538,7 +591,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 
 		rbusValue_Init(&value);
 		snprintf(qosstring, sizeof(qosstring), "%d", msg->u.event.qos);
-		ParodusPrint("qosstring is %s\n", qosstring);
+		ParodusInfo("qosstring is %s\n", qosstring);
 		rbusValue_SetString(value, qosstring);
 		rbusObject_SetValue(outParams, "qos", value);
 		rbusValue_Release(value);
@@ -549,7 +602,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 			rbusValue_SetString(value, msg->u.event.transaction_uuid);
 			rbusObject_SetValue(outParams, "transaction_uuid", value);
 			rbusValue_Release(value);
-			ParodusPrint("outParams msg->u.event.transaction_uuid %s\n", msg->u.event.transaction_uuid);
+			ParodusInfo("outParams msg->u.event.transaction_uuid %s\n", msg->u.event.transaction_uuid);
 		}
 	}
 
@@ -562,6 +615,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 			return;
 		}
 
+		ParodusInfo("B4 async send callback\n");
 		err = rbusMethod_SendAsyncResponse(asyncHandle, error, outParams);
 		
 		if(err != RBUS_ERROR_SUCCESS)
@@ -871,4 +925,186 @@ void printRBUSParams(rbusObject_t params, char* file_path)
       {
            ParodusError("Params is NULL\n");
       }
+}
+
+/*
+ * @brief To store downstream cloud ack messages in a queue for further processing.
+ */
+void addToCloudAckQ(char *trans_id, int qos, int rdr)
+{
+	CloudAck *ackmsg;
+
+	ParodusInfo ("Add Xmidt downstream message to CloudAck\n");
+	ackmsg = (CloudAck *)malloc(sizeof(CloudAck));
+
+	if(ackmsg)
+	{
+		ackmsg->transaction_id = strdup(trans_id);
+		ackmsg->qos = qos;
+		ackmsg->rdr =rdr;
+		ParodusInfo("ackmsg->transaction_id %s ackmsg->qos %d ackmsg->rdr %d\n", ackmsg->transaction_id,ackmsg->qos,ackmsg->rdr);
+		ackmsg->next=NULL;
+		pthread_mutex_lock (&cloudack_mut);
+		//Producer adds the sent msg into queue
+		if(CloudAckQ == NULL)
+		{
+			CloudAckQ = ackmsg;
+
+			ParodusInfo("Producer added cloud ack msg to Q\n");
+			pthread_cond_signal(&cloudack_con);
+			pthread_mutex_unlock (&cloudack_mut);
+			ParodusInfo("mutex unlock in cloud ack producer\n");
+		}
+		else
+		{
+			CloudAck *temp = CloudAckQ;
+			while(temp->next)
+			{
+				temp = temp->next;
+			}
+			temp->next = ackmsg;
+			pthread_mutex_unlock (&cloudack_mut);
+		}
+	}
+	else
+	{
+		ParodusError("failure in allocation for cloud ack\n");
+	}
+	return;
+}
+
+//Consumer thread to process cloud ack.
+void processCloudAck()
+{
+	int err = 0;
+	err = pthread_create(&cloudackThreadId, NULL, cloudAckHandler, NULL);
+	if (err != 0)
+	{
+		ParodusError("Error creating processCloudAck thread :[%s]\n", strerror(err));
+	}
+	else
+	{
+		ParodusInfo("processCloudAck thread created Successfully\n");
+	}
+}
+
+//To handle downstream cloud ack and send callback to consumer component.
+void* cloudAckHandler()
+{
+	int rv = 0;
+	while(FOREVER())
+	{
+		pthread_mutex_lock (&cloudack_mut);
+		ParodusInfo("mutex lock in cloudack consumer thread\n");
+		if(CloudAckQ != NULL)
+		{
+			CloudAck *Data = CloudAckQ;
+			CloudAckQ = CloudAckQ->next;
+			pthread_mutex_unlock (&cloudack_mut);
+			ParodusInfo("mutex unlock in cloudack consumer thread\n");
+			ParodusInfo("Data->transaction_id %s Data->qos %d Data->rdr %d\n", Data->transaction_id,Data->qos,Data->rdr);
+			rv = processCloudAckMsg(Data->transaction_id, Data->qos, Data->rdr);
+			if(rv)
+			{
+				ParodusInfo("processCloudAckMsg success\n");
+			}
+			else
+			{
+				ParodusError("processCloudAckMsg failed\n");
+			}
+			ParodusInfo("Data->transaction_id free\n");
+			if((Data !=NULL) && (Data->transaction_id !=NULL))
+			{
+				free(Data->transaction_id);
+				Data->transaction_id = NULL;
+				ParodusInfo("Data free\n");
+				free(Data);
+				Data = NULL;
+			}
+			ParodusInfo("processCloudAckMsg done\n");
+		}
+		else
+		{
+			if (g_shutdown)
+			{
+				pthread_mutex_unlock (&cloudack_mut);
+				break;
+			}
+			ParodusInfo("Before cond wait in cloudack consumer thread\n");
+			pthread_cond_wait(&cloudack_con, &cloudack_mut);
+			pthread_mutex_unlock (&cloudack_mut);
+			ParodusInfo("mutex unlock in cloudack thread after cond wait\n");
+		}
+	}
+	return NULL;
+}
+
+//Check cloud ack and send rbus callback based on transaction id of xmidt send messages.
+int processCloudAckMsg(char *cloud_transID, int qos, int rdr)
+{
+	if(cloud_transID == NULL)
+	{
+		ParodusError("cloud_transID is NULL, failed to process cloud ack\n");
+		return 0;
+	}
+	ParodusInfo("processCloudAckMsg cloud_transID %s, qos %d, rdr %d\n", cloud_transID, qos, rdr);
+
+	XmidtMsg *temp = NULL;
+	wrp_msg_t *xmdMsg = NULL;
+	char *xmdMsgTransID = NULL;
+	char * errorMsg = NULL;
+
+	temp = get_global_XmidtMsg();
+	while (NULL != temp)
+	{
+		xmdMsg = temp->msg;
+
+		if(xmdMsg !=NULL)
+		{
+			ParodusInfo("xmdMsg->u.event.transaction_uuid is %s temp->startTime %lu temp->status %s\n",xmdMsg->u.event.transaction_uuid, temp->startTime, temp->status);
+			xmdMsgTransID = xmdMsg->u.event.transaction_uuid;
+			ParodusInfo("xmdMsgTransID is %s\n",xmdMsgTransID);
+			if(xmdMsgTransID !=NULL)
+			{
+				if( strcmp(cloud_transID, xmdMsgTransID) == 0)
+				{
+					ParodusInfo("transaction_id %s is matching, send callback\n", cloud_transID);
+					errorMsg = strdup("Delivered (success)");
+					createOutParamsandSendAck(xmdMsg, temp->asyncHandle, errorMsg, DELIVERED_SUCCESS, rdr);
+					wrp_free_struct(xmdMsg);
+					//xmidtQDequeue(); handle this based on status.
+					return 1;
+				}
+				else
+				{
+					ParodusError("transaction_id %s is not matching, checking next\n", cloud_transID);
+				}
+			}
+			else
+			{
+				ParodusError("xmdMsgTransID is NULL\n");
+			}
+		}
+		else
+		{
+			ParodusError("xmdMsg is NULL\n");
+		}
+		ParodusInfo("checking the next item in the list\n");
+		temp= temp->next;
+	}
+	ParodusInfo("checkTransIDAndSendCallback done\n");
+	return 0;
+}
+
+//updateXmidtMsgStatus based on msg transaction id .
+int updateXmidtMsgStatus(wrp_msg_t *msg, char *status)
+{
+	if(msg == NULL)
+	{
+		ParodusError("msg is NULL, updateXmidtMsgStatus failed\n");
+		return 0;
+	}
+	ParodusInfo("status to be updated %s\n", status);
+	//TODO: set status
+	return 1;
 }
