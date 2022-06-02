@@ -76,8 +76,8 @@ rbusHandle_t get_parodus_rbus_Handle(void);
 void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
 void* processXmidtUpstreamMsg();
 void processXmidtData();
-int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
-void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
+int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
+void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle);
 int checkInputParameters(rbusObject_t inParams);
 char* generate_transaction_uuid();
 void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **eventMsg);
@@ -92,7 +92,8 @@ void processCloudAck();
 void* cloudAckHandler();
 int processCloudAckMsg(char *trans_id, int qos, int rdr);
 int checkCloudAckTimer(int startTime);
-int updateXmidtMsgStatus(wrp_msg_t *msg, char *status);
+int updateXmidtMsgStatus(XmidtMsg * temp, char *status);
+void print_xmidMsg_list();
 #ifdef __cplusplus
 }
 #endif
