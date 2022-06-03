@@ -45,6 +45,10 @@ const char * contentTypeList[]={
 "application/binary"
 };
 
+void printSendMsgData(char* status, int qos, char* dest, char* transaction_uuid) {
+	ParodusInfo("status: %s, qos: %d, dest: %s, transaction_uuid: %s\n", (status!=NULL)?status:"NULL", qos, (dest!=NULL)?dest:"NULL", (transaction_uuid!=NULL)?transaction_uuid:"NULL");
+}
+
 bool highQosValueCheck(int qos)
 {
 	if(qos > 24)
@@ -399,6 +403,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		if(msg_len > 0)
 		{
 			ParodusPrint("sendUpstreamMsgToServer\n");
+			printSendMsgData("send to server", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
 		}
 		else
@@ -429,23 +434,25 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			{
 				ParodusPrint("The event is having high qos retry again\n");
 				ParodusInfo("Wait till connection is Up\n");
-
-				pthread_mutex_lock(get_global_cloud_status_mut());
+  
+       			        pthread_mutex_lock(get_global_cloud_status_mut());
 				pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
 				pthread_mutex_unlock(get_global_cloud_status_mut());
 				ParodusInfo("Received cloud status signal proceed to retry\n");
+                                printSendMsgData("send to server after cloud reconnect", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 			}
 			else
 			{
 				errorMsg = strdup("send failed due to client disconnect");
 				ParodusInfo("The event is having low qos proceed to dequeue\n");
+				printSendMsgData(errorMsg, notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 				createOutParamsandSendAck(msg, asyncHandle, errorMsg, CLIENT_DISCONNECT, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				xmidtQDequeue();
 				break;
-			}
+		        }
 			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
 		}
-
+                
 		if(sendRetStatus == 0)
 		{
 			errorMsg = strdup("send to server success");

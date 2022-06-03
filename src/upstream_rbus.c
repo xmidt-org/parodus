@@ -174,11 +174,15 @@ void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rb
     rbusValue_t newValue = rbusObject_GetValue(event->data, "value");
     rbusValue_t oldValue = rbusObject_GetValue(event->data, "oldValue");
     ParodusInfo("Consumer received ValueChange event for param %s\n", event->name);
-
+    
     if(newValue) {    
         interface = (char *) rbusValue_GetString(newValue, NULL);
 	setWebpaInterface(interface);
-    }	
+    }
+    else {
+	   ParodusError("newValue is NULL\n");
+    }
+
     if(newValue !=NULL && oldValue!=NULL && interface!=NULL) {
 	ParodusInfo("New Value: %s Old Value: %s New Interface Value: %s\n", rbusValue_GetString(newValue, NULL), rbusValue_GetString(oldValue, NULL), interface);
 	
@@ -194,6 +198,14 @@ void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rb
 	set_global_reconnect_status(true);
 	set_close_retry();
 
+    }
+    else {
+         if(oldValue == NULL) {
+     	        ParodusError("oldValue is NULL\n");
+         }  
+         if(interface == NULL) {
+	        ParodusError("interface is NULL\n"); 
+         }  
     }
 }
 #endif
