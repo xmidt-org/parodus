@@ -164,7 +164,6 @@ void processXmidtData()
 void* processXmidtUpstreamMsg()
 {
 	int rv = 0;
-	char *status = NULL;
 	while(FOREVER())
 	{
 		if(get_parodus_init())
@@ -177,36 +176,25 @@ void* processXmidtUpstreamMsg()
 		}
 		pthread_mutex_lock (&xmidt_mut);
 		ParodusPrint("mutex lock in xmidt consumer thread\n");
-		if(XmidtMsgQ != NULL)
+		if ((XmidtMsgQ != NULL) && (XmidtMsgQ->status !=NULL && strcmp(XmidtMsgQ->status , "pending") == 0))
 		{
 			XmidtMsg *Data = XmidtMsgQ;
-			status = Data->status;
-			if (status !=NULL && strcmp(status , "pending") == 0)
+			ParodusInfo("xmidt msg status is %s\n", Data->status);
+			pthread_mutex_unlock (&xmidt_mut);
+			ParodusPrint("mutex unlock in xmidt consumer thread\n");
+			rv = processData(Data, Data->msg, Data->asyncHandle);
+			if(!rv)
 			{
-				ParodusInfo("xmidt msg status is %s\n", Data->status);
-				pthread_mutex_unlock (&xmidt_mut);
-				ParodusPrint("mutex unlock in xmidt consumer thread\n");
-				rv = processData(Data, Data->msg, Data->asyncHandle);
-				if(!rv)
-				{
-					ParodusInfo("Data->msg wrp free\n");
-					wrp_free_struct(Data->msg);
-				}
-				else
-				{
-					ParodusInfo("Not freeing Data msg as it is waiting for cloud ack\n");
-					//free(Data->msg); Not freeing Data msg as it is waiting for cloud ack
-				}
-				//free(Data);
-				//Data = NULL;
+				ParodusInfo("Data->msg wrp free\n");
+				wrp_free_struct(Data->msg);
 			}
 			else
 			{
-				ParodusInfo("xmidt msg status is %s, check next msg\n", status);
-				XmidtMsgQ = XmidtMsgQ->next;
-				pthread_mutex_unlock (&xmidt_mut);
-				ParodusInfo("mutex unlock in xmidt consumer\n");
+				ParodusInfo("Not freeing Data msg as it is waiting for cloud ack\n");
+				//free(Data->msg); Not freeing Data msg as it is waiting for cloud ack
 			}
+			//free(Data);
+			//Data = NULL;
 		}
 		else
 		{
@@ -215,10 +203,10 @@ void* processXmidtUpstreamMsg()
 				pthread_mutex_unlock (&xmidt_mut);
 				break;
 			}
-			ParodusPrint("Before cond wait in xmidt consumer thread\n");
+			ParodusInfo("Before cond wait in xmidt consumer thread\n");
 			pthread_cond_wait(&xmidt_con, &xmidt_mut);
 			pthread_mutex_unlock (&xmidt_mut);
-			ParodusPrint("mutex unlock in xmidt thread after cond wait\n");
+			ParodusInfo("mutex unlock in xmidt thread after cond wait\n");
 		}
 	}
 	return NULL;
@@ -871,7 +859,8 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 		if(inStatus)
 		{
 			//generate transaction id to create outParams and send ack
-			transaction_uuid = generate_transaction_uuid();
+			//transaction_uuid = generate_transaction_uuid();
+			transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a"); //Testing
 			ParodusInfo("xmidt transaction_uuid generated is %s\n", transaction_uuid);
 			parseRbusInparamsToWrp(inParams, transaction_uuid, &wrpMsg);
 
