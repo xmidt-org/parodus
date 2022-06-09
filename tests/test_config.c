@@ -29,6 +29,7 @@
 #include "../src/ParodusInternal.h"
 
 extern int parse_mac_address (char *target, const char *arg);
+extern int parse_serial_num(char *target, const char *arg);
 extern int server_is_http (const char *full_url,
 	const char **server_ptr);
 extern int parse_webpa_url__(const char *full_url, 
@@ -467,6 +468,14 @@ void test_parse_mac_address ()
 	assert_int_equal (parse_mac_address (result, ""), -1);
 }
 
+void test_parse_serial_num()
+{
+	char result[14];
+	assert_int_equal (parse_serial_num (result, "1234ABC00ab"), 0);
+	assert_int_equal (parse_serial_num (result, "$@@"), 0);
+	assert_int_equal (parse_serial_num (result, ""), 0);
+}	
+
 void test_server_is_http ()
 {
 	const char *server_ptr;
@@ -587,6 +596,7 @@ int main(void)
         cmocka_unit_test(err_loadParodusCfg),
         cmocka_unit_test(test_parse_num_arg),
         cmocka_unit_test(test_parse_mac_address),
+	cmocka_unit_test(test_parse_serial_num),
         cmocka_unit_test(test_get_algo_mask),
         cmocka_unit_test(test_server_is_http),
         cmocka_unit_test(test_parse_webpa_url__),
