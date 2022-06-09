@@ -67,7 +67,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	XmidtMsg *message;
 
 	ParodusPrint("XmidtQsize is %d\n" , XmidtQsize);
-	if(XmidtQsize == MAX_QUEUE_SIZE)
+	if(XmidtQsize == get_parodus_cfg()->max_queue_size)
 	{
 		char * errorMsg = strdup("Max Queue Size Exceeded");
 		ParodusError("Queue Size Exceeded\n");
@@ -330,6 +330,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 	char *errorMsg = NULL;
 	int qos = 0;
 
+        ParodusInfo("MAX_QUEUE_SIZE: %d\n", get_parodus_cfg()->max_queue_size); 
 	notif_wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
 	if(notif_wrp_msg != NULL)
 	{

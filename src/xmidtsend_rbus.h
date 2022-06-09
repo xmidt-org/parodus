@@ -24,13 +24,13 @@
 #ifndef _XMIDTSEND_RBUS_H_
 #define _XMIDTSEND_RBUS_H_
 #include <rbus.h>
+#include "config.h"
 #include <uuid/uuid.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define XMIDT_SEND_METHOD "Device.X_RDK_Xmidt.SendData"
-#define MAX_QUEUE_SIZE 10
 #define INPARAMS_PATH   "/tmp/inparams.txt"
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
