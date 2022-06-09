@@ -163,6 +163,38 @@ int parse_mac_address (char *target, const char *arg)
 	return 0;
 }
 
+int parse_serial_num(char *target, const char *arg)
+{
+	char ch;
+	if(arg != NULL)
+	{
+	    if(strlen(arg) == 0)
+	    {
+	   	ParodusError("Empty serial number, setting to default unknown\n");
+		strcpy(target,"unknown");
+	    }
+            for(int i=0; (ch = arg[i]) != '\0'; i++)
+	    {
+	        // check if character is ascii, a-z --> 97 to 122, A-Z --> 65 to 90, digits(0 to 9) --> 48 to 57
+	    	if((ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90) || (ch >=48 && ch <= 57))
+	        {
+		    target[i] = ch;
+	        }
+	        else
+	        {
+		    ParodusError("Invalid serial number, setting to default unknown\n");
+		    strcpy(target,"unknown");
+		    break;
+	        }
+	    }
+	}
+        else
+        {
+            ParodusError("serial number argument is NULL\n");
+        }
+   return 0;	
+}
+
 int server_is_http (const char *full_url,
 	const char **server_ptr)
 {
@@ -417,8 +449,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
          break;
         
         case 's':
-          parStrncpy(cfg->hw_serial_number,optarg,sizeof(cfg->hw_serial_number));
-          ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
+	if(parse_serial_num(cfg->hw_serial_number, optarg) == 0)
+            ParodusInfo ("hw_serial-number is %s\n",cfg->hw_serial_number);
           break;
 
         case 'f':
