@@ -83,6 +83,15 @@ void set_global_XmidtMsg(XmidtMsg *new)
 	pthread_mutex_unlock (&xmidt_mut);
 }
 
+long long currentTime()
+{
+	struct timespec ct;
+	long long current_time = 0;
+	clock_gettime(CLOCK_REALTIME, &ct);
+	current_time = ct.tv_sec;
+	return (long long) current_time;
+}
+
 /*
  * @brief To handle xmidt rbus messages received from various components.
  */
@@ -107,8 +116,9 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		message->msg = msg;
 		message->asyncHandle =asyncHandle;
-		message->startTime = 0; //TODO: calculate current time and add it
-		message->status = strdup("pending");
+		message->state = PENDING;
+		message->enqueueTime = currentTime();
+		message->sentTime = 0;
 		//Increment queue size to handle max queue limit
 		XmidtQsize++;
 		message->next=NULL;
@@ -164,6 +174,7 @@ void processXmidtData()
 void* processXmidtUpstreamMsg()
 {
 	int rv = 0;
+	int state = 0;
 	while(FOREVER())
 	{
 		if(get_parodus_init())
@@ -175,26 +186,57 @@ void* processXmidtUpstreamMsg()
 			ParodusInfo("Received cloud status signal proceed to event processing\n");
 		}
 		pthread_mutex_lock (&xmidt_mut);
-		ParodusPrint("mutex lock in xmidt consumer thread\n");
-		if ((XmidtMsgQ != NULL) && (XmidtMsgQ->status !=NULL && strcmp(XmidtMsgQ->status , "pending") == 0))
+		ParodusInfo("mutex lock in xmidt consumer thread\n");
+		if (XmidtMsgQ != NULL)
 		{
-			XmidtMsg *Data = XmidtMsgQ;
-			ParodusInfo("xmidt msg status is %s\n", Data->status);
-			pthread_mutex_unlock (&xmidt_mut);
-			ParodusPrint("mutex unlock in xmidt consumer thread\n");
-			rv = processData(Data, Data->msg, Data->asyncHandle);
-			if(!rv)
+			int state = XmidtMsgQ->state;
+			switch(state)
 			{
-				ParodusInfo("Data->msg wrp free\n");
-				wrp_free_struct(Data->msg);
+				case PENDING:
+					ParodusInfo("state : PENDING\n");
+					XmidtMsg *Data = XmidtMsgQ;
+					pthread_mutex_unlock (&xmidt_mut);
+					ParodusInfo("mutex unlock in xmidt consumer thread\n");
+					//Try sending msg to server only when cloud connection is up/online.
+					if (!cloud_status_is_online ())
+					{
+						ParodusInfo("cloud status is not online, wait till connection up\n");
+						pthread_mutex_lock(get_global_cloud_status_mut());
+						pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+						pthread_mutex_unlock(get_global_cloud_status_mut());
+						ParodusInfo("Received cloud status signal, proceed to event processing\n");
+					}
+					ParodusInfo("cloud status is online, processData\n");
+					rv = processData(Data, Data->msg, Data->asyncHandle);
+					if(!rv)
+					{
+						ParodusInfo("Data->msg wrp free\n");
+						wrp_free_struct(Data->msg);
+					}
+					else
+					{
+						ParodusInfo("Not freeing Data msg as it is waiting for cloud ack\n");
+						//free(Data->msg); Not freeing Data msg as it is waiting for cloud ack
+					}
+					//free(Data);
+					//Data = NULL;
+					break;
+				case SENT:
+					ParodusInfo("state : SENT\n");
+					break;
+				case DELETE:
+					ParodusInfo("state : DELETE\n");
+					break;
 			}
-			else
+			XmidtMsgQ = XmidtMsgQ->next;
+
+			// circling back to 1st node
+			if(XmidtMsgQ == NULL && headNode != NULL)
 			{
-				ParodusInfo("Not freeing Data msg as it is waiting for cloud ack\n");
-				//free(Data->msg); Not freeing Data msg as it is waiting for cloud ack
+				ParodusInfo("XmidtMsgQ is NULL, circling back to 1st node\n");
+				XmidtMsgQ = headNode;
 			}
-			//free(Data);
-			//Data = NULL;
+			sleep(1);
 		}
 		else
 		{
@@ -479,16 +521,16 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 			{
 				ParodusInfo("Start processCloudAck consumer\n");
 				processCloudAck();
-				//update msg status from "pending" to "sent".
-				ParodusInfo("B4 updateXmidtMsgStatus\n");
-				int upRet = updateXmidtMsgStatus(msgnode, "sent");
+				//update msg status from PENDING to SENT
+				ParodusInfo("B4 updateStateAndTime\n");
+				int upRet = updateStateAndTime(msgnode, SENT);
 				if(upRet)
 				{
-					ParodusInfo("updateXmidtMsgStatus success\n");
+					ParodusInfo("updateStateAndTime success\n");
 				}
 				else
 				{
-					ParodusError("updateXmidtMsgStatus failed\n");
+					ParodusError("updateStateAndTime failed\n");
 				}
 				ParodusInfo("B4 print_xmidMsg_list\n");
 				print_xmidMsg_list();
@@ -1063,7 +1105,7 @@ int processCloudAckMsg(char *cloud_transID, int qos, int rdr)
 
 		if(xmdMsg !=NULL)
 		{
-			ParodusInfo("xmdMsg->u.event.transaction_uuid is %s temp->startTime %lu temp->status %s\n",xmdMsg->u.event.transaction_uuid, temp->startTime, temp->status);
+			ParodusInfo("xmdMsg->u.event.transaction_uuid is %s temp->enqueueTime %lu temp->state %s\n",xmdMsg->u.event.transaction_uuid, temp->enqueueTime, temp->state);
 			xmdMsgTransID = xmdMsg->u.event.transaction_uuid;
 			ParodusInfo("xmdMsgTransID is %s\n",xmdMsgTransID);
 			if(xmdMsgTransID !=NULL)
@@ -1100,36 +1142,25 @@ int processCloudAckMsg(char *cloud_transID, int qos, int rdr)
 	return 0;
 }
 
-//updateXmidtMsgStatus based on msg transaction id .
-int updateXmidtMsgStatus(XmidtMsg * temp, char *status)
+//To update state of the msg node that is currently being processed.
+int updateStateAndTime(XmidtMsg * temp, int state)
 {
 	if(temp == NULL)
 	{
-		ParodusError("XmidtMsg is NULL, updateXmidtMsgStatus failed\n");
+		ParodusError("XmidtMsg is NULL, updateStateAndTime failed\n");
 		return 0;
 	}
-	ParodusInfo("status to be updated %s\n", status);
-	if (NULL != temp)
+	else
 	{
-		if (NULL != temp->status)
-		{
-			ParodusInfo("node is pointing to temp->status %s\n",temp->status);
-			pthread_mutex_lock (&xmidt_mut);
-			if(strcmp(temp->status, status) !=0)
-			{
-				ParodusInfo("B4 free\n");
-				free(temp->status);
-				temp->status = NULL;
-				ParodusInfo("after free\n");
-				temp->status = strdup(status);
-			}
-			ParodusInfo("msgnode is updated with status %s\n", temp->status);
-			pthread_mutex_unlock (&xmidt_mut);
-			return 1;
-		}
+		ParodusInfo("state to be updated %d\n", state);
+		ParodusInfo("node is pointing to temp->state %d\n",temp->state);
+		pthread_mutex_lock (&xmidt_mut);
+		temp->state = state;
+		temp->sentTime = currentTime();
+		ParodusInfo("msgnode is updated with state %d sentTime %lu\n", temp->state, temp->sentTime);
+		pthread_mutex_unlock (&xmidt_mut);
+		return 1;
 	}
-	ParodusInfo("XmidtMsg list is empty\n");
-	return 0;
 }
 
 
@@ -1140,7 +1171,7 @@ void print_xmidMsg_list()
 	while (NULL != temp)
 	{
 		wrp_msg_t *xmdMsg = temp->msg;
-		ParodusInfo("node is pointing to xmdMsg transid %s temp->status %s temp->startTime %lu\n", xmdMsg->u.event.transaction_uuid, temp->status, temp->startTime);
+		ParodusInfo("node is pointing to xmdMsg transid %s temp->state %d temp->enqueueTime %lu temp->sentTime %lu\n", xmdMsg->u.event.transaction_uuid, temp->state, temp->enqueueTime, temp->sentTime);
 		temp= temp->next;
 	}
 	ParodusInfo("print_xmidMsg_list done\n");

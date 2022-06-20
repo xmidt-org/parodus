@@ -39,8 +39,9 @@ typedef struct XmidtMsg__
 {
 	wrp_msg_t *msg;
 	rbusMethodAsyncHandle_t asyncHandle;
-	char *status;
-	long long startTime;
+	int state;
+	long long enqueueTime;
+	long long sentTime;
 	struct XmidtMsg__ *next;
 } XmidtMsg;
 
@@ -68,6 +69,13 @@ typedef enum
     WRP_ENCODE_FAILURE = 103,
     MSG_PROCESSING_FAILED = 104
 } XMIDT_STATUS;
+
+typedef enum
+{
+    PENDING = 0,
+    SENT,
+    DELETE
+} MSG_STATUS;
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
@@ -92,7 +100,7 @@ void processCloudAck();
 void* cloudAckHandler();
 int processCloudAckMsg(char *trans_id, int qos, int rdr);
 int checkCloudAckTimer(int startTime);
-int updateXmidtMsgStatus(XmidtMsg * temp, char *status);
+int updateStateAndTime(XmidtMsg * temp, int state);
 void print_xmidMsg_list();
 #ifdef __cplusplus
 }
