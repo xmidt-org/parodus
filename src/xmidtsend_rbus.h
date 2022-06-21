@@ -32,6 +32,7 @@ extern "C" {
 #define XMIDT_SEND_METHOD "Device.X_RDK_Xmidt.SendData"
 #define MAX_QUEUE_SIZE 10
 #define INPARAMS_PATH   "/tmp/inparams.txt"
+#define CLOUD_ACK_TIMEOUT_SEC 7
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -96,10 +97,7 @@ bool highQosValueCheck(int qos);
 void waitTillConnectionIsUp();
 void printRBUSParams(rbusObject_t params, char* file_path);
 void addToCloudAckQ(char *transaction_id, int qos, int rdr);
-void processCloudAck();
-void* cloudAckHandler();
-int processCloudAckMsg(char *trans_id, int qos, int rdr);
-int checkCloudAckTimer(int startTime);
+int checkCloudACK(char *trans_id, int qos, int rdr);
 int updateStateAndTime(XmidtMsg * temp, int state);
 void print_xmidMsg_list();
 #ifdef __cplusplus
