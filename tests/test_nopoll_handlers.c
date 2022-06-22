@@ -79,6 +79,11 @@ const unsigned char *nopoll_msg_get_payload(noPollMsg *msg)
     return NULL;
 }
 
+long long currentTime()
+{
+	return 0;
+}
+
 noPollOpCode nopoll_msg_opcode (noPollMsg * msg)
 {
     if(NULL != msg)

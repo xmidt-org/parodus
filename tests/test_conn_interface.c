@@ -71,7 +71,14 @@ void nopoll_log_set_handler	(noPollCtx *ctx, noPollLogHandler handler, noPollPtr
     UNUSED(ctx); UNUSED(handler); UNUSED(user_data);
     function_called(); 
 }
-
+long long currentTime()
+{
+	return 0;
+}
+int cloud_status_is_online (void)
+{
+	return 0;
+}
 void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
 {
     UNUSED(ctx); UNUSED(level); UNUSED(log_msg); UNUSED(user_data);

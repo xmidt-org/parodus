@@ -97,9 +97,11 @@ bool highQosValueCheck(int qos);
 void waitTillConnectionIsUp();
 void printRBUSParams(rbusObject_t params, char* file_path);
 void addToCloudAckQ(char *transaction_id, int qos, int rdr);
-int checkCloudACK(char *trans_id, int qos, int rdr);
-int updateStateAndTime(XmidtMsg * temp, int state);
+int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle);
+int updateXmidtState(XmidtMsg * temp, int state);
 void print_xmidMsg_list();
+int deleteCloudACKNode(char* trans_id);
+int checkCloudConn();
 #ifdef __cplusplus
 }
 #endif

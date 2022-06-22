@@ -151,6 +151,14 @@ int readFromFile(const char *file_name, char **data)
 	return 1;
 }
 
+long long currentTime()
+{
+	struct timespec ct;
+	long long current_time = 0;
+	clock_gettime(CLOCK_REALTIME, &ct);
+	current_time = ct.tv_sec;
+	return (long long) current_time;
+}
 
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *diff)

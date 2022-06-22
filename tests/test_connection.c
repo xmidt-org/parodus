@@ -120,6 +120,10 @@ int readFromFile(const char *file_name, char **data)
 	*data = strdup ("parodus_stopping");
 	return 1;
 }
+long long currentTime()
+{
+	return 0;
+}
 
 noPollConn * nopoll_conn_new_opts (noPollCtx  * ctx, noPollConnOpts  * opts, const char  * host_ip, const char  * host_port, const char  * host_name,const char  * get_url,const char  * protocols, const char * origin)
 {

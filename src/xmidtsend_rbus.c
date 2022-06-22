@@ -28,22 +28,20 @@
 #include "partners_check.h"
 #include "xmidtsend_rbus.h"
 #include "config.h"
+#include "heartBeat.h"
 
 static pthread_t processThreadId = 0;
-static pthread_t cloudackThreadId = 0;
 static int XmidtQsize = 0;
 
 XmidtMsg *XmidtMsgQ = NULL;
 
-CloudAck *CloudAckQ = NULL;
+CloudAck *g_cloudackHead = NULL;
 
 pthread_mutex_t xmidt_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t xmidt_con=PTHREAD_COND_INITIALIZER;
 
 pthread_mutex_t cloudack_mut=PTHREAD_MUTEX_INITIALIZER;
-
-pthread_cond_t cloudack_con=PTHREAD_COND_INITIALIZER;
 
 const char * contentTypeList[]={
 "application/json",
@@ -83,15 +81,27 @@ void set_global_xmidthead(XmidtMsg *new)
 	pthread_mutex_unlock (&xmidt_mut);
 }
 
-long long currentTime()
+CloudAck * get_global_cloud_node(void)
 {
-	struct timespec ct;
-	long long current_time = 0;
-	clock_gettime(CLOCK_REALTIME, &ct);
-	current_time = ct.tv_sec;
-	return (long long) current_time;
+    CloudAck * tmp = NULL;
+    pthread_mutex_lock (&cloudack_mut);
+    tmp = g_cloudackHead;
+    pthread_mutex_unlock (&cloudack_mut);
+    return tmp;
 }
 
+int checkCloudConn()
+{
+	if (!cloud_status_is_online ())
+	{
+		ParodusInfo("cloud status is not online, wait till connection up\n");
+		pthread_mutex_lock(get_global_cloud_status_mut());
+		pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+		pthread_mutex_unlock(get_global_cloud_status_mut());
+		ParodusInfo("Received cloud status signal, proceed to event processing\n");
+	}
+	return 1;
+}
 /*
  * @brief To handle xmidt rbus messages received from various components.
  */
@@ -174,9 +184,8 @@ void processXmidtData()
 void* processXmidtUpstreamMsg()
 {
 	int rv = 0;
-	int state = 0;
 	long long currTime = 0;
-	int match_found = 0;
+	int ret = 0;
 
 	while(FOREVER())
 	{
@@ -201,62 +210,56 @@ void* processXmidtUpstreamMsg()
 			{
 				case PENDING:
 					ParodusInfo("state : PENDING\n");
-					//Try sending msg to server only when cloud connection is up/online.
-					if (!cloud_status_is_online ())
+					//send msg to server only when cloud connection is online.
+					if(checkCloudConn())
 					{
-						ParodusInfo("cloud status is not online, wait till connection up\n");
-						pthread_mutex_lock(get_global_cloud_status_mut());
-						pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
-						pthread_mutex_unlock(get_global_cloud_status_mut());
-						ParodusInfo("Received cloud status signal, proceed to event processing\n");
-					}
-					ParodusInfo("cloud status is online, processData\n");
-					rv = processData(Data, Data->msg, Data->asyncHandle);
-					if(!rv)
-					{
-						ParodusInfo("Data->msg wrp free\n");
-						wrp_free_struct(Data->msg);
-					}
-					else
-					{
-						ParodusInfo("Not freeing Data msg as it is waiting for cloud ack\n");
-						//free(Data->msg); Not freeing Data msg as it is waiting for cloud ack
-					}
-					//free(Data);
-					//Data = NULL;
-					break;
-				case SENT:
-					ParodusInfo("state : SENT\n");
-					currTime = currentTime();
-					ParodusInfo("currTime %d sentTime %lu\n",currTime, Data->sentTime);
-					if (currTime > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
-					{
-						ParodusInfo("Check cloud ack for matching transaction id\n");
-						match_found = checkCloudACK();
-						ParodusInfo("match_found is %d\n", match_found);
-						if (match_found)
+						ParodusInfo("cloud status is online, processData\n");
+						rv = processData(Data, Data->msg, Data->asyncHandle);
+						if(!rv)
 						{
-							createOutParamsandSendAck(Data->msg, Data->asyncHandle, "Delivered success", DELIVERED_SUCCESS, RBUS_ERROR_SUCCESS);
-							ParodusInfo("updateStateAndTime to DELETE\n");
-							int upRet = updateStateAndTime(Data, DELETE);
-							if(upRet)
-							{
-								ParodusInfo("updateStateAndTime success\n");
-							}
-							else
-							{
-								ParodusError("updateStateAndTime failed\n");
-							}
-							ParodusInfo("B4 print_xmidMsg_list\n");
-							print_xmidMsg_list();
-							ParodusInfo("print_xmidMsg_list done\n");
-							//wrp_free_struct(Data->msg);
-							//free cloud ack node
+							ParodusInfo("Data->msg wrp free\n");
+							wrp_free_struct(Data->msg);
 						}
 						else
 						{
+							ParodusInfo("processData success\n");
+						}
+					}
+					break;
+
+				case SENT:
+					ParodusInfo("state : SENT\n");
+					currTime = currentTime();
+					ParodusInfo("currTime %d sentTime %lu timeout sec %lu\n",currTime, Data->sentTime, Data->sentTime + CLOUD_ACK_TIMEOUT_SEC);
+					if (currTime > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
+					{
+						ParodusInfo("Check cloud ack for matching transaction id\n");
+						ret = checkCloudACK(Data, Data->asyncHandle);
+						ParodusInfo("ret is %d\n", ret);
+						if (ret)
+						{
+							ParodusInfo("cloud ack processed successfully\n");
+						}
+						else //ack timeout case
+						{
 							ParodusInfo("transaction id match not found, cloud ack timed out. Need to retry\n");
-							//Retry .
+							if (checkCloudConn())
+							{
+								ParodusInfo("cloud status is online, processData retry\n");
+								if(get_pingTimeStamp() > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
+								{
+									rv = processData(Data, Data->msg, Data->asyncHandle);
+									if(!rv)
+									{
+										ParodusInfo("Data->msg wrp free\n");
+										wrp_free_struct(Data->msg);
+									}
+									else
+									{
+										ParodusInfo("processData success\n");
+									}
+								}
+							}
 						}
 					}
 					break;
@@ -555,19 +558,8 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 			if(highQosValueCheck(qos))
 			{
 				//update msg status from PENDING to SENT
-				ParodusInfo("B4 updateStateAndTime\n");
-				int upRet = updateStateAndTime(msgnode, SENT);
-				if(upRet)
-				{
-					ParodusInfo("updateStateAndTime success\n");
-				}
-				else
-				{
-					ParodusError("updateStateAndTime failed\n");
-				}
-				ParodusInfo("B4 print_xmidMsg_list\n");
+				updateXmidtState(msgnode, SENT);
 				print_xmidMsg_list();
-				ParodusInfo("print_xmidMsg_list done\n");
 				//xmidtQDequeue();
 				//ParodusInfo("xmidtQDequeue done for high Qos msg\n");
 			}
@@ -576,7 +568,8 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 				ParodusInfo("Low qos event, send success callback and dequeue\n");
 				errorMsg = strdup("send to server success");
 				createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS, RBUS_ERROR_SUCCESS);
-				xmidtQDequeue();
+				updateXmidtState(msgnode, DELETE);
+				//xmidtQDequeue();
 			}
 		}
 
@@ -1005,13 +998,13 @@ void printRBUSParams(rbusObject_t params, char* file_path)
 }
 
 /*
- * @brief To store downstream cloud ack messages in a queue for further processing.
+ * @brief To store downstream cloud ack messages in a list for further processing.
  */
 void addToCloudAckQ(char *trans_id, int qos, int rdr)
 {
 	CloudAck *ackmsg;
 
-	ParodusInfo ("Add Xmidt downstream message to CloudAck\n");
+	ParodusInfo ("Add Xmidt downstream message to CloudAck list\n");
 	ackmsg = (CloudAck *)malloc(sizeof(CloudAck));
 
 	if(ackmsg)
@@ -1022,19 +1015,17 @@ void addToCloudAckQ(char *trans_id, int qos, int rdr)
 		ParodusInfo("ackmsg->transaction_id %s ackmsg->qos %d ackmsg->rdr %d\n", ackmsg->transaction_id,ackmsg->qos,ackmsg->rdr);
 		ackmsg->next=NULL;
 		pthread_mutex_lock (&cloudack_mut);
-		//Producer adds the sent msg into queue
-		if(CloudAckQ == NULL)
+		if(g_cloudackHead == NULL)
 		{
-			CloudAckQ = ackmsg;
+			g_cloudackHead = ackmsg;
 
 			ParodusInfo("Producer added cloud ack msg to Q\n");
-			pthread_cond_signal(&cloudack_con);
 			pthread_mutex_unlock (&cloudack_mut);
 			ParodusInfo("mutex unlock in cloud ack producer\n");
 		}
 		else
 		{
-			CloudAck *temp = CloudAckQ;
+			CloudAck *temp = g_cloudackHead;
 			while(temp->next)
 			{
 				temp = temp->next;
@@ -1050,71 +1041,68 @@ void addToCloudAckQ(char *trans_id, int qos, int rdr)
 	return;
 }
 
-//Check cloud ack and send rbus callback based on transaction id of xmidt send messages.
-int checkCloudACK(char *cloud_transID, int qos, int rdr)
+//Check cloud ack and send rbus callback to caller based on transaction id.
+int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle)
 {
-	if(cloud_transID == NULL)
-	{
-		ParodusError("cloud_transID is NULL, failed to process cloud ack\n");
-		return 0;
-	}
-	ParodusInfo("checkCloudACK cloud_transID %s, qos %d, rdr %d\n", cloud_transID, qos, rdr);
-
-	XmidtMsg *temp = NULL;
-	wrp_msg_t *xmdMsg = NULL;
+	wrp_msg_t *xmdMsg;
 	char *xmdMsgTransID = NULL;
 	char * errorMsg = NULL;
+	CloudAck *cloudnode = NULL;
 
-	temp = get_global_XmidtMsg();
-	while (NULL != temp)
+	if(xmdnode != NULL)
 	{
-		xmdMsg = temp->msg;
-
-		if(xmdMsg !=NULL)
+		xmdMsg = xmdnode->msg;
+		if(xmdMsg != NULL)
 		{
-			ParodusInfo("xmdMsg->u.event.transaction_uuid is %s temp->enqueueTime %lu temp->state %s\n",xmdMsg->u.event.transaction_uuid, temp->enqueueTime, temp->state);
 			xmdMsgTransID = xmdMsg->u.event.transaction_uuid;
-			ParodusInfo("xmdMsgTransID is %s\n",xmdMsgTransID);
-			if(xmdMsgTransID !=NULL)
-			{
-				if( strcmp(cloud_transID, xmdMsgTransID) == 0)
-				{
-					ParodusInfo("transaction_id %s is matching, send callback\n", cloud_transID);
-					errorMsg = strdup("Delivered (success)");
-					createOutParamsandSendAck(xmdMsg, temp->asyncHandle, errorMsg, DELIVERED_SUCCESS, rdr);
-					ParodusInfo("free xmdMsg as callback is sent after cloud ack\n");
-					//wrp_free_struct(xmdMsg);
-					//xmidtQDequeue(); delete this temp node instead of dequeue
-					ParodusInfo("checkCloudACK done\n");
-					return 1;
-				}
-				else
-				{
-					ParodusError("transaction_id %s is not matching, checking next\n", cloud_transID);
-				}
-			}
-			else
-			{
-				ParodusError("xmdMsgTransID is NULL\n");
-			}
+			ParodusInfo("xmdMsgTransID %s\n", xmdMsgTransID);
 		}
 		else
 		{
 			ParodusError("xmdMsg is NULL\n");
+			return 0;
 		}
-		ParodusInfo("checking the next item in the list\n");
-		temp= temp->next;
 	}
-	ParodusInfo("checkTransIDAndSendCallback done\n");
+
+	cloudnode = get_global_cloud_node();
+
+	while (NULL != cloudnode)
+	{
+		ParodusInfo("cloudnode->transaction_id %s cloudnode->qos %d cloudnode->rdr %d\n", cloudnode->transaction_id,cloudnode->qos,cloudnode->rdr);
+		if(xmdMsgTransID != NULL && cloudnode->transaction_id != NULL)
+		{
+			if( strcmp(xmdMsgTransID, cloudnode->transaction_id) == 0)
+			{
+				ParodusInfo("transaction_id %s is matching, send callback\n", xmdMsgTransID);
+				errorMsg = strdup("Delivered (success)");
+				createOutParamsandSendAck(xmdMsg, asyncHandle, errorMsg, DELIVERED_SUCCESS, cloudnode->rdr);
+				ParodusInfo("free xmdMsg as callback is sent after cloud ack\n");
+				wrp_free_struct(xmdMsg);
+				ParodusInfo("set state to DELETE\n");
+				updateXmidtState(xmdnode, DELETE);
+				print_xmidMsg_list();
+				ParodusInfo("delete cloudACK cloudnode\n");
+				deleteCloudACKNode(cloudnode->transaction_id);
+				ParodusInfo("checkCloudACK returns success\n");
+				return 1;
+			}
+			else
+			{
+				ParodusError("transaction_id %s match not found\n", xmdMsgTransID);
+			}
+		}
+		cloudnode= cloudnode->next;
+	}
+	ParodusError("checkCloudACK returns failure\n");
 	return 0;
 }
 
 //To update state of the msg node that is currently being processed.
-int updateStateAndTime(XmidtMsg * temp, int state)
+int updateXmidtState(XmidtMsg * temp, int state)
 {
 	if(temp == NULL)
 	{
-		ParodusError("XmidtMsg is NULL, updateStateAndTime failed\n");
+		ParodusError("XmidtMsg is NULL, updateXmidtState failed\n");
 		return 0;
 	}
 	else
@@ -1130,11 +1118,10 @@ int updateStateAndTime(XmidtMsg * temp, int state)
 	}
 }
 
-
 void print_xmidMsg_list()
 {
 	XmidtMsg *temp = NULL;
-	temp = get_global_XmidtMsg();
+	temp = get_global_xmidthead();
 	while (NULL != temp)
 	{
 		wrp_msg_t *xmdMsg = temp->msg;
@@ -1143,4 +1130,61 @@ void print_xmidMsg_list()
 	}
 	ParodusInfo("print_xmidMsg_list done\n");
 	return;
+}
+
+//delete matching cloud ack entry
+int deleteCloudACKNode(char* trans_id)
+{
+	CloudAck *prev_node = NULL, *curr_node = NULL;
+
+	if( NULL == trans_id )
+	{
+		ParodusError("Invalid value for trans_id\n");
+		return 0;
+	}
+	ParodusInfo("cloud ack to be deleted with trans_id: %s\n", trans_id);
+
+	prev_node = NULL;
+	pthread_mutex_lock (&cloudack_mut);
+	curr_node = g_cloudackHead ;
+	// Traverse to get the msg to be deleted
+	while( NULL != curr_node )
+	{
+		if(strcmp(curr_node->transaction_id, trans_id) == 0)
+		{
+			ParodusInfo("Found the node to delete\n");
+			if( NULL == prev_node )
+			{
+				ParodusInfo("need to delete first doc\n");
+				g_cloudackHead = curr_node->next;
+			}
+			else
+			{
+				ParodusInfo("Traversing to find node\n");
+				prev_node->next = curr_node->next;
+
+			}
+
+			ParodusInfo("Deleting the node entries\n");
+			if(curr_node->transaction_id !=NULL)
+			{
+				free( curr_node->transaction_id );
+				curr_node->transaction_id = NULL;
+			}
+			if(curr_node != NULL)
+			{
+				free( curr_node );
+			}
+			curr_node = NULL;
+			ParodusInfo("Deleted successfully and returning..\n");
+			pthread_mutex_unlock (&cloudack_mut);
+			return 1;
+		}
+
+		prev_node = curr_node;
+		curr_node = curr_node->next;
+	}
+	pthread_mutex_unlock (&cloudack_mut);
+	ParodusError("Could not find the entry to delete from list\n");
+	return 0;
 }
