@@ -71,10 +71,6 @@ void nopoll_log_set_handler	(noPollCtx *ctx, noPollLogHandler handler, noPollPtr
     UNUSED(ctx); UNUSED(handler); UNUSED(user_data);
     function_called(); 
 }
-long long currentTime()
-{
-	return 0;
-}
 int cloud_status_is_online (void)
 {
 	return 0;

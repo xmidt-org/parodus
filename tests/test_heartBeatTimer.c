@@ -79,10 +79,6 @@ void test_mutexHeartBeatTimer() {
 	ParodusInfo("heartBeatTimer reset to: %d\n", heartBeatTimer);
 	assert_int_equal(heartBeatTimer, 0);
 }
-long long currentTime()
-{
-	return 0;
-}
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/

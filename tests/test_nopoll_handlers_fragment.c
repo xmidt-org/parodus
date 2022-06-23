@@ -68,10 +68,6 @@ nopoll_bool nopoll_msg_is_final(noPollMsg *msg)
     function_called();
     return (nopoll_bool) mock();
 }
-long long currentTime()
-{
-	return 0;
-}
 const unsigned char *nopoll_msg_get_payload(noPollMsg *msg)
 {
 	(void)msg;

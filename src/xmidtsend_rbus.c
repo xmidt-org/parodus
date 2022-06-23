@@ -28,6 +28,7 @@
 #include "partners_check.h"
 #include "xmidtsend_rbus.h"
 #include "config.h"
+#include "time.h"
 #include "heartBeat.h"
 
 static pthread_t processThreadId = 0;
@@ -108,6 +109,7 @@ int checkCloudConn()
 void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	XmidtMsg *message;
+	struct timespec ts;
 
 	ParodusPrint("XmidtQsize is %d\n" , XmidtQsize);
 	if(XmidtQsize == MAX_QUEUE_SIZE)
@@ -127,7 +129,8 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		message->msg = msg;
 		message->asyncHandle =asyncHandle;
 		message->state = PENDING;
-		message->enqueueTime = currentTime();
+		getCurrentTime(&ts);
+		message->enqueueTime = (long long)ts.tv_sec;
 		message->sentTime = 0;
 		//Increment queue size to handle max queue limit
 		XmidtQsize++;
@@ -186,6 +189,7 @@ void* processXmidtUpstreamMsg()
 	int rv = 0;
 	long long currTime = 0;
 	int ret = 0;
+	struct timespec ts;
 
 	while(FOREVER())
 	{
@@ -229,7 +233,8 @@ void* processXmidtUpstreamMsg()
 
 				case SENT:
 					ParodusInfo("state : SENT\n");
-					currTime = currentTime();
+					getCurrentTime(&ts);
+					currTime = (long long)ts.tv_sec;
 					ParodusInfo("currTime %d sentTime %lu timeout sec %lu\n",currTime, Data->sentTime, Data->sentTime + CLOUD_ACK_TIMEOUT_SEC);
 					if (currTime > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
 					{
@@ -1100,6 +1105,7 @@ int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle)
 //To update state of the msg node that is currently being processed.
 int updateXmidtState(XmidtMsg * temp, int state)
 {
+	struct timespec ts;
 	if(temp == NULL)
 	{
 		ParodusError("XmidtMsg is NULL, updateXmidtState failed\n");
@@ -1111,7 +1117,8 @@ int updateXmidtState(XmidtMsg * temp, int state)
 		ParodusInfo("node is pointing to temp->state %d\n",temp->state);
 		pthread_mutex_lock (&xmidt_mut);
 		temp->state = state;
-		temp->sentTime = currentTime();
+		getCurrentTime(&ts);
+		temp->sentTime = (long long)ts.tv_sec;
 		ParodusInfo("msgnode is updated with state %d sentTime %lu\n", temp->state, temp->sentTime);
 		pthread_mutex_unlock (&xmidt_mut);
 		return 1;

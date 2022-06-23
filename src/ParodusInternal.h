@@ -191,7 +191,6 @@ pthread_mutex_t *get_global_cloud_status_mut(void);
 
 int cloud_status_is_online (void);
 
-long long currentTime();
 #ifdef __cplusplus
 }
 #endif
