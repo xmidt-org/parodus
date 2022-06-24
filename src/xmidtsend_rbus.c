@@ -191,6 +191,7 @@ void* processXmidtUpstreamMsg()
 	int ret = 0;
 	struct timespec ts;
 	XmidtMsg *xmidtQ = NULL;
+	XmidtMsg *next_node = NULL;
 
 	xmidtQ = get_global_xmidthead();
 
@@ -276,6 +277,10 @@ void* processXmidtUpstreamMsg()
 					break;
 				case DELETE:
 					ParodusInfo("state : DELETE\n");
+					deleteFromXmidtQ(Data->msg, &next_node);
+					ParodusInfo("deleteFromXmidtQ done, continue\n");
+					xmidtQ = next_node;
+					continue;
 					break;
 			}
 
@@ -1201,6 +1206,71 @@ int deleteCloudACKNode(char* trans_id)
 		curr_node = curr_node->next;
 	}
 	pthread_mutex_unlock (&cloudack_mut);
+	ParodusError("Could not find the entry to delete from list\n");
+	return 0;
+}
+
+//Delete msg from XmidtQ
+int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node)
+{
+	XmidtMsg *prev_node = NULL, *curr_node = NULL;
+	char *transid = NULL;
+
+	if( NULL == msg )
+	{
+		ParodusError("Invalid xmidt msg\n");
+		return 0;
+	}
+
+	transid = msg->u.event.transaction_uuid;
+	if( NULL == transid )
+	{
+		ParodusError("Invalid xmidt transid\n");
+		return 0;
+	}
+	ParodusInfo("msg to be deleted with transid %s\n", transid);
+
+	prev_node = NULL;
+	pthread_mutex_lock (&xmidt_mut);
+	curr_node = XmidtMsgQ ;
+	// Traverse to get the msg to be deleted
+	while( NULL != curr_node )
+	{
+		if(strcmp(curr_node->msg->u.event.transaction_uuid, transid) == 0)
+		{
+			ParodusInfo("Found the node to delete\n");
+			if( NULL == prev_node )
+			{
+				ParodusInfo("need to delete first doc\n");
+				XmidtMsgQ = curr_node->next;
+			}
+			else
+			{
+				ParodusInfo("Traversing to find node\n");
+				prev_node->next = curr_node->next;
+				*next_node = curr_node->next;
+
+			}
+
+			ParodusInfo("Deleting the node entries\n");
+			wrp_free_struct( curr_node->msg);
+			curr_node->msg = NULL;
+			if(curr_node !=NULL)
+			{
+				free( curr_node );
+				curr_node = NULL;
+			}
+			ParodusInfo("Deleted successfully and returning..\n");
+			XmidtQsize =XmidtQsize - 1;
+			ParodusInfo("XmidtQsize after delete is %d\n", XmidtQsize);
+			pthread_mutex_unlock (&xmidt_mut);
+			return 1;
+		}
+
+		prev_node = curr_node;
+		curr_node = curr_node->next;
+	}
+	pthread_mutex_unlock (&xmidt_mut);
 	ParodusError("Could not find the entry to delete from list\n");
 	return 0;
 }

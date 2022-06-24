@@ -107,6 +107,7 @@ int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle);
 int updateXmidtState(XmidtMsg * temp, int state);
 void print_xmidMsg_list();
 int deleteCloudACKNode(char* trans_id);
+int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node);
 int checkCloudConn();
 void checkMaxQandOptimize();
 void checkMsgExpiry();
