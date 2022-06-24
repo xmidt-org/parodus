@@ -32,7 +32,13 @@ extern "C" {
 #define XMIDT_SEND_METHOD "Device.X_RDK_Xmidt.SendData"
 #define MAX_QUEUE_SIZE 10
 #define INPARAMS_PATH   "/tmp/inparams.txt"
-#define CLOUD_ACK_TIMEOUT_SEC 7
+
+#define CLOUD_ACK_TIMEOUT_SEC       7
+#define CRITICAL_QOS_EXPIRE_TIME    30*60
+#define HIGH_QOS_EXPIRE_TIME        25*60
+#define MEDIUM_QOS_EXPIRE_TIME      20*60
+#define LOW_QOS_EXPIRE_TIME         15*60
+
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -102,6 +108,8 @@ int updateXmidtState(XmidtMsg * temp, int state);
 void print_xmidMsg_list();
 int deleteCloudACKNode(char* trans_id);
 int checkCloudConn();
+void checkMaxQandOptimize();
+void checkMsgExpiry();
 #ifdef __cplusplus
 }
 #endif

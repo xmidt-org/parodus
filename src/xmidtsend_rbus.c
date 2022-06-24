@@ -210,6 +210,9 @@ void* processXmidtUpstreamMsg()
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusInfo("mutex unlock in xmidt consumer thread\n");
 
+			checkMsgExpiry();
+			checkMaxQandOptimize();
+
 			switch(Data->state)
 			{
 				case PENDING:
@@ -1194,4 +1197,98 @@ int deleteCloudACKNode(char* trans_id)
 	pthread_mutex_unlock (&cloudack_mut);
 	ParodusError("Could not find the entry to delete from list\n");
 	return 0;
+}
+
+//check if message is expired based on each qos and set to delete state.
+void checkMsgExpiry()
+{
+	long long currTime = 0;
+	struct timespec ts;
+
+	XmidtMsg *temp = NULL;
+	temp = get_global_xmidthead();
+
+	while(temp != NULL)
+	{
+		getCurrentTime(&ts);
+		currTime= (long long)ts.tv_sec;
+		wrp_msg_t * tempMsg = temp->msg;
+		ParodusInfo("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+
+		if(tempMsg->u.event.qos > 74)
+		{
+			ParodusInfo("Critical Qos, check expiry 30 mins\n");
+			if((currTime - temp->enqueueTime) > CRITICAL_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Low qos msg, set to DELETE state\n");
+				updateXmidtState(temp, DELETE);
+			}
+		}
+		else if (tempMsg->u.event.qos > 49)
+		{
+			ParodusInfo("High Qos, check expiry 25 mins\n");
+			if((currTime - temp->enqueueTime) > HIGH_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Low qos msg, set to DELETE state\n");
+				updateXmidtState(temp, DELETE);
+			}
+		}
+		else if (tempMsg->u.event.qos > 24)
+		{
+			ParodusInfo("Medium Qos, check expiry 20 mins\n");
+			if((currTime - temp->enqueueTime) > MEDIUM_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Low qos msg, set to DELETE state\n");
+				updateXmidtState(temp, DELETE);
+			}
+		}
+		else if (tempMsg->u.event.qos >= 0)
+		{
+			ParodusInfo("Low Qos, check expiry 15 mins\n");
+			if((currTime - temp->enqueueTime) > LOW_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Low qos msg, set to DELETE state\n");
+				updateXmidtState(temp, DELETE);
+			}
+		}
+		else
+		{
+			ParodusError("Invalid qos\n");
+		}
+		temp = temp->next;
+	}
+
+}
+
+//To delete low qos messages from queue when max queue limit is reached.
+void checkMaxQandOptimize()
+{
+	int qos = 0;
+
+	ParodusInfo("checkMaxQandOptimize . XmidtQsize is %d\n" , XmidtQsize);
+	if(XmidtQsize == MAX_QUEUE_SIZE)
+	{
+		ParodusInfo("Max Queue size reached, check and optimize\n");
+
+		//Traverse through XmidtMsgQ list and set low qos msgs to DELETE
+		XmidtMsg *temp = NULL;
+		temp = get_global_xmidthead();
+
+		while(temp != NULL)
+		{
+			wrp_msg_t * tempMsg = temp->msg;
+			qos = tempMsg->u.event.qos;
+			ParodusInfo("qos is %d\n", qos);
+			if(highQosValueCheck(qos))
+			{
+				ParodusInfo("High qos msg, skip delete\n");
+			}
+			else
+			{
+				ParodusInfo("Low qos msg, set to DELETE state\n");
+				updateXmidtState(temp, DELETE);
+			}
+			temp = temp->next;
+		}
+	}
 }
