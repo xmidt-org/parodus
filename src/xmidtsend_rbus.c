@@ -190,6 +190,9 @@ void* processXmidtUpstreamMsg()
 	long long currTime = 0;
 	int ret = 0;
 	struct timespec ts;
+	XmidtMsg *xmidtQ = NULL;
+
+	xmidtQ = get_global_xmidthead();
 
 	while(FOREVER())
 	{
@@ -203,16 +206,16 @@ void* processXmidtUpstreamMsg()
 		}
 		pthread_mutex_lock (&xmidt_mut);
 		ParodusInfo("mutex lock in xmidt consumer thread\n");
-		if (XmidtMsgQ != NULL)
+		if (xmidtQ != NULL)
 		{
-			XmidtMsg *Data = XmidtMsgQ;
-			XmidtMsgQ = XmidtMsgQ->next;
+			XmidtMsg *Data = xmidtQ;
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusInfo("mutex unlock in xmidt consumer thread\n");
 
 			checkMsgExpiry();
 			checkMaxQandOptimize();
 
+			ParodusInfo("check state\n");
 			switch(Data->state)
 			{
 				case PENDING:
@@ -276,11 +279,13 @@ void* processXmidtUpstreamMsg()
 					break;
 			}
 
+			xmidtQ = xmidtQ->next;
+
 			// circling back to 1st node
-			if(XmidtMsgQ == NULL && get_global_xmidthead() != NULL)
+			if(xmidtQ == NULL && get_global_xmidthead() != NULL)
 			{
-				ParodusInfo("XmidtMsgQ is NULL, circling back to 1st node\n");
-				XmidtMsgQ = get_global_xmidthead();
+				ParodusInfo("xmidtQ is NULL, circling back to 1st node\n");
+				xmidtQ = get_global_xmidthead();
 			}
 			sleep(1);
 		}
@@ -295,6 +300,7 @@ void* processXmidtUpstreamMsg()
 			pthread_cond_wait(&xmidt_con, &xmidt_mut);
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusInfo("mutex unlock in xmidt thread after cond wait\n");
+			xmidtQ = get_global_xmidthead();
 		}
 	}
 	return NULL;
