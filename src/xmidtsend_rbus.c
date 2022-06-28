@@ -133,12 +133,13 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	XmidtMsg *message;
 	struct timespec ts;
+	char * errorMsg = NULL;
 
 	ParodusPrint("XmidtQsize is %d\n" , get_XmidtQsize());
 	if(get_XmidtQsize() == MAX_QUEUE_SIZE)
 	{
-		char * errorMsg = strdup("Max Queue Size Exceeded");
-		ParodusError("Queue Size Exceeded\n");
+		mapXmidtStatusToStatusMsg(QUEUE_SIZE_EXCEEDED, &errorMsg);
+		ParodusInfo("errorMsg is %s\n",errorMsg);
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		wrp_free_struct(msg);
 		return;
@@ -182,8 +183,8 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	}
 	else
 	{
-		char * errorMsg = strdup("Unable to enqueue");
-		ParodusError("failure in allocation for xmidt message\n");
+		mapXmidtStatusToStatusMsg(ENQUEUE_FAILURE, &errorMsg);
+		ParodusInfo("errorMsg is %s\n",errorMsg);
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg , ENQUEUE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		wrp_free_struct(msg);
 	}
@@ -211,7 +212,7 @@ void* processXmidtUpstreamMsg()
 {
 	int rv = 0;
 	long long currTime = 0;
-	int ret = 0;
+	int ret = 0, status = 0;
 	struct timespec ts;
 	XmidtMsg *xmidtQ = NULL;
 	XmidtMsg *next_node = NULL;
@@ -300,14 +301,24 @@ void* processXmidtUpstreamMsg()
 					break;
 				case DELETE:
 					ParodusInfo("state : DELETE\n");
-					deleteFromXmidtQ(Data->msg, &next_node);
-					ParodusInfo("deleteFromXmidtQ done, continue\n");
-					xmidtQ = next_node;
-					continue;
-					break;
+					status = deleteFromXmidtQ(Data->msg, &next_node);
+					if(status)
+					{
+						ParodusInfo("deleteFromXmidtQ done, continue\n");
+						xmidtQ = next_node;
+						continue;
+					}
+					else
+					{
+						ParodusError("deleteFromXmidtQ failed\n");
+						break;
+					}
 			}
 
-			xmidtQ = xmidtQ->next;
+			if(xmidtQ !=NULL)
+			{
+				xmidtQ = xmidtQ->next;
+			}
 
 			// circling back to 1st node
 			if(xmidtQ == NULL && get_global_xmidthead() != NULL)
@@ -345,7 +356,8 @@ int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asy
 	if (xmidtMsg == NULL)
 	{
 		ParodusError("xmidtMsg is NULL\n");
-		errorMsg = strdup("Unable to enqueue");
+		mapXmidtStatusToStatusMsg(ENQUEUE_FAILURE, &errorMsg);
+		ParodusInfo("errorMsg is %s\n",errorMsg);
 		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg, ENQUEUE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		xmidtQDequeue();
 		return rv;
@@ -553,7 +565,8 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 		else
 		{
 			ParodusError("wrp msg_len is zero\n");
-			errorMsg = strdup("Wrp message encoding failed");
+			mapXmidtStatusToStatusMsg(WRP_ENCODE_FAILURE, &errorMsg);
+			ParodusInfo("errorMsg is %s\n",errorMsg);
 			createOutParamsandSendAck(msg, asyncHandle, errorMsg, WRP_ENCODE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 			xmidtQDequeue();
 
@@ -586,7 +599,8 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 			}
 			else
 			{
-				errorMsg = strdup("send failed due to client disconnect");
+				mapXmidtStatusToStatusMsg(CLIENT_DISCONNECT, &errorMsg);
+				ParodusInfo("errorMsg is %s\n",errorMsg);
 				ParodusInfo("The event is having low qos proceed to dequeue\n");
 				createOutParamsandSendAck(msg, asyncHandle, errorMsg, CLIENT_DISCONNECT, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				xmidtQDequeue();
@@ -608,7 +622,8 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 			else
 			{
 				ParodusInfo("Low qos event, send success callback and dequeue\n");
-				errorMsg = strdup("send to server success");
+				mapXmidtStatusToStatusMsg(DELIVERED_SUCCESS, &errorMsg);
+				ParodusInfo("errorMsg is %s\n",errorMsg);
 				createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS, RBUS_ERROR_SUCCESS);
 				updateXmidtState(msgnode, DELETE);
 				//xmidtQDequeue();
@@ -630,7 +645,8 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 	}
 	else
 	{
-		errorMsg = strdup("Memory allocation failed");
+		mapXmidtStatusToStatusMsg(MSG_PROCESSING_FAILED, &errorMsg);
+		ParodusInfo("errorMsg is %s\n",errorMsg);
 		ParodusError("Memory allocation failed\n");
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg, MSG_PROCESSING_FAILED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		xmidtQDequeue();
@@ -1116,7 +1132,8 @@ int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle)
 			if( strcmp(xmdMsgTransID, cloudnode->transaction_id) == 0)
 			{
 				ParodusInfo("transaction_id %s is matching, send callback\n", xmdMsgTransID);
-				errorMsg = strdup("Delivered (success)");
+				mapXmidtStatusToStatusMsg(DELIVERED_SUCCESS, &errorMsg);
+				ParodusInfo("errorMsg is %s\n",errorMsg);
 				createOutParamsandSendAck(xmdMsg, asyncHandle, errorMsg, DELIVERED_SUCCESS, cloudnode->rdr);
 				ParodusInfo("free xmdMsg as callback is sent after cloud ack\n");
 				wrp_free_struct(xmdMsg);
@@ -1391,4 +1408,68 @@ void checkMaxQandOptimize()
 			temp = temp->next;
 		}
 	}
+}
+
+//map xmidt status and rdr response to status message
+void mapXmidtStatusToStatusMsg(int status, char **message)
+{
+	char *result = NULL;
+
+	if (status == DELIVERED_SUCCESS)
+	{
+		result = strdup("Delivered (success)");
+	}
+	else if (status == INVALID_MSG_TYPE)
+	{
+		result = strdup("Message format is invalid");
+	}
+	else if (status == MISSING_SOURCE)
+	{
+		result = strdup("Missing source");
+	}
+	else if (status == MISSING_DEST)
+	{
+		result = strdup("Missing dest");
+	}
+	else if (status == MISSING_CONTENT_TYPE)
+	{
+		result = strdup("Missing content_type");
+	}
+	else if (status == MISSING_PAYLOAD)
+	{
+		result = strdup("Missing payload");
+	}
+	else if (status == MISSING_PAYLOADLEN)
+	{
+		result = strdup("Missing payloadlen");
+	}
+	else if (status == INVALID_CONTENT_TYPE)
+	{
+		result = strdup("Invalid content_type");
+	}
+	else if (status == ENQUEUE_FAILURE)
+	{
+		result = strdup("Unable to enqueue");
+	}
+	else if (status == CLIENT_DISCONNECT)
+	{
+		result = strdup("send failed due to client disconnect");
+	}
+	else if (status == QUEUE_SIZE_EXCEEDED)
+	{
+		result = strdup("Max Queue Size Exceeded");
+	}
+	else if (status == WRP_ENCODE_FAILURE)
+	{
+		result = strdup("Wrp message encoding failed");
+	}
+	else if (status == MSG_PROCESSING_FAILED)
+	{
+		result = strdup("Memory allocation failed");
+	}
+	else
+	{
+		result = strdup("Unknown Error");
+	}
+	*message = result;
 }

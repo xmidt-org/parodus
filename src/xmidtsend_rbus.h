@@ -111,6 +111,7 @@ int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node);
 int checkCloudConn();
 void checkMaxQandOptimize();
 void checkMsgExpiry();
+void mapXmidtStatusToStatusMsg(int status, char **message);
 #ifdef __cplusplus
 }
 #endif
