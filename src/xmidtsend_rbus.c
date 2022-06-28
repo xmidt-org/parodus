@@ -91,6 +91,29 @@ CloudAck * get_global_cloud_node(void)
     return tmp;
 }
 
+int get_XmidtQsize()
+{
+	int tmp = 0;
+	pthread_mutex_lock (&xmidt_mut);
+	tmp = XmidtQsize;
+	pthread_mutex_unlock (&xmidt_mut);
+	return tmp;
+}
+
+void increment_XmidtQsize()
+{
+	pthread_mutex_lock (&xmidt_mut);
+	XmidtQsize++;
+	pthread_mutex_unlock (&xmidt_mut);
+}
+
+void decrement_XmidtQsize()
+{
+	pthread_mutex_lock (&xmidt_mut);
+	XmidtQsize--;
+	pthread_mutex_unlock (&xmidt_mut);
+}
+
 int checkCloudConn()
 {
 	if (!cloud_status_is_online ())
@@ -111,8 +134,8 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	XmidtMsg *message;
 	struct timespec ts;
 
-	ParodusPrint("XmidtQsize is %d\n" , XmidtQsize);
-	if(XmidtQsize == MAX_QUEUE_SIZE)
+	ParodusPrint("XmidtQsize is %d\n" , get_XmidtQsize());
+	if(get_XmidtQsize() == MAX_QUEUE_SIZE)
 	{
 		char * errorMsg = strdup("Max Queue Size Exceeded");
 		ParodusError("Queue Size Exceeded\n");
@@ -133,7 +156,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		message->enqueueTime = (long long)ts.tv_sec;
 		message->sentTime = 0;
 		//Increment queue size to handle max queue limit
-		XmidtQsize++;
+		increment_XmidtQsize();
 		message->next=NULL;
 		pthread_mutex_lock (&xmidt_mut);
 		//Producer adds the rbus msg into queue
@@ -1236,7 +1259,8 @@ int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node)
 	// Traverse to get the msg to be deleted
 	while( NULL != curr_node )
 	{
-		if(strcmp(curr_node->msg->u.event.transaction_uuid, transid) == 0)
+		wrp_msg_t * curr_node_msg = curr_node->msg;
+		if(curr_node_msg !=NULL && strcmp(curr_node_msg->u.event.transaction_uuid, transid) == 0)
 		{
 			ParodusInfo("Found the node to delete\n");
 			if( NULL == prev_node )
@@ -1261,8 +1285,8 @@ int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node)
 				curr_node = NULL;
 			}
 			ParodusInfo("Deleted successfully and returning..\n");
-			XmidtQsize =XmidtQsize - 1;
-			ParodusInfo("XmidtQsize after delete is %d\n", XmidtQsize);
+			decrement_XmidtQsize();
+			ParodusInfo("XmidtQsize after delete is %d\n", get_XmidtQsize());
 			pthread_mutex_unlock (&xmidt_mut);
 			return 1;
 		}
@@ -1293,34 +1317,34 @@ void checkMsgExpiry()
 
 		if(tempMsg->u.event.qos > 74)
 		{
-			ParodusInfo("Critical Qos, check expiry 30 mins\n");
+			ParodusInfo("Critical Qos, check if expiry of 30 mins reached\n");
 			if((currTime - temp->enqueueTime) > CRITICAL_QOS_EXPIRE_TIME)
 			{
-				ParodusInfo("Low qos msg, set to DELETE state\n");
+				ParodusInfo("Critical qos msg, set to DELETE state\n");
 				updateXmidtState(temp, DELETE);
 			}
 		}
 		else if (tempMsg->u.event.qos > 49)
 		{
-			ParodusInfo("High Qos, check expiry 25 mins\n");
+			ParodusInfo("High Qos, check if expiry of 25 mins reached\n");
 			if((currTime - temp->enqueueTime) > HIGH_QOS_EXPIRE_TIME)
 			{
-				ParodusInfo("Low qos msg, set to DELETE state\n");
+				ParodusInfo("High qos msg, set to DELETE state\n");
 				updateXmidtState(temp, DELETE);
 			}
 		}
 		else if (tempMsg->u.event.qos > 24)
 		{
-			ParodusInfo("Medium Qos, check expiry 20 mins\n");
+			ParodusInfo("Medium Qos, check if expiry of 20 mins reached\n");
 			if((currTime - temp->enqueueTime) > MEDIUM_QOS_EXPIRE_TIME)
 			{
-				ParodusInfo("Low qos msg, set to DELETE state\n");
+				ParodusInfo("Medium qos msg, set to DELETE state\n");
 				updateXmidtState(temp, DELETE);
 			}
 		}
 		else if (tempMsg->u.event.qos >= 0)
 		{
-			ParodusInfo("Low Qos, check expiry 15 mins\n");
+			ParodusInfo("Low Qos, check if expiry of 15 mins reached\n");
 			if((currTime - temp->enqueueTime) > LOW_QOS_EXPIRE_TIME)
 			{
 				ParodusInfo("Low qos msg, set to DELETE state\n");
@@ -1341,8 +1365,8 @@ void checkMaxQandOptimize()
 {
 	int qos = 0;
 
-	ParodusInfo("checkMaxQandOptimize . XmidtQsize is %d\n" , XmidtQsize);
-	if(XmidtQsize == MAX_QUEUE_SIZE)
+	ParodusInfo("checkMaxQandOptimize . XmidtQsize is %d\n" , get_XmidtQsize());
+	if(get_XmidtQsize() == MAX_QUEUE_SIZE)
 	{
 		ParodusInfo("Max Queue size reached, check and optimize\n");
 
