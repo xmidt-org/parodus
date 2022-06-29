@@ -135,8 +135,8 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	struct timespec ts;
 	char * errorMsg = NULL;
 
-	ParodusPrint("XmidtQsize is %d\n" , get_XmidtQsize());
-	if(get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
+	ParodusInfo("XmidtQsize is %d\n" , get_XmidtQsize());
+	if( get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 	{
 		mapXmidtStatusToStatusMessage(QUEUE_SIZE_EXCEEDED, &errorMsg);
 		ParodusInfo("errorMsg is %s\n",errorMsg);
@@ -1387,7 +1387,7 @@ void checkMaxQandOptimize()
 	int qos = 0;
 
 	ParodusInfo("checkMaxQandOptimize . XmidtQsize is %d\n" , get_XmidtQsize());
-	if(get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
+	if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 	{
 		ParodusInfo("Max Queue size reached, check and optimize\n");
 
