@@ -32,7 +32,7 @@
 #include "heartBeat.h"
 
 static pthread_t processThreadId = 0;
-static int XmidtQsize = 0;
+static unsigned int XmidtQsize = 0;
 
 XmidtMsg *XmidtMsgQ = NULL;
 
@@ -91,9 +91,9 @@ CloudAck * get_global_cloud_node(void)
     return tmp;
 }
 
-int get_XmidtQsize()
+unsigned int get_XmidtQsize()
 {
-	int tmp = 0;
+	unsigned int tmp = 0;
 	pthread_mutex_lock (&xmidt_mut);
 	tmp = XmidtQsize;
 	pthread_mutex_unlock (&xmidt_mut);
@@ -1387,7 +1387,7 @@ void checkMaxQandOptimize()
 	int qos = 0;
 
 	ParodusInfo("checkMaxQandOptimize . XmidtQsize is %d\n" , get_XmidtQsize());
-	if(get_XmidtQsize() == MAX_QUEUE_SIZE)
+	if(get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 	{
 		ParodusInfo("Max Queue size reached, check and optimize\n");
 

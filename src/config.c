@@ -400,7 +400,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"webpa-backoff-max",       required_argument, 0, 'o'},
         {"webpa-interface-used",    required_argument, 0, 'i'},
         {"parodus-local-url",       required_argument, 0, 'l'},
-#ifdef WAN_FAILOVER_SUPPORTED	
+#ifdef ENABLE_WEBCFGBIN
 	{"max-queue-size",          required_argument, 0, 'q'},
 #endif	
         {"partner-id",              required_argument, 0, 'p'},
@@ -537,7 +537,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
 
-#ifdef WAN_FAILOVER_SUPPORTED
+#ifdef ENABLE_WEBCFGBIN
 	case 'q':
 	  cfg->max_queue_size = parse_num_arg (optarg, "max-queue-size");
           if (cfg->max_queue_size == (unsigned int) -1)
@@ -850,7 +850,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
-    #ifdef WAN_FAILOVER_SUPPORTED
+    #ifdef ENABLE_WEBCFGBIN
         cfg->max_queue_size =  config->max_queue_size;
     #endif
     cfg->boot_time = config->boot_time;
