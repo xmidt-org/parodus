@@ -98,6 +98,7 @@ char* generate_transaction_uuid();
 void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **eventMsg);
 void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, rbusError_t error);
 int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
+void printSendMsgData(char* status, int qos, char* dest, char* transaction_uuid);
 bool highQosValueCheck(int qos);
 void waitTillConnectionIsUp();
 void printRBUSParams(rbusObject_t params, char* file_path);
