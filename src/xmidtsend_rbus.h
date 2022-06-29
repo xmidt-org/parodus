@@ -98,7 +98,6 @@ char* generate_transaction_uuid();
 void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **eventMsg);
 void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, rbusError_t error);
 int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
-void xmidtQDequeue();
 bool highQosValueCheck(int qos);
 void waitTillConnectionIsUp();
 void printRBUSParams(rbusObject_t params, char* file_path);
@@ -111,7 +110,7 @@ int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node);
 int checkCloudConn();
 void checkMaxQandOptimize();
 void checkMsgExpiry();
-void mapXmidtStatusToStatusMsg(int status, char **message);
+void mapXmidtStatusToStatusMessage(int status, char **message);
 #ifdef __cplusplus
 }
 #endif
