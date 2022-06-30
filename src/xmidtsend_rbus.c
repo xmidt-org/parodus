@@ -245,7 +245,7 @@ void* processXmidtUpstreamMsg()
 			checkMsgExpiry();
 			checkMaxQandOptimize();
 
-			ParodusInfo("check state\n");
+			ParodusPrint("check state\n");
 			switch(Data->state)
 			{
 				case PENDING:
@@ -271,7 +271,7 @@ void* processXmidtUpstreamMsg()
 					getCurrentTime(&tms);
 					currTime = (long long)tms.tv_sec;
 					long long timeout_secs = (Data->sentTime) + CLOUD_ACK_TIMEOUT_SEC;
-					ParodusInfo("currTime %lu sentTime %lu CLOUD_ACK_TIMEOUT_SEC %lu, timeout_secs %lu\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, (long long) timeout_secs);
+					ParodusInfo("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs);
 					if (currTime > timeout_secs)
 					{
 						ParodusPrint("Check cloud ack for matching transaction id\n");
@@ -309,7 +309,7 @@ void* processXmidtUpstreamMsg()
 					status = deleteFromXmidtQ(Data->msg, &next_node);
 					if(status)
 					{
-						ParodusInfo("deleteFromXmidtQ done, continue\n");
+						ParodusPrint("deleteFromXmidtQ success\n");
 						xmidtQ = next_node;
 						//continue;
 					}
@@ -646,7 +646,7 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 			free(msg_bytes);
 			msg_bytes = NULL;
 		}
-		ParodusInfo("sendXmidtEventToServer done\n");
+		ParodusPrint("sendXmidtEventToServer done\n");
 	}
 	else
 	{
@@ -1183,7 +1183,7 @@ int updateXmidtState(XmidtMsg * temp, int state)
 	}
 	else
 	{
-		ParodusInfo("state to be updated %d\n", state);
+		ParodusPrint("state to be updated %d\n", state);
 		ParodusPrint("node is pointing to temp->state %d\n",temp->state);
 		pthread_mutex_lock (&xmidt_mut);
 		temp->state = state;
@@ -1191,9 +1191,9 @@ int updateXmidtState(XmidtMsg * temp, int state)
 		{
 			getCurrentTime(&ts);
 			temp->sentTime = (long long)ts.tv_sec;
-			ParodusInfo("updated temp->sentTime %lu\n", temp->sentTime);
+			ParodusInfo("updated temp->sentTime %lld\n", temp->sentTime);
 		}
-		ParodusInfo("msgnode is updated with state %d sentTime %lu\n", temp->state, temp->sentTime);
+		ParodusInfo("msgnode is updated with state %d sentTime %lld\n", temp->state, temp->sentTime);
 		pthread_mutex_unlock (&xmidt_mut);
 		return 1;
 	}
@@ -1206,7 +1206,7 @@ void print_xmidMsg_list()
 	while (NULL != temp)
 	{
 		wrp_msg_t *xmdMsg = temp->msg;
-		ParodusInfo("node is pointing to xmdMsg transid %s temp->state %d temp->enqueueTime %lu temp->sentTime %lu\n", xmdMsg->u.event.transaction_uuid, temp->state, (long long)temp->enqueueTime, (long long)temp->sentTime);
+		ParodusInfo("node is pointing to xmdMsg transid %s temp->state %d temp->enqueueTime %lld temp->sentTime %lld\n", xmdMsg->u.event.transaction_uuid, temp->state, (long long)temp->enqueueTime, (long long)temp->sentTime);
 		temp= temp->next;
 	}
 	ParodusPrint("print_xmidMsg_list done\n");
@@ -1233,15 +1233,15 @@ int deleteCloudACKNode(char* trans_id)
 	{
 		if(strcmp(curr_node->transaction_id, trans_id) == 0)
 		{
-			ParodusInfo("Found the node to delete\n");
+			ParodusPrint("Found the node to delete\n");
 			if( NULL == prev_node )
 			{
-				ParodusInfo("need to delete first doc\n");
+				ParodusPrint("need to delete first doc\n");
 				g_cloudackHead = curr_node->next;
 			}
 			else
 			{
-				ParodusInfo("Traversing to find node\n");
+				ParodusPrint("Traversing to find node\n");
 				prev_node->next = curr_node->next;
 
 			}
@@ -1299,21 +1299,21 @@ int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node)
 		wrp_msg_t * curr_node_msg = curr_node->msg;
 		if(curr_node_msg !=NULL && strcmp(curr_node_msg->u.event.transaction_uuid, transid) == 0)
 		{
-			ParodusInfo("Found the node to delete\n");
+			ParodusPrint("Found the node to delete\n");
 			if( NULL == prev_node )
 			{
-				ParodusInfo("need to delete first doc\n");
+				ParodusPrint("need to delete first doc\n");
 				XmidtMsgQ = curr_node->next;
 			}
 			else
 			{
-				ParodusInfo("Traversing to find node\n");
+				ParodusPrint("Traversing to find node\n");
 				prev_node->next = curr_node->next;
 				*next_node = curr_node->next;
 
 			}
 
-			ParodusInfo("Deleting the node entries\n");
+			ParodusPrint("Deleting the node entries\n");
 			wrp_free_struct( curr_node->msg);
 			curr_node->msg = NULL;
 			if(curr_node !=NULL)
@@ -1491,6 +1491,6 @@ void mapXmidtStatusToStatusMessage(int status, char **message)
 	{
 		result = strdup("Unknown Error");
 	}
-	ParodusInfo("Xmidt status msg %s\n", result);
+	ParodusPrint("Xmidt status msg %s\n", result);
 	*message = result;
 }

@@ -28,9 +28,8 @@ void getCurrentTime(struct timespec *timer)
 	//clock_gettime(CLOCK_REALTIME, timer);
 	if( clock_gettime(CLOCK_REALTIME, timer) == -1 )
 	{
-		ParodusError("clock gettime returns error\n");
+		ParodusError("clock gettime returns errno %d\n", errno );
 	}
-	ParodusInfo("clock gettime returns errno %d\n", errno );
 }
 
 uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer)
