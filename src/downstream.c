@@ -33,7 +33,7 @@
 /*----------------------------------------------------------------------------*/
 static void createNewMsgForCRUD(wrp_msg_t *message, wrp_msg_t **crudMessage );
 static void createNewMsgForCloudACK(wrp_msg_t *message, wrp_msg_t **eventMessage ); //Test purpose.
-static int test = 1;
+static int test = 0;
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -246,7 +246,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 			ParodusInfo("Create downstream event Msg with cloud ack\n");
 			createNewMsgForCloudACK(message, &eventMsg);
 			msgType = WRP_MSG_TYPE__EVENT;
-			ParodusInfo("check cloud ack\n");
+			ParodusPrint("check cloud ack\n");
 		    if((WRP_MSG_TYPE__EVENT == msgType) && (ret >= 0))
 		    {
 			//Process cloud ack only when qos > 24
@@ -274,7 +274,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 				{
 					ParodusInfo("Received cloud ack from server: transaction_uuid %s qos %d, rdr %d\n", eventMsg->u.event.transaction_uuid, eventMsg->u.event.qos, eventMsg->u.event.rdr);
 					addToCloudAckQ(eventMsg->u.event.transaction_uuid, eventMsg->u.event.qos, eventMsg->u.event.rdr);
-					ParodusInfo("Added to cloud ack Q\n");
+					ParodusPrint("Added to cloud ack Q\n");
 				}
 				else
 				{
@@ -285,7 +285,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
 			{
 				ParodusInfo("cloud ack received with low qos %d, ignoring it\n", eventMsg->u.event.qos);
 			}
-			//test++;
 			ParodusInfo("test is %d\n", test);
 		    }
 		    }
