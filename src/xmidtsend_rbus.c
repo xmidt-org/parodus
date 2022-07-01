@@ -1297,9 +1297,10 @@ int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node)
 	while( NULL != curr_node )
 	{
 		wrp_msg_t * curr_node_msg = curr_node->msg;
-		if(curr_node_msg !=NULL && strcmp(curr_node_msg->u.event.transaction_uuid, transid) == 0)
+		ParodusInfo("curr_node->state %d\n" , curr_node->state);
+		if(curr_node->state == DELETE && curr_node_msg !=NULL && strcmp(curr_node_msg->u.event.transaction_uuid, transid) == 0)
 		{
-			ParodusPrint("Found the node to delete\n");
+			ParodusInfo("Found the node to delete\n");
 			if( NULL == prev_node )
 			{
 				ParodusPrint("need to delete first doc\n");
@@ -1307,7 +1308,7 @@ int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node)
 			}
 			else
 			{
-				ParodusPrint("Traversing to find node\n");
+				ParodusInfo("Traversing to find node\n");
 				prev_node->next = curr_node->next;
 				*next_node = curr_node->next;
 
