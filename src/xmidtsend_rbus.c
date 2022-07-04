@@ -159,7 +159,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 		message->state = PENDING;
 		getCurrentTime(&times);
 		message->enqueueTime = (long long)times.tv_sec;
-		ParodusInfo("times.tv_sec %lld message->enqueueTime is %lld\n", (long long)times.tv_sec, message->enqueueTime);
+		ParodusInfo("message->enqueueTime is %lld\n", message->enqueueTime);
 		message->sentTime = 0;
 		//Increment queue size to handle max queue limit
 		increment_XmidtQsize();
@@ -276,7 +276,6 @@ void* processXmidtUpstreamMsg()
 					{
 						ParodusPrint("Check cloud ack for matching transaction id\n");
 						ret = checkCloudACK(Data, Data->asyncHandle);
-						ParodusPrint("ret is %d\n", ret);
 						if (ret)
 						{
 							ParodusInfo("cloud ack processed successfully\n");
@@ -289,7 +288,7 @@ void* processXmidtUpstreamMsg()
 								ParodusPrint("cloud status is online, check ping time\n");
 								if(get_pingTimeStamp() > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
 								{
-									ParodusInfo("Ping received at timestamp %lu, proceed to retry\n", get_pingTimeStamp());
+									ParodusInfo("Ping received at timestamp %lld, proceed to retry\n", get_pingTimeStamp());
 									rv = processData(Data, Data->msg, Data->asyncHandle);
 									if(!rv)
 									{
@@ -311,7 +310,6 @@ void* processXmidtUpstreamMsg()
 					{
 						ParodusPrint("deleteFromXmidtQ success\n");
 						xmidtQ = next_node;
-						//continue;
 					}
 					else
 					{
