@@ -271,7 +271,7 @@ void* processXmidtUpstreamMsg()
 					getCurrentTime(&tms);
 					currTime = (long long)tms.tv_sec;
 					long long timeout_secs = (Data->sentTime) + CLOUD_ACK_TIMEOUT_SEC;
-					ParodusInfo("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs);
+					ParodusInfo("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld trans_id %s\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs, Data->msg->u.event.transaction_uuid);
 					if (currTime > timeout_secs)
 					{
 						ParodusPrint("Check cloud ack for matching transaction id\n");
@@ -616,9 +616,23 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 		{
 			if(highQosValueCheck(qos))
 			{
-				ParodusInfo("High qos event send success, update state to SENT\n");
-				//Update msg status from PENDING to SENT
-				updateXmidtState(msgnode, SENT);
+				ParodusInfo("High qos event send success\n");
+				//when max_queue_size is 0, cloud acks will not be processed|qos is disabled.
+				if(get_parodus_cfg()->max_queue_size == 0 )
+				{
+					ParodusInfo("max queue size is 0, qos semantics are disabled. send callback\n");
+					mapXmidtStatusToStatusMessage(QOS_SEMANTICS_DISABLED, &errorMsg);
+					createOutParamsandSendAck(msg, asyncHandle, errorMsg, QOS_SEMANTICS_DISABLED, RBUS_ERROR_SUCCESS);
+					ParodusInfo("update state to DELETE\n");
+					updateXmidtState(msgnode, DELETE);
+					print_xmidMsg_list();
+				}
+				else
+				{
+					ParodusInfo("update state to SENT\n");
+					//Update msg status from PENDING to SENT
+					updateXmidtState(msgnode, SENT);
+				}
 				print_xmidMsg_list();
 			}
 			else
@@ -1469,6 +1483,10 @@ void mapXmidtStatusToStatusMessage(int status, char **message)
 	else if (status == MSG_PROCESSING_FAILED)
 	{
 		result = strdup("Memory allocation failed");
+	}
+	else if (status == QOS_SEMANTICS_DISABLED)
+	{
+		result = strdup("send to server, qos semantics are disabled");
 	}
 	else
 	{

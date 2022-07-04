@@ -268,7 +268,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 				ParodusInfo("cloud ack received with low qos %d, ignoring it\n", message->u.event.qos);
 			}*/
 			//Remove this. TEST purpose.
-			if(highQosValueCheck(eventMsg->u.event.qos))
+			if(get_parodus_cfg()->max_queue_size > 0 && highQosValueCheck(eventMsg->u.event.qos))
 			{
 				if(eventMsg->u.event.transaction_uuid !=NULL)
 				{
@@ -283,7 +283,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 			}
 			else
 			{
-				ParodusInfo("cloud ack received with low qos %d, ignoring it\n", eventMsg->u.event.qos);
+				ParodusInfo("Cloud ack is ignored as qos is %d max queue size is %d\n", eventMsg->u.event.qos, get_parodus_cfg()->max_queue_size );
 			}
 			ParodusInfo("test is %d\n", test);
 		    }
