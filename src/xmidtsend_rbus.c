@@ -305,7 +305,7 @@ void* processXmidtUpstreamMsg()
 					break;
 				case DELETE:
 					ParodusInfo("state : DELETE\n");
-					status = deleteFromXmidtQ(Data->msg, &next_node);
+					status = deleteFromXmidtQ(&next_node);
 					if(status)
 					{
 						ParodusPrint("deleteFromXmidtQ success\n");
@@ -1204,7 +1204,7 @@ void print_xmidMsg_list()
 	while (NULL != temp)
 	{
 		wrp_msg_t *xmdMsg = temp->msg;
-		ParodusInfo("node is pointing to xmdMsg transid %s temp->state %d temp->enqueueTime %lld temp->sentTime %lld\n", xmdMsg->u.event.transaction_uuid, temp->state, (long long)temp->enqueueTime, (long long)temp->sentTime);
+		ParodusInfo("node is pointing to xmdMsg transid %s temp->state %d temp->enqueueTime %lld temp->sentTime %lld\n", xmdMsg->u.event.transaction_uuid, temp->state, temp->enqueueTime, temp->sentTime);
 		temp= temp->next;
 	}
 	ParodusPrint("print_xmidMsg_list done\n");
@@ -1269,39 +1269,23 @@ int deleteCloudACKNode(char* trans_id)
 }
 
 //Delete msg from XmidtQ
-int deleteFromXmidtQ(wrp_msg_t *msg, XmidtMsg **next_node)
+int deleteFromXmidtQ(XmidtMsg **next_node)
 {
 	XmidtMsg *prev_node = NULL, *curr_node = NULL;
-	char *transid = NULL;
-
-	if( NULL == msg )
-	{
-		ParodusError("Invalid xmidt msg\n");
-		return 0;
-	}
-
-	transid = msg->u.event.transaction_uuid;
-	if( NULL == transid )
-	{
-		ParodusError("Invalid xmidt transid\n");
-		return 0;
-	}
-	ParodusInfo("msg to be deleted with transid %s\n", transid);
 
 	prev_node = NULL;
 	pthread_mutex_lock (&xmidt_mut);
 	curr_node = XmidtMsgQ ;
-	// Traverse to get the msg to be deleted
+	// Traverse to get the node with DELETE state which needs to be deleted
 	while( NULL != curr_node )
 	{
-		wrp_msg_t * curr_node_msg = curr_node->msg;
 		ParodusInfo("curr_node->state %d\n" , curr_node->state);
-		if(curr_node->state == DELETE && curr_node_msg !=NULL && strcmp(curr_node_msg->u.event.transaction_uuid, transid) == 0)
+		if(curr_node->state == DELETE)
 		{
 			ParodusInfo("Found the node to delete\n");
 			if( NULL == prev_node )
 			{
-				ParodusPrint("need to delete first doc\n");
+				ParodusInfo("need to delete first doc\n");
 				XmidtMsgQ = curr_node->next;
 			}
 			else
