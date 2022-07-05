@@ -999,6 +999,19 @@ void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **e
 	ParodusPrint("parseRbusInparamsToWrp End\n");
 }
 
+//testing purpose. remove this.
+static char *g_transactionId = "1234";
+char *get_global_TransID()
+{
+    return g_transactionId;
+}
+
+void set_global_TransID(char *transid)
+{
+    g_transactionId = strdup(transid);
+}
+
+//
 static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
 	(void) handle;
@@ -1015,8 +1028,9 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 		if(inStatus)
 		{
 			//generate transaction id to create outParams and send ack
-			//transaction_uuid = generate_transaction_uuid();
-			transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a"); //Testing
+			transaction_uuid = generate_transaction_uuid();
+			//transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a"); //Testing
+			set_global_TransID(transaction_uuid);//testing
 			ParodusInfo("xmidt transaction_uuid generated is %s\n", transaction_uuid);
 			parseRbusInparamsToWrp(inParams, transaction_uuid, &wrpMsg);
 

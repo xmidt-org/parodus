@@ -240,7 +240,8 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         free(resp_msg);
                     }
 		    //To handle cloud ack events received from server for the xmidt sent messages.
-		    if(test == 1 || test == 3)
+		    //if(test == 1 || test == 3)
+		    if(test >=1)
 		    {
 			wrp_msg_t *eventMsg= NULL;
 			ParodusInfo("Create downstream event Msg with cloud ack\n");
@@ -441,7 +442,9 @@ static void createNewMsgForCloudACK(wrp_msg_t *message, wrp_msg_t **eventMessage
 
         if(message->u.event.transaction_uuid != NULL)
         {
-            msg->u.event.transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a");
+            //msg->u.event.transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a");
+	    msg->u.event.transaction_uuid = get_global_TransID();
+	    ParodusInfo("cloud ack msg->u.event.transaction_uuid = %s\n", msg->u.event.transaction_uuid);
         }
 
         if(message->u.event.content_type != NULL)

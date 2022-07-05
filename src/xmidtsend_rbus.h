@@ -113,6 +113,10 @@ int checkCloudConn();
 void checkMaxQandOptimize();
 void checkMsgExpiry();
 void mapXmidtStatusToStatusMessage(int status, char **message);
+//Testing
+void set_global_TransID(char *transid);
+char *get_global_TransID();
+//
 #ifdef __cplusplus
 }
 #endif
