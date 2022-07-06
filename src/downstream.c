@@ -244,7 +244,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 		    if(test >=1)
 		    {
 			wrp_msg_t *eventMsg= NULL;
-			ParodusInfo("Create downstream event Msg with cloud ack\n");
+			ParodusPrint("Create downstream event Msg with cloud ack\n");
 			createNewMsgForCloudACK(message, &eventMsg);
 			msgType = WRP_MSG_TYPE__EVENT;
 			ParodusPrint("check cloud ack\n");
@@ -286,7 +286,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 			{
 				ParodusInfo("Cloud ack is ignored as qos is %d max queue size is %d\n", eventMsg->u.event.qos, get_parodus_cfg()->max_queue_size );
 			}
-			ParodusInfo("test is %d\n", test);
+			ParodusPrint("test is %d\n", test);
 		    }
 		    }
                     break;
@@ -444,7 +444,7 @@ static void createNewMsgForCloudACK(wrp_msg_t *message, wrp_msg_t **eventMessage
         {
             //msg->u.event.transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a");
 	    msg->u.event.transaction_uuid = get_global_TransID();
-	    ParodusInfo("cloud ack msg->u.event.transaction_uuid = %s\n", msg->u.event.transaction_uuid);
+	    ParodusPrint("cloud ack msg->u.event.transaction_uuid = %s\n", msg->u.event.transaction_uuid);
         }
 
         if(message->u.event.content_type != NULL)
@@ -453,8 +453,8 @@ static void createNewMsgForCloudACK(wrp_msg_t *message, wrp_msg_t **eventMessage
         }
         msg->u.event.rdr = 0;
 	msg->u.event.qos = 50;
-	ParodusInfo("msg->u.event.rdr = %d msg->u.event.qos = %d\n",msg->u.event.rdr, msg->u.event.qos);
+	ParodusPrint("msg->u.event.rdr = %d msg->u.event.qos = %d\n",msg->u.event.rdr, msg->u.event.qos);
         *eventMessage = msg;
     }
-    ParodusInfo("createNewMsgForCloudACK done\n");
+    ParodusPrint("createNewMsgForCloudACK done\n");
 }
