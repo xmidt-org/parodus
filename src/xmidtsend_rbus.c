@@ -108,6 +108,7 @@ void increment_XmidtQsize()
 {
 	pthread_mutex_lock (&xmidt_mut);
 	XmidtQsize++;
+	ParodusInfo("XmidtQsize incremented to %d\n", XmidtQsize);
 	pthread_mutex_unlock (&xmidt_mut);
 }
 
@@ -139,9 +140,10 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	struct timespec times;
 	char * errorMsg = NULL;
 
-	ParodusInfo("XmidtQsize is %d\n" , get_XmidtQsize());
-	if( get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
+	ParodusPrint("XmidtQsize is %d\n" , get_XmidtQsize());
+	if( get_XmidtQsize() > 0 && get_XmidtQsize() >= get_parodus_cfg()->max_queue_size)
 	{
+		ParodusInfo("queue size %d exceeded at producer, ignoring the event\n", get_XmidtQsize());
 		mapXmidtStatusToStatusMessage(QUEUE_SIZE_EXCEEDED, &errorMsg);
 		ParodusPrint("statusMsg is %s\n",errorMsg);
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
@@ -261,13 +263,13 @@ void* processXmidtUpstreamMsg()
 						}
 						else
 						{
-							ParodusInfo("processData success\n");
+							ParodusPrint("processData success\n");
 						}
 					}
 					break;
 
 				case SENT:
-					ParodusInfo("state : SENT\n");
+					ParodusPrint("state : SENT\n");
 					getCurrentTime(&tms);
 					currTime = (long long)tms.tv_sec;
 					long long timeout_secs = (Data->sentTime) + CLOUD_ACK_TIMEOUT_SEC;
@@ -278,7 +280,7 @@ void* processXmidtUpstreamMsg()
 						ret = checkCloudACK(Data, Data->asyncHandle);
 						if (ret)
 						{
-							ParodusInfo("cloud ack processed successfully\n");
+							ParodusPrint("cloud ack processed successfully\n");
 						}
 						else //ack timeout case
 						{
@@ -296,7 +298,7 @@ void* processXmidtUpstreamMsg()
 									}
 									else
 									{
-										ParodusInfo("processData retry success\n");
+										ParodusPrint("processData retry success\n");
 									}
 								}
 							}
@@ -616,7 +618,7 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 		{
 			if(highQosValueCheck(qos))
 			{
-				ParodusInfo("High qos event send success\n");
+				ParodusPrint("High qos event send success\n");
 				//when max_queue_size is 0, cloud acks will not be processed|qos is disabled.
 				if(get_parodus_cfg()->max_queue_size == 0 )
 				{
@@ -1011,6 +1013,7 @@ void set_global_TransID(char *transid)
     g_transactionId = strdup(transid);
 }
 
+static int test = 0;
 //
 static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
@@ -1028,8 +1031,13 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 		if(inStatus)
 		{
 			//generate transaction id to create outParams and send ack
-			transaction_uuid = generate_transaction_uuid();
+			//transaction_uuid = generate_transaction_uuid();
 			//transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a"); //Testing
+			char trans_uuid[64];
+			sprintf(trans_uuid, "3946083d529a_test%d", test++);
+			ParodusPrint("test trans_uuid = %s\n", trans_uuid);
+			transaction_uuid = strdup(trans_uuid);
+
 			set_global_TransID(transaction_uuid);//testing
 			ParodusInfo("xmidt transaction_uuid generated is %s\n", transaction_uuid);
 			parseRbusInparamsToWrp(inParams, transaction_uuid, &wrpMsg);
@@ -1170,7 +1178,7 @@ int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle)
 
 	while (NULL != cloudnode)
 	{
-		ParodusInfo("cloudnode->transaction_id %s cloudnode->qos %d cloudnode->rdr %d\n", cloudnode->transaction_id,cloudnode->qos,cloudnode->rdr);
+		ParodusPrint("cloudnode->transaction_id %s cloudnode->qos %d cloudnode->rdr %d\n", cloudnode->transaction_id,cloudnode->qos,cloudnode->rdr);
 		if(xmdMsgTransID != NULL && cloudnode->transaction_id != NULL)
 		{
 			if( strcmp(xmdMsgTransID, cloudnode->transaction_id) == 0)
@@ -1182,9 +1190,9 @@ int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle)
 				ParodusPrint("set xmidt msg to DELETE state as cloud ack is processed\n");
 				updateXmidtState(xmdnode, DELETE);
 				print_xmidMsg_list();
-				ParodusInfo("delete cloudACK cloudnode\n");
+				ParodusPrint("delete cloudACK cloudnode\n");
 				deleteCloudACKNode(cloudnode->transaction_id);
-				ParodusInfo("checkCloudACK returns success\n");
+				ParodusPrint("checkCloudACK returns success\n");
 				return 1;
 			}
 			else
@@ -1307,7 +1315,7 @@ int deleteFromXmidtQ(XmidtMsg **next_node)
 	// Traverse to get the node with DELETE state which needs to be deleted
 	while( NULL != curr_node )
 	{
-		ParodusInfo("curr_node->state %d\n" , curr_node->state);
+		ParodusPrint("curr_node->state %d\n" , curr_node->state);
 		if(curr_node->state == DELETE)
 		{
 			ParodusPrint("Found the node to delete\n");
@@ -1414,7 +1422,7 @@ void checkMaxQandOptimize()
 	int qos = 0;
 
 	ParodusPrint("checkMaxQandOptimize . XmidtQsize is %d\n" , get_XmidtQsize());
-	if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
+	if(get_XmidtQsize() > 0 && get_XmidtQsize() >= get_parodus_cfg()->max_queue_size)
 	{
 		ParodusInfo("Max Queue size reached, check and optimize\n");
 
@@ -1426,14 +1434,14 @@ void checkMaxQandOptimize()
 		{
 			wrp_msg_t * tempMsg = temp->msg;
 			qos = tempMsg->u.event.qos;
-			ParodusInfo("qos is %d\n", qos);
+			ParodusPrint("qos is %d\n", qos);
 			if(highQosValueCheck(qos))
 			{
-				ParodusInfo("High qos msg, skip delete\n");
+				ParodusPrint("High qos msg, skip delete\n");
 			}
 			else
 			{
-				ParodusInfo("Low qos msg, set to DELETE state\n");
+				ParodusInfo("Max Queue size reached. Low qos %d, set to DELETE state\n", qos);
 				updateXmidtState(temp, DELETE);
 			}
 			temp = temp->next;
