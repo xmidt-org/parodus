@@ -1321,7 +1321,7 @@ int deleteFromXmidtQ(XmidtMsg **next_node)
 			ParodusPrint("Found the node to delete\n");
 			if( NULL == prev_node )
 			{
-				ParodusInfo("need to delete first doc\n");
+				ParodusPrint("need to delete first doc\n");
 				XmidtMsgQ = curr_node->next;
 			}
 			else
@@ -1332,7 +1332,11 @@ int deleteFromXmidtQ(XmidtMsg **next_node)
 
 			}
 
-			ParodusPrint("Deleting the node entries\n");
+			wrp_msg_t *xmdMsg = curr_node->msg;
+			if (xmdMsg)
+			{
+				ParodusInfo("Delete xmidt node with transid %s\n", xmdMsg->u.event.transaction_uuid);
+			}
 			wrp_free_struct( curr_node->msg);
 			curr_node->msg = NULL;
 			if(curr_node !=NULL)
@@ -1340,7 +1344,7 @@ int deleteFromXmidtQ(XmidtMsg **next_node)
 				free( curr_node );
 				curr_node = NULL;
 			}
-			ParodusInfo("Deleted successfully and returning..\n");
+			ParodusPrint("Deleted successfully and returning..\n");
 			pthread_mutex_unlock (&xmidt_mut);
 			decrement_XmidtQsize();
 			ParodusInfo("XmidtQsize after delete is %d\n", get_XmidtQsize());
@@ -1376,7 +1380,7 @@ void checkMsgExpiry()
 			ParodusPrint("Critical Qos, check if expiry of 30 mins reached\n");
 			if((currTime - temp->enqueueTime) > CRITICAL_QOS_EXPIRE_TIME)
 			{
-				ParodusInfo("Critical qos 30 mins expired, set to DELETE state\n");
+				ParodusInfo("Critical qos 30 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
 				updateXmidtState(temp, DELETE);
 			}
 		}
@@ -1385,7 +1389,7 @@ void checkMsgExpiry()
 			ParodusPrint("High Qos, check if expiry of 25 mins reached\n");
 			if((currTime - temp->enqueueTime) > HIGH_QOS_EXPIRE_TIME)
 			{
-				ParodusInfo("High qos 25 mins expired, set to DELETE state\n");
+				ParodusInfo("High qos 25 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
 				updateXmidtState(temp, DELETE);
 			}
 		}
@@ -1394,7 +1398,7 @@ void checkMsgExpiry()
 			ParodusPrint("Medium Qos, check if expiry of 20 mins reached\n");
 			if((currTime - temp->enqueueTime) > MEDIUM_QOS_EXPIRE_TIME)
 			{
-				ParodusInfo("Medium qos 20 mins expired, set to DELETE state\n");
+				ParodusInfo("Medium qos 20 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
 				updateXmidtState(temp, DELETE);
 			}
 		}
@@ -1403,7 +1407,7 @@ void checkMsgExpiry()
 			ParodusPrint("Low Qos, check if expiry of 15 mins reached\n");
 			if((currTime - temp->enqueueTime) > LOW_QOS_EXPIRE_TIME)
 			{
-				ParodusInfo("Low qos 15 mins expired, set to DELETE state\n");
+				ParodusInfo("Low qos 15 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
 				updateXmidtState(temp, DELETE);
 			}
 		}
