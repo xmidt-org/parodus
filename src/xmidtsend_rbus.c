@@ -33,7 +33,7 @@
 
 static pthread_t processThreadId = 0;
 static unsigned int XmidtQsize = 0;
-
+static int test = 0; //testing
 XmidtMsg *XmidtMsgQ = NULL;
 
 CloudAck *g_cloudackHead = NULL;
@@ -141,7 +141,7 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	char * errorMsg = NULL;
 
 	ParodusPrint("XmidtQsize is %d\n" , get_XmidtQsize());
-	if( get_XmidtQsize() > 0 && get_XmidtQsize() >= get_parodus_cfg()->max_queue_size)
+	if( get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 	{
 		ParodusInfo("queue size %d exceeded at producer, ignoring the event\n", get_XmidtQsize());
 		mapXmidtStatusToStatusMessage(QUEUE_SIZE_EXCEEDED, &errorMsg);
@@ -237,17 +237,17 @@ void* processXmidtUpstreamMsg()
 			ParodusInfo("Received cloud status signal proceed to event processing\n");
 		}
 		pthread_mutex_lock (&xmidt_mut);
-		ParodusPrint("mutex lock in xmidt consumer thread\n");
+		ParodusInfo("mutex lock in xmidt consumer thread\n");
 		if (xmidtQ != NULL)
 		{
 			XmidtMsg *Data = xmidtQ;
 			pthread_mutex_unlock (&xmidt_mut);
-			ParodusPrint("mutex unlock in xmidt consumer thread\n");
+			ParodusInfo("mutex unlock in xmidt consumer thread\n");
 
 			checkMsgExpiry();
 			checkMaxQandOptimize();
 
-			ParodusPrint("check state\n");
+			ParodusInfo("check state\n");
 			switch(Data->state)
 			{
 				case PENDING:
@@ -255,7 +255,7 @@ void* processXmidtUpstreamMsg()
 					//send msg to server only when cloud connection is online.
 					if(checkCloudConn())
 					{
-						ParodusPrint("cloud status is online, processData\n");
+						ParodusInfo("cloud status is online, processData\n");
 						rv = processData(Data, Data->msg, Data->asyncHandle);
 						if(!rv)
 						{
@@ -329,7 +329,7 @@ void* processXmidtUpstreamMsg()
 			// circling back to 1st node
 			if(xmidtQ == NULL && get_global_xmidthead() != NULL)
 			{
-				ParodusPrint("xmidtQ is NULL, circling back to 1st node\n");
+				ParodusInfo("xmidtQ is NULL, circling back to 1st node\n");
 				xmidtQ = get_global_xmidthead();
 			}
 			sleep(3);
@@ -341,7 +341,7 @@ void* processXmidtUpstreamMsg()
 				pthread_mutex_unlock (&xmidt_mut);
 				break;
 			}
-			ParodusPrint("Before cond wait in xmidt consumer thread\n");
+			ParodusInfo("Before cond wait in xmidt consumer thread\n");
 			pthread_cond_wait(&xmidt_con, &xmidt_mut);
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusPrint("mutex unlock in xmidt thread after cond wait\n");
@@ -596,7 +596,11 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 				ParodusInfo("Wait till connection is Up\n");
   
        			        pthread_mutex_lock(get_global_cloud_status_mut());
-				pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+				//pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+				if(test == 1)
+				{
+					sleep(60); //testing
+				}
 				pthread_mutex_unlock(get_global_cloud_status_mut());
 				ParodusInfo("Received cloud status signal proceed to retry\n");
                                 printSendMsgData("send to server after cloud reconnect", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
@@ -1013,7 +1017,6 @@ void set_global_TransID(char *transid)
     g_transactionId = strdup(transid);
 }
 
-static int test = 0;
 //
 static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
@@ -1034,7 +1037,7 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 			//transaction_uuid = generate_transaction_uuid();
 			//transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a"); //Testing
 			char trans_uuid[64];
-			sprintf(trans_uuid, "3946083d529a_test%d", test++);
+			sprintf(trans_uuid, "3946083d529a_test%d", ++test);
 			ParodusPrint("test trans_uuid = %s\n", trans_uuid);
 			transaction_uuid = strdup(trans_uuid);
 
@@ -1426,7 +1429,7 @@ void checkMaxQandOptimize()
 	int qos = 0;
 
 	ParodusPrint("checkMaxQandOptimize . XmidtQsize is %d\n" , get_XmidtQsize());
-	if(get_XmidtQsize() > 0 && get_XmidtQsize() >= get_parodus_cfg()->max_queue_size)
+	if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 	{
 		ParodusInfo("Max Queue size reached, check and optimize\n");
 
