@@ -109,10 +109,11 @@ int updateXmidtState(XmidtMsg * temp, int state);
 void print_xmidMsg_list();
 int deleteCloudACKNode(char* trans_id);
 int deleteFromXmidtQ(XmidtMsg **next_node);
-int checkCloudConn();
+int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode);
 void checkMaxQandOptimize();
-void checkMsgExpiry();
+void checkMsgExpiry(char * current_transid);
 void mapXmidtStatusToStatusMessage(int status, char **message);
+void xmidtQOptmize(char *curr_transid, XmidtMsg **xmidt_node);
 //Testing
 void set_global_TransID(char *transid);
 char *get_global_TransID();

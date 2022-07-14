@@ -119,18 +119,60 @@ void decrement_XmidtQsize()
 	pthread_mutex_unlock (&xmidt_mut);
 }
 
-int checkCloudConn()
+int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
 {
 	if (!cloud_status_is_online ())
 	{
 		ParodusInfo("cloud status is not online, wait till connection up\n");
+
+		int  rv;
+		struct timespec ts;
+		XmidtMsg *nextnode = NULL;
+
 		pthread_mutex_lock(get_global_cloud_status_mut());
-		pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
-		pthread_mutex_unlock(get_global_cloud_status_mut());
-		ParodusInfo("Received cloud status signal, proceed to event processing\n");
+		getCurrentTime(&ts);
+		ts.tv_sec += LOW_QOS_EXPIRE_TIME;
+		ParodusInfo("checkCloudConn timeout at %lld\n", (long long) ts.tv_sec);
+
+		while (1)
+		{
+			ParodusInfo("B4 pthread cond wait in checkCloudConn\n");
+			rv = pthread_cond_timedwait(get_global_cloud_status_cond(), get_global_cloud_status_mut(), &ts);
+			if (rv == ETIMEDOUT)
+			{
+				ParodusInfo("Timedout. Cloud connection is down for %d minutes, check msg expiry\n", (LOW_QOS_EXPIRE_TIME/60));
+				pthread_mutex_unlock(get_global_cloud_status_mut());
+				xmidtQOptmize(current_transid, &nextnode);
+				*xmidt_nextnode = nextnode;
+			}
+			else
+			{
+				ParodusInfo("Received cloud status signal, proceed to event processing\n");
+				break;
+			}
+		}
 	}
 	return 1;
 }
+
+void xmidtQOptmize(char *curr_transid, XmidtMsg **xmidt_node)
+{
+	XmidtMsg *next_node = NULL;
+	//Delete all expired msgs from queue except currently processing msg
+	checkMsgExpiry(curr_transid);
+	checkMaxQandOptimize();
+	int status = deleteFromXmidtQ(&next_node); //should be in loop for all msgs
+	if(status)
+	{
+		ParodusPrint("deleteFromXmidtQ success\n");
+	}
+	else
+	{
+		ParodusError("deleteFromXmidtQ failed\n");
+	}
+	*xmidt_node = next_node ;
+}
+
 /*
  * @brief To handle xmidt rbus messages received from various components.
  */
@@ -223,6 +265,8 @@ void* processXmidtUpstreamMsg()
 	struct timespec tms;
 	XmidtMsg *xmidtQ = NULL;
 	XmidtMsg *next_node = NULL;
+	XmidtMsg *next_msgnode = NULL;
+	char *msgTransID = NULL;
 
 	xmidtQ = get_global_xmidthead();
 
@@ -244,7 +288,7 @@ void* processXmidtUpstreamMsg()
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusInfo("mutex unlock in xmidt consumer thread\n");
 
-			checkMsgExpiry();
+			checkMsgExpiry(NULL);
 			checkMaxQandOptimize();
 
 			ParodusInfo("check state\n");
@@ -253,18 +297,22 @@ void* processXmidtUpstreamMsg()
 				case PENDING:
 					ParodusInfo("state : PENDING\n");
 					//send msg to server only when cloud connection is online.
-					if(checkCloudConn())
+					msgTransID = Data->msg->u.event.transaction_uuid;
+					checkCloudConn(msgTransID, &next_msgnode );
+					if (next_msgnode != NULL)
 					{
-						ParodusInfo("cloud status is online, processData\n");
-						rv = processData(Data, Data->msg, Data->asyncHandle);
-						if(!rv)
-						{
-							ParodusError("processData failed\n");
-						}
-						else
-						{
-							ParodusPrint("processData success\n");
-						}
+						xmidtQ = next_msgnode;
+						break;
+					}
+					ParodusInfo("cloud status is online, processData\n");
+					rv = processData(Data, Data->msg, Data->asyncHandle);
+					if(!rv)
+					{
+						ParodusError("processData failed\n");
+					}
+					else
+					{
+						ParodusPrint("processData success\n");
 					}
 					break;
 
@@ -285,7 +333,7 @@ void* processXmidtUpstreamMsg()
 						else //ack timeout case
 						{
 							ParodusPrint("transaction id match not found, cloud ack timed out. Need to retry\n");
-							if (checkCloudConn())
+							if (checkCloudConn(msgTransID, &next_msgnode))
 							{
 								ParodusPrint("cloud status is online, check ping time\n");
 								if(get_pingTimeStamp() > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
@@ -594,14 +642,15 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 			{
 				ParodusPrint("The event is having high qos retry again\n");
 				ParodusInfo("Wait till connection is Up\n");
-  
-       			        pthread_mutex_lock(get_global_cloud_status_mut());
+				XmidtMsg *next_node;
+				checkCloudConn(notif_wrp_msg->u.event.transaction_uuid, &next_node );
+				//pthread_mutex_lock(get_global_cloud_status_mut());
 				//pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
 				if(test == 1)
 				{
 					sleep(60); //testing
 				}
-				pthread_mutex_unlock(get_global_cloud_status_mut());
+				//pthread_mutex_unlock(get_global_cloud_status_mut());
 				ParodusInfo("Received cloud status signal proceed to retry\n");
                                 printSendMsgData("send to server after cloud reconnect", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 			}
@@ -1363,7 +1412,7 @@ int deleteFromXmidtQ(XmidtMsg **next_node)
 }
 
 //check if message is expired based on each qos and set to delete state.
-void checkMsgExpiry()
+void checkMsgExpiry(char * current_transid)
 {
 	long long currTime = 0;
 	struct timespec ts;
@@ -1377,6 +1426,11 @@ void checkMsgExpiry()
 		currTime= (long long)ts.tv_sec;
 		wrp_msg_t * tempMsg = temp->msg;
 		ParodusPrint("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+		if((current_transid !=NULL) && (strcmp(tempMsg->u.event.transaction_uuid, current_transid) == 0))
+		{
+			ParodusInfo("skip current processing transaction id %s, continue\n", tempMsg->u.event.transaction_uuid);
+			continue;
+		}
 
 		if(tempMsg->u.event.qos > 74)
 		{
@@ -1420,7 +1474,6 @@ void checkMsgExpiry()
 		}
 		temp = temp->next;
 	}
-
 }
 
 //To delete low qos messages from queue when max queue limit is reached.
