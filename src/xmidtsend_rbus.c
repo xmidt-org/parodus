@@ -121,6 +121,7 @@ void decrement_XmidtQsize()
 
 int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
 {
+	int ret = 1;
 	if (!cloud_status_is_online ())
 	{
 		ParodusInfo("cloud status is not online, wait till connection up\n");
@@ -131,7 +132,7 @@ int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
 
 		pthread_mutex_lock(get_global_cloud_status_mut());
 		getCurrentTime(&ts);
-		ts.tv_sec += LOW_QOS_EXPIRE_TIME;
+		ts.tv_sec += EXPIRY_CHECK_TIME;
 		ParodusInfo("checkCloudConn timeout at %lld\n", (long long) ts.tv_sec);
 
 		while (1)
@@ -140,10 +141,15 @@ int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
 			rv = pthread_cond_timedwait(get_global_cloud_status_cond(), get_global_cloud_status_mut(), &ts);
 			if (rv == ETIMEDOUT)
 			{
-				ParodusInfo("Timedout. Cloud connection is down for %d minutes, check msg expiry\n", (LOW_QOS_EXPIRE_TIME/60));
+				ParodusInfo("Timedout. Cloud connection is down for %d minutes, check msg expiry\n", (EXPIRY_CHECK_TIME/60));
 				pthread_mutex_unlock(get_global_cloud_status_mut());
-				xmidtQOptmize(current_transid, &nextnode);
-				*xmidt_nextnode = nextnode;
+				int opt = xmidtQOptmize(current_transid, &nextnode);
+				if(opt)
+				{
+					ParodusInfo("xmidtQ is optimized during connection down %d, return next node\n", opt);
+					*xmidt_nextnode = nextnode;
+					ret = 2;
+				}
 			}
 			else
 			{
@@ -152,23 +158,44 @@ int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
 			}
 		}
 	}
-	return 1;
+	ParodusInfo("checkCloudConn ret %d\n", ret);
+	return ret;
+}
+
+void deleteAllExpiredMsgs(char *current_transid, XmidtMsg **xmidt_node)
+{
+   XmidtMsg *temp = NULL, *next_node = NULL;
+   temp = get_global_tmp_node();
+
+    ParodusInfo("Inside deleteAllExpiredMsgs\n");
+    while(temp != NULL)
+    {
+	//skip current msg delete
+	wrp_msg_t * tempMsg = temp->msg;
+	if((current_transid !=NULL) && (strcmp(tempMsg->u.event.transaction_uuid, current_transid) != 0))
+	{
+		deleteFromXmidtQ(&next_node);
+		temp = next_node;
+		continue;
+	}
+	temp = temp->next;
+    }
 }
 
 void xmidtQOptmize(char *curr_transid, XmidtMsg **xmidt_node)
 {
 	XmidtMsg *next_node = NULL;
-	//Delete all expired msgs from queue except currently processing msg
+	//Delete all expired msgs from queue except current processing msg
 	checkMsgExpiry(curr_transid);
 	checkMaxQandOptimize();
-	int status = deleteFromXmidtQ(&next_node); //should be in loop for all msgs
+	int status = deleteAllExpiredMsgs(curr_transid, &next_node);
 	if(status)
 	{
-		ParodusPrint("deleteFromXmidtQ success\n");
+		ParodusPrint("deleteAllExpiredMsgs success\n");
 	}
 	else
 	{
-		ParodusError("deleteFromXmidtQ failed\n");
+		ParodusError("deleteAllExpiredMsgs failed\n");
 	}
 	*xmidt_node = next_node ;
 }
@@ -267,6 +294,7 @@ void* processXmidtUpstreamMsg()
 	XmidtMsg *next_node = NULL;
 	XmidtMsg *next_msgnode = NULL;
 	char *msgTransID = NULL;
+	int cv = 0;
 
 	xmidtQ = get_global_xmidthead();
 
@@ -297,22 +325,33 @@ void* processXmidtUpstreamMsg()
 				case PENDING:
 					ParodusInfo("state : PENDING\n");
 					//send msg to server only when cloud connection is online.
-					msgTransID = Data->msg->u.event.transaction_uuid;
-					checkCloudConn(msgTransID, &next_msgnode );
-					if (next_msgnode != NULL)
+					cv = checkCloudConn(NULL, &next_msgnode );
+					if (cv == 2)
 					{
+						ParodusInfo("queue is optimized,need to process next node\n");
 						xmidtQ = next_msgnode;
-						break;
-					}
-					ParodusInfo("cloud status is online, processData\n");
-					rv = processData(Data, Data->msg, Data->asyncHandle);
-					if(!rv)
-					{
-						ParodusError("processData failed\n");
+						if(xmidtQ !=NULL)
+						{
+							ParodusInfo("continue to next node\n");
+							continue;
+						}
+						else
+						{
+							ParodusInfo("next node is NULL,reset to head node\n");
+						}
 					}
 					else
 					{
-						ParodusPrint("processData success\n");
+						ParodusInfo("cloud status is online, processData\n");
+						rv = processData(Data, Data->msg, Data->asyncHandle);
+						if(!rv)
+						{
+							ParodusError("processData failed\n");
+						}
+						else
+						{
+							ParodusPrint("processData success\n");
+						}
 					}
 					break;
 
@@ -333,7 +372,22 @@ void* processXmidtUpstreamMsg()
 						else //ack timeout case
 						{
 							ParodusPrint("transaction id match not found, cloud ack timed out. Need to retry\n");
-							if (checkCloudConn(msgTransID, &next_msgnode))
+							cv = checkCloudConn(NULL, &next_msgnode);
+							if (cv == 2)
+							{
+								ParodusInfo("queue is optimized,need to retry next node\n");
+								xmidtQ = next_msgnode;
+								if(xmidtQ !=NULL)
+								{
+									ParodusInfo("continue to next node to retry\n");
+									continue;
+								}
+								else
+								{
+									ParodusInfo("next node is NULL, reset to head node\n");
+								}
+							}
+							else
 							{
 								ParodusPrint("cloud status is online, check ping time\n");
 								if(get_pingTimeStamp() > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
@@ -364,8 +418,8 @@ void* processXmidtUpstreamMsg()
 					else
 					{
 						ParodusError("deleteFromXmidtQ failed\n");
-						break;
 					}
+					break;
 			}
 
 			if(xmidtQ !=NULL)
@@ -400,7 +454,7 @@ void* processXmidtUpstreamMsg()
 }
 
 //To validate and send events upstream
-int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
+int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle, XmidtMsg **nxtnode)
 {
 	int rv = 0;
 	char *errorMsg = "none";
@@ -422,7 +476,11 @@ int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asy
 	if(rv)
 	{
 		ParodusPrint("validation successful, send event to server\n");
-		sendXmidtEventToServer(Datanode, xmidtMsg, asyncHandle);
+		sendXmidtEventToServer(Datanode, xmidtMsg, asyncHandle, &nextnode);
+		if(nextnode !=NULL)
+		{
+			*nxtnode = nextnode;
+		}
 		return rv;
 	}
 	else
@@ -516,7 +574,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	return 1;
 }
 
-void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
+void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle,XmidtMsg  **xmidt_nextnode)
 {
 	wrp_msg_t *notif_wrp_msg = NULL;
 	ssize_t msg_len;
@@ -643,9 +701,14 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 				ParodusPrint("The event is having high qos retry again\n");
 				ParodusInfo("Wait till connection is Up\n");
 				XmidtMsg *next_node;
-				checkCloudConn(notif_wrp_msg->u.event.transaction_uuid, &next_node );
+				int cv = checkCloudConn(notif_wrp_msg->u.event.transaction_uuid, &next_node );
 				//pthread_mutex_lock(get_global_cloud_status_mut());
 				//pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+				if(cv == 2 && next_node !=NULL)
+				{
+					ParodusInfo("xmidtQ is optimized, return next node\n");
+					*xmidt_nextnode = next_node;
+				}
 				if(test == 1)
 				{
 					sleep(60); //testing

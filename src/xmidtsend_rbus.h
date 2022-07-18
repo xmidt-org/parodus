@@ -39,6 +39,7 @@ extern "C" {
 #define MEDIUM_QOS_EXPIRE_TIME      20*60
 #define LOW_QOS_EXPIRE_TIME         15*60
 
+#define EXPIRY_CHECK_TIME           5*60 //To check expiry in every 5 mins when cloud connection is down.
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
@@ -114,6 +115,7 @@ void checkMaxQandOptimize();
 void checkMsgExpiry(char * current_transid);
 void mapXmidtStatusToStatusMessage(int status, char **message);
 void xmidtQOptmize(char *curr_transid, XmidtMsg **xmidt_node);
+void deleteAllExpiredMsgs(char *current_transid, XmidtMsg **xmidt_node);
 //Testing
 void set_global_TransID(char *transid);
 char *get_global_TransID();
