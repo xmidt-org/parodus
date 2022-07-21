@@ -119,7 +119,7 @@ void decrement_XmidtQsize()
 	pthread_mutex_unlock (&xmidt_mut);
 }
 
-int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
+int checkCloudConn()
 {
 	int ret = 1;
 	if (!cloud_status_is_online ())
@@ -128,7 +128,6 @@ int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
 
 		int  rv;
 		struct timespec ts;
-		XmidtMsg *nextnode = NULL;
 
 		pthread_mutex_lock(get_global_cloud_status_mut());
 		getCurrentTime(&ts);
@@ -143,11 +142,10 @@ int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
 			{
 				ParodusInfo("Timedout. Cloud connection is down for %d minutes, check msg expiry\n", (EXPIRY_CHECK_TIME/60));
 				pthread_mutex_unlock(get_global_cloud_status_mut());
-				int opt = xmidtQOptmize(current_transid, &nextnode);
+				int opt = xmidtQOptmize();
 				if(opt)
 				{
 					ParodusInfo("xmidtQ is optimized during connection down %d, return next node\n", opt);
-					*xmidt_nextnode = nextnode;
 					ret = 2;
 				}
 			}
@@ -162,42 +160,85 @@ int checkCloudConn(char *current_transid, XmidtMsg **xmidt_nextnode)
 	return ret;
 }
 
-void deleteAllExpiredMsgs(char *current_transid, XmidtMsg **xmidt_node)
+//Delete all expired msgs from queue and low qos when max queue.
+int xmidtQOptmize()
 {
-   XmidtMsg *temp = NULL, *next_node = NULL;
-   temp = get_global_tmp_node();
+	long long currTime = 0;
+	struct timespec ts;
+	int rv = 0;
 
-    ParodusInfo("Inside deleteAllExpiredMsgs\n");
-    while(temp != NULL)
-    {
-	//skip current msg delete
-	wrp_msg_t * tempMsg = temp->msg;
-	if((current_transid !=NULL) && (strcmp(tempMsg->u.event.transaction_uuid, current_transid) != 0))
-	{
-		deleteFromXmidtQ(&next_node);
-		temp = next_node;
-		continue;
-	}
-	temp = temp->next;
-    }
-}
+	XmidtMsg *temp = NULL;
+	temp = get_global_xmidthead();
 
-void xmidtQOptmize(char *curr_transid, XmidtMsg **xmidt_node)
-{
-	XmidtMsg *next_node = NULL;
-	//Delete all expired msgs from queue except current processing msg
-	checkMsgExpiry(curr_transid);
-	checkMaxQandOptimize();
-	int status = deleteAllExpiredMsgs(curr_transid, &next_node);
-	if(status)
+	while(temp != NULL)
 	{
-		ParodusPrint("deleteAllExpiredMsgs success\n");
+		getCurrentTime(&ts);
+		currTime= (long long)ts.tv_sec;
+		int del = 0;
+
+		wrp_msg_t * tempMsg = temp->msg;
+		ParodusInfo("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+		if(tempMsg->u.event.qos > 74)
+		{
+			if((currTime - temp->enqueueTime) > CRITICAL_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Critical qos 30 mins expired, delete qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				del = 1;
+			}
+		}
+		else if (tempMsg->u.event.qos > 49)
+		{
+			if((currTime - temp->enqueueTime) > HIGH_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("High qos 25 mins expired, delete qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				del = 1;
+			}
+		}
+		else if (tempMsg->u.event.qos > 24)
+		{
+			if((currTime - temp->enqueueTime) > MEDIUM_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Medium qos 20 mins expired, delete qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				del = 1;
+			}
+		}
+		else if (tempMsg->u.event.qos >= 0)
+		{
+			if((currTime - temp->enqueueTime) > LOW_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Low qos 15 mins expired, delete qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				del = 1;
+			}
+			else
+			{
+				if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
+				{
+					ParodusInfo("Max queue size reached, delete low qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+					del = 1;
+				}
+			}
+		}
+		else
+		{
+			ParodusError("Invalid qos\n");
+		}
+
+		if(del)
+		{
+			pthread_mutex_lock (&xmidt_mut);
+			wrp_free_struct( tempMsg);
+			tempMsg = NULL;
+			free( temp );
+			temp = NULL;
+			ParodusInfo("Deleted successfully and returning..\n");
+			pthread_mutex_unlock (&xmidt_mut);
+			decrement_XmidtQsize();
+			ParodusInfo("XmidtQsize after delete is %d\n", get_XmidtQsize());
+			rv = 1;
+		}
+		temp = temp->next;
 	}
-	else
-	{
-		ParodusError("deleteAllExpiredMsgs failed\n");
-	}
-	*xmidt_node = next_node ;
+	return rv;
 }
 
 /*
@@ -292,8 +333,6 @@ void* processXmidtUpstreamMsg()
 	struct timespec tms;
 	XmidtMsg *xmidtQ = NULL;
 	XmidtMsg *next_node = NULL;
-	XmidtMsg *next_msgnode = NULL;
-	char *msgTransID = NULL;
 	int cv = 0;
 
 	xmidtQ = get_global_xmidthead();
@@ -316,8 +355,9 @@ void* processXmidtUpstreamMsg()
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusInfo("mutex unlock in xmidt consumer thread\n");
 
-			checkMsgExpiry(NULL);
+			checkMsgExpiry();
 			checkMaxQandOptimize();
+			cv = 0;
 
 			ParodusInfo("check state\n");
 			switch(Data->state)
@@ -325,20 +365,10 @@ void* processXmidtUpstreamMsg()
 				case PENDING:
 					ParodusInfo("state : PENDING\n");
 					//send msg to server only when cloud connection is online.
-					cv = checkCloudConn(NULL, &next_msgnode );
+					cv = checkCloudConn();
 					if (cv == 2)
 					{
-						ParodusInfo("queue is optimized,need to process next node\n");
-						xmidtQ = next_msgnode;
-						if(xmidtQ !=NULL)
-						{
-							ParodusInfo("continue to next node\n");
-							continue;
-						}
-						else
-						{
-							ParodusInfo("next node is NULL,reset to head node\n");
-						}
+						ParodusInfo("queue is optimized, reset to head node\n");
 					}
 					else
 					{
@@ -350,7 +380,14 @@ void* processXmidtUpstreamMsg()
 						}
 						else
 						{
-							ParodusPrint("processData success\n");
+							if(rv == 2)
+							{
+								ParodusInfo("queue is optimized, reset to head\n");
+							}
+							else
+							{
+								ParodusPrint("processData success\n");
+							}
 						}
 					}
 					break;
@@ -372,20 +409,11 @@ void* processXmidtUpstreamMsg()
 						else //ack timeout case
 						{
 							ParodusPrint("transaction id match not found, cloud ack timed out. Need to retry\n");
-							cv = checkCloudConn(NULL, &next_msgnode);
+							cv = checkCloudConn();
 							if (cv == 2)
 							{
-								ParodusInfo("queue is optimized,need to retry next node\n");
-								xmidtQ = next_msgnode;
-								if(xmidtQ !=NULL)
-								{
-									ParodusInfo("continue to next node to retry\n");
-									continue;
-								}
-								else
-								{
-									ParodusInfo("next node is NULL, reset to head node\n");
-								}
+								ParodusInfo("queue is optimized, reset to head node and retry\n");
+								break;
 							}
 							else
 							{
@@ -400,7 +428,14 @@ void* processXmidtUpstreamMsg()
 									}
 									else
 									{
-										ParodusPrint("processData retry success\n");
+										if(rv == 2)
+										{
+											ParodusInfo("queue is optimized, reset to head\n");
+										}
+										else
+										{
+											ParodusPrint("processData success\n");
+										}
 									}
 								}
 							}
@@ -422,16 +457,16 @@ void* processXmidtUpstreamMsg()
 					break;
 			}
 
-			if(xmidtQ !=NULL)
+			if(cv !=2 && xmidtQ !=NULL)
 			{
 				ParodusPrint("Move to next node\n");
 				xmidtQ = xmidtQ->next;
 			}
 
 			// circling back to 1st node
-			if(xmidtQ == NULL && get_global_xmidthead() != NULL)
+			if((cv ==2) || (xmidtQ == NULL && get_global_xmidthead() != NULL))
 			{
-				ParodusInfo("xmidtQ is NULL, circling back to 1st node\n");
+				ParodusInfo("circling back to 1st node, cv %d\n", cv);
 				xmidtQ = get_global_xmidthead();
 			}
 			sleep(3);
@@ -454,7 +489,7 @@ void* processXmidtUpstreamMsg()
 }
 
 //To validate and send events upstream
-int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle, XmidtMsg **nxtnode)
+int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	int rv = 0;
 	char *errorMsg = "none";
@@ -476,11 +511,7 @@ int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asy
 	if(rv)
 	{
 		ParodusPrint("validation successful, send event to server\n");
-		sendXmidtEventToServer(Datanode, xmidtMsg, asyncHandle, &nextnode);
-		if(nextnode !=NULL)
-		{
-			*nxtnode = nextnode;
-		}
+		rv = sendXmidtEventToServer(Datanode, xmidtMsg, asyncHandle);
 		return rv;
 	}
 	else
@@ -574,7 +605,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	return 1;
 }
 
-void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle,XmidtMsg  **xmidt_nextnode)
+int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	wrp_msg_t *notif_wrp_msg = NULL;
 	ssize_t msg_len;
@@ -586,6 +617,7 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 	int sendRetStatus = 1;
 	char *errorMsg = NULL;
 	int qos = 0;
+	int rv = 0;
 
         ParodusPrint("MAX_QUEUE_SIZE: %d\n", get_parodus_cfg()->max_queue_size);
 	notif_wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
@@ -690,7 +722,7 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 				free(msg_bytes);
 				msg_bytes = NULL;
 			}
-			return;
+			return rv;
 		}
 
 		while(sendRetStatus)     //If SendMessage is failed condition
@@ -700,14 +732,13 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 			{
 				ParodusPrint("The event is having high qos retry again\n");
 				ParodusInfo("Wait till connection is Up\n");
-				XmidtMsg *next_node;
-				int cv = checkCloudConn(notif_wrp_msg->u.event.transaction_uuid, &next_node );
+				rv = checkCloudConn();
 				//pthread_mutex_lock(get_global_cloud_status_mut());
 				//pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
-				if(cv == 2 && next_node !=NULL)
+				if(rv == 2)
 				{
-					ParodusInfo("xmidtQ is optimized, return next node\n");
-					*xmidt_nextnode = next_node;
+					printSendMsgData("queue optimized during send. retry", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
+					break;
 				}
 				if(test == 1)
 				{
@@ -805,6 +836,7 @@ void sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncH
 		notif_wrp_msg = NULL;
 	}
 	ParodusPrint("sendXmidtEventToServer done\n");
+	return rv;
 }
 
 void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, rbusError_t error)
@@ -1475,7 +1507,7 @@ int deleteFromXmidtQ(XmidtMsg **next_node)
 }
 
 //check if message is expired based on each qos and set to delete state.
-void checkMsgExpiry(char * current_transid)
+void checkMsgExpiry()
 {
 	long long currTime = 0;
 	struct timespec ts;
@@ -1489,11 +1521,6 @@ void checkMsgExpiry(char * current_transid)
 		currTime= (long long)ts.tv_sec;
 		wrp_msg_t * tempMsg = temp->msg;
 		ParodusPrint("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
-		if((current_transid !=NULL) && (strcmp(tempMsg->u.event.transaction_uuid, current_transid) == 0))
-		{
-			ParodusInfo("skip current processing transaction id %s, continue\n", tempMsg->u.event.transaction_uuid);
-			continue;
-		}
 
 		if(tempMsg->u.event.qos > 74)
 		{
