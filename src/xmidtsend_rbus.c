@@ -33,7 +33,6 @@
 
 static pthread_t processThreadId = 0;
 static unsigned int XmidtQsize = 0;
-static int test = 0; //testing
 XmidtMsg *XmidtMsgQ = NULL;
 
 CloudAck *g_cloudackHead = NULL;
@@ -348,18 +347,18 @@ void* processXmidtUpstreamMsg()
 			ParodusInfo("Received cloud status signal proceed to event processing\n");
 		}
 		pthread_mutex_lock (&xmidt_mut);
-		ParodusInfo("mutex lock in xmidt consumer thread\n");
+		ParodusPrint("mutex lock in xmidt consumer thread\n");
 		if (xmidtQ != NULL)
 		{
 			XmidtMsg *Data = xmidtQ;
 			pthread_mutex_unlock (&xmidt_mut);
-			ParodusInfo("mutex unlock in xmidt consumer thread\n");
+			ParodusPrint("mutex unlock in xmidt consumer thread\n");
 
 			checkMsgExpiry();
 			checkMaxQandOptimize();
 			cv = 0;
 
-			ParodusInfo("check state\n");
+			ParodusPrint("check state\n");
 			switch(Data->state)
 			{
 				case PENDING:
@@ -466,7 +465,7 @@ void* processXmidtUpstreamMsg()
 			// circling back to 1st node
 			if((cv ==2) || (xmidtQ == NULL && get_global_xmidthead() != NULL))
 			{
-				ParodusInfo("circling back to 1st node, cv %d\n", cv);
+				ParodusPrint("circling back to 1st node, cv %d\n", cv);
 				xmidtQ = get_global_xmidthead();
 			}
 			sleep(3);
@@ -478,7 +477,7 @@ void* processXmidtUpstreamMsg()
 				pthread_mutex_unlock (&xmidt_mut);
 				break;
 			}
-			ParodusInfo("Before cond wait in xmidt consumer thread\n");
+			ParodusPrint("Before cond wait in xmidt consumer thread\n");
 			pthread_cond_wait(&xmidt_con, &xmidt_mut);
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusPrint("mutex unlock in xmidt thread after cond wait\n");
@@ -739,10 +738,6 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 				{
 					printSendMsgData("queue optimized during send. retry", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 					break;
-				}
-				if(test == 1)
-				{
-					sleep(60); //testing
 				}
 				//pthread_mutex_unlock(get_global_cloud_status_mut());
 				ParodusInfo("Received cloud status signal proceed to retry\n");
@@ -1149,19 +1144,6 @@ void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **e
 	ParodusPrint("parseRbusInparamsToWrp End\n");
 }
 
-//testing purpose. remove this.
-static char *g_transactionId = "1234";
-char *get_global_TransID()
-{
-    return g_transactionId;
-}
-
-void set_global_TransID(char *transid)
-{
-    g_transactionId = strdup(transid);
-}
-
-//
 static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
 {
 	(void) handle;
@@ -1178,14 +1160,7 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 		if(inStatus)
 		{
 			//generate transaction id to create outParams and send ack
-			//transaction_uuid = generate_transaction_uuid();
-			//transaction_uuid = strdup("8d72d4c2-1f59-4420-a736-3946083d529a"); //Testing
-			char trans_uuid[64];
-			sprintf(trans_uuid, "3946083d529a_test%d", ++test);
-			ParodusPrint("test trans_uuid = %s\n", trans_uuid);
-			transaction_uuid = strdup(trans_uuid);
-
-			set_global_TransID(transaction_uuid);//testing
+			transaction_uuid = generate_transaction_uuid();
 			ParodusInfo("xmidt transaction_uuid generated is %s\n", transaction_uuid);
 			parseRbusInparamsToWrp(inParams, transaction_uuid, &wrpMsg);
 
