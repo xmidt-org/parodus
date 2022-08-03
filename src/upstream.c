@@ -603,7 +603,6 @@ void getServiceNameAndSendResponse(wrp_msg_t *msg, void **msg_bytes, size_t msg_
 		ParodusError("serviceName is NULL,not sending retrieve response to client\n");
 	}
 }
-int test = 0;
 int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
@@ -641,10 +640,5 @@ int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		sendRetStatus = 1;
 	}
 	ParodusInfo("sendRetStatus is %d\n", sendRetStatus);
-	if(test == 0)
-	{
-		sendRetStatus = 1; //testing
-		test = 1;
-	}
 	return sendRetStatus;
 }
