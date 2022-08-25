@@ -72,17 +72,21 @@ bool highQosValueCheck(int qos)
 XmidtMsg * get_global_xmidthead(void)
 {
     XmidtMsg *tmp = NULL;
+    ParodusInfo("get_global_xmidthead: mutex lock\n");
     pthread_mutex_lock (&xmidt_mut);
     tmp = XmidtMsgQ;
     pthread_mutex_unlock (&xmidt_mut);
+    ParodusInfo("get_global_xmidthead: mutex unlock\n");
     return tmp;
 }
 
 void set_global_xmidthead(XmidtMsg *new)
 {
+	ParodusInfo("set_global_xmidthead: mutex lock\n");
 	pthread_mutex_lock (&xmidt_mut);
 	XmidtMsgQ = new;
 	pthread_mutex_unlock (&xmidt_mut);
+	ParodusInfo("set_global_xmidthead: mutex unlock\n");
 }
 
 CloudAck * get_global_cloud_node(void)
@@ -468,7 +472,7 @@ void* processXmidtUpstreamMsg()
 				ParodusPrint("circling back to 1st node, cv %d\n", cv);
 				xmidtQ = get_global_xmidthead();
 			}
-			sleep(3);
+			sleep(1);
 		}
 		else
 		{
