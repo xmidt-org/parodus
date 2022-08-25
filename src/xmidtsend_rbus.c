@@ -362,7 +362,7 @@ void* processXmidtUpstreamMsg()
 			checkMaxQandOptimize();
 			cv = 0;
 
-			ParodusPrint("check state\n");
+			ParodusInfo("check state\n");
 			switch(Data->state)
 			{
 				case PENDING:
@@ -396,22 +396,22 @@ void* processXmidtUpstreamMsg()
 					break;
 
 				case SENT:
-					ParodusPrint("state : SENT\n");
+					ParodusInfo("state : SENT\n");
 					getCurrentTime(&tms);
 					currTime = (long long)tms.tv_sec;
 					long long timeout_secs = (Data->sentTime) + CLOUD_ACK_TIMEOUT_SEC;
-					ParodusPrint("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld trans_id %s\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs, Data->msg->u.event.transaction_uuid);
+					ParodusInfo("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld trans_id %s\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs, Data->msg->u.event.transaction_uuid);
 					if (currTime > timeout_secs)
 					{
-						ParodusPrint("Check cloud ack for matching transaction id\n");
+						ParodusInfo("Check cloud ack for matching transaction id\n");
 						ret = checkCloudACK(Data, Data->asyncHandle);
 						if (ret)
 						{
-							ParodusPrint("cloud ack processed successfully\n");
+							ParodusInfo("cloud ack processed successfully\n");
 						}
 						else //ack timeout case
 						{
-							ParodusPrint("transaction id match not found, cloud ack timed out. Need to retry\n");
+							ParodusInfo("transaction id match not found, cloud ack timed out. Need to retry\n");
 							cv = checkCloudConn();
 							if (cv == 2)
 							{
@@ -420,7 +420,7 @@ void* processXmidtUpstreamMsg()
 							}
 							else
 							{
-								ParodusPrint("cloud status is online, check ping time\n");
+								ParodusInfo("cloud status is online, check ping time\n");
 								if(get_pingTimeStamp() > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
 								{
 									ParodusInfo("Ping received at timestamp %lld, proceed to retry\n", get_pingTimeStamp());
@@ -437,7 +437,7 @@ void* processXmidtUpstreamMsg()
 										}
 										else
 										{
-											ParodusPrint("processData success\n");
+											ParodusInfo("processData success\n");
 										}
 									}
 								}
@@ -469,7 +469,7 @@ void* processXmidtUpstreamMsg()
 			// circling back to 1st node
 			if((cv ==2) || (xmidtQ == NULL && get_global_xmidthead() != NULL))
 			{
-				ParodusPrint("circling back to 1st node, cv %d\n", cv);
+				ParodusInfo("circling back to 1st node, cv %d\n", cv);
 				xmidtQ = get_global_xmidthead();
 			}
 			sleep(1);
