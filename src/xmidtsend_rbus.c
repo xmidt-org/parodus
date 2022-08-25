@@ -397,19 +397,19 @@ void* processXmidtUpstreamMsg()
 
 				case SENT:
 					ParodusInfo("state : SENT\n");
-					getCurrentTime(&tms);
-					currTime = (long long)tms.tv_sec;
-					long long timeout_secs = (Data->sentTime) + CLOUD_ACK_TIMEOUT_SEC;
-					ParodusInfo("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld trans_id %s\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs, Data->msg->u.event.transaction_uuid);
-					if (currTime > timeout_secs)
+					ParodusInfo("Check cloud ack for matching transaction id\n");
+					ret = checkCloudACK(Data, Data->asyncHandle);
+					if (ret)
 					{
-						ParodusInfo("Check cloud ack for matching transaction id\n");
-						ret = checkCloudACK(Data, Data->asyncHandle);
-						if (ret)
-						{
-							ParodusInfo("cloud ack processed successfully\n");
-						}
-						else //ack timeout case
+						ParodusInfo("cloud ack processed successfully\n");
+					}
+					else
+					{
+						getCurrentTime(&tms);
+						currTime = (long long)tms.tv_sec;
+						long long timeout_secs = (Data->sentTime) + CLOUD_ACK_TIMEOUT_SEC;
+						ParodusInfo("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld trans_id %s\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs, Data->msg->u.event.transaction_uuid);
+						if (currTime > timeout_secs) //ack timeout case
 						{
 							ParodusInfo("transaction id match not found, cloud ack timed out. Need to retry\n");
 							cv = checkCloudConn();
