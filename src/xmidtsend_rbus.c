@@ -72,21 +72,17 @@ bool highQosValueCheck(int qos)
 XmidtMsg * get_global_xmidthead(void)
 {
     XmidtMsg *tmp = NULL;
-    ParodusInfo("get_global_xmidthead: mutex lock\n");
     pthread_mutex_lock (&xmidt_mut);
     tmp = XmidtMsgQ;
     pthread_mutex_unlock (&xmidt_mut);
-    ParodusInfo("get_global_xmidthead: mutex unlock\n");
     return tmp;
 }
 
 void set_global_xmidthead(XmidtMsg *new)
 {
-	ParodusInfo("set_global_xmidthead: mutex lock\n");
 	pthread_mutex_lock (&xmidt_mut);
 	XmidtMsgQ = new;
 	pthread_mutex_unlock (&xmidt_mut);
-	ParodusInfo("set_global_xmidthead: mutex unlock\n");
 }
 
 CloudAck * get_global_cloud_node(void)
@@ -148,7 +144,7 @@ int checkCloudConn()
 				int opt = xmidtQOptmize();
 				if(opt)
 				{
-					ParodusInfo("xmidtQ is optimized during connection down %d, return next node\n", opt);
+					ParodusInfo("xmidtQ is optimized during connection down %d, ret %d\n", ret);
 					ret = 2;
 				}
 			}
@@ -362,11 +358,11 @@ void* processXmidtUpstreamMsg()
 			checkMaxQandOptimize();
 			cv = 0;
 
-			ParodusInfo("check state\n");
+			ParodusPrint("check state\n");
 			switch(Data->state)
 			{
 				case PENDING:
-					ParodusInfo("state : PENDING\n");
+					ParodusPrint("state : PENDING\n");
 					//send msg to server only when cloud connection is online.
 					cv = checkCloudConn();
 					if (cv == 2)
@@ -375,11 +371,11 @@ void* processXmidtUpstreamMsg()
 					}
 					else
 					{
-						ParodusInfo("cloud status is online, processData\n");
+						ParodusPrint("cloud status is online, processData\n");
 						rv = processData(Data, Data->msg, Data->asyncHandle);
 						if(!rv)
 						{
-							ParodusError("processData failed\n");
+							ParodusPrint("processData failed\n");
 						}
 						else
 						{
@@ -396,12 +392,12 @@ void* processXmidtUpstreamMsg()
 					break;
 
 				case SENT:
-					ParodusInfo("state : SENT\n");
-					ParodusInfo("Check cloud ack for matching transaction id\n");
+					ParodusPrint("state : SENT\n");
+					ParodusPrint("Check cloud ack for matching transaction id\n");
 					ret = checkCloudACK(Data, Data->asyncHandle);
 					if (ret)
 					{
-						ParodusInfo("cloud ack processed successfully\n");
+						ParodusPrint("cloud ack processed successfully\n");
 					}
 					else
 					{
@@ -420,14 +416,14 @@ void* processXmidtUpstreamMsg()
 							}
 							else
 							{
-								ParodusInfo("cloud status is online, check ping time\n");
+								ParodusPrint("cloud status is online, check ping time\n");
 								if(get_pingTimeStamp() > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
 								{
-									ParodusInfo("Ping received at timestamp %lld, proceed to retry\n", get_pingTimeStamp());
+									ParodusPrint("Ping received at timestamp %lld, proceed to retry\n", get_pingTimeStamp());
 									rv = processData(Data, Data->msg, Data->asyncHandle);
 									if(!rv)
 									{
-										ParodusError("processData retry failed\n");
+										ParodusPrint("processData retry failed\n");
 									}
 									else
 									{
@@ -437,7 +433,7 @@ void* processXmidtUpstreamMsg()
 										}
 										else
 										{
-											ParodusInfo("processData success\n");
+											ParodusPrint("processData success\n");
 										}
 									}
 								}
@@ -446,7 +442,7 @@ void* processXmidtUpstreamMsg()
 					}
 					break;
 				case DELETE:
-					ParodusInfo("state : DELETE\n");
+					ParodusPrint("state : DELETE\n");
 					status = deleteFromXmidtQ(&next_node);
 					if(status)
 					{
@@ -1353,7 +1349,7 @@ int updateXmidtState(XmidtMsg * temp, int state)
 			temp->sentTime = (long long)ts.tv_sec;
 			ParodusPrint("updated temp->sentTime %lld\n", temp->sentTime);
 		}
-		ParodusInfo("msgnode is updated with state %d sentTime %lld\n", temp->state, temp->sentTime);
+		ParodusPrint("msgnode is updated with state %d sentTime %lld\n", temp->state, temp->sentTime);
 		pthread_mutex_unlock (&xmidt_mut);
 		return 1;
 	}

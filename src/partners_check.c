@@ -43,7 +43,7 @@ static void parse_partner_id(char *partnerId, partners_t **partnersList)
 {
     char *token;
     int i = 0, j = 0, count = 0;
-    ParodusInfo("********* %s ********\n",__FUNCTION__);
+    ParodusPrint("********* %s ********\n",__FUNCTION__);
     while(partnerId[i] != '\0')
     {
         if(partnerId[i] == ',')
@@ -52,15 +52,15 @@ static void parse_partner_id(char *partnerId, partners_t **partnersList)
         }
         i++;
     }
-    ParodusInfo("count = %d\n", count+1);
+    ParodusPrint("count = %d\n", count+1);
     *partnersList = (partners_t *)malloc(sizeof(partners_t)+ sizeof( char * ) * (count+1));
     memset(*partnersList, 0, sizeof(partners_t));
     (*partnersList)->count = count+1;
     while ((token = strsep(&partnerId, ",")) != NULL)
     {
-        ParodusInfo("token=%s\n", token);
+        ParodusPrint("token=%s\n", token);
         (*partnersList)->partner_ids[j] = strdup(token);
-        ParodusInfo("(*partnersList)->partner_ids[%d] = %s\n",j,(*partnersList)->partner_ids[j]);
+        ParodusPrint("(*partnersList)->partner_ids[%d] = %s\n",j,(*partnersList)->partner_ids[j]);
         j++;
     }
 }
@@ -71,31 +71,31 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
     size_t j = 0;
     partners_t *partnersList = NULL;
     char *partnerId = NULL;
-    ParodusInfo("********* %s ********\n",__FUNCTION__);
+    ParodusPrint("********* %s ********\n",__FUNCTION__);
     char *temp = get_parodus_cfg()->partner_id;
-    ParodusInfo("temp = %s\n",temp);
+    ParodusPrint("temp = %s\n",temp);
     if(temp[0] != '\0' && strlen(temp) > 0)
     {
         partnerId = strdup(temp);
     }
-    ParodusInfo("partnerId = %s\n",partnerId);
+    ParodusPrint("partnerId = %s\n",partnerId);
     if(partnerId != NULL)
     {
         parse_partner_id(partnerId, &partnersList);
-        ParodusInfo("partnersList->count = %lu\n", partnersList->count);
+        ParodusPrint("partnersList->count = %lu\n", partnersList->count);
         if(msg->msg_type == WRP_MSG_TYPE__EVENT)
         {
             if(msg->u.event.partner_ids != NULL)
             {
                 count = (int) msg->u.event.partner_ids->count;
-                ParodusInfo("partner_ids count is %d\n",count);
+                ParodusPrint("partner_ids count is %d\n",count);
                 for(i = 0; i < count; i++)
                 {
                     for(j = 0; j<partnersList->count; j++)
                     {
 			if(NULL != partnersList->partner_ids[j]) {
-		                ParodusInfo("partnersList->partner_ids[%lu] = %s\n",j, partnersList->partner_ids[j]);
-				ParodusInfo("msg->u.event.partner_ids->partner_ids[%lu] = %s\n",i, msg->u.event.partner_ids->partner_ids[i]);
+		                ParodusPrint("partnersList->partner_ids[%lu] = %s\n",j, partnersList->partner_ids[j]);
+				ParodusPrint("msg->u.event.partner_ids->partner_ids[%lu] = %s\n",i, msg->u.event.partner_ids->partner_ids[i]);
 		                if(strcasecmp(partnersList->partner_ids[j], msg->u.event.partner_ids->partner_ids[i]) == 0)
 		                {
 		                    ParodusInfo("partner_id match found\n");
@@ -116,29 +116,29 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
                 /* Commandline input partner_ids not matching with partner_ids from request, appending to request partner_ids*/
                 if(matchFlag != 1)
                 {
-		    ParodusInfo("count+partnersList->count %d\n", count+partnersList->count);
+		    ParodusPrint("count+partnersList->count %d\n", count+partnersList->count);
                     (*partnerIds) = (partners_t *) malloc(sizeof(partners_t) + (sizeof(char *) * (count+partnersList->count)));
-		    ParodusInfo("after partnerIds malloc\n");
+		    ParodusPrint("after partnerIds malloc\n");
                     (*partnerIds)->count = count+partnersList->count;
-		    ParodusInfo("after (*partnerIds)->count\n");
+		    ParodusPrint("after (*partnerIds)->count\n");
                     for(i = 0; i < count; i++)
                     {
                         (*partnerIds)->partner_ids[i] = msg->u.event.partner_ids->partner_ids[i];
-                        ParodusInfo("(*partnerIds)->partner_ids[%d] : %s\n",i,(*partnerIds)->partner_ids[i]);
+                        ParodusPrint("(*partnerIds)->partner_ids[%d] : %s\n",i,(*partnerIds)->partner_ids[i]);
                     }
                     i = 0;
                     for(j = count; j<(count+partnersList->count); j++)
                     {
                         (*partnerIds)->partner_ids[j] = (char *) malloc(sizeof(char) * 64);
                         parStrncpy((*partnerIds)->partner_ids[j], partnersList->partner_ids[i], 64);
-                        ParodusInfo("(*partnerIds)->partner_ids[%lu] : %s\n",j,(*partnerIds)->partner_ids[j]);
+                        ParodusPrint("(*partnerIds)->partner_ids[%lu] : %s\n",j,(*partnerIds)->partner_ids[j]);
                         i++;
                     }
                 }
             }
             else
             {
-                ParodusInfo("partner_ids list is NULL\n");
+                ParodusPrint("partner_ids list is NULL\n");
                 (*partnerIds) = (partners_t *) malloc(sizeof(partners_t) + (sizeof(char *) * partnersList->count));
                 (*partnerIds)->count = partnersList->count;
                 i=0;
@@ -146,7 +146,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
                 {
                     (*partnerIds)->partner_ids[j] = (char *) malloc(sizeof(char) * 64);
                     parStrncpy((*partnerIds)->partner_ids[j], partnersList->partner_ids[i], 64);
-                    ParodusInfo("(*partnerIds)->partner_ids[%lu] : %s\n",j,(*partnerIds)->partner_ids[j]);
+                    ParodusPrint("(*partnerIds)->partner_ids[%lu] : %s\n",j,(*partnerIds)->partner_ids[j]);
                     i++;
                 }
             }
@@ -156,15 +156,15 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
             if(msg->u.req.partner_ids != NULL)
             {
                 count = (int) msg->u.req.partner_ids->count;
-                ParodusInfo("partner_ids count is %d\n",count);
+                ParodusPrint("partner_ids count is %d\n",count);
                 for(i = 0; i < count; i++)
                 {
                     for(j = 0; j<partnersList->count; j++)
                     {
 			if(NULL != partnersList->partner_ids[j]) 
 			{
-		                ParodusInfo("partnersList->partner_ids[%lu] = %s\n",j, partnersList->partner_ids[j]);
-				ParodusInfo("msg->u.req.partner_ids->partner_ids[%lu] = %s\n",i, msg->u.req.partner_ids->partner_ids[i]);
+		                ParodusPrint("partnersList->partner_ids[%lu] = %s\n",j, partnersList->partner_ids[j]);
+				ParodusPrint("msg->u.req.partner_ids->partner_ids[%lu] = %s\n",i, msg->u.req.partner_ids->partner_ids[i]);
 		                if(strcasecmp(partnersList->partner_ids[j], msg->u.req.partner_ids->partner_ids[i]) == 0)
 		                {
 		                    ParodusInfo("partner_id match found\n");
@@ -199,7 +199,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
             }
             else
             {
-                ParodusInfo("partner_ids list is NULL\n");
+                ParodusPrint("partner_ids list is NULL\n");
             }
         }
         if(partnersList != NULL)
@@ -217,7 +217,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
     }
     else
     {
-        ParodusInfo("partner_id is not available to validate\n");
+        ParodusPrint("partner_id is not available to validate\n");
         return 0;
     }
     return 1;

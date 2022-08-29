@@ -125,10 +125,10 @@ void listenerOnMessage(void * msg, size_t msgSize)
 						}
                         ParodusInfo("Received downstream dest as :%s and transaction_uuid :%s\n", dest, 
                             ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid : 
-                            ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
+                            ((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.transaction_uuid : message->u.crud.transaction_uuid)));
 			OnboardLog("%s\n",
                             ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid :
-                            ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
+                            ((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.transaction_uuid : message->u.crud.transaction_uuid)));
                         
                         free(destVal);
 
@@ -173,13 +173,16 @@ void listenerOnMessage(void * msg, size_t msgSize)
 							destFlag =1;
 			}
 			//if any unknown dest received sending error response to server
-                        if(destFlag ==0)
-                        {
-                            ParodusError("Unknown dest:%s\n", dest);
-                            response = cJSON_CreateObject();
-                            cJSON_AddNumberToObject(response, "statusCode", 531);
-                            cJSON_AddStringToObject(response, "message", "Service Unavailable");
-                        }
+			if (WRP_MSG_TYPE__EVENT != msgType)
+			{
+		                if(destFlag ==0)
+		                {
+		                    ParodusError("Unknown dest:%s\n", dest);
+		                    response = cJSON_CreateObject();
+		                    cJSON_AddNumberToObject(response, "statusCode", 531);
+		                    cJSON_AddStringToObject(response, "message", "Service Unavailable");
+		                }
+			}
                     }
 
                     if( (WRP_MSG_TYPE__EVENT != msgType) &&
