@@ -91,7 +91,8 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 case WRP_MSG_TYPE__DELETE:
                 {
                     ParodusInfo("numOfClients registered is %d\n", get_numOfClients());
-                    int ret = validate_partner_id(message, NULL);
+		    partners_t *partnersList = NULL;
+                    int ret = validate_partner_id(message, &partnersList);
 		    ParodusInfo("validate_partner_id returns %d\n", ret);
                     if(ret < 0)
                     {
@@ -100,8 +101,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         cJSON_AddStringToObject(response, "message", "Invalid partner_id");
                     } 
 
-                    ParodusInfo("B4 event dest fetch\n");
-		    ParodusInfo("message->u.event.dest is %s\n");
+		    ParodusInfo("message->u.event.dest is %s\n", message->u.event.dest);
                     destVal = strdup(((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
                               ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest)));
 		    ParodusInfo("destVal check\n");

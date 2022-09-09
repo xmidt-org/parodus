@@ -42,7 +42,7 @@ pthread_mutex_t xmidt_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t xmidt_con=PTHREAD_COND_INITIALIZER;
 
 pthread_mutex_t cloudack_mut=PTHREAD_MUTEX_INITIALIZER;
-
+int test = 0; //testing
 const char * contentTypeList[]={
 "application/json",
 "avro/binary",
@@ -121,22 +121,32 @@ void decrement_XmidtQsize()
 int checkCloudConn()
 {
 	int ret = 1;
-	if (!cloud_status_is_online ())
+	//if (!cloud_status_is_online ())
+	if (test == 1) //test purpose.
 	{
 		ParodusInfo("cloud status is not online, wait till connection up\n");
 
 		int  rv;
 		struct timespec ts;
 
-		pthread_mutex_lock(get_global_cloud_status_mut());
+		/*pthread_mutex_lock(get_global_cloud_status_mut());
 		getCurrentTime(&ts);
 		ts.tv_sec += EXPIRY_CHECK_TIME;
-		ParodusInfo("checkCloudConn timeout at %lld\n", (long long) ts.tv_sec);
+		ParodusInfo("checkCloudConn timeout at %lld\n", (long long) ts.tv_sec);*/
 
 		while (1)
 		{
+			pthread_mutex_lock(get_global_cloud_status_mut());
+			getCurrentTime(&ts);
+			ts.tv_sec += EXPIRY_CHECK_TIME;
+			ParodusInfo("checkCloudConn timeout at %lld\n", (long long) ts.tv_sec);
+			//
 			ParodusInfo("B4 pthread cond wait in checkCloudConn\n");
 			rv = pthread_cond_timedwait(get_global_cloud_status_cond(), get_global_cloud_status_mut(), &ts);
+			if(test ==2 || test ==4)
+			{
+				rv = 0 ;
+			}
 			if (rv == ETIMEDOUT)
 			{
 				ParodusInfo("Timedout. Cloud connection is down for %d minutes, check msg expiry\n", (EXPIRY_CHECK_TIME/60));
@@ -144,13 +154,14 @@ int checkCloudConn()
 				int opt = xmidtQOptmize();
 				if(opt)
 				{
-					ParodusInfo("xmidtQ is optimized during connection down %d, ret %d\n", ret);
 					ret = 2;
+					ParodusInfo("xmidtQ is optimized during connection down %d, ret %d\n", opt, ret);
 				}
 			}
 			else
 			{
 				ParodusInfo("Received cloud status signal, proceed to event processing\n");
+				pthread_mutex_unlock(get_global_cloud_status_mut());
 				break;
 			}
 		}
@@ -164,7 +175,8 @@ int xmidtQOptmize()
 {
 	long long currTime = 0;
 	struct timespec ts;
-	int rv = 0;
+	int rv = 0, status = 0;
+	XmidtMsg *next_node = NULL;
 
 	XmidtMsg *temp = NULL;
 	temp = get_global_xmidthead();
@@ -224,7 +236,7 @@ int xmidtQOptmize()
 
 		if(del)
 		{
-			pthread_mutex_lock (&xmidt_mut);
+			/*pthread_mutex_lock (&xmidt_mut);
 			wrp_free_struct( tempMsg);
 			tempMsg = NULL;
 			free( temp );
@@ -232,11 +244,35 @@ int xmidtQOptmize()
 			ParodusInfo("Deleted successfully and returning..\n");
 			pthread_mutex_unlock (&xmidt_mut);
 			decrement_XmidtQsize();
-			ParodusInfo("XmidtQsize after delete is %d\n", get_XmidtQsize());
-			rv = 1;
+			ParodusInfo("XmidtQsize after delete is %d\n", get_XmidtQsize());*/
+			ParodusInfo("msg expired, updateXmidtState to DELETE\n");
+			updateXmidtState(temp, DELETE);
+			status = deleteFromXmidtQ(&next_node);
+			temp = next_node;
+			if(status)
+			{
+				ParodusInfo("deleteFromXmidtQ success\n");
+				rv = 1;
+			}
+			else
+			{
+				ParodusError("deleteFromXmidtQ failed\n");
+			}
+			continue;
 		}
-		temp = temp->next;
+		if(temp)
+		{
+			ParodusInfo("Move to tmp next\n");
+			temp = temp->next;
+			if(temp)
+			{
+				ParodusInfo("temp next is not null\n");
+			}
+			else
+				ParodusInfo("temp next is null\n");
+		}
 	}
+	ParodusInfo("xmidtQOptmize returns rv %d\n", rv);
 	return rv;
 }
 
@@ -334,18 +370,19 @@ void* processXmidtUpstreamMsg()
 	XmidtMsg *next_node = NULL;
 	int cv = 0;
 
+	if(get_parodus_init())
+	{
+		ParodusInfo("Initial cloud connection is not established, Xmidt wait till connection up\n");
+		pthread_mutex_lock(get_global_cloud_status_mut());
+		pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+		pthread_mutex_unlock(get_global_cloud_status_mut());
+		ParodusInfo("Received cloud status signal proceed to event processing\n");
+	}
+
 	xmidtQ = get_global_xmidthead();
 
 	while(FOREVER())
 	{
-		if(get_parodus_init())
-		{
-			ParodusInfo("Initial cloud connection is not established, Xmidt wait till connection up\n");
-			pthread_mutex_lock(get_global_cloud_status_mut());
-			pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
-			pthread_mutex_unlock(get_global_cloud_status_mut());
-			ParodusInfo("Received cloud status signal proceed to event processing\n");
-		}
 		pthread_mutex_lock (&xmidt_mut);
 		ParodusPrint("mutex lock in xmidt consumer thread\n");
 		if (xmidtQ != NULL)
@@ -362,7 +399,7 @@ void* processXmidtUpstreamMsg()
 			switch(Data->state)
 			{
 				case PENDING:
-					ParodusPrint("state : PENDING\n");
+					ParodusInfo("state : PENDING\n");
 					//send msg to server only when cloud connection is online.
 					cv = checkCloudConn();
 					if (cv == 2)
@@ -392,7 +429,7 @@ void* processXmidtUpstreamMsg()
 					break;
 
 				case SENT:
-					ParodusPrint("state : SENT\n");
+					ParodusInfo("state : SENT\n");
 					ParodusPrint("Check cloud ack for matching transaction id\n");
 					ret = checkCloudACK(Data, Data->asyncHandle);
 					if (ret)
@@ -442,7 +479,7 @@ void* processXmidtUpstreamMsg()
 					}
 					break;
 				case DELETE:
-					ParodusPrint("state : DELETE\n");
+					ParodusInfo("state : DELETE\n");
 					status = deleteFromXmidtQ(&next_node);
 					if(status)
 					{
@@ -477,10 +514,10 @@ void* processXmidtUpstreamMsg()
 				pthread_mutex_unlock (&xmidt_mut);
 				break;
 			}
-			ParodusPrint("Before cond wait in xmidt consumer thread\n");
+			ParodusInfo("Before cond wait in xmidt consumer thread\n");
 			pthread_cond_wait(&xmidt_con, &xmidt_mut);
 			pthread_mutex_unlock (&xmidt_mut);
-			ParodusPrint("mutex unlock in xmidt thread after cond wait\n");
+			ParodusInfo("mutex unlock in xmidt thread after cond wait\n");
 			xmidtQ = get_global_xmidthead();
 		}
 	}
@@ -830,7 +867,7 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 		free(notif_wrp_msg);
 		notif_wrp_msg = NULL;
 	}
-	ParodusPrint("sendXmidtEventToServer done\n");
+	ParodusInfo("sendXmidtEventToServer done\n");
 	return rv;
 }
 
@@ -1162,6 +1199,7 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 			//generate transaction id to create outParams and send ack
 			transaction_uuid = generate_transaction_uuid();
 			ParodusInfo("xmidt transaction_uuid generated is %s\n", transaction_uuid);
+			test++; //testing
 			parseRbusInparamsToWrp(inParams, transaction_uuid, &wrpMsg);
 
 			//xmidt send producer

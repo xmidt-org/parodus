@@ -98,7 +98,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
 				ParodusPrint("msg->u.event.partner_ids->partner_ids[%lu] = %s\n",i, msg->u.event.partner_ids->partner_ids[i]);
 		                if(strcasecmp(partnersList->partner_ids[j], msg->u.event.partner_ids->partner_ids[i]) == 0)
 		                {
-		                    ParodusInfo("partner_id match found\n");
+		                    ParodusPrint("partner_id match found\n");
 		                    matchFlag = 1;
 		                    break;
 		                }
@@ -220,6 +220,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
         ParodusPrint("partner_id is not available to validate\n");
         return 0;
     }
+    ParodusPrint("partner_id is not matched\n");
     return 1;
 }
 

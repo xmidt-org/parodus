@@ -34,12 +34,12 @@ extern "C" {
 #define INPARAMS_PATH   "/tmp/inparams.txt"
 
 #define CLOUD_ACK_TIMEOUT_SEC       7
-#define CRITICAL_QOS_EXPIRE_TIME    30*60
+#define CRITICAL_QOS_EXPIRE_TIME    2*60 //30*60
 #define HIGH_QOS_EXPIRE_TIME        25*60
 #define MEDIUM_QOS_EXPIRE_TIME      20*60
 #define LOW_QOS_EXPIRE_TIME         15*60
 
-#define EXPIRY_CHECK_TIME           5*60 //To check expiry in every 5 mins when cloud connection is down.
+#define EXPIRY_CHECK_TIME           1*60 //To check expiry in every 5 mins when cloud connection is down.
 /*----------------------------------------------------------------------------*/
 /*                               Data Structures                              */
 /*----------------------------------------------------------------------------*/
