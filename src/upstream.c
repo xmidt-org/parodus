@@ -603,6 +603,7 @@ void getServiceNameAndSendResponse(wrp_msg_t *msg, void **msg_bytes, size_t msg_
 		ParodusError("serviceName is NULL,not sending retrieve response to client\n");
 	}
 }
+
 int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
@@ -639,6 +640,7 @@ int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		ParodusError("Failed to send upstream as metadata packing is not successful\n");
 		sendRetStatus = 1;
 	}
-	ParodusInfo("sendRetStatus is %d\n", sendRetStatus);
+	ParodusPrint("sendRetStatus is %d\n", sendRetStatus);
+
 	return sendRetStatus;
 }

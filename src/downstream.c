@@ -27,7 +27,9 @@
 #include "partners_check.h"
 #include "ParodusInternal.h"
 #include "crud_interface.h"
+#ifdef ENABLE_WEBCFGBIN
 #include "xmidtsend_rbus.h"
+#endif
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
@@ -71,7 +73,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 
         if(rv > 0)
         {
-            ParodusInfo("\nDecoded recivedMsg of size:%d\n", rv);
+            ParodusPrint("\nDecoded recivedMsg of size:%d\n", rv);
             msgType = message->msg_type;
             ParodusInfo("msgType received:%d\n", msgType);
             
@@ -90,10 +92,10 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 case WRP_MSG_TYPE__RETREIVE:
                 case WRP_MSG_TYPE__DELETE:
                 {
-                    ParodusInfo("numOfClients registered is %d\n", get_numOfClients());
+                    ParodusPrint("numOfClients registered is %d\n", get_numOfClients());
 		    partners_t *partnersList = NULL;
                     int ret = validate_partner_id(message, &partnersList);
-		    ParodusInfo("validate_partner_id returns %d\n", ret);
+		    ParodusPrint("validate_partner_id returns %d\n", ret);
                     if(ret < 0)
                     {
                         response = cJSON_CreateObject();
@@ -101,11 +103,9 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         cJSON_AddStringToObject(response, "message", "Invalid partner_id");
                     } 
 
-		    ParodusInfo("message->u.event.dest is %s\n", message->u.event.dest);
                     destVal = strdup(((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
                               ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest)));
-		    ParodusInfo("destVal check\n");
-		    ParodusInfo("destVal %s\n", destVal);
+
                     if( (destVal != NULL) && (ret >= 0) )
                     {
 						char *newDest = NULL;
@@ -114,7 +114,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
 						{
 							newDest = strtok(NULL , "/");
 						}
-						ParodusInfo("B4 newDest\n");
 						if(newDest != NULL)
 						{
 							parStrncpy(dest,newDest, sizeof(dest));
@@ -137,11 +136,11 @@ void listenerOnMessage(void * msg, size_t msgSize)
 
                         while (NULL != temp)
                         {
-                            ParodusInfo("node is pointing to temp->service_name %s \n",temp->service_name);
+                            ParodusPrint("node is pointing to temp->service_name %s \n",temp->service_name);
                             // Sending message to registered clients
                             if( strcmp(dest, temp->service_name) == 0)
                             {
-                                ParodusInfo("sending to nanomsg client %s\n", dest);
+                                ParodusPrint("sending to nanomsg client %s\n", dest);
                                 bytes = nn_send(temp->sock, recivedMsg, msgSize, 0);
                                 ParodusInfo("sent downstream message to reg_client '%s'\n",temp->url);
                                 ParodusPrint("downstream bytes sent:%d\n", bytes);
@@ -156,7 +155,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 			/* check Downstream dest for CRUD requests */
 			if(destFlag ==0 && strcmp("parodus", dest)==0)
 			{
-							ParodusInfo("Received CRUD request : dest : %s\n", dest);
+							ParodusPrint("Received CRUD request : dest : %s\n", dest);
 							if ((message->u.crud.source == NULL) || (message->u.crud.transaction_uuid == NULL))
 							{
 								ParodusError("Invalid request\n");
@@ -243,6 +242,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         }
                         free(resp_msg);
                     }
+		    #ifdef ENABLE_WEBCFGBIN
 		    //To handle cloud ack events received from server for the xmidt sent messages.
 		    if((WRP_MSG_TYPE__EVENT == msgType) && (ret >= 0))
 		    {
@@ -255,7 +255,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 					{
 						ParodusInfo("Received cloud ack from server: transaction_uuid %s qos %d, rdr %d\n", message->u.event.transaction_uuid, message->u.event.qos, message->u.event.rdr);
 						addToCloudAckQ(message->u.event.transaction_uuid, message->u.event.qos, message->u.event.rdr);
-						ParodusInfo("Added to cloud ack Q\n");
+						ParodusPrint("Added to cloud ack Q\n");
 					}
 					else
 					{
@@ -272,6 +272,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
 				ParodusInfo("cloud ack is ignored as max queue size is %d\n", get_parodus_cfg()->max_queue_size );
 			}
 		    }
+		    #endif
                     break;
                 }
 
@@ -281,7 +282,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 default:
                     break;
             }
-            ParodusInfo("free for downstream decoded msg\n");
+            ParodusPrint("free for downstream decoded msg\n");
             wrp_free_struct(message);
             message = NULL;
         }

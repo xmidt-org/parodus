@@ -151,6 +151,7 @@ int readFromFile(const char *file_name, char **data)
 	return 1;
 }
 
+
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *diff)
 {
