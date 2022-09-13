@@ -416,7 +416,7 @@ void* processXmidtUpstreamMsg()
 						ParodusPrint("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld trans_id %s\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs, Data->msg->u.event.transaction_uuid);
 						if (currTime > timeout_secs) //ack timeout case
 						{
-							ParodusInfo("transaction id match not found, cloud ack timed out. Need to retry\n");
+							ParodusPrint("transaction id match not found, cloud ack timed out. Need to retry\n");
 							cv = checkCloudConn();
 							if (cv == 2)
 							{
@@ -1327,7 +1327,7 @@ int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle)
 		}
 		cloudnode= cloudnode->next;
 	}
-	ParodusError("checkCloudACK returns failure\n");
+	ParodusPrint("checkCloudACK returns failure\n");
 	return 0;
 }
 
