@@ -93,8 +93,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 case WRP_MSG_TYPE__DELETE:
                 {
                     ParodusPrint("numOfClients registered is %d\n", get_numOfClients());
-		    partners_t *partnersList = NULL;
-                    int ret = validate_partner_id(message, &partnersList);
+                    int ret = validate_partner_id(message, NULL);
 		    ParodusPrint("validate_partner_id returns %d\n", ret);
                     if(ret < 0)
                     {

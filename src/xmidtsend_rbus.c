@@ -22,6 +22,7 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <rbus.h>
 #include "upstream.h"
 #include "ParodusInternal.h"
@@ -58,7 +59,7 @@ bool highQosValueCheck(int qos)
 {
 	if(qos > 24)
 	{
-		ParodusInfo("The qos value is high\n");
+		ParodusPrint("The qos value is high\n");
 		return true;
 	}
 	else
@@ -416,7 +417,7 @@ void* processXmidtUpstreamMsg()
 						ParodusPrint("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld trans_id %s\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs, Data->msg->u.event.transaction_uuid);
 						if (currTime > timeout_secs) //ack timeout case
 						{
-							ParodusPrint("transaction id match not found, cloud ack timed out. Need to retry\n");
+							ParodusPrint("transaction id %s match not found, cloud ack timed out. Need to retry\n", Data->msg->u.event.transaction_uuid);
 							cv = checkCloudConn();
 							if (cv == 2)
 							{
@@ -464,6 +465,8 @@ void* processXmidtUpstreamMsg()
 					}
 					break;
 			}
+			//sleep of 200 ms to process each msg ack and to avoid cpu load.
+			usleep(200*1000);
 
 			if(cv !=2 && xmidtQ !=NULL)
 			{
@@ -477,7 +480,6 @@ void* processXmidtUpstreamMsg()
 				ParodusPrint("circling back to 1st node, cv %d\n", cv);
 				xmidtQ = get_global_xmidthead();
 			}
-			sleep(1);
 		}
 		else
 		{
@@ -1382,7 +1384,7 @@ int deleteCloudACKNode(char* trans_id)
 		ParodusError("Invalid value for trans_id\n");
 		return 0;
 	}
-	ParodusInfo("cloud ack to be deleted with trans_id: %s\n", trans_id);
+	ParodusPrint("cloud ack to be deleted with trans_id: %s\n", trans_id);
 
 	prev_node = NULL;
 	pthread_mutex_lock (&cloudack_mut);
@@ -1416,7 +1418,7 @@ int deleteCloudACKNode(char* trans_id)
 				free( curr_node );
 			}
 			curr_node = NULL;
-			ParodusInfo("Deleted successfully and returning..\n");
+			ParodusPrint("Deleted successfully and returning..\n");
 			pthread_mutex_unlock (&cloudack_mut);
 			return 1;
 		}
