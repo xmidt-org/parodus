@@ -177,7 +177,7 @@ int xmidtQOptmize()
 		int del = 0;
 
 		wrp_msg_t * tempMsg = temp->msg;
-		ParodusInfo("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+		ParodusPrint("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
 		if(tempMsg->u.event.qos > 74)
 		{
 			if((currTime - temp->enqueueTime) > CRITICAL_QOS_EXPIRE_TIME)
@@ -465,8 +465,8 @@ void* processXmidtUpstreamMsg()
 					}
 					break;
 			}
-			//sleep of 200 ms to process each msg ack and to avoid cpu load.
-			usleep(200*1000);
+			//sleep of 1s to process each msg ack and to avoid cpu load.
+			sleep(1);
 
 			if(cv !=2 && xmidtQ !=NULL)
 			{
@@ -1554,7 +1554,7 @@ void checkMaxQandOptimize()
 	ParodusPrint("checkMaxQandOptimize . XmidtQsize is %d\n" , get_XmidtQsize());
 	if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 	{
-		ParodusInfo("Max Queue size reached, check and optimize\n");
+		ParodusPrint("Max Queue size reached, check and optimize\n");
 
 		//Traverse through XmidtMsgQ list and set low qos msgs to DELETE
 		XmidtMsg *temp = NULL;
