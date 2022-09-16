@@ -709,11 +709,6 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 			ParodusPrint("statusMsg is %s\n",errorMsg);
 			createOutParamsandSendAck(msg, asyncHandle, errorMsg, WRP_ENCODE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 			updateXmidtState(msgnode, DELETE);
-			/*ParodusPrint("wrp_free_struct\n");
-			if(notif_wrp_msg != NULL)
-			{
-				wrp_free_struct(notif_wrp_msg);
-			}*/
 			if(notif_wrp_msg !=NULL)
 			{
 				ParodusPrint("notif_wrp_msg->u.event.source free\n");
@@ -799,12 +794,6 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 			}
 		}
 
-		/*ParodusInfo("B4 notif wrp_free_struct\n");
-		if(notif_wrp_msg != NULL)
-		{
-			wrp_free_struct(notif_wrp_msg);
-		}*/
-
 		if(msg_bytes != NULL)
 		{
 			free(msg_bytes);
@@ -821,11 +810,6 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 		updateXmidtState(msgnode, DELETE);
 	}
 
-	/*if(msg->u.event.source !=NULL)
-	{
-		free(msg->u.event.source);
-		msg->u.event.source = NULL;
-	}*/
 	if(notif_wrp_msg !=NULL)
 	{
 		ParodusPrint("notif_wrp_msg->u.event.source free\n");
@@ -1171,7 +1155,7 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 
 			//xmidt send producer
 			addToXmidtUpstreamQ(wrpMsg, asyncHandle);
-			ParodusInfo("sendDataHandler returned %d\n", RBUS_ERROR_ASYNC_RESPONSE);
+			ParodusPrint("sendDataHandler returned %d\n", RBUS_ERROR_ASYNC_RESPONSE);
 			return RBUS_ERROR_ASYNC_RESPONSE;
 		}
 		else
