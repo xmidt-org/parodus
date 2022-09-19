@@ -296,6 +296,7 @@ void calc_random_expiration (int random_num1, int random_num2, backoff_timer_t *
       
 	/* Add delay to expire time */
     add_timespec (&ts_delay, ts);
+    ParodusInfo("Added delay to expire time\n");
 }
 
 void terminate_backoff_delay (void)
@@ -326,24 +327,37 @@ static int backoff_delay (backoff_timer_t *timer)
   int rtn;
 
   // periodically update the health file.
-  clock_gettime (CLOCK_REALTIME, &ts);
+  clock_gettime (CLOCK_MONOTONIC, &ts);
   if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
     start_conn_in_progress (timer->start_time);
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
   }	  
 
   calc_random_expiration (random(), random(), timer, &ts);
+  ParodusInfo("After calc_random_expiration.\n");
+
+  ParodusInfo("Timer value - start_time : %lu, backoffRetrytime sec : %ld, nsec : %ld, count : %d, max_count : %d, delay - %d\n", timer->start_time, timer->ts.tv_sec, timer->ts.tv_nsec, timer->count, timer->max_count, timer->delay);
+
+  ParodusInfo("backoffRetryTime %ld secs %ld nsecs\n", ts.tv_sec, ts.tv_nsec);
 
   pthread_mutex_lock (&backoff_delay_mut);
   // The condition variable will only be set if we shut down.
+  ParodusInfo("Before pthread_cond_timedwait...\n");
   rtn = pthread_cond_timedwait (&backoff_delay_con, &backoff_delay_mut, &ts);
+  ParodusInfo("After pthread_cond_timedwait...\n");
   pthread_mutex_unlock (&backoff_delay_mut);
+  ParodusInfo("After pthread_mutex_unlock...\n");
 
-  if (g_shutdown)
+  if (g_shutdown) {
+    ParodusInfo("Backoff shutdown\n"); 
     return BACKOFF_SHUTDOWN;
+  }  
   if ((rtn != 0) && (rtn != ETIMEDOUT)) {
     ParodusError ("pthread_cond_timedwait error (%d) in backoff_delay.\n", rtn);
     return BACKOFF_ERR;
+  }
+  if (rtn == ETIMEDOUT) {
+     ParodusInfo("pthread_cond_timedwait timeout rtn = (%d)\n", rtn);	 
   }
 
   return BACKOFF_DELAY_TAKEN;
