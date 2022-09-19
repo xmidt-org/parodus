@@ -676,7 +676,7 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 		if(msg->u.event.content_type != NULL)
 		{
 			notif_wrp_msg->u.event.content_type = msg->u.event.content_type;
-			ParodusInfo("content_type is %s\n",notif_wrp_msg->u.event.content_type);
+			ParodusPrint("content_type is %s\n",notif_wrp_msg->u.event.content_type);
 		}
 
 		if(msg->u.event.payload != NULL)
@@ -1485,6 +1485,12 @@ void checkMsgExpiry()
 		currTime= (long long)ts.tv_sec;
 		wrp_msg_t * tempMsg = temp->msg;
 		ParodusPrint("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+		if(temp->state == DELETE)
+		{
+			ParodusPrint("msg is already in DELETE state and about to delete, skipping state update. transid %s\n", tempMsg->u.event.transaction_uuid);
+			temp = temp->next;
+			continue;
+		}
 
 		if(tempMsg->u.event.qos > 74)
 		{
