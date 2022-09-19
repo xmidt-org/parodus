@@ -22,12 +22,15 @@
  */
 
 #include "heartBeat.h"
+#include "time.h"
 #include <stdbool.h>
 
 volatile unsigned int heartBeatTimer = 0;
 volatile bool paused = false;
+volatile long long pingTimeStamp = 0;
 
 pthread_mutex_t heartBeat_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t ping_mut=PTHREAD_MUTEX_INITIALIZER;
 
 // Get value of heartBeatTimer
 unsigned int get_heartBeatTimer() 
@@ -73,5 +76,22 @@ void resume_heartBeatTimer()
 	pthread_mutex_unlock (&heartBeat_mut);
 }
 
+// Set ping received timeStamp
+void set_pingTimeStamp()
+{
+	struct timespec ts;
+	getCurrentTime(&ts);
+	pthread_mutex_lock (&ping_mut);
+	pingTimeStamp = (long long)ts.tv_sec;
+	pthread_mutex_unlock (&ping_mut);
+}
 
-
+// Get ping received timeStamp
+long long get_pingTimeStamp()
+{
+	long long tmp = 0;
+	pthread_mutex_lock (&ping_mut);
+	tmp = pingTimeStamp;
+	pthread_mutex_unlock (&ping_mut);
+	return tmp;
+}

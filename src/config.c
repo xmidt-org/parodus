@@ -432,6 +432,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"webpa-backoff-max",       required_argument, 0, 'o'},
         {"webpa-interface-used",    required_argument, 0, 'i'},
         {"parodus-local-url",       required_argument, 0, 'l'},
+#ifdef ENABLE_WEBCFGBIN
+	{"max-queue-size",          required_argument, 0, 'q'},
+#endif	
         {"partner-id",              required_argument, 0, 'p'},
 #ifdef ENABLE_SESHAT
         {"seshat-url",              required_argument, 0, 'e'},
@@ -479,7 +482,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
       /* getopt_long stores the option index here. */
       int option_index = 0;
       c = getopt_long (argc, argv, 
-			"m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C:S:R:K:M",
+			"m:s:f:d:r:n:b:u:t:o:i:l:q:p:e:D:j:a:k:c:T:w:J:46:C:S:R:K:M",
 			long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -565,6 +568,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->local_url, optarg,sizeof(cfg->local_url));
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
+
+#ifdef ENABLE_WEBCFGBIN
+	case 'q':
+	  cfg->max_queue_size = parse_num_arg (optarg, "max-queue-size");
+          if (cfg->max_queue_size == (unsigned int) -1)
+                        return -1;
+          ParodusInfo("max_queue_size is %d\n",cfg->max_queue_size);
+          break;
+#endif  
+
         case 'D':
           // like 'fabric' or 'test'
           // this parameter is used, along with the hw_mac parameter
@@ -869,7 +882,9 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
-
+    #ifdef ENABLE_WEBCFGBIN
+        cfg->max_queue_size =  config->max_queue_size;
+    #endif
     cfg->boot_time = config->boot_time;
     cfg->webpa_ping_timeout = config->webpa_ping_timeout;
     cfg->webpa_backoff_max = config->webpa_backoff_max;

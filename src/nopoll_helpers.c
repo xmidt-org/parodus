@@ -50,7 +50,7 @@ void setMessageHandlers()
     nopoll_conn_set_on_close(get_global_conn(), (noPollOnCloseHandler)listenerOnCloseMessage, NULL);
 }
 
-static int cloud_status_is_online (void)
+int cloud_status_is_online (void)
 {
 	const char *status = get_cloud_status();
 	if (NULL == status)
