@@ -1586,9 +1586,9 @@ void checkMaxQandOptimize()
 				ParodusInfo("Max Queue size reached. Low qos %d, set to DELETE state\n", qos);
 				//rbus callback to caller
 				char *errorMsg = NULL;
-				mapXmidtStatusToStatusMessage(QUEUE_SIZE_EXCEEDED, &errorMsg);
+				mapXmidtStatusToStatusMessage(QUEUE_OPTIMIZED, &errorMsg);
 				ParodusPrint("statusMsg is %s\n",errorMsg);
-				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_SIZE_EXCEEDED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_OPTIMIZED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				updateXmidtState(temp, DELETE);
 			}
 			temp = temp->next;
@@ -1639,7 +1639,7 @@ void mapXmidtStatusToStatusMessage(int status, char **message)
 	}
 	else if (status == CLIENT_DISCONNECT)
 	{
-		result = strdup("send failed due to client disconnect");
+		result = strdup("Send failed due to client disconnect");
 	}
 	else if (status == QUEUE_SIZE_EXCEEDED)
 	{
@@ -1655,11 +1655,15 @@ void mapXmidtStatusToStatusMessage(int status, char **message)
 	}
 	else if (status == QOS_SEMANTICS_DISABLED)
 	{
-		result = strdup("send to server, qos semantics are disabled");
+		result = strdup("Send to server, qos semantics are disabled");
 	}
 	else if (status == MSG_EXPIRED)
 	{
-		result = strdup("msg expired");
+		result = strdup("Message expired");
+	}
+	else if (status == QUEUE_OPTIMIZED)
+	{
+		result = strdup("Message deleted after queue optimized");
 	}
 	else
 	{
