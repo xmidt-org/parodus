@@ -166,6 +166,7 @@ int xmidtQOptmize()
 	struct timespec ts;
 	int rv = 0, status = 0;
 	XmidtMsg *next_node = NULL;
+	char *errorMsg = NULL;
 
 	XmidtMsg *temp = NULL;
 	temp = get_global_xmidthead();
@@ -214,7 +215,7 @@ int xmidtQOptmize()
 				if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 				{
 					ParodusInfo("Max queue size reached, delete low qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
-					del = 1;
+					del = 2;
 				}
 			}
 		}
@@ -227,6 +228,19 @@ int xmidtQOptmize()
 		{
 			ParodusPrint("msg expired, updateXmidtState to DELETE\n");
 			updateXmidtState(temp, DELETE);
+			//rbus callback to caller
+			if(del == 1)
+			{
+				mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+			}
+			else if(del == 2)
+			{
+				mapXmidtStatusToStatusMessage(QUEUE_OPTIMIZED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_OPTIMIZED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+			}
 			status = deleteFromXmidtQ(&next_node);
 			temp = next_node;
 			if(status)
@@ -1475,6 +1489,7 @@ void checkMsgExpiry()
 {
 	long long currTime = 0;
 	struct timespec ts;
+	char *errorMsg = NULL;
 
 	XmidtMsg *temp = NULL;
 	temp = get_global_xmidthead();
@@ -1498,6 +1513,10 @@ void checkMsgExpiry()
 			if((currTime - temp->enqueueTime) > CRITICAL_QOS_EXPIRE_TIME)
 			{
 				ParodusInfo("Critical qos 30 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				//rbus callback to caller
+				mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				updateXmidtState(temp, DELETE);
 			}
 		}
@@ -1507,6 +1526,10 @@ void checkMsgExpiry()
 			if((currTime - temp->enqueueTime) > HIGH_QOS_EXPIRE_TIME)
 			{
 				ParodusInfo("High qos 25 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				//rbus callback to caller
+				mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				updateXmidtState(temp, DELETE);
 			}
 		}
@@ -1516,6 +1539,10 @@ void checkMsgExpiry()
 			if((currTime - temp->enqueueTime) > MEDIUM_QOS_EXPIRE_TIME)
 			{
 				ParodusInfo("Medium qos 20 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				//rbus callback to caller
+				mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				updateXmidtState(temp, DELETE);
 			}
 		}
@@ -1525,6 +1552,10 @@ void checkMsgExpiry()
 			if((currTime - temp->enqueueTime) > LOW_QOS_EXPIRE_TIME)
 			{
 				ParodusInfo("Low qos 15 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				//rbus callback to caller
+				mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				updateXmidtState(temp, DELETE);
 			}
 		}
@@ -1562,6 +1593,11 @@ void checkMaxQandOptimize()
 			else
 			{
 				ParodusInfo("Max Queue size reached. Low qos %d, set to DELETE state\n", qos);
+				//rbus callback to caller
+				char *errorMsg = NULL;
+				mapXmidtStatusToStatusMessage(QUEUE_OPTIMIZED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_OPTIMIZED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 				updateXmidtState(temp, DELETE);
 			}
 			temp = temp->next;
@@ -1612,7 +1648,7 @@ void mapXmidtStatusToStatusMessage(int status, char **message)
 	}
 	else if (status == CLIENT_DISCONNECT)
 	{
-		result = strdup("send failed due to client disconnect");
+		result = strdup("Send failed due to client disconnect");
 	}
 	else if (status == QUEUE_SIZE_EXCEEDED)
 	{
@@ -1628,12 +1664,20 @@ void mapXmidtStatusToStatusMessage(int status, char **message)
 	}
 	else if (status == QOS_SEMANTICS_DISABLED)
 	{
-		result = strdup("send to server, qos semantics are disabled");
+		result = strdup("Send to server, qos semantics are disabled");
+	}
+	else if (status == MSG_EXPIRED)
+	{
+		result = strdup("Message expired");
+	}
+	else if (status == QUEUE_OPTIMIZED)
+	{
+		result = strdup("Message deleted after queue optimized");
 	}
 	else
 	{
 		result = strdup("Unknown Error");
 	}
-	ParodusPrint("Xmidt status msg %s\n", result);
+	ParodusInfo("Xmidt status message: %s\n", result);
 	*message = result;
 }
