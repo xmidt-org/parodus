@@ -326,6 +326,12 @@ static int backoff_delay (backoff_timer_t *timer)
   struct timespec ts;
   int rtn;
 
+  pthread_condattr_t backoff_delay_cond_attr;
+
+  pthread_condattr_init (&backoff_delay_cond_attr);
+  pthread_condattr_setclock (&backoff_delay_cond_attr, CLOCK_MONOTONIC);
+  pthread_cond_init (&backoff_delay_con, &backoff_delay_cond_attr);
+
   // periodically update the health file.
   clock_gettime (CLOCK_MONOTONIC, &ts);
   if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
@@ -347,6 +353,8 @@ static int backoff_delay (backoff_timer_t *timer)
   ParodusInfo("After pthread_cond_timedwait...\n");
   pthread_mutex_unlock (&backoff_delay_mut);
   ParodusInfo("After pthread_mutex_unlock...\n");
+
+  pthread_condattr_destroy(&backoff_delay_cond_attr);
 
   if (g_shutdown) {
     ParodusInfo("Backoff shutdown\n"); 
