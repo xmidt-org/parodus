@@ -192,6 +192,20 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
     return 1;
 }
 
+void addToCloudAckQ(char *transaction_id, int qos, int rdr)
+{
+	(void)transaction_id;
+	(void)qos;
+	(void)rdr;
+	return;
+}
+
+bool highQosValueCheck(int qos)
+{
+	(void)qos;
+	return false;
+}
+
 ssize_t wrp_to_struct( const void *bytes, const size_t length, const enum wrp_format fmt,
                        wrp_msg_t **msg )
 {

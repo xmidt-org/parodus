@@ -17,6 +17,7 @@
 
 #include "time.h"
 #include "parodus_log.h"
+#include <errno.h>
 
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
@@ -24,7 +25,10 @@
 
 void getCurrentTime(struct timespec *timer)
 {
-	clock_gettime(CLOCK_REALTIME, timer);
+	if( clock_gettime(CLOCK_REALTIME, timer) == -1 )
+	{
+		ParodusError("clock gettime returns errno %d\n", errno );
+	}
 }
 
 uint64_t getCurrentTimeInMicroSeconds(struct timespec *timer)

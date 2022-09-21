@@ -173,7 +173,7 @@ ExternalProject_Add(wrp-c
 	DEPENDS trower-base64 msgpack cimplog
     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/wrp-c
     GIT_REPOSITORY https://github.com/xmidt-org/wrp-c.git
-    GIT_TAG "71f8a39fe39f98da007ed4cdabbb192be1da1685"
+    GIT_TAG "b5ef4d10cb39905908788bc89ab3e4dab201db8a"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}
                   -DMSGPACK_ENABLE_CXX=OFF
                   -DMSGPACK_BUILD_EXAMPLES=OFF

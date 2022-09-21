@@ -71,7 +71,10 @@ void nopoll_log_set_handler	(noPollCtx *ctx, noPollLogHandler handler, noPollPtr
     UNUSED(ctx); UNUSED(handler); UNUSED(user_data);
     function_called(); 
 }
-
+int cloud_status_is_online (void)
+{
+	return 0;
+}
 void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
 {
     UNUSED(ctx); UNUSED(level); UNUSED(log_msg); UNUSED(user_data);
@@ -144,6 +147,10 @@ void packMetaData()
     function_called();
 }
 
+int get_parodus_init()
+{
+   return 0;
+}
 
 int get_cloud_disconnect_time(void)
 {

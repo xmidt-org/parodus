@@ -45,6 +45,10 @@ void pause_heartBeatTimer();
 // Resume heartBeatTimer, i.e. resume incrementing
 void resume_heartBeatTimer();
 
+void set_pingTimeStamp();
+
+long long get_pingTimeStamp();
+
 #ifdef __cplusplus
 }
 #endif

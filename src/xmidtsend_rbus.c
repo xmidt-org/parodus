@@ -22,21 +22,27 @@
  */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <rbus.h>
 #include "upstream.h"
 #include "ParodusInternal.h"
 #include "partners_check.h"
 #include "xmidtsend_rbus.h"
 #include "config.h"
+#include "time.h"
+#include "heartBeat.h"
 
 static pthread_t processThreadId = 0;
-static int XmidtQsize = 0;
-
+static unsigned int XmidtQsize = 0;
 XmidtMsg *XmidtMsgQ = NULL;
+
+CloudAck *g_cloudackHead = NULL;
 
 pthread_mutex_t xmidt_mut=PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t xmidt_con=PTHREAD_COND_INITIALIZER;
+
+pthread_mutex_t cloudack_mut=PTHREAD_MUTEX_INITIALIZER;
 
 const char * contentTypeList[]={
 "application/json",
@@ -53,7 +59,7 @@ bool highQosValueCheck(int qos)
 {
 	if(qos > 24)
 	{
-		ParodusInfo("The qos value is high\n");
+		ParodusPrint("The qos value is high\n");
 		return true;
 	}
 	else
@@ -63,18 +69,201 @@ bool highQosValueCheck(int qos)
 
 	return false;
 }
+
+XmidtMsg * get_global_xmidthead(void)
+{
+    XmidtMsg *tmp = NULL;
+    pthread_mutex_lock (&xmidt_mut);
+    tmp = XmidtMsgQ;
+    pthread_mutex_unlock (&xmidt_mut);
+    return tmp;
+}
+
+void set_global_xmidthead(XmidtMsg *new)
+{
+	pthread_mutex_lock (&xmidt_mut);
+	XmidtMsgQ = new;
+	pthread_mutex_unlock (&xmidt_mut);
+}
+
+CloudAck * get_global_cloud_node(void)
+{
+    CloudAck * tmp = NULL;
+    pthread_mutex_lock (&cloudack_mut);
+    tmp = g_cloudackHead;
+    pthread_mutex_unlock (&cloudack_mut);
+    return tmp;
+}
+
+unsigned int get_XmidtQsize()
+{
+	unsigned int tmp = 0;
+	pthread_mutex_lock (&xmidt_mut);
+	tmp = XmidtQsize;
+	pthread_mutex_unlock (&xmidt_mut);
+	return tmp;
+}
+
+void increment_XmidtQsize()
+{
+	pthread_mutex_lock (&xmidt_mut);
+	XmidtQsize++;
+	ParodusInfo("XmidtQsize incremented to %d\n", XmidtQsize);
+	pthread_mutex_unlock (&xmidt_mut);
+}
+
+void decrement_XmidtQsize()
+{
+	pthread_mutex_lock (&xmidt_mut);
+	XmidtQsize--;
+	pthread_mutex_unlock (&xmidt_mut);
+}
+
+int checkCloudConn()
+{
+	int ret = 1;
+	if (!cloud_status_is_online ())
+	{
+		ParodusInfo("cloud status is not online, wait till connection up\n");
+
+		int  rv;
+		struct timespec ts;
+
+		while (1)
+		{
+			pthread_mutex_lock(get_global_cloud_status_mut());
+			getCurrentTime(&ts);
+			ts.tv_sec += EXPIRY_CHECK_TIME;
+			ParodusPrint("checkCloudConn timeout at %lld\n", (long long) ts.tv_sec);
+			rv = pthread_cond_timedwait(get_global_cloud_status_cond(), get_global_cloud_status_mut(), &ts);
+			if (rv == ETIMEDOUT)
+			{
+				ParodusInfo("Timedout. Cloud connection is down for %d minutes, check msg expiry\n", (EXPIRY_CHECK_TIME/60));
+				pthread_mutex_unlock(get_global_cloud_status_mut());
+				int opt = xmidtQOptmize();
+				if(opt)
+				{
+					ret = 2;
+					ParodusInfo("xmidtQ is optimized during connection down %d, ret %d\n", opt, ret);
+				}
+			}
+			else
+			{
+				ParodusInfo("Received cloud status signal, proceed to event processing\n");
+				pthread_mutex_unlock(get_global_cloud_status_mut());
+				break;
+			}
+		}
+	}
+	ParodusPrint("checkCloudConn ret %d\n", ret);
+	return ret;
+}
+
+//Delete all expired msgs from queue and low qos when max queue.
+int xmidtQOptmize()
+{
+	long long currTime = 0;
+	struct timespec ts;
+	int rv = 0, status = 0;
+	XmidtMsg *next_node = NULL;
+
+	XmidtMsg *temp = NULL;
+	temp = get_global_xmidthead();
+
+	while(temp != NULL)
+	{
+		getCurrentTime(&ts);
+		currTime= (long long)ts.tv_sec;
+		int del = 0;
+
+		wrp_msg_t * tempMsg = temp->msg;
+		ParodusPrint("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+		if(tempMsg->u.event.qos > 74)
+		{
+			if((currTime - temp->enqueueTime) > CRITICAL_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Critical qos 30 mins expired, delete qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				del = 1;
+			}
+		}
+		else if (tempMsg->u.event.qos > 49)
+		{
+			if((currTime - temp->enqueueTime) > HIGH_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("High qos 25 mins expired, delete qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				del = 1;
+			}
+		}
+		else if (tempMsg->u.event.qos > 24)
+		{
+			if((currTime - temp->enqueueTime) > MEDIUM_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Medium qos 20 mins expired, delete qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				del = 1;
+			}
+		}
+		else if (tempMsg->u.event.qos >= 0)
+		{
+			if((currTime - temp->enqueueTime) > LOW_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Low qos 15 mins expired, delete qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				del = 1;
+			}
+			else
+			{
+				if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
+				{
+					ParodusInfo("Max queue size reached, delete low qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+					del = 1;
+				}
+			}
+		}
+		else
+		{
+			ParodusError("Invalid qos\n");
+		}
+
+		if(del)
+		{
+			ParodusPrint("msg expired, updateXmidtState to DELETE\n");
+			updateXmidtState(temp, DELETE);
+			status = deleteFromXmidtQ(&next_node);
+			temp = next_node;
+			if(status)
+			{
+				ParodusPrint("deleteFromXmidtQ success\n");
+				rv = 1;
+			}
+			else
+			{
+				ParodusError("deleteFromXmidtQ failed\n");
+			}
+			continue;
+		}
+		if(temp)
+		{
+			temp = temp->next;
+		}
+	}
+	ParodusPrint("xmidtQOptmize returns rv %d\n", rv);
+	return rv;
+}
+
 /*
  * @brief To handle xmidt rbus messages received from various components.
  */
 void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	XmidtMsg *message;
+	struct timespec times;
+	char * errorMsg = NULL;
 
-	ParodusPrint("XmidtQsize is %d\n" , XmidtQsize);
-	if(XmidtQsize == MAX_QUEUE_SIZE)
+	ParodusPrint("XmidtQsize is %d\n" , get_XmidtQsize());
+	if( get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 	{
-		char * errorMsg = strdup("Max Queue Size Exceeded");
-		ParodusError("Queue Size Exceeded\n");
+		ParodusInfo("queue size %d exceeded at producer, ignoring the event\n", get_XmidtQsize());
+		mapXmidtStatusToStatusMessage(QUEUE_SIZE_EXCEEDED, &errorMsg);
+		ParodusPrint("statusMsg is %s\n",errorMsg);
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg , QUEUE_SIZE_EXCEEDED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		wrp_free_struct(msg);
 		return;
@@ -87,8 +276,13 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	{
 		message->msg = msg;
 		message->asyncHandle =asyncHandle;
+		message->state = PENDING;
+		getCurrentTime(&times);
+		message->enqueueTime = (long long)times.tv_sec;
+		ParodusPrint("message->enqueueTime is %lld\n", message->enqueueTime);
+		message->sentTime = 0;
 		//Increment queue size to handle max queue limit
-		XmidtQsize++;
+		increment_XmidtQsize();
 		message->next=NULL;
 		pthread_mutex_lock (&xmidt_mut);
 		//Producer adds the rbus msg into queue
@@ -114,8 +308,8 @@ void addToXmidtUpstreamQ(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	}
 	else
 	{
-		char * errorMsg = strdup("Unable to enqueue");
-		ParodusError("failure in allocation for xmidt message\n");
+		mapXmidtStatusToStatusMessage(ENQUEUE_FAILURE, &errorMsg);
+		ParodusPrint("statusMsg is %s\n",errorMsg);
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg , ENQUEUE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
 		wrp_free_struct(msg);
 	}
@@ -142,36 +336,150 @@ void processXmidtData()
 void* processXmidtUpstreamMsg()
 {
 	int rv = 0;
+	long long currTime = 0;
+	int ret = 0, status = 0;
+	struct timespec tms;
+	XmidtMsg *xmidtQ = NULL;
+	XmidtMsg *next_node = NULL;
+	int cv = 0;
+
+	if(get_parodus_init())
+	{
+		ParodusInfo("Initial cloud connection is not established, Xmidt wait till connection up\n");
+		pthread_mutex_lock(get_global_cloud_status_mut());
+		pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
+		pthread_mutex_unlock(get_global_cloud_status_mut());
+		ParodusInfo("Received cloud status signal proceed to event processing\n");
+	}
+
+	xmidtQ = get_global_xmidthead();
+
 	while(FOREVER())
 	{
-		if(get_parodus_init())
-		{
-			ParodusInfo("Initial cloud connection is not established, Xmidt wait till connection up\n");
-			pthread_mutex_lock(get_global_cloud_status_mut());
-			pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
-			pthread_mutex_unlock(get_global_cloud_status_mut());
-			ParodusInfo("Received cloud status signal proceed to event processing\n");
-		}
 		pthread_mutex_lock (&xmidt_mut);
 		ParodusPrint("mutex lock in xmidt consumer thread\n");
-		if(XmidtMsgQ != NULL)
+		if (xmidtQ != NULL)
 		{
-			XmidtMsg *Data = XmidtMsgQ;
-			
+			XmidtMsg *Data = xmidtQ;
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusPrint("mutex unlock in xmidt consumer thread\n");
-			rv = processData(Data->msg, Data->asyncHandle);
-			if(!rv)
+
+			checkMsgExpiry();
+			checkMaxQandOptimize();
+			cv = 0;
+
+			ParodusPrint("check state\n");
+			switch(Data->state)
 			{
-				ParodusPrint("Data->msg wrp free\n");
-				wrp_free_struct(Data->msg);
+				case PENDING:
+					ParodusPrint("state : PENDING\n");
+					//send msg to server only when cloud connection is online.
+					cv = checkCloudConn();
+					if (cv == 2)
+					{
+						ParodusInfo("queue is optimized, reset to head node\n");
+					}
+					else
+					{
+						ParodusPrint("cloud status is online, processData\n");
+						rv = processData(Data, Data->msg, Data->asyncHandle);
+						if(!rv)
+						{
+							ParodusPrint("processData failed\n");
+						}
+						else
+						{
+							if(rv == 2)
+							{
+								ParodusInfo("queue is optimized, reset to head\n");
+							}
+							else
+							{
+								ParodusPrint("processData success\n");
+							}
+						}
+					}
+					break;
+
+				case SENT:
+					ParodusPrint("state : SENT\n");
+					ParodusPrint("Check cloud ack for matching transaction id\n");
+					ret = checkCloudACK(Data, Data->asyncHandle);
+					if (ret)
+					{
+						ParodusPrint("cloud ack processed successfully\n");
+					}
+					else
+					{
+						getCurrentTime(&tms);
+						currTime = (long long)tms.tv_sec;
+						long long timeout_secs = (Data->sentTime) + CLOUD_ACK_TIMEOUT_SEC;
+						ParodusPrint("currTime %lld sentTime %lld CLOUD_ACK_TIMEOUT_SEC %d, timeout_secs %lld trans_id %s\n", currTime, Data->sentTime, CLOUD_ACK_TIMEOUT_SEC, timeout_secs, Data->msg->u.event.transaction_uuid);
+						if (currTime > timeout_secs) //ack timeout case
+						{
+							ParodusPrint("transaction id %s match not found, cloud ack timed out. Need to retry\n", Data->msg->u.event.transaction_uuid);
+							cv = checkCloudConn();
+							if (cv == 2)
+							{
+								ParodusInfo("queue is optimized, reset to head node and retry\n");
+								break;
+							}
+							else
+							{
+								ParodusPrint("cloud status is online, check ping time\n");
+								if(get_pingTimeStamp() > (Data->sentTime + CLOUD_ACK_TIMEOUT_SEC))
+								{
+									ParodusPrint("Ping received at timestamp %lld, proceed to retry\n", get_pingTimeStamp());
+									rv = processData(Data, Data->msg, Data->asyncHandle);
+									if(!rv)
+									{
+										ParodusPrint("processData retry failed\n");
+									}
+									else
+									{
+										if(rv == 2)
+										{
+											ParodusInfo("queue is optimized, reset to head\n");
+										}
+										else
+										{
+											ParodusPrint("processData success\n");
+										}
+									}
+								}
+							}
+						}
+					}
+					break;
+				case DELETE:
+					ParodusPrint("state : DELETE\n");
+					status = deleteFromXmidtQ(&next_node);
+					if(status)
+					{
+						ParodusPrint("deleteFromXmidtQ success\n");
+						xmidtQ = next_node;
+					}
+					else
+					{
+						ParodusError("deleteFromXmidtQ failed\n");
+					}
+					break;
 			}
-			else
+			//sleep of 1s to process each msg ack and to avoid cpu load.
+			sleep(1);
+
+			if(cv !=2 && xmidtQ !=NULL)
 			{
-				free(Data->msg);
+				ParodusPrint("Move to next node\n");
+				xmidtQ = xmidtQ->next;
 			}
-			free(Data);
-			Data = NULL;
+
+			// circling back to 1st node
+			if((cv ==2) || (xmidtQ == NULL && get_global_xmidthead() != NULL))
+			{
+				ParodusPrint("circling back to 1st node, cv %d\n", cv);
+				xmidtQ = get_global_xmidthead();
+			}
 		}
 		else
 		{
@@ -184,13 +492,14 @@ void* processXmidtUpstreamMsg()
 			pthread_cond_wait(&xmidt_con, &xmidt_mut);
 			pthread_mutex_unlock (&xmidt_mut);
 			ParodusPrint("mutex unlock in xmidt thread after cond wait\n");
+			xmidtQ = get_global_xmidthead();
 		}
 	}
 	return NULL;
 }
 
 //To validate and send events upstream
-int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
+int processData(XmidtMsg *Datanode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	int rv = 0;
 	char *errorMsg = "none";
@@ -200,9 +509,10 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	if (xmidtMsg == NULL)
 	{
 		ParodusError("xmidtMsg is NULL\n");
-		errorMsg = strdup("Unable to enqueue");
+		mapXmidtStatusToStatusMessage(ENQUEUE_FAILURE, &errorMsg);
+		ParodusPrint("statusMsg is %s\n",errorMsg);
 		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg, ENQUEUE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
-		xmidtQDequeue();
+		updateXmidtState(Datanode, DELETE);
 		return rv;
 	}
 
@@ -211,32 +521,16 @@ int processData(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 	if(rv)
 	{
 		ParodusPrint("validation successful, send event to server\n");
-		sendXmidtEventToServer(xmidtMsg, asyncHandle);
+		rv = sendXmidtEventToServer(Datanode, xmidtMsg, asyncHandle);
 		return rv;
 	}
 	else
 	{
 		ParodusError("validation failed, send failure ack\n");
 		createOutParamsandSendAck(xmidtMsg, asyncHandle, errorMsg , statuscode, RBUS_ERROR_INVALID_INPUT);
-		xmidtQDequeue();
+		updateXmidtState(Datanode, DELETE);
 	}
 	return rv;
-}
-
-//To remove an event from Queue
-void xmidtQDequeue()
-{
-	pthread_mutex_lock (&xmidt_mut);
-	if(XmidtMsgQ != NULL)
-	{
-		XmidtMsgQ = XmidtMsgQ->next;
-		XmidtQsize -= 1;
-	}
-	else
-	{
-		ParodusError("XmidtMsgQ is NULL\n");
-	}
-	pthread_mutex_unlock (&xmidt_mut);
 }
 
 int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
@@ -321,7 +615,7 @@ int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode)
 	return 1;
 }
 
-void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
+int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle)
 {
 	wrp_msg_t *notif_wrp_msg = NULL;
 	ssize_t msg_len;
@@ -333,7 +627,9 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 	int sendRetStatus = 1;
 	char *errorMsg = NULL;
 	int qos = 0;
+	int rv = 0;
 
+        ParodusPrint("MAX_QUEUE_SIZE: %d\n", get_parodus_cfg()->max_queue_size);
 	notif_wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
 	if(notif_wrp_msg != NULL)
 	{
@@ -352,7 +648,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 				snprintf(sourceStr, sizeof(sourceStr), "%s/%s", device_id, msg->u.event.source);
 				ParodusPrint("sourceStr formed is %s\n" , sourceStr);
 				notif_wrp_msg->u.event.source = strdup(sourceStr);
-				ParodusInfo("source:%s\n", notif_wrp_msg->u.event.source);
+				ParodusPrint("source:%s\n", notif_wrp_msg->u.event.source);
 			}
 			else
 			{
@@ -368,7 +664,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		if(msg->u.event.dest != NULL)
 		{
 			notif_wrp_msg->u.event.dest = msg->u.event.dest;
-			ParodusInfo("destination: %s\n", notif_wrp_msg->u.event.dest);
+			ParodusPrint("destination: %s\n", notif_wrp_msg->u.event.dest);
 		}
 
 		if(msg->u.event.transaction_uuid != NULL)
@@ -380,7 +676,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		if(msg->u.event.content_type != NULL)
 		{
 			notif_wrp_msg->u.event.content_type = msg->u.event.content_type;
-			ParodusInfo("content_type is %s\n",notif_wrp_msg->u.event.content_type);
+			ParodusPrint("content_type is %s\n",notif_wrp_msg->u.event.content_type);
 		}
 
 		if(msg->u.event.payload != NULL)
@@ -395,7 +691,7 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		{
 			notif_wrp_msg->u.event.qos = msg->u.event.qos;
 			qos = notif_wrp_msg->u.event.qos;
-			ParodusInfo("Notification qos: %d\n",notif_wrp_msg->u.event.qos);
+			ParodusPrint("Notification qos: %d\n",notif_wrp_msg->u.event.qos);
 		}
 		msg_len = wrp_struct_to (notif_wrp_msg, WRP_BYTES, &msg_bytes);
 
@@ -403,28 +699,35 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 		if(msg_len > 0)
 		{
 			ParodusPrint("sendUpstreamMsgToServer\n");
-			printSendMsgData("send to server", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
+			printSendMsgData("sending to server", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
 		}
 		else
 		{
 			ParodusError("wrp msg_len is zero\n");
-			errorMsg = strdup("Wrp message encoding failed");
+			mapXmidtStatusToStatusMessage(WRP_ENCODE_FAILURE, &errorMsg);
+			ParodusPrint("statusMsg is %s\n",errorMsg);
 			createOutParamsandSendAck(msg, asyncHandle, errorMsg, WRP_ENCODE_FAILURE, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
-			xmidtQDequeue();
-
-			ParodusPrint("wrp_free_struct\n");
-			if(notif_wrp_msg != NULL)
+			updateXmidtState(msgnode, DELETE);
+			if(notif_wrp_msg !=NULL)
 			{
-				wrp_free_struct(notif_wrp_msg);
+				ParodusPrint("notif_wrp_msg->u.event.source free\n");
+				if(notif_wrp_msg->u.event.source !=NULL)
+				{
+					free(notif_wrp_msg->u.event.source);
+					notif_wrp_msg->u.event.source = NULL;
+				}
+				ParodusPrint("notif_wrp_msg free\n");
+				free(notif_wrp_msg);
+				notif_wrp_msg = NULL;
 			}
-
 			if(msg_bytes != NULL)
 			{
+				ParodusPrint("msg_bytes free\n");
 				free(msg_bytes);
 				msg_bytes = NULL;
 			}
-			return;
+			return rv;
 		}
 
 		while(sendRetStatus)     //If SendMessage is failed condition
@@ -434,20 +737,23 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			{
 				ParodusPrint("The event is having high qos retry again\n");
 				ParodusInfo("Wait till connection is Up\n");
-  
-       			        pthread_mutex_lock(get_global_cloud_status_mut());
-				pthread_cond_wait(get_global_cloud_status_cond(), get_global_cloud_status_mut());
-				pthread_mutex_unlock(get_global_cloud_status_mut());
+				rv = checkCloudConn();
+				if(rv == 2)
+				{
+					printSendMsgData("queue optimized during send. retry", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
+					break;
+				}
 				ParodusInfo("Received cloud status signal proceed to retry\n");
                                 printSendMsgData("send to server after cloud reconnect", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 			}
 			else
 			{
-				errorMsg = strdup("send failed due to client disconnect");
-				ParodusInfo("The event is having low qos proceed to dequeue\n");
+				mapXmidtStatusToStatusMessage(CLIENT_DISCONNECT, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				ParodusInfo("The event is having low qos proceed to delete\n");
 				printSendMsgData(errorMsg, notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 				createOutParamsandSendAck(msg, asyncHandle, errorMsg, CLIENT_DISCONNECT, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
-				xmidtQDequeue();
+				updateXmidtState(msgnode, DELETE);
 				break;
 		        }
 			sendRetStatus = sendUpstreamMsgToServer(&msg_bytes, msg_len);
@@ -455,15 +761,37 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
                 
 		if(sendRetStatus == 0)
 		{
-			errorMsg = strdup("send to server success");
-			createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS, RBUS_ERROR_SUCCESS);
-			xmidtQDequeue();
-		}
-
-		ParodusPrint("B4 notif wrp_free_struct\n");
-		if(notif_wrp_msg != NULL)
-		{
-			wrp_free_struct(notif_wrp_msg);
+			if(highQosValueCheck(qos))
+			{
+				ParodusPrint("High qos event send success\n");
+				//when max_queue_size is 0, cloud acks will not be processed|qos is disabled.
+				if(get_parodus_cfg()->max_queue_size == 0 )
+				{
+					ParodusInfo("max queue size is 0, qos semantics are disabled. send callback\n");
+					mapXmidtStatusToStatusMessage(QOS_SEMANTICS_DISABLED, &errorMsg);
+					createOutParamsandSendAck(msg, asyncHandle, errorMsg, QOS_SEMANTICS_DISABLED, RBUS_ERROR_SUCCESS);
+					ParodusPrint("update state to DELETE\n");
+					updateXmidtState(msgnode, DELETE);
+					print_xmidMsg_list();
+				}
+				else
+				{
+					ParodusPrint("update state to SENT\n");
+					//Update msg status from PENDING to SENT
+					updateXmidtState(msgnode, SENT);
+				}
+				print_xmidMsg_list();
+			}
+			else
+			{
+				ParodusInfo("Low qos event, send success callback and delete\n");
+				mapXmidtStatusToStatusMessage(DELIVERED_SUCCESS, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(msg, asyncHandle, errorMsg, DELIVERED_SUCCESS, RBUS_ERROR_SUCCESS);
+				//print_xmidMsg_list();
+				updateXmidtState(msgnode, DELETE);
+				print_xmidMsg_list();
+			}
 		}
 
 		if(msg_bytes != NULL)
@@ -471,21 +799,31 @@ void sendXmidtEventToServer(wrp_msg_t * msg, rbusMethodAsyncHandle_t asyncHandle
 			free(msg_bytes);
 			msg_bytes = NULL;
 		}
-
+		ParodusPrint("sendXmidtEventToServer done\n");
 	}
 	else
 	{
-		errorMsg = strdup("Memory allocation failed");
+		mapXmidtStatusToStatusMessage(MSG_PROCESSING_FAILED, &errorMsg);
+		ParodusPrint("statusMsg is %s\n",errorMsg);
 		ParodusError("Memory allocation failed\n");
 		createOutParamsandSendAck(msg, asyncHandle, errorMsg, MSG_PROCESSING_FAILED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
-		xmidtQDequeue();
+		updateXmidtState(msgnode, DELETE);
 	}
 
-	if(msg->u.event.source !=NULL)
+	if(notif_wrp_msg !=NULL)
 	{
-		free(msg->u.event.source);
-		msg->u.event.source = NULL;
+		ParodusPrint("notif_wrp_msg->u.event.source free\n");
+		if(notif_wrp_msg->u.event.source !=NULL)
+		{
+			free(notif_wrp_msg->u.event.source);
+			notif_wrp_msg->u.event.source = NULL;
+		}
+		ParodusPrint("notif_wrp_msg free\n");
+		free(notif_wrp_msg);
+		notif_wrp_msg = NULL;
 	}
+	ParodusPrint("sendXmidtEventToServer done\n");
+	return rv;
 }
 
 void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, rbusError_t error)
@@ -501,7 +839,7 @@ void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHand
 	rbusObject_SetValue(outParams, "msg_type", value);
 	rbusValue_Release(value);
 
-	ParodusPrint("statuscode %d errorMsg %s\n", statuscode, errorMsg);
+	ParodusPrint("statuscode %d statusMsg %s\n", statuscode, errorMsg);
 	rbusValue_Init(&value);
 	rbusValue_SetInt32(value, statuscode);
 	rbusObject_SetValue(outParams, "status", value);
@@ -817,7 +1155,7 @@ static rbusError_t sendDataHandler(rbusHandle_t handle, char const* methodName, 
 
 			//xmidt send producer
 			addToXmidtUpstreamQ(wrpMsg, asyncHandle);
-			ParodusInfo("sendDataHandler returned %d\n", RBUS_ERROR_ASYNC_RESPONSE);
+			ParodusPrint("sendDataHandler returned %d\n", RBUS_ERROR_ASYNC_RESPONSE);
 			return RBUS_ERROR_ASYNC_RESPONSE;
 		}
 		else
@@ -878,4 +1216,424 @@ void printRBUSParams(rbusObject_t params, char* file_path)
       {
            ParodusError("Params is NULL\n");
       }
+}
+
+/*
+ * @brief To store downstream cloud ack messages in a list for further processing.
+ */
+void addToCloudAckQ(char *trans_id, int qos, int rdr)
+{
+	CloudAck *ackmsg;
+
+	ParodusPrint ("Add downstream message to CloudAck list\n");
+	ackmsg = (CloudAck *)malloc(sizeof(CloudAck));
+
+	if(ackmsg)
+	{
+		ackmsg->transaction_id = strdup(trans_id);
+		ackmsg->qos = qos;
+		ackmsg->rdr =rdr;
+		ParodusPrint("ackmsg->transaction_id %s ackmsg->qos %d ackmsg->rdr %d\n", ackmsg->transaction_id,ackmsg->qos,ackmsg->rdr);
+		ackmsg->next=NULL;
+		pthread_mutex_lock (&cloudack_mut);
+		if(g_cloudackHead == NULL)
+		{
+			g_cloudackHead = ackmsg;
+
+			ParodusPrint("Producer added cloud ack msg to Q\n");
+			pthread_mutex_unlock (&cloudack_mut);
+			ParodusPrint("mutex unlock in cloud ack producer\n");
+		}
+		else
+		{
+			CloudAck *temp = g_cloudackHead;
+			while(temp->next)
+			{
+				temp = temp->next;
+			}
+			temp->next = ackmsg;
+			pthread_mutex_unlock (&cloudack_mut);
+		}
+	}
+	else
+	{
+		ParodusError("failure in allocation for cloud ack\n");
+	}
+	return;
+}
+
+//Check cloud ack and send rbus callback to caller based on transaction id.
+int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle)
+{
+	wrp_msg_t *xmdMsg;
+	char *xmdMsgTransID = NULL;
+	char * errorMsg = NULL;
+	CloudAck *cloudnode = NULL;
+
+	if(xmdnode != NULL)
+	{
+		xmdMsg = xmdnode->msg;
+		if(xmdMsg != NULL)
+		{
+			xmdMsgTransID = xmdMsg->u.event.transaction_uuid;
+			ParodusPrint("xmdMsgTransID %s\n", xmdMsgTransID);
+		}
+		else
+		{
+			ParodusError("xmdMsg is NULL\n");
+			return 0;
+		}
+	}
+
+	cloudnode = get_global_cloud_node();
+
+	while (NULL != cloudnode)
+	{
+		ParodusPrint("cloudnode->transaction_id %s cloudnode->qos %d cloudnode->rdr %d\n", cloudnode->transaction_id,cloudnode->qos,cloudnode->rdr);
+		if(xmdMsgTransID != NULL && cloudnode->transaction_id != NULL)
+		{
+			if( strcmp(xmdMsgTransID, cloudnode->transaction_id) == 0)
+			{
+				ParodusInfo("transaction_id %s is matching, send callback\n", xmdMsgTransID);
+				mapXmidtStatusToStatusMessage(DELIVERED_SUCCESS, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(xmdMsg, asyncHandle, errorMsg, DELIVERED_SUCCESS, cloudnode->rdr);
+				ParodusPrint("set xmidt msg to DELETE state as cloud ack is processed\n");
+				updateXmidtState(xmdnode, DELETE);
+				print_xmidMsg_list();
+				ParodusPrint("delete cloudACK cloudnode\n");
+				deleteCloudACKNode(cloudnode->transaction_id);
+				ParodusPrint("checkCloudACK returns success\n");
+				return 1;
+			}
+			else
+			{
+				ParodusError("transaction_id %s match not found\n", xmdMsgTransID);
+			}
+		}
+		cloudnode= cloudnode->next;
+	}
+	ParodusPrint("checkCloudACK returns failure\n");
+	return 0;
+}
+
+//To update state of the msg node that is currently being processed.
+int updateXmidtState(XmidtMsg * temp, int state)
+{
+	struct timespec ts;
+	if(temp == NULL)
+	{
+		ParodusError("XmidtMsg is NULL, updateXmidtState failed\n");
+		return 0;
+	}
+	else
+	{
+		ParodusPrint("state to be updated %d\n", state);
+		ParodusPrint("node is pointing to temp->state %d\n",temp->state);
+		pthread_mutex_lock (&xmidt_mut);
+		temp->state = state;
+		if(state != DELETE)
+		{
+			getCurrentTime(&ts);
+			temp->sentTime = (long long)ts.tv_sec;
+			ParodusPrint("updated temp->sentTime %lld\n", temp->sentTime);
+		}
+		ParodusPrint("msgnode is updated with state %d sentTime %lld\n", temp->state, temp->sentTime);
+		pthread_mutex_unlock (&xmidt_mut);
+		return 1;
+	}
+}
+
+void print_xmidMsg_list()
+{
+	XmidtMsg *temp = NULL;
+	temp = get_global_xmidthead();
+	while (NULL != temp)
+	{
+		wrp_msg_t *xmdMsg = temp->msg;
+		ParodusPrint("node is pointing to xmdMsg transid %s temp->state %d temp->enqueueTime %lld temp->sentTime %lld\n", xmdMsg->u.event.transaction_uuid, temp->state, temp->enqueueTime, temp->sentTime);
+		temp= temp->next;
+	}
+	ParodusPrint("print_xmidMsg_list done\n");
+	return;
+}
+
+//delete matching cloud ack entry
+int deleteCloudACKNode(char* trans_id)
+{
+	CloudAck *prev_node = NULL, *curr_node = NULL;
+
+	if( NULL == trans_id )
+	{
+		ParodusError("Invalid value for trans_id\n");
+		return 0;
+	}
+	ParodusPrint("cloud ack to be deleted with trans_id: %s\n", trans_id);
+
+	prev_node = NULL;
+	pthread_mutex_lock (&cloudack_mut);
+	curr_node = g_cloudackHead ;
+	// Traverse to get the msg to be deleted
+	while( NULL != curr_node )
+	{
+		if(strcmp(curr_node->transaction_id, trans_id) == 0)
+		{
+			ParodusPrint("Found the node to delete\n");
+			if( NULL == prev_node )
+			{
+				ParodusPrint("need to delete first doc\n");
+				g_cloudackHead = curr_node->next;
+			}
+			else
+			{
+				ParodusPrint("Traversing to find node\n");
+				prev_node->next = curr_node->next;
+
+			}
+
+			ParodusPrint("Deleting the node entries\n");
+			if(curr_node->transaction_id !=NULL)
+			{
+				free( curr_node->transaction_id );
+				curr_node->transaction_id = NULL;
+			}
+			if(curr_node != NULL)
+			{
+				free( curr_node );
+			}
+			curr_node = NULL;
+			ParodusPrint("Deleted successfully and returning..\n");
+			pthread_mutex_unlock (&cloudack_mut);
+			return 1;
+		}
+
+		prev_node = curr_node;
+		curr_node = curr_node->next;
+	}
+	pthread_mutex_unlock (&cloudack_mut);
+	ParodusError("Could not find the entry to delete from list\n");
+	return 0;
+}
+
+//Delete msg from XmidtQ
+int deleteFromXmidtQ(XmidtMsg **next_node)
+{
+	XmidtMsg *prev_node = NULL, *curr_node = NULL;
+
+	prev_node = NULL;
+	pthread_mutex_lock (&xmidt_mut);
+	curr_node = XmidtMsgQ ;
+	// Traverse to get the node with DELETE state which needs to be deleted
+	while( NULL != curr_node )
+	{
+		ParodusPrint("curr_node->state %d\n" , curr_node->state);
+		if(curr_node->state == DELETE)
+		{
+			ParodusPrint("Found the node to delete\n");
+			if( NULL == prev_node )
+			{
+				ParodusPrint("need to delete first doc\n");
+				XmidtMsgQ = curr_node->next;
+			}
+			else
+			{
+				ParodusPrint("Traversing to find node\n");
+				prev_node->next = curr_node->next;
+				*next_node = curr_node->next;
+
+			}
+
+			wrp_msg_t *xmdMsg = curr_node->msg;
+			if (xmdMsg)
+			{
+				ParodusInfo("Delete xmidt node with transid %s\n", xmdMsg->u.event.transaction_uuid);
+			}
+			wrp_free_struct( curr_node->msg);
+			curr_node->msg = NULL;
+			if(curr_node !=NULL)
+			{
+				free( curr_node );
+				curr_node = NULL;
+			}
+			ParodusPrint("Deleted successfully and returning..\n");
+			pthread_mutex_unlock (&xmidt_mut);
+			decrement_XmidtQsize();
+			ParodusInfo("XmidtQsize after delete is %d\n", get_XmidtQsize());
+			return 1;
+		}
+
+		prev_node = curr_node;
+		curr_node = curr_node->next;
+	}
+	pthread_mutex_unlock (&xmidt_mut);
+	ParodusError("Could not find the entry to delete from list\n");
+	return 0;
+}
+
+//check if message is expired based on each qos and set to delete state.
+void checkMsgExpiry()
+{
+	long long currTime = 0;
+	struct timespec ts;
+
+	XmidtMsg *temp = NULL;
+	temp = get_global_xmidthead();
+
+	while(temp != NULL)
+	{
+		getCurrentTime(&ts);
+		currTime= (long long)ts.tv_sec;
+		wrp_msg_t * tempMsg = temp->msg;
+		ParodusPrint("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+		if(temp->state == DELETE)
+		{
+			ParodusPrint("msg is already in DELETE state and about to delete, skipping state update. transid %s\n", tempMsg->u.event.transaction_uuid);
+			temp = temp->next;
+			continue;
+		}
+
+		if(tempMsg->u.event.qos > 74)
+		{
+			ParodusPrint("Critical Qos, check if expiry of 30 mins reached\n");
+			if((currTime - temp->enqueueTime) > CRITICAL_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Critical qos 30 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				updateXmidtState(temp, DELETE);
+			}
+		}
+		else if (tempMsg->u.event.qos > 49)
+		{
+			ParodusPrint("High Qos, check if expiry of 25 mins reached\n");
+			if((currTime - temp->enqueueTime) > HIGH_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("High qos 25 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				updateXmidtState(temp, DELETE);
+			}
+		}
+		else if (tempMsg->u.event.qos > 24)
+		{
+			ParodusPrint("Medium Qos, check if expiry of 20 mins reached\n");
+			if((currTime - temp->enqueueTime) > MEDIUM_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Medium qos 20 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				updateXmidtState(temp, DELETE);
+			}
+		}
+		else if (tempMsg->u.event.qos >= 0)
+		{
+			ParodusPrint("Low Qos, check if expiry of 15 mins reached\n");
+			if((currTime - temp->enqueueTime) > LOW_QOS_EXPIRE_TIME)
+			{
+				ParodusInfo("Low qos 15 mins expired, set to DELETE. qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+				updateXmidtState(temp, DELETE);
+			}
+		}
+		else
+		{
+			ParodusError("Invalid qos\n");
+		}
+		temp = temp->next;
+	}
+}
+
+//To delete low qos messages from queue when max queue limit is reached.
+void checkMaxQandOptimize()
+{
+	int qos = 0;
+
+	ParodusPrint("checkMaxQandOptimize . XmidtQsize is %d\n" , get_XmidtQsize());
+	if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
+	{
+		ParodusPrint("Max Queue size reached, check and optimize\n");
+
+		//Traverse through XmidtMsgQ list and set low qos msgs to DELETE
+		XmidtMsg *temp = NULL;
+		temp = get_global_xmidthead();
+
+		while(temp != NULL)
+		{
+			wrp_msg_t * tempMsg = temp->msg;
+			qos = tempMsg->u.event.qos;
+			ParodusPrint("qos is %d\n", qos);
+			if(highQosValueCheck(qos))
+			{
+				ParodusPrint("High qos msg, skip delete\n");
+			}
+			else
+			{
+				ParodusInfo("Max Queue size reached. Low qos %d, set to DELETE state\n", qos);
+				updateXmidtState(temp, DELETE);
+			}
+			temp = temp->next;
+		}
+	}
+}
+
+//map xmidt status and rdr response to status message
+void mapXmidtStatusToStatusMessage(int status, char **message)
+{
+	char *result = NULL;
+
+	if (status == DELIVERED_SUCCESS)
+	{
+		result = strdup("Delivered (success)");
+	}
+	else if (status == INVALID_MSG_TYPE)
+	{
+		result = strdup("Message format is invalid");
+	}
+	else if (status == MISSING_SOURCE)
+	{
+		result = strdup("Missing source");
+	}
+	else if (status == MISSING_DEST)
+	{
+		result = strdup("Missing dest");
+	}
+	else if (status == MISSING_CONTENT_TYPE)
+	{
+		result = strdup("Missing content_type");
+	}
+	else if (status == MISSING_PAYLOAD)
+	{
+		result = strdup("Missing payload");
+	}
+	else if (status == MISSING_PAYLOADLEN)
+	{
+		result = strdup("Missing payloadlen");
+	}
+	else if (status == INVALID_CONTENT_TYPE)
+	{
+		result = strdup("Invalid content_type");
+	}
+	else if (status == ENQUEUE_FAILURE)
+	{
+		result = strdup("Unable to enqueue");
+	}
+	else if (status == CLIENT_DISCONNECT)
+	{
+		result = strdup("send failed due to client disconnect");
+	}
+	else if (status == QUEUE_SIZE_EXCEEDED)
+	{
+		result = strdup("Max Queue Size Exceeded");
+	}
+	else if (status == WRP_ENCODE_FAILURE)
+	{
+		result = strdup("Wrp message encoding failed");
+	}
+	else if (status == MSG_PROCESSING_FAILED)
+	{
+		result = strdup("Memory allocation failed");
+	}
+	else if (status == QOS_SEMANTICS_DISABLED)
+	{
+		result = strdup("send to server, qos semantics are disabled");
+	}
+	else
+	{
+		result = strdup("Unknown Error");
+	}
+	ParodusPrint("Xmidt status msg %s\n", result);
+	*message = result;
 }

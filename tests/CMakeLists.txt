@@ -46,7 +46,7 @@ link_directories ( ${LIBRARY_DIR} )
 #   test_heartBeatTimer
 #-------------------------------------------------------------------------------
 add_test(NAME test_heartBeatTimer COMMAND ${MEMORY_CHECK} ./test_heartBeatTimer)
-add_executable(test_heartBeatTimer test_heartBeatTimer.c ../src/heartBeat.c)
+add_executable(test_heartBeatTimer test_heartBeatTimer.c ../src/heartBeat.c ../src/time.c)
 target_link_libraries (test_heartBeatTimer ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
@@ -109,7 +109,7 @@ target_link_libraries (test_spin_thread_e ${PARODUS_COMMON_LIBS} )
 #   test_nopoll_handlers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers)
-add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c)
+add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c ../src/time.c)
 target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm)
 
 
@@ -117,7 +117,7 @@ target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-
 #   test_nopoll_handlers_fragment
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers_fragment COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers_fragment)
-add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c)
+add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c ../src/time.c)
 target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm -lcmocka)
 
 #-------------------------------------------------------------------------------
@@ -212,7 +212,7 @@ target_link_libraries (test_auth_token -lcmocka
 #   test_auth_token_more
 #-------------------------------------------------------------------------------
 add_test(NAME test_auth_token_more COMMAND ${MEMORY_CHECK} ./test_auth_token_more)
-add_executable(test_auth_token_more test_auth_token_more.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
+add_executable(test_auth_token_more test_auth_token_more.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c ../src/config.c)
 target_link_libraries (test_auth_token_more -lcmocka
  -Wl,--no-as-needed -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
@@ -265,7 +265,7 @@ target_link_libraries (test_upstream_sock -lcmocka gcov -lcunit -lcimplog
 #   test_downstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_downstream COMMAND ${MEMORY_CHECK} ./test_downstream)
-add_executable(test_downstream test_downstream.c ../src/downstream.c ../src/string_helpers.c)
+add_executable(test_downstream test_downstream.c ../src/downstream.c ../src/string_helpers.c ../src/config.c)
 target_link_libraries (test_downstream -lcmocka gcov -lcunit -lcimplog
  -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
@@ -275,7 +275,7 @@ target_link_libraries (test_downstream -lcmocka gcov -lcunit -lcimplog
 #   test_downstream_more
 #-------------------------------------------------------------------------------
 add_test(NAME test_downstream_more COMMAND ${MEMORY_CHECK} ./test_downstream_more)
-add_executable(test_downstream_more test_downstream_more.c ../src/downstream.c ../src/string_helpers.c)
+add_executable(test_downstream_more test_downstream_more.c ../src/downstream.c ../src/string_helpers.c ../src/config.c)
 target_link_libraries (test_downstream_more -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
@@ -296,6 +296,7 @@ set(CONIFC_SRC test_conn_interface.c
   ../src/token.c
   ../src/string_helpers.c 
   ../src/mutex.c
+  ../src/time.c
   ../src/heartBeat.c
   ../src/close_retry.c
   ../src/event_handler.c
