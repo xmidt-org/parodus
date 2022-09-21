@@ -215,7 +215,7 @@ int xmidtQOptmize()
 				if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 				{
 					ParodusInfo("Max queue size reached, delete low qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
-					del = 1;
+					del = 2;
 				}
 			}
 		}
@@ -229,9 +229,18 @@ int xmidtQOptmize()
 			ParodusPrint("msg expired, updateXmidtState to DELETE\n");
 			updateXmidtState(temp, DELETE);
 			//rbus callback to caller
-			mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
-			ParodusPrint("statusMsg is %s\n",errorMsg);
-			createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+			if(del == 1)
+			{
+				mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+			}
+			else if(del == 2)
+			{
+				mapXmidtStatusToStatusMessage(QUEUE_OPTIMIZED, &errorMsg);
+				ParodusPrint("statusMsg is %s\n",errorMsg);
+				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_OPTIMIZED, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+			}
 			status = deleteFromXmidtQ(&next_node);
 			temp = next_node;
 			if(status)
