@@ -39,9 +39,9 @@ jobs:
         run: mkdir build
 
       - name: Get Sonarcloud Binaries
-        working-directory: build
-        run: |
-          ../.github/scripts/get_sonarcloud.sh
+        uses: xmidt-org/sonarcloud-installer-action@v1
+        with:
+          working-directory: build
 
       - name: CMake
         working-directory: build
