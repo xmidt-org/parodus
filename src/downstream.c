@@ -252,8 +252,8 @@ void listenerOnMessage(void * msg, size_t msgSize)
 				{
 					if(message->u.event.transaction_uuid !=NULL)
 					{
-						ParodusInfo("Received cloud ack from server: transaction_uuid %s qos %d, rdr %d\n", message->u.event.transaction_uuid, message->u.event.qos, message->u.event.rdr);
-						addToCloudAckQ(message->u.event.transaction_uuid, message->u.event.qos, message->u.event.rdr);
+						ParodusInfo("Received cloud ack from server: transaction_uuid %s qos %d, rdr %d source %s\n", message->u.event.transaction_uuid, message->u.event.qos, message->u.event.rdr, message->u.event.source);
+						addToCloudAckQ(message->u.event.transaction_uuid, message->u.event.qos, message->u.event.rdr, message->u.event.source);
 						ParodusPrint("Added to cloud ack Q\n");
 					}
 					else
