@@ -58,6 +58,7 @@ typedef struct CloudAck__
 	char *transaction_id;
 	int qos;
 	int rdr;
+	char *source;
 	struct CloudAck__ *next;
 } CloudAck;
 
@@ -100,13 +101,13 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 int checkInputParameters(rbusObject_t inParams);
 char* generate_transaction_uuid();
 void parseRbusInparamsToWrp(rbusObject_t inParams, char *trans_id, wrp_msg_t **eventMsg);
-void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, rbusError_t error);
+void createOutParamsandSendAck(wrp_msg_t *msg, rbusMethodAsyncHandle_t asyncHandle, char *errorMsg, int statuscode, char *cloudsource, rbusError_t error);
 int validateXmidtData(wrp_msg_t * eventMsg, char **errorMsg, int *statusCode);
 void printSendMsgData(char* status, int qos, char* dest, char* transaction_uuid);
 bool highQosValueCheck(int qos);
 void waitTillConnectionIsUp();
 void printRBUSParams(rbusObject_t params, char* file_path);
-void addToCloudAckQ(char *transaction_id, int qos, int rdr);
+void addToCloudAckQ(char *transaction_id, int qos, int rdr, char *source);
 int checkCloudACK(XmidtMsg *xmdnode, rbusMethodAsyncHandle_t asyncHandle);
 int updateXmidtState(XmidtMsg * temp, int state);
 void print_xmidMsg_list();
