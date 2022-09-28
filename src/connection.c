@@ -239,7 +239,7 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
   timer->count = 1;
   timer->max_count = max_count;
   timer->delay = 1;
-  clock_gettime (CLOCK_REALTIME, &timer->ts);
+  clock_gettime (CLOCK_MONOTONIC, &timer->ts);
   timer->start_time = time(NULL);
 }
 
