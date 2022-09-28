@@ -239,7 +239,7 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
   timer->count = 1;
   timer->max_count = max_count;
   timer->delay = 1;
-  clock_gettime (CLOCK_REALTIME, &timer->ts);
+  clock_gettime (CLOCK_MONOTONIC, &timer->ts);
   timer->start_time = time(NULL);
 }
 
@@ -325,8 +325,14 @@ static int backoff_delay (backoff_timer_t *timer)
   struct timespec ts;
   int rtn;
 
+  pthread_condattr_t backoff_delay_cond_attr;
+
+  pthread_condattr_init (&backoff_delay_cond_attr);
+  pthread_condattr_setclock (&backoff_delay_cond_attr, CLOCK_MONOTONIC);
+  pthread_cond_init (&backoff_delay_con, &backoff_delay_cond_attr);
+
   // periodically update the health file.
-  clock_gettime (CLOCK_REALTIME, &ts);
+  clock_gettime (CLOCK_MONOTONIC, &ts);
   if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
     start_conn_in_progress (timer->start_time);
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
@@ -338,6 +344,8 @@ static int backoff_delay (backoff_timer_t *timer)
   // The condition variable will only be set if we shut down.
   rtn = pthread_cond_timedwait (&backoff_delay_con, &backoff_delay_mut, &ts);
   pthread_mutex_unlock (&backoff_delay_mut);
+
+  pthread_condattr_destroy(&backoff_delay_cond_attr);
 
   if (g_shutdown)
     return BACKOFF_SHUTDOWN;
