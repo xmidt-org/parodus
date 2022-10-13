@@ -63,6 +63,6 @@ target_link_libraries (parodus -llibseshat)
 endif (ENABLE_SESHAT)
 
 if (ENABLE_WEBCFGBIN)
-target_link_libraries (parodus -lrbus -lrbus-core -lrtMessage)
+target_link_libraries (parodus -lrtMessage -lrbuscore -lrbus)
 endif (ENABLE_WEBCFGBIN)
 install (TARGETS parodus DESTINATION bin)

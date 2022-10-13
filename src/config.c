@@ -41,7 +41,6 @@ pthread_cond_t cloud_status_cond=PTHREAD_COND_INITIALIZER;
 
 char webpa_interface[64]={'\0'};
 
-char cloud_status[32]={'\0'};
 static ParodusCfg parodusCfg;
 static unsigned int rsa_algorithms = 
 	(1<<alg_rs256) | (1<<alg_rs384) | (1<<alg_rs512);
@@ -94,10 +93,14 @@ void set_cloud_status(char *status)
 
 char *get_cloud_status(void)
 {
+    char *status = NULL;
     pthread_mutex_lock(&config_mut);
-    parStrncpy(cloud_status, get_parodus_cfg()->cloud_status, sizeof(cloud_status));
-    pthread_mutex_unlock(&config_mut);	
-    return cloud_status;
+    if(NULL != get_parodus_cfg()->cloud_status)
+    {
+    	status = get_parodus_cfg()->cloud_status;
+    }
+    pthread_mutex_unlock(&config_mut);
+    return status;    
 }
 
 const char *get_tok (const char *src, int delim, char *result, int resultsize)
