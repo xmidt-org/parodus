@@ -40,7 +40,7 @@
 /*----------------------------------------------------------------------------*/
 
 void *metadataPack;
-size_t metaPackSize=-1;
+size_t metaPackSize=0;
 
 
 UpStreamMsg *UpStreamMsgQ = NULL;
