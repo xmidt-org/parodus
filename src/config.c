@@ -498,7 +498,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         
         case 's':
 	if(parse_serial_num(cfg->hw_serial_number, optarg) == 0)
-            ParodusInfo ("hw_serial-number is %s\n",cfg->hw_serial_number);
+            ParodusInfo ("hw_serial_number is %s\n",cfg->hw_serial_number);
           break;
 
         case 'f':
