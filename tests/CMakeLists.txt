@@ -61,7 +61,10 @@ target_link_libraries (test_close_retry ${PARODUS_COMMON_LIBS} -lcmocka)
 #-------------------------------------------------------------------------------
 add_test(NAME test_mutex COMMAND ${MEMORY_CHECK} ./test_mutex)
 add_executable(test_mutex test_mutex.c ../src/mutex.c)
-target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS} -lcmocka)
+target_link_libraries (test_mutex gcov -lcunit -lcimplog -lwrp-c
+ -luuid -lmsgpackc -lnopoll -lnanomsg -lpthread
+ -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
+ -lssl -lcrypto -lrt -lm -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_networking
@@ -74,8 +77,8 @@ target_link_libraries (test_networking ${PARODUS_COMMON_LIBS})
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_helpers COMMAND ${MEMORY_CHECK} ./test_nopoll_helpers)
-add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
-target_link_libraries (test_nopoll_helpers -Wl,--no-as-needed -lrt -lcmocka -lcimplog -lnopoll)
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/string_helpers.c ../src/config.c)
+target_link_libraries (test_nopoll_helpers -Wl,--no-as-needed -lrt -lcmocka -lcimplog -lnopoll ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_time
