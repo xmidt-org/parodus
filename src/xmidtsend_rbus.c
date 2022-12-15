@@ -155,6 +155,11 @@ int checkCloudConn()
 			}
 		}
 	}
+	else
+	{
+		ParodusInfo("cloud status is already online, wait till connection up\n");
+		ret = 3;
+	}
 	ParodusPrint("checkCloudConn ret %d\n", ret);
 	return ret;
 }
@@ -757,6 +762,8 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 					printSendMsgData("queue optimized during send. retry", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 					break;
 				}
+				else if(rv ==3)
+					sleep(2);
 				ParodusInfo("Received cloud status signal proceed to retry\n");
                                 printSendMsgData("send to server after cloud reconnect", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 			}
