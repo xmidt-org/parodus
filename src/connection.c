@@ -783,8 +783,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	    }
 #endif		
 	}
-
-	if(conn_ctx.current_server->allow_insecure <= 0)
+	if(conn_ctx.current_server != NULL && conn_ctx.current_server->allow_insecure <= 0)
 	{
 		ParodusInfo("Connected to server over SSL\n");
 		OnboardLog("Connected to server over SSL\n");
