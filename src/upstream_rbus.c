@@ -73,7 +73,7 @@ void subscribeRBUSevent()
 int subscribeCurrentActiveInterfaceEvent()
 {
 	int rc = RBUS_ERROR_SUCCESS;
-	ParodusPrint("Subscribing to Device.X_RDK_WanManager.CurrentActiveInterface Event\n");
+	ParodusInfo("Subscribing to Device.X_RDK_WanManager.CurrentActiveInterface Event\n");
 	rc = rbusEvent_SubscribeAsync(rbus_Handle,WEBPA_INTERFACE,eventReceiveHandler,subscribeAsyncHandler,"parodusInterface",10*20);
         if(rc != RBUS_ERROR_SUCCESS)
 	{
