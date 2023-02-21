@@ -24,7 +24,11 @@
 #include "parodus_log.h"
 #include <curl/curl.h>
 #ifdef INCLUDE_BREAKPAD
+#ifndef DEVICE_CAMERA
 #include "breakpad_wrapper.h"
+#else
+#include "breakpadwrap.h"
+#endif  //DEVICE_CAMERA
 #endif
 #include "signal.h"
 #include "privilege.h"
@@ -87,8 +91,17 @@ int main( int argc, char **argv)
 	signal(SIGHUP, sig_handler);   
 	signal(SIGALRM, sig_handler);
 #ifdef INCLUDE_BREAKPAD
+#ifndef DEVICE_CAMERA
     /* breakpad handles the signals SIGSEGV, SIGBUS, SIGFPE, and SIGILL */
     breakpad_ExceptionHandler();
+#else
+    /* breakpad handles the signals SIGSEGV, SIGBUS, SIGFPE, and SIGILL */
+    BreakPadWrapExceptionHandler eh;
+    eh = newBreakPadWrapExceptionHandler();
+    if(NULL != eh) {
+        ParodusInfo("Breakpad Initialized\n");
+    }
+#endif //DEVICE_CAMERA
 #else
 	signal(SIGSEGV, sig_handler);
 	signal(SIGBUS, sig_handler);

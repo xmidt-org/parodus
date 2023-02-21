@@ -47,6 +47,7 @@ if (ENABLE_WEBCFGBIN)
 include_directories(${INCLUDE_DIR}/rbus)
 endif (ENABLE_WEBCFGBIN)
 
+
 # Get git commit hash 
 #-------------------------------------------------------------------------------
 execute_process(
@@ -63,9 +64,18 @@ add_definitions("-DGIT_COMMIT_TAG=\"${GIT_COMMIT_TAG}\"")
 add_definitions(-std=c99)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GNU_SOURCE -DNOPOLL_LOGGER ")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wall -Wno-missing-field-initializers")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall")
+if (DEVICE_CAMERA)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=all -Wno-missing-field-initializers")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=all")
+add_definitions(-DDEVICE_CAMERA)
+else ()
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=all -Wno-missing-field-initializers")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=all")
+endif (DEVICE_CAMERA)
 
+if (INCLUDE_BREAKPAD)
+add_definitions(-DINCLUDE_BREAKPAD)
+endif (INCLUDE_BREAKPAD)
 
 # pthread external dependency
 #-------------------------------------------------------------------------------

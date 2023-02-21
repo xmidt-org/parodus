@@ -223,8 +223,14 @@ void getAuthToken(ParodusCfg *cfg)
  * @param[in] nmemb size of delivered data
  * @param[out] data curl response data saved.
 */
+#ifndef DEVICE_CAMERA
 size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct token_data *data)
 {
+#else
+size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, void *datain)
+{
+    struct token_data *data = (struct token_data*) datain;
+#endif //DEVICE_CAMERA
     ParodusCfg *cfg;
     size_t max_data_size = sizeof (cfg->webpa_auth_token);
     size_t index = data->size;
