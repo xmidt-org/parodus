@@ -1640,13 +1640,21 @@ void checkMaxQandOptimize()
 			}
 			else
 			{
-				ParodusInfo("Max Queue size reached. Low qos %d, set to DELETE state\n", qos);
-				//rbus callback to caller
-				char *errorMsg = NULL;
-				mapXmidtStatusToStatusMessage(QUEUE_OPTIMIZED, &errorMsg);
-				ParodusPrint("statusMsg is %s\n",errorMsg);
-				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_OPTIMIZED, NULL, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
-				updateXmidtState(temp, DELETE);
+				//Skip max queue callback if msg in the queue is already processed and set to delete.
+				if( temp->state == DELETE)
+				{
+					ParodusInfo("Msg is already processed and is in DELETE state, skipped Max Queue size callback %s\n", tempMsg->u.event.transaction_uuid);
+				}
+				else
+				{
+					ParodusInfo("Max Queue size reached. Low qos %d, set to DELETE state\n", qos);
+					//rbus callback to caller
+					char *errorMsg = NULL;
+					mapXmidtStatusToStatusMessage(QUEUE_OPTIMIZED, &errorMsg);
+					ParodusPrint("statusMsg is %s\n",errorMsg);
+					createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_OPTIMIZED, NULL, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+					updateXmidtState(temp, DELETE);
+				}
 			}
 			temp = temp->next;
 		}
