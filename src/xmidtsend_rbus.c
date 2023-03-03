@@ -376,10 +376,9 @@ void* processXmidtUpstreamMsg()
 		{
 			XmidtMsg *Data = xmidtQ;
 			pthread_mutex_unlock (&xmidt_mut);
-			ParodusPrint("mutex unlock in xmidt consumer thread\n");
-
-			checkMsgExpiry();
-			checkMaxQandOptimize();
+			ParodusPrint("mutex unlock in xmidt consumer\n");
+			checkMsgExpiry(xmidtQ);
+			checkMaxQandOptimize(xmidtQ);
 			cv = 0;
 
 			ParodusPrint("check state\n");
@@ -1533,16 +1532,16 @@ int deleteFromXmidtQ(XmidtMsg **next_node)
 }
 
 //check if message is expired based on each qos and set to delete state.
-void checkMsgExpiry()
+void checkMsgExpiry(XmidtMsg *xmdMsg)
 {
 	long long currTime = 0;
 	struct timespec ts;
 	char *errorMsg = NULL;
 
 	XmidtMsg *temp = NULL;
-	temp = get_global_xmidthead();
+	temp = xmdMsg;
 
-	while(temp != NULL)
+	if(temp != NULL)
 	{
 		getCurrentTime(&ts);
 		currTime= (long long)ts.tv_sec;
@@ -1551,8 +1550,7 @@ void checkMsgExpiry()
 		if(temp->state == DELETE)
 		{
 			ParodusPrint("msg is already in DELETE state and about to delete, skipping state update. transid %s\n", tempMsg->u.event.transaction_uuid);
-			temp = temp->next;
-			continue;
+			return;
 		}
 
 		if(tempMsg->u.event.qos > 74)
@@ -1611,12 +1609,11 @@ void checkMsgExpiry()
 		{
 			ParodusError("Invalid qos\n");
 		}
-		temp = temp->next;
 	}
 }
 
 //To delete low qos messages from queue when max queue limit is reached.
-void checkMaxQandOptimize()
+void checkMaxQandOptimize(XmidtMsg *xmdMsg)
 {
 	int qos = 0;
 
@@ -1627,10 +1624,10 @@ void checkMaxQandOptimize()
 
 		//Traverse through XmidtMsgQ list and set low qos msgs to DELETE
 		XmidtMsg *temp = NULL;
-		temp = get_global_xmidthead();
+		temp = xmdMsg;
 
-		while(temp != NULL)
-		{
+		  if (temp != NULL)
+		  {
 			wrp_msg_t * tempMsg = temp->msg;
 			qos = tempMsg->u.event.qos;
 			ParodusPrint("qos is %d\n", qos);
@@ -1640,10 +1637,10 @@ void checkMaxQandOptimize()
 			}
 			else
 			{
-				//Skip max queue callback if msg in the queue is already processed and set to delete.
+				//Skip max queue callback when msg is already in DELETE state.
 				if( temp->state == DELETE)
 				{
-					ParodusInfo("Msg is already processed and is in DELETE state, skipped Max Queue size callback %s\n", tempMsg->u.event.transaction_uuid);
+					ParodusInfo("Msg is in DELETE state, skipped Max Queue size callback %s\n", tempMsg->u.event.transaction_uuid);
 				}
 				else
 				{
@@ -1656,7 +1653,6 @@ void checkMaxQandOptimize()
 					updateXmidtState(temp, DELETE);
 				}
 			}
-			temp = temp->next;
 		}
 	}
 }
