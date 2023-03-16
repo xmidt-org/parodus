@@ -116,10 +116,10 @@ int main( int argc, char **argv)
     /* TODO not ideal, but it fixes a more major problem for now. */
     cfg = get_parodus_cfg();
     memset(cfg,0,sizeof(ParodusCfg));
-    
-    ParodusInfo("********** Starting component: Parodus **********\n "); 
+    ParodusInfo("********** Starting component: Parodus **********\n ");
     drop_root_privilege();
     #ifdef ENABLE_WEBCFGBIN
+    rbus_registerLog();
     subscribeRBUSevent();
     regXmidtSendDataMethod();
     #endif

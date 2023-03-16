@@ -81,7 +81,7 @@ void set_global_reconnect_status(bool status);
 
 int get_cloud_disconnect_time();
 void set_cloud_disconnect_time(int disconnTime);
-
+void rbus_registerLog();
 /**
  * @brief Interface to self heal connection in progress getting stuck
  */

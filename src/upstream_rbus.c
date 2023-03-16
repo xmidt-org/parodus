@@ -47,6 +47,36 @@ rbusHandle_t get_parodus_rbus_Handle(void)
 {
      return rbus_Handle;
 }
+void rbus_log_handler(
+    rbusLogLevel level,
+    const char* file,
+    int line,
+    int threadId,
+    char* message)
+{
+    const char* slevel = "";
+
+    if(level < 0)
+        return;
+
+    switch(level)
+    {
+	    case RBUS_LOG_DEBUG:    slevel = "DEBUG";   break;
+	    case RBUS_LOG_INFO:     slevel = "INFO";    break;
+	    case RBUS_LOG_WARN:     slevel = "WARN";    break;
+	    case RBUS_LOG_ERROR:    slevel = "ERROR";   break;
+	    case RBUS_LOG_FATAL:    slevel = "FATAL";   break;
+    }
+    ParodusInfo("%5s %s:%d -- Thread-%d: %s \n\r", slevel, file, line, threadId, message);
+}
+
+void rbus_registerLog()
+{
+	ParodusInfo("Register rbus log handler\n");
+	rbus_registerLogHandler(rbus_log_handler);
+	ParodusInfo("Registered rbus log handler\n");
+}
+
 #ifdef WAN_FAILOVER_SUPPORTED
 void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rbusEventSubscription_t* subscription );
 #endif
