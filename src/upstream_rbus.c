@@ -54,9 +54,10 @@ void rbus_log_handler(
     int threadId,
     char* message)
 {
+    ParodusPrint("threadId %d\n", threadId);
     const char* slevel = "";
 
-    if(level < 0)
+    if(level < RBUS_LOG_DEBUG)
         return;
 
     switch(level)
@@ -67,7 +68,7 @@ void rbus_log_handler(
 	    case RBUS_LOG_ERROR:    slevel = "ERROR";   break;
 	    case RBUS_LOG_FATAL:    slevel = "FATAL";   break;
     }
-    ParodusInfo("%5s %s:%d -- Thread-%d: %s \n\r", slevel, file, line, threadId, message);
+    ParodusInfo("%5s %s:%d -- %s\n", slevel, file, line, message);
 }
 
 void rbus_registerLog()
