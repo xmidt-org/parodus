@@ -47,6 +47,8 @@ rbusHandle_t get_parodus_rbus_Handle(void)
 {
      return rbus_Handle;
 }
+
+/* Enables rbus ERROR level logs in parodus. Modify RBUS_LOG_ERROR check if more debug logs are needed from rbus. */
 void rbus_log_handler(
     rbusLogLevel level,
     const char* file,
@@ -57,7 +59,7 @@ void rbus_log_handler(
     ParodusPrint("threadId %d\n", threadId);
     const char* slevel = "";
 
-    if(level < RBUS_LOG_DEBUG)
+    if(level < RBUS_LOG_ERROR)
         return;
 
     switch(level)
@@ -71,11 +73,10 @@ void rbus_log_handler(
     ParodusInfo("%5s %s:%d -- %s\n", slevel, file, line, message);
 }
 
-void rbus_registerLog()
+void registerRbusLogger()
 {
-	ParodusInfo("Register rbus log handler\n");
 	rbus_registerLogHandler(rbus_log_handler);
-	ParodusInfo("Registered rbus log handler\n");
+	ParodusPrint("Registered rbus log handler\n");
 }
 
 #ifdef WAN_FAILOVER_SUPPORTED
