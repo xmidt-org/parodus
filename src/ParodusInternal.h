@@ -164,6 +164,7 @@ void timespec_diff(struct timespec *start, struct timespec *stop,
 #ifdef ENABLE_WEBCFGBIN
 void subscribeRBUSevent();
 int regXmidtSendDataMethod();
+void registerRbusLogger();
 #endif
 #ifdef WAN_FAILOVER_SUPPORTED
 void setWebpaInterface(char *value);

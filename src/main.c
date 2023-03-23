@@ -120,6 +120,7 @@ int main( int argc, char **argv)
     ParodusInfo("********** Starting component: Parodus **********\n "); 
     drop_root_privilege();
     #ifdef ENABLE_WEBCFGBIN
+    registerRbusLogger();
     subscribeRBUSevent();
     regXmidtSendDataMethod();
     #endif
