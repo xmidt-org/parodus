@@ -98,6 +98,7 @@ int main( int argc, char **argv)
     ParodusCfg *cfg;
 
 	ParodusInfo ("RAND_MAX is %ld (0x%lx)\n", RAND_MAX, RAND_MAX);
+	ParodusInfo("TEST PRINT");
 	srandom (getpid());
 
     /* TODO not ideal, but it fixes a more major problem for now. */
