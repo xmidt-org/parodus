@@ -12,7 +12,7 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 3.10)
 
 #project(parodus VERSION 1.1.5)
 project(parodus)
@@ -225,6 +225,28 @@ ExternalProject_Add(cjwt
 )
 add_library(libcjwt STATIC SHARED IMPORTED)
 add_dependencies(libcjwt cjwt)
+
+# libboringssl external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(boringssl
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/boringssl
+    GIT_REPOSITORY https://github.com/google/boringssl.git
+    #GIT_TAG "2e13e36e7477cfe2ef48312634b1c34103da4899"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+)
+add_library(libboringssl STATIC SHARED IMPORTED)
+add_dependencies(libboringssl boringssl)
+
+# liblsquic external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(lsquic
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/lsquic
+    GIT_REPOSITORY https://github.com/litespeedtech/lsquic.git
+    GIT_TAG "v4.0.0"
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+)
+add_library(liblsquic STATIC SHARED IMPORTED)
+add_dependencies(liblsquic lsquic)
 
 if (FEATURE_DNS_QUERY)
 # libucresolv external dependency
