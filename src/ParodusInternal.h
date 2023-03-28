@@ -161,7 +161,14 @@ int readFromFile(const char *file_name, char **data);
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
 
-
+#ifdef ENABLE_WEBCFGBIN
+void subscribeRBUSevent();
+int regXmidtSendDataMethod();
+void registerRbusLogger();
+#endif
+#ifdef WAN_FAILOVER_SUPPORTED
+void setWebpaInterface(char *value);
+#endif
 /*------------------------------------------------------------------------------*/
 /*                        For interface_down_event Flag                         */
 /*------------------------------------------------------------------------------*/
@@ -178,7 +185,12 @@ void set_interface_down_event();
 pthread_cond_t *get_interface_down_con();
 
 pthread_mutex_t *get_interface_down_mut();
-  
+
+pthread_cond_t *get_global_cloud_status_cond(void);
+
+pthread_mutex_t *get_global_cloud_status_mut(void);
+
+int cloud_status_is_online (void);
 
 #ifdef __cplusplus
 }

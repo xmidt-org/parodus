@@ -62,6 +62,8 @@ enum {
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
 
+parodusOnConnStatusChangeHandler on_conn_status_change;
+
 parodusOnPingStatusChangeHandler on_ping_status_change;
 
 pthread_mutex_t backoff_delay_mut=PTHREAD_MUTEX_INITIALIZER;
@@ -130,7 +132,10 @@ void set_cloud_disconnect_time(int disconnTime)
     cloud_disconnect_max_time = disconnTime;
 }
 
-
+int get_parodus_init()
+{
+   return init;
+}
 //--------------------------------------------------------------------
 // createNopollConnection_logic:
 
@@ -234,7 +239,7 @@ void init_backoff_timer (backoff_timer_t *timer, int max_count)
   timer->count = 1;
   timer->max_count = max_count;
   timer->delay = 1;
-  clock_gettime (CLOCK_REALTIME, &timer->ts);
+  clock_gettime (CLOCK_MONOTONIC, &timer->ts);
   timer->start_time = time(NULL);
 }
 
@@ -320,8 +325,14 @@ static int backoff_delay (backoff_timer_t *timer)
   struct timespec ts;
   int rtn;
 
+  pthread_condattr_t backoff_delay_cond_attr;
+
+  pthread_condattr_init (&backoff_delay_cond_attr);
+  pthread_condattr_setclock (&backoff_delay_cond_attr, CLOCK_MONOTONIC);
+  pthread_cond_init (&backoff_delay_con, &backoff_delay_cond_attr);
+
   // periodically update the health file.
-  clock_gettime (CLOCK_REALTIME, &ts);
+  clock_gettime (CLOCK_MONOTONIC, &ts);
   if ((ts.tv_sec - timer->ts.tv_sec) >= UPDATE_HEALTH_FILE_INTERVAL_SECS) {
     start_conn_in_progress (timer->start_time);
     timer->ts.tv_sec += UPDATE_HEALTH_FILE_INTERVAL_SECS;
@@ -333,6 +344,8 @@ static int backoff_delay (backoff_timer_t *timer)
   // The condition variable will only be set if we shut down.
   rtn = pthread_cond_timedwait (&backoff_delay_con, &backoff_delay_mut, &ts);
   pthread_mutex_unlock (&backoff_delay_mut);
+
+  pthread_condattr_destroy(&backoff_delay_cond_attr);
 
   if (g_shutdown)
     return BACKOFF_SHUTDOWN;
@@ -697,7 +710,8 @@ int wait_while_interface_down()
   	  if (rtn != 0)
   	    ParodusError 
   	      ("Error on pthread_cond_wait (%d) in wait_while_interface_down\n", rtn);
-  	  if ((rtn != 0) || g_shutdown) {
+	  if (g_shutdown) {
+	    ParodusInfo("Received g_shutdown during interface down wait, returning\n");
 	    return -1;
 	  }
 	}
@@ -714,9 +728,9 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 {
   create_connection_ctx_t conn_ctx;
   int max_retry_count;
-  struct timespec connect_time,*connectTimePtr;
-  connectTimePtr = &connect_time;
   backoff_timer_t backoff_timer;
+  static int init_conn_failure=1;
+  struct sysinfo l_sSysInfo;
   
   if(ctx == NULL) {
         return nopoll_false;
@@ -752,6 +766,14 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	  }
 	  /* if we failed to connect, don't reuse the redirect server */	
       free_server (&conn_ctx.server_list->redirect);
+
+      /* On initial connect failure, invoke conn status change event as "failed" only 1 time*/
+      if((NULL != on_conn_status_change) && init && init_conn_failure)
+      {
+    	  on_conn_status_change("failed");
+	  init_conn_failure=0;
+      }
+
 #ifdef FEATURE_DNS_QUERY
       /* if we don't already have a valid jwt, look up server information */
       if (server_is_null (&conn_ctx.server_list->jwt))
@@ -761,8 +783,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	    }
 #endif		
 	}
-      
-	if(conn_ctx.current_server->allow_insecure <= 0)
+	if(conn_ctx.current_server != NULL && conn_ctx.current_server->allow_insecure <= 0)
 	{
 		ParodusInfo("Connected to server over SSL\n");
 		OnboardLog("Connected to server over SSL\n");
@@ -772,9 +793,12 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 		ParodusInfo("Connected to server\n");
 		OnboardLog("Connected to server\n");
 	}
-	
-	get_parodus_cfg()->cloud_status = CLOUD_STATUS_ONLINE;
-	ParodusInfo("cloud_status set as %s after successful connection\n", get_parodus_cfg()->cloud_status);
+
+	/* On initial connect success, invoke conn status change event as "success" */
+	if((NULL != on_conn_status_change) && init)
+	{
+		on_conn_status_change("success");
+	}
 
 	// Invoke the ping status change event callback as "received" ping
 	if(NULL != on_ping_status_change)
@@ -782,9 +806,9 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 		on_ping_status_change("received");
 	}
 
-	if((get_parodus_cfg()->boot_time != 0) && init) {
-		getCurrentTime(connectTimePtr);
-		ParodusInfo("connect_time-diff-boot_time=%d\n", connectTimePtr->tv_sec - get_parodus_cfg()->boot_time);
+	if(init) {
+		sysinfo(&l_sSysInfo);
+		ParodusInfo("connect_time-diff-boot_time=%ld\n", l_sSysInfo.uptime);
 		init = 0; //set init to 0 so that this is logged only during process start up and not during reconnect
 	}
 
@@ -800,6 +824,9 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
     stop_conn_in_progress ();
+	ParodusPrint("set cloud_status\n");
+	set_cloud_status(CLOUD_STATUS_ONLINE);
+	ParodusInfo("cloud_status set as %s after successful connection\n", get_cloud_status());
 	return nopoll_true;
 }          
 
@@ -844,7 +871,7 @@ static noPollConnOpts * createConnOpts (char * extra_headers, bool secure)
 	    nopoll_conn_opts_ssl_peer_verify (opts, nopoll_true);
 	    nopoll_conn_opts_set_ssl_protocol (opts, NOPOLL_METHOD_TLSV1_2);
 	}
-	nopoll_conn_opts_set_interface (opts,get_parodus_cfg()->webpa_interface_used);	
+	nopoll_conn_opts_set_interface (opts,getWebpaInterface());	
 	nopoll_conn_opts_set_extra_headers (opts,extra_headers); 
 	return opts;   
 }
@@ -884,8 +911,8 @@ void close_and_unref_connection(noPollConn *conn, bool is_shutting_down)
 {
     if (conn) {
       close_conn (conn, is_shutting_down);
-      get_parodus_cfg()->cloud_status = CLOUD_STATUS_OFFLINE;
-      ParodusInfo("cloud_status set as %s after connection close\n", get_parodus_cfg()->cloud_status);
+      set_cloud_status(CLOUD_STATUS_OFFLINE);
+      ParodusInfo("cloud_status set as %s after connection close\n", get_cloud_status());
     }
 }
 
@@ -932,5 +959,10 @@ void stop_conn_in_progress (void)
 void registerParodusOnPingStatusChangeHandler(parodusOnPingStatusChangeHandler callback_func)
 {
 	on_ping_status_change = callback_func;
+}
+
+void registerParodusOnConnStatusChangeHandler(parodusOnConnStatusChangeHandler callback_func)
+{
+	on_conn_status_change = callback_func;
 }
 

@@ -40,7 +40,7 @@
 /*----------------------------------------------------------------------------*/
 
 void *metadataPack;
-size_t metaPackSize=-1;
+size_t metaPackSize=0;
 
 
 UpStreamMsg *UpStreamMsgQ = NULL;
@@ -83,7 +83,6 @@ void packMetaData()
     //Pack the metadata initially to reuse for every upstream msg sending to server
     ParodusPrint("-------------- Packing metadata ----------------\n");
     sprintf(boot_time, "%d", get_parodus_cfg()->boot_time);
-
     struct data meta_pack[METADATA_COUNT] = {
             {HW_MODELNAME, get_parodus_cfg()->hw_model},
             {HW_SERIALNUMBER, get_parodus_cfg()->hw_serial_number},
@@ -95,10 +94,9 @@ void packMetaData()
             {LAST_RECONNECT_REASON, get_global_reconnect_reason()},
             {WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol},
             {WEBPA_UUID,get_parodus_cfg()->webpa_uuid},
-            {WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used},
+            {WEBPA_INTERFACE, getWebpaInterface()},
             {PARTNER_ID, get_parodus_cfg()->partner_id}
         };
-
     const data_t metapack = {METADATA_COUNT, meta_pack};
 
     metaPackSize = wrp_pack_metadata( &metapack , &metadataPack );
@@ -322,7 +320,10 @@ void *processUpstreamMessage()
                 }
                 else if(msgType == WRP_MSG_TYPE__EVENT)
                 {
-                    ParodusInfo(" Received upstream event data: dest '%s'\n", msg->u.event.dest);
+                    (msg->u.event.headers != NULL && msg->u.event.headers->headers[0] != NULL && msg->u.event.headers->headers[1] != NULL) ? ParodusInfo(" Received upstream event data: dest '%s' traceParent: %s traceState: %s\n", msg->u.event.dest, msg->u.event.headers->headers[0], msg->u.event.headers->headers[1]) : ParodusInfo(" Received upstream event data: dest '%s'\n", msg->u.event.dest);
+		    if(msg->u.event.transaction_uuid != NULL) {
+			    ParodusInfo("transaction_uuid in event: %s\n", msg->u.event.transaction_uuid);
+		    }	    
                     partners_t *partnersList = NULL;
                     int j = 0;
 
@@ -330,6 +331,7 @@ void *processUpstreamMessage()
                     if(ret == 1)
                     {
                         wrp_msg_t *eventMsg = (wrp_msg_t *) malloc(sizeof(wrp_msg_t));
+			memset( eventMsg, 0, sizeof( wrp_msg_t ) );
                         eventMsg->msg_type = msgType;
                         eventMsg->u.event.content_type=msg->u.event.content_type;
                         eventMsg->u.event.source=msg->u.event.source;
@@ -339,6 +341,15 @@ void *processUpstreamMessage()
                         eventMsg->u.event.headers=msg->u.event.headers;
                         eventMsg->u.event.metadata=msg->u.event.metadata;
                         eventMsg->u.event.partner_ids = partnersList;
+			if(msg->u.event.transaction_uuid)
+			{
+				ParodusPrint("Inside Trans id in PARODUS\n");
+			}
+			else
+			{
+				ParodusPrint("Assigning NULL to trans id\n");
+				eventMsg->u.event.transaction_uuid = NULL;
+			}
 
                         int size = wrp_struct_to( eventMsg, WRP_BYTES, &bytes );
                         if(size > 0)
@@ -371,7 +382,7 @@ void *processUpstreamMessage()
 					//Sending to server for msgTypes 3, 5, 6, 7, 8.
 					if( WRP_MSG_TYPE__REQ == msgType )
 					{
-						ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
+						(msg->u.req.headers != NULL && msg->u.req.headers->headers[0] != NULL && msg->u.req.headers->headers[1] != NULL) ? ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s traceParent: %s traceState: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid, msg->u.req.headers->headers[0], msg->u.req.headers->headers[1]) : ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid);
 						sendUpstreamMsgToServer(&message->msg, message->len);
 					}
 					else
@@ -596,11 +607,12 @@ void getServiceNameAndSendResponse(wrp_msg_t *msg, void **msg_bytes, size_t msg_
 	}
 }
 
-void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
+int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 {
 	void *appendData;
 	size_t encodedSize;
 	bool close_retry = false;
+	int sendRetStatus = 1;
 	//appending response with metadata 			
 	if(metaPackSize > 0)
 	{
@@ -615,12 +627,13 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 		//TODO: Upstream and downstream messages in queue should be handled and queue should be empty before parodus forcefully disconnect from cloud.
 		if(!close_retry || (get_parodus_cfg()->cloud_disconnect !=NULL))
 		{
-			sendMessage(get_global_conn(),appendData, encodedSize);
+			sendRetStatus = sendMessage(get_global_conn(),appendData, encodedSize);
 		}
 		else
 		{
 			ParodusInfo("close_retry is %d, unable to send response as connection retry is in progress\n", close_retry);
 			OnboardLog("close_retry is %d, unable to send response as connection retry is in progress\n", close_retry);
+			sendRetStatus = 1;
 		}
 		free(appendData);
 		appendData =NULL;
@@ -628,6 +641,9 @@ void sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	else
 	{		
 		ParodusError("Failed to send upstream as metadata packing is not successful\n");
+		sendRetStatus = 1;
 	}
+	ParodusPrint("sendRetStatus is %d\n", sendRetStatus);
 
+	return sendRetStatus;
 }

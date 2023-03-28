@@ -69,9 +69,9 @@ char* getWebpaConveyHeader()
         cJSON_AddStringToObject(response, WEBPA_PROTOCOL, get_parodus_cfg()->webpa_protocol);
     }
 
-    if(strlen(get_parodus_cfg()->webpa_interface_used)!=0)
+    if(strlen(getWebpaInterface())!=0)
     {
-	    cJSON_AddStringToObject(response, WEBPA_INTERFACE, get_parodus_cfg()->webpa_interface_used);
+	    cJSON_AddStringToObject(response, WEBPA_INTERFACE, getWebpaInterface());
     }	
 
     if(strlen(get_parodus_cfg()->hw_last_reboot_reason)!=0)

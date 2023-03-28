@@ -32,6 +32,10 @@ if (FEATURE_DNS_QUERY)
 set (PARODUS_COMMON_LIBS ${PARODUS_COMMON_LIBS} -lucresolv -lresolv)
 endif (FEATURE_DNS_QUERY)
 
+if (ENABLE_WEBCFGBIN)
+set (PARODUS_COMMON_LIBS ${PARODUS_COMMON_LIBS} -lrbus)
+endif (ENABLE_WEBCFGBIN)
+
 if(NOT DISABLE_VALGRIND)
 set (MEMORY_CHECK valgrind --leak-check=full --show-reachable=yes -v)
 endif ()
@@ -42,7 +46,7 @@ link_directories ( ${LIBRARY_DIR} )
 #   test_heartBeatTimer
 #-------------------------------------------------------------------------------
 add_test(NAME test_heartBeatTimer COMMAND ${MEMORY_CHECK} ./test_heartBeatTimer)
-add_executable(test_heartBeatTimer test_heartBeatTimer.c ../src/heartBeat.c)
+add_executable(test_heartBeatTimer test_heartBeatTimer.c ../src/heartBeat.c ../src/time.c)
 target_link_libraries (test_heartBeatTimer ${PARODUS_COMMON_LIBS} -lcmocka)
 
 #-------------------------------------------------------------------------------
@@ -57,7 +61,10 @@ target_link_libraries (test_close_retry ${PARODUS_COMMON_LIBS} -lcmocka)
 #-------------------------------------------------------------------------------
 add_test(NAME test_mutex COMMAND ${MEMORY_CHECK} ./test_mutex)
 add_executable(test_mutex test_mutex.c ../src/mutex.c)
-target_link_libraries (test_mutex ${PARODUS_COMMON_LIBS} -lcmocka)
+target_link_libraries (test_mutex gcov -lcunit -lcimplog -lwrp-c
+ -luuid -lmsgpackc -lnopoll -lnanomsg -lpthread
+ -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
+ -lssl -lcrypto -lrt -lm -lcmocka)
 
 #-------------------------------------------------------------------------------
 #   test_networking
@@ -70,8 +77,8 @@ target_link_libraries (test_networking ${PARODUS_COMMON_LIBS})
 #   test_nopoll_helpers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_helpers COMMAND ${MEMORY_CHECK} ./test_nopoll_helpers)
-add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c)
-target_link_libraries (test_nopoll_helpers -Wl,--no-as-needed -lrt -lcmocka -lcimplog -lnopoll)
+add_executable(test_nopoll_helpers test_nopoll_helpers.c ../src/nopoll_helpers.c ../src/string_helpers.c ../src/config.c)
+target_link_libraries (test_nopoll_helpers -Wl,--no-as-needed -lrt -lcmocka -lcimplog -lnopoll ${PARODUS_COMMON_LIBS})
 
 #-------------------------------------------------------------------------------
 #   test_time
@@ -105,7 +112,7 @@ target_link_libraries (test_spin_thread_e ${PARODUS_COMMON_LIBS} )
 #   test_nopoll_handlers
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers)
-add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c)
+add_executable(test_nopoll_handlers test_nopoll_handlers.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c ../src/time.c)
 target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm)
 
 
@@ -113,7 +120,7 @@ target_link_libraries (test_nopoll_handlers -lnopoll -lcunit -lcimplog -Wl,--no-
 #   test_nopoll_handlers_fragment
 #-------------------------------------------------------------------------------
 add_test(NAME test_nopoll_handlers_fragment COMMAND ${MEMORY_CHECK} ./test_nopoll_handlers_fragment)
-add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c)
+add_executable(test_nopoll_handlers_fragment test_nopoll_handlers_fragment.c ../src/nopoll_handlers.c ../src/heartBeat.c ../src/close_retry.c ../src/time.c)
 target_link_libraries (test_nopoll_handlers_fragment -lnopoll -lcunit -lcimplog -Wl,--no-as-needed -lrt -lpthread -lm -lcmocka)
 
 #-------------------------------------------------------------------------------
@@ -154,7 +161,11 @@ set(CLIST_SRC ${CLIST_SRC} ../src/seshat_interface.c)
 else()
 set(CLIST_SRC ${CLIST_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
- 
+
+if (ENABLE_WEBCFGBIN)
+set(CLIST_SRC ${CLIST_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
+endif (ENABLE_WEBCFGBIN)
+
 add_executable(test_client_list ${CLIST_SRC})
 #target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS} -lcurl -luuid)
@@ -171,6 +182,10 @@ set(SVA_SRC ${SVA_SRC} ../src/seshat_interface.c)
 else()
 set(SVA_SRC ${SVA_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
+
+if (ENABLE_WEBCFGBIN)
+set(SVA_SRC ${SVA_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
+endif (ENABLE_WEBCFGBIN)
 
 add_executable(test_service_alive ${SVA_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
@@ -200,7 +215,7 @@ target_link_libraries (test_auth_token -lcmocka
 #   test_auth_token_more
 #-------------------------------------------------------------------------------
 add_test(NAME test_auth_token_more COMMAND ${MEMORY_CHECK} ./test_auth_token_more)
-add_executable(test_auth_token_more test_auth_token_more.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
+add_executable(test_auth_token_more test_auth_token_more.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c ../src/config.c)
 target_link_libraries (test_auth_token_more -lcmocka
  -Wl,--no-as-needed -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
@@ -253,7 +268,7 @@ target_link_libraries (test_upstream_sock -lcmocka gcov -lcunit -lcimplog
 #   test_downstream
 #-------------------------------------------------------------------------------
 add_test(NAME test_downstream COMMAND ${MEMORY_CHECK} ./test_downstream)
-add_executable(test_downstream test_downstream.c ../src/downstream.c ../src/string_helpers.c)
+add_executable(test_downstream test_downstream.c ../src/downstream.c ../src/string_helpers.c ../src/config.c)
 target_link_libraries (test_downstream -lcmocka gcov -lcunit -lcimplog
  -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
@@ -263,7 +278,7 @@ target_link_libraries (test_downstream -lcmocka gcov -lcunit -lcimplog
 #   test_downstream_more
 #-------------------------------------------------------------------------------
 add_test(NAME test_downstream_more COMMAND ${MEMORY_CHECK} ./test_downstream_more)
-add_executable(test_downstream_more test_downstream_more.c ../src/downstream.c ../src/string_helpers.c)
+add_executable(test_downstream_more test_downstream_more.c ../src/downstream.c ../src/string_helpers.c ../src/config.c)
 target_link_libraries (test_downstream_more -lcmocka ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
@@ -284,6 +299,7 @@ set(CONIFC_SRC test_conn_interface.c
   ../src/token.c
   ../src/string_helpers.c 
   ../src/mutex.c
+  ../src/time.c
   ../src/heartBeat.c
   ../src/close_retry.c
   ../src/event_handler.c
@@ -294,6 +310,9 @@ set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface.c)
 else()
 set(CONIFC_SRC ${CONIFC_SRC} ../src/seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
+if (ENABLE_WEBCFGBIN)
+set(CONIFC_SRC ${CONIFC_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
+endif (ENABLE_WEBCFGBIN)
 add_executable(test_conn_interface ${CONIFC_SRC})
 target_link_libraries (test_conn_interface -lcmocka ${PARODUS_COMMON_LIBS} -lcurl -luuid )
 
@@ -339,6 +358,10 @@ set(TOKEN_SRC test_token.c ${TOKEN_SRC})
 else()
 set(TOKEN_SRC test_token_stub.c ${TOKEN_SRC})
 endif (FEATURE_DNS_QUERY)
+
+if (ENABLE_WEBCFGBIN)
+set(TOKEN_SRC ${TOKEN_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
+endif (ENABLE_WEBCFGBIN)
 
 add_executable(test_token ${TOKEN_SRC} ) 
 #target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )

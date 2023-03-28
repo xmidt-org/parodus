@@ -64,6 +64,7 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 	struct curl_slist *list = NULL;
 	struct curl_slist *headers_list = NULL;
 
+	char webpa_interface[64]={'\0'};
 	double total;
 
 	struct token_data data;
@@ -80,9 +81,10 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 		curl_easy_setopt(curl, CURLOPT_URL, get_parodus_cfg()->token_server_url);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, CURL_TIMEOUT_SEC);
 
-		if(get_parodus_cfg()->webpa_interface_used !=NULL && strlen(get_parodus_cfg()->webpa_interface_used) >0)
+		parStrncpy(webpa_interface, getWebpaInterface(), sizeof(webpa_interface));
+		if(webpa_interface !=NULL && strlen(webpa_interface) >0)
 		{
-			curl_easy_setopt(curl, CURLOPT_INTERFACE, get_parodus_cfg()->webpa_interface_used);
+			curl_easy_setopt(curl, CURLOPT_INTERFACE, webpa_interface);
 		}
 		/* set callback for writing received data */
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_fn);
@@ -221,8 +223,14 @@ void getAuthToken(ParodusCfg *cfg)
  * @param[in] nmemb size of delivered data
  * @param[out] data curl response data saved.
 */
+#ifndef DEVICE_CAMERA
 size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct token_data *data)
 {
+#else
+size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, void *datain)
+{
+    struct token_data *data = (struct token_data*) datain;
+#endif //DEVICE_CAMERA
     ParodusCfg *cfg;
     size_t max_data_size = sizeof (cfg->webpa_auth_token);
     size_t index = data->size;
@@ -304,7 +312,7 @@ void createCurlheader(struct curl_slist *list, struct curl_slist **header_list)
     snprintf(buf, MAX_BUF_SIZE, "X-Midt-Protocol: %s", get_parodus_cfg()->webpa_protocol);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Interface-Used: %s", get_parodus_cfg()->webpa_interface_used);
+    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Interface-Used: %s", getWebpaInterface());
     list = curl_slist_append(list, buf);
 
     snprintf(buf, MAX_BUF_SIZE, "X-Midt-Last-Reboot-Reason: %s", get_parodus_cfg()->hw_last_reboot_reason);

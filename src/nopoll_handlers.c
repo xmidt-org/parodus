@@ -149,6 +149,7 @@ void listenerOnPingMessage (noPollCtx * ctx, noPollConn * conn, noPollMsg * msg,
         if (nopoll_msg_opcode(msg) == NOPOLL_PING_FRAME) 
         {
             reset_heartBeatTimer();
+	    set_pingTimeStamp();
         }
     }
 }

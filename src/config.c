@@ -33,6 +33,13 @@
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
 /*----------------------------------------------------------------------------*/
+pthread_mutex_t config_mut=PTHREAD_MUTEX_INITIALIZER;
+
+//For sending cond signal when cloud status is ONLINE
+pthread_mutex_t cloud_status_mut=PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cloud_status_cond=PTHREAD_COND_INITIALIZER;
+
+char webpa_interface[64]={'\0'};
 
 static ParodusCfg parodusCfg;
 static unsigned int rsa_algorithms = 
@@ -40,6 +47,15 @@ static unsigned int rsa_algorithms =
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
+pthread_cond_t *get_global_cloud_status_cond(void)
+{
+    return &cloud_status_cond;
+}
+
+pthread_mutex_t *get_global_cloud_status_mut(void)
+{
+    return &cloud_status_mut;
+}
 
 ParodusCfg *get_parodus_cfg(void) 
 {
@@ -61,6 +77,31 @@ void reset_cloud_disconnect_reason(ParodusCfg *cfg)
 	cfg->cloud_disconnect = NULL;
 }
 
+void set_cloud_status(char *status)
+{
+    if(status != NULL)
+    {
+        pthread_mutex_lock(&config_mut);
+        get_parodus_cfg()->cloud_status = status;
+        if(strcmp (status, CLOUD_STATUS_ONLINE) == 0)
+        {
+              pthread_cond_signal(&cloud_status_cond);
+        }
+        pthread_mutex_unlock(&config_mut);
+    }
+}
+
+char *get_cloud_status(void)
+{
+    char *status = NULL;
+    pthread_mutex_lock(&config_mut);
+    if(NULL != get_parodus_cfg()->cloud_status)
+    {
+    	status = get_parodus_cfg()->cloud_status;
+    }
+    pthread_mutex_unlock(&config_mut);
+    return status;    
+}
 
 const char *get_tok (const char *src, int delim, char *result, int resultsize)
 {
@@ -146,9 +187,9 @@ void read_key_from_file (const char *fname, char *buf, size_t buflen)
 int parse_mac_address (char *target, const char *arg)
 {
 	int count = 0;
-	int i;
+	int i, j;
 	char c;
-
+	char *mac = target;
 	for (i=0; (c=arg[i]) != 0; i++) {
 		if (c !=':')
 			count++;
@@ -160,7 +201,46 @@ int parse_mac_address (char *target, const char *arg)
 			*(target++) = c;
 	}
 	*target = 0;	// terminating null
+
+	//convert mac to lowercase
+	for(j = 0; mac[j]; j++)
+	{
+		mac[j] = tolower(mac[j]);
+	}
+	ParodusPrint("mac in lowercase is %s\n", mac);
 	return 0;
+}
+
+int parse_serial_num(char *target, const char *arg)
+{
+	char ch;
+	if(arg != NULL)
+	{
+	    if(strlen(arg) == 0)
+	    {
+	   	ParodusError("Empty serial number, setting to default unknown\n");
+		strcpy(target,"unknown");
+	    }
+            for(int i=0; (ch = arg[i]) != '\0'; i++)
+	    {
+	        // check if character is ascii, a-z --> 97 to 122, A-Z --> 65 to 90, digits(0 to 9) --> 48 to 57
+	    	if((ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90) || (ch >=48 && ch <= 57))
+	        {
+		    target[i] = ch;
+	        }
+	        else
+	        {
+		    ParodusError("Invalid serial number, setting to default unknown\n");
+		    strcpy(target,"unknown");
+		    break;
+	        }
+	    }
+	}
+        else
+        {
+            ParodusError("serial number argument is NULL\n");
+        }
+   return 0;	
 }
 
 int server_is_http (const char *full_url,
@@ -355,6 +435,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"webpa-backoff-max",       required_argument, 0, 'o'},
         {"webpa-interface-used",    required_argument, 0, 'i'},
         {"parodus-local-url",       required_argument, 0, 'l'},
+#ifdef ENABLE_WEBCFGBIN
+	{"max-queue-size",          required_argument, 0, 'q'},
+#endif	
         {"partner-id",              required_argument, 0, 'p'},
 #ifdef ENABLE_SESHAT
         {"seshat-url",              required_argument, 0, 'e'},
@@ -402,7 +485,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
       /* getopt_long stores the option index here. */
       int option_index = 0;
       c = getopt_long (argc, argv, 
-			"m:s:f:d:r:n:b:u:t:o:i:l:p:e:D:j:a:k:c:T:w:J:46:C:S:R:K:M",
+			"m:s:f:d:r:n:b:u:t:o:i:l:q:p:e:D:j:a:k:c:T:w:J:46:C:S:R:K:M",
 			long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -417,8 +500,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
          break;
         
         case 's':
-          parStrncpy(cfg->hw_serial_number,optarg,sizeof(cfg->hw_serial_number));
-          ParodusInfo("hw_serial_number is %s\n",cfg->hw_serial_number);
+	if(parse_serial_num(cfg->hw_serial_number, optarg) == 0)
+            ParodusInfo ("hw_serial_number is %s\n",cfg->hw_serial_number);
           break;
 
         case 'f':
@@ -488,6 +571,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           parStrncpy(cfg->local_url, optarg,sizeof(cfg->local_url));
           ParodusInfo("parodus local_url is %s\n",cfg->local_url);
           break;
+
+#ifdef ENABLE_WEBCFGBIN
+	case 'q':
+	  cfg->max_queue_size = parse_num_arg (optarg, "max-queue-size");
+          if (cfg->max_queue_size == (unsigned int) -1)
+                        return -1;
+          ParodusInfo("max_queue_size is %d\n",cfg->max_queue_size);
+          break;
+#endif  
+
         case 'D':
           // like 'fabric' or 'test'
           // this parameter is used, along with the hw_mac parameter
@@ -724,7 +817,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
     if(strlen(config->webpa_interface_used )!=0)
     {
-        parStrncpy(cfg->webpa_interface_used, config->webpa_interface_used,sizeof(cfg->webpa_interface_used));
+        parStrncpy(getWebpaInterface(), config->webpa_interface_used,sizeof(getWebpaInterface()));
     }
     else
     {
@@ -792,7 +885,9 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
         parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
         ParodusPrint("cert_path is NULL. set to empty\n");
     }
-
+    #ifdef ENABLE_WEBCFGBIN
+        cfg->max_queue_size =  config->max_queue_size;
+    #endif
     cfg->boot_time = config->boot_time;
     cfg->webpa_ping_timeout = config->webpa_ping_timeout;
     cfg->webpa_backoff_max = config->webpa_backoff_max;
@@ -848,4 +943,26 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
 }
 
+#ifdef WAN_FAILOVER_SUPPORTED
+void setWebpaInterface(char *value)
+{
+	pthread_mutex_lock (&config_mut);
+	parStrncpy(get_parodus_cfg()->webpa_interface_used, value, sizeof(get_parodus_cfg()->webpa_interface_used));
+	pthread_mutex_unlock (&config_mut);
+}
+#endif
+
+char *getWebpaInterface(void)
+{
+	#ifdef WAN_FAILOVER_SUPPORTED	
+		ParodusPrint("WAN_FAILOVER_SUPPORTED mode \n");
+		pthread_mutex_lock (&config_mut);	
+		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
+		pthread_mutex_unlock (&config_mut);
+	#else
+		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
+	#endif
+		ParodusPrint("webpa_interface:%s\n", webpa_interface);
+		return webpa_interface;
+}
 

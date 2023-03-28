@@ -23,6 +23,15 @@ else()
 set(SOURCES ${SOURCES} seshat_interface_stub.c)
 endif (ENABLE_SESHAT)
 
+if (ENABLE_WEBCFGBIN)
+set(SOURCES ${SOURCES} upstream_rbus.c xmidtsend_rbus.c)
+endif (ENABLE_WEBCFGBIN)
+
+if (WAN_FAILOVER_SUPPORTED)
+message(STATUS "WAN_FAILOVER_SUPPORTED is supported")
+else()
+message(STATUS "WAN_FAILOVER_SUPPORTED is not supported")
+endif (WAN_FAILOVER_SUPPORTED)
 
 add_executable(parodus ${SOURCES})
 
@@ -53,5 +62,7 @@ if (ENABLE_SESHAT)
 target_link_libraries (parodus -llibseshat)
 endif (ENABLE_SESHAT)
 
-
+if (ENABLE_WEBCFGBIN)
+target_link_libraries (parodus -lrbus)
+endif (ENABLE_WEBCFGBIN)
 install (TARGETS parodus DESTINATION bin)

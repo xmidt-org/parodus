@@ -29,6 +29,7 @@
 #include "../src/ParodusInternal.h"
 
 extern int parse_mac_address (char *target, const char *arg);
+extern int parse_serial_num(char *target, const char *arg);
 extern int server_is_http (const char *full_url,
 	const char **server_ptr);
 extern int parse_webpa_url__(const char *full_url, 
@@ -103,7 +104,7 @@ void test_setParodusConfig()
     assert_string_equal(cfg.hw_last_reboot_reason, temp->hw_last_reboot_reason);
     assert_string_equal(cfg.webpa_path_url, temp->webpa_path_url);
     assert_string_equal(cfg.webpa_url, temp->webpa_url);
-    assert_string_equal(cfg.webpa_interface_used, temp->webpa_interface_used);
+    assert_string_equal(cfg.webpa_interface_used, getWebpaInterface());
     assert_string_equal(cfg.webpa_protocol, temp->webpa_protocol);
     assert_string_equal(cfg.webpa_uuid, temp->webpa_uuid);
     assert_string_equal(cfg.partner_id, temp->partner_id);
@@ -208,13 +209,11 @@ void test_parseCommandLine()
 
     ParodusCfg parodusCfg;
     memset(&parodusCfg,0,sizeof(parodusCfg));
-
 #ifdef FEATURE_DNS_QUERY
 	write_key_to_file ("../../tests/jwt_key.tst", jwt_key);
 #endif
     create_token_script("/tmp/token.sh");
     assert_int_equal (parseCommandLine(argc,command,&parodusCfg), 0);
-
     assert_string_equal( parodusCfg.hw_model, "TG1682");
     assert_string_equal( parodusCfg.hw_serial_number, "Fer23u948590");
     assert_string_equal( parodusCfg.hw_manufacturer, "ARRISGroup,Inc.");
@@ -469,6 +468,14 @@ void test_parse_mac_address ()
 	assert_int_equal (parse_mac_address (result, ""), -1);
 }
 
+void test_parse_serial_num()
+{
+	char result[14];
+	assert_int_equal (parse_serial_num (result, "1234ABC00ab"), 0);
+	assert_int_equal (parse_serial_num (result, "$@@"), 0);
+	assert_int_equal (parse_serial_num (result, ""), 0);
+}	
+
 void test_server_is_http ()
 {
 	const char *server_ptr;
@@ -589,6 +596,7 @@ int main(void)
         cmocka_unit_test(err_loadParodusCfg),
         cmocka_unit_test(test_parse_num_arg),
         cmocka_unit_test(test_parse_mac_address),
+	cmocka_unit_test(test_parse_serial_num),
         cmocka_unit_test(test_get_algo_mask),
         cmocka_unit_test(test_server_is_http),
         cmocka_unit_test(test_parse_webpa_url__),

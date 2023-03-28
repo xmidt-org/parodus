@@ -24,6 +24,7 @@
 #ifndef _CONFIG_H_ 
 #define _CONFIG_H_
 
+#include <pthread.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -87,6 +88,9 @@ typedef struct
     char webpa_uuid[64];
     unsigned int flags;
     char local_url[124];
+#ifdef ENABLE_WEBCFGBIN
+    unsigned int max_queue_size;
+#endif    
     char partner_id[64];
 #ifdef ENABLE_SESHAT
     char seshat_url[128];
@@ -139,6 +143,10 @@ void set_parodus_cfg(ParodusCfg *);
 char *get_token_application(void) ;
 void set_cloud_disconnect_reason(ParodusCfg *cfg, char *disconn_reason);
 void reset_cloud_disconnect_reason(ParodusCfg *cfg);
+char *getWebpaInterface(void);
+void set_cloud_status(char *status);
+char *get_cloud_status(void);
+int get_parodus_init();
 /**
  * parse a webpa url. Extract the server address, the port
  * and return whether it's secure or not

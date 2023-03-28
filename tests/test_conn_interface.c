@@ -44,7 +44,7 @@ pthread_mutex_t svc_mut=PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t svc_con=PTHREAD_COND_INITIALIZER;
 int numLoops;
 parodusOnPingStatusChangeHandler on_ping_status_change;
- 
+
 /*----------------------------------------------------------------------------*/
 /*                                   Mocks                                    */
 /*----------------------------------------------------------------------------*/
@@ -71,7 +71,10 @@ void nopoll_log_set_handler	(noPollCtx *ctx, noPollLogHandler handler, noPollPtr
     UNUSED(ctx); UNUSED(handler); UNUSED(user_data);
     function_called(); 
 }
-
+int cloud_status_is_online (void)
+{
+	return 0;
+}
 void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg, noPollPtr user_data)
 {
     UNUSED(ctx); UNUSED(level); UNUSED(log_msg); UNUSED(user_data);
@@ -103,6 +106,11 @@ void set_global_shutdown_reason(char *reason)
     UNUSED(reason);
 }
 
+int getDeviceId(char **device_id, size_t *device_id_len)
+{
+	UNUSED(device_id); UNUSED(device_id_len);
+	return 0;
+}
 void start_conn_in_progress (unsigned long start_time)
 {
 	UNUSED(start_time);
@@ -139,6 +147,10 @@ void packMetaData()
     function_called();
 }
 
+int get_parodus_init()
+{
+   return 0;
+}
 
 int get_cloud_disconnect_time(void)
 {
@@ -170,6 +182,18 @@ void *messageHandlerTask()
 int serviceAliveTask()
 {
     return 0;
+}
+
+int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
+{
+	UNUSED(msg); UNUSED(partnerIds);
+	return 0;
+}
+
+int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
+{
+	UNUSED(resp_bytes); UNUSED(resp_size);
+	return 0;
 }
 
 int nopoll_loop_wait(noPollCtx * ctx,long timeout)
@@ -335,6 +359,7 @@ void test_createSocketConnection()
 
 void test_createSocketConnection1()
 {
+    numLoops =0;
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0, sizeof(ParodusCfg));
@@ -364,11 +389,11 @@ void test_createSocketConnection1()
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
     createSocketConnection(NULL);
-    
 }
 
 void test_PingMissIntervalTime()
 {
+    numLoops = 6;
     noPollCtx *ctx;
     ParodusCfg cfg;
     memset(&cfg,0,sizeof(ParodusCfg));
@@ -386,7 +411,6 @@ void test_PingMissIntervalTime()
     //Max ping timeout is 6 sec
     cfg.webpa_ping_timeout = 6;
     set_parodus_cfg(&cfg);
-    
     reset_close_retry();
     expect_function_call(nopoll_thread_handlers);
     
@@ -422,11 +446,11 @@ void test_PingMissIntervalTime()
     expect_function_call(nopoll_ctx_unref);
     expect_function_call(nopoll_cleanup_library);
     createSocketConnection(NULL);
-    
 }
 
 void err_createSocketConnection()
 {
+    numLoops =0;
     set_close_retry();
     reset_heartBeatTimer();
     expect_function_call(nopoll_thread_handlers);
@@ -459,6 +483,7 @@ void err_createSocketConnection()
 
 void test_createSocketConnection_cloud_disconn()
 {
+        numLoops =0;
 	ParodusCfg cfg;
 	memset(&cfg,0,sizeof(ParodusCfg));
 	cfg.cloud_disconnect = strdup("XPC");

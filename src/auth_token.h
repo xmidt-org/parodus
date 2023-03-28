@@ -47,7 +47,11 @@ struct token_data {
 
 int requestNewAuthToken(char *newToken, size_t len, int r_count);
 void getAuthToken(ParodusCfg *cfg);
+#ifndef DEVICE_CAMERA
 size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, struct token_data *data);
+#else
+size_t write_callback_fn(void *buffer, size_t size, size_t nmemb, void *data);
+#endif
 char* generate_trans_uuid();
 
 #ifdef __cplusplus

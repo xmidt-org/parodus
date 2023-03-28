@@ -537,13 +537,13 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(WEBPA_INTERFACE, keyName)==0)
 	{
-		if((get_parodus_cfg()->webpa_interface_used !=NULL)&& (strlen(get_parodus_cfg()->fw_name)==0))
+		if((getWebpaInterface() !=NULL)&& (strlen(get_parodus_cfg()->fw_name)==0))
 		{
 			ParodusError("retrieveFromMemory: webpa_interface_used value is NULL\n");
 			return -1;
 		}
-		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->webpa_interface_used);
-		cJSON_AddItemToObject( *jsonresponse, WEBPA_INTERFACE , cJSON_CreateString(get_parodus_cfg()->webpa_interface_used));
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,getWebpaInterface());
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_INTERFACE , cJSON_CreateString(getWebpaInterface()));
 	}
 	else if(strcmp(WEBPA_URL, keyName)==0)
 	{
@@ -577,20 +577,20 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(CLOUD_STATUS, keyName)==0)
 	{
-		if(get_parodus_cfg()->cloud_status ==NULL)
+		if(get_cloud_status() ==NULL)
 		{
 			ParodusError("retrieveFromMemory: cloud_status value is NULL\n");
 			return -1;
 		}
-		else if((get_parodus_cfg()->cloud_status !=NULL) && (strlen(get_parodus_cfg()->cloud_status)==0))
+		else if((get_cloud_status() !=NULL) && (strlen(get_cloud_status())==0))
 		{
 			ParodusError("retrieveFromMemory: cloud_status value is empty\n");
 			return -1;
 		}
 		else
 		{
-			ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n", keyName, get_parodus_cfg()->cloud_status);
-			cJSON_AddItemToObject( *jsonresponse, CLOUD_STATUS , cJSON_CreateString(get_parodus_cfg()->cloud_status));
+			ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n", keyName, get_cloud_status());
+			cJSON_AddItemToObject( *jsonresponse, CLOUD_STATUS , cJSON_CreateString(get_cloud_status()));
 		}
 	}
 	else if(strcmp(BOOT_TIME, keyName)==0)

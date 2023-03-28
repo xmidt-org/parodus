@@ -27,6 +27,9 @@
 #include "partners_check.h"
 #include "ParodusInternal.h"
 #include "crud_interface.h"
+#ifdef ENABLE_WEBCFGBIN
+#include "xmidtsend_rbus.h"
+#endif
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
@@ -91,6 +94,7 @@ void listenerOnMessage(void * msg, size_t msgSize)
                 {
                     ParodusPrint("numOfClients registered is %d\n", get_numOfClients());
                     int ret = validate_partner_id(message, NULL);
+		    ParodusPrint("validate_partner_id returns %d\n", ret);
                     if(ret < 0)
                     {
                         response = cJSON_CreateObject();
@@ -98,7 +102,6 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         cJSON_AddStringToObject(response, "message", "Invalid partner_id");
                     } 
 
-                      
                     destVal = strdup(((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.dest : 
                               ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.dest : message->u.crud.dest)));
 
@@ -120,10 +123,10 @@ void listenerOnMessage(void * msg, size_t msgSize)
 						}
                         ParodusInfo("Received downstream dest as :%s and transaction_uuid :%s\n", dest, 
                             ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid : 
-                            ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
+                            ((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.transaction_uuid : message->u.crud.transaction_uuid)));
 			OnboardLog("%s\n",
                             ((WRP_MSG_TYPE__REQ   == msgType) ? message->u.req.transaction_uuid :
-                            ((WRP_MSG_TYPE__EVENT == msgType) ? "NA" : message->u.crud.transaction_uuid)));
+                            ((WRP_MSG_TYPE__EVENT == msgType) ? message->u.event.transaction_uuid : message->u.crud.transaction_uuid)));
                         
                         free(destVal);
 
@@ -168,13 +171,16 @@ void listenerOnMessage(void * msg, size_t msgSize)
 							destFlag =1;
 			}
 			//if any unknown dest received sending error response to server
-                        if(destFlag ==0)
-                        {
-                            ParodusError("Unknown dest:%s\n", dest);
-                            response = cJSON_CreateObject();
-                            cJSON_AddNumberToObject(response, "statusCode", 531);
-                            cJSON_AddStringToObject(response, "message", "Service Unavailable");
-                        }
+			if (WRP_MSG_TYPE__EVENT != msgType)
+			{
+		                if(destFlag ==0)
+		                {
+		                    ParodusError("Unknown dest:%s\n", dest);
+		                    response = cJSON_CreateObject();
+		                    cJSON_AddNumberToObject(response, "statusCode", 531);
+		                    cJSON_AddStringToObject(response, "message", "Service Unavailable");
+		                }
+			}
                     }
 
                     if( (WRP_MSG_TYPE__EVENT != msgType) &&
@@ -235,6 +241,37 @@ void listenerOnMessage(void * msg, size_t msgSize)
                         }
                         free(resp_msg);
                     }
+		    #ifdef ENABLE_WEBCFGBIN
+		    //To handle cloud ack events received from server for the xmidt sent messages.
+		    if((WRP_MSG_TYPE__EVENT == msgType) && (ret >= 0))
+		    {
+			if(get_parodus_cfg()->max_queue_size > 0)
+			{
+				//Process cloud ack only when qos > 24
+				if(highQosValueCheck(message->u.event.qos))
+				{
+					if(message->u.event.transaction_uuid !=NULL)
+					{
+						ParodusInfo("Received cloud ack from server: transaction_uuid %s qos %d, rdr %d source %s\n", message->u.event.transaction_uuid, message->u.event.qos, message->u.event.rdr, message->u.event.source);
+						addToCloudAckQ(message->u.event.transaction_uuid, message->u.event.qos, message->u.event.rdr, message->u.event.source);
+						ParodusPrint("Added to cloud ack Q\n");
+					}
+					else
+					{
+						ParodusError("cloud ack transaction id is NULL\n");
+					}
+				}
+				else
+				{
+					ParodusInfo("cloud ack received with low qos %d, ignoring it\n", message->u.event.qos);
+				}
+			}
+			else
+			{
+				ParodusInfo("cloud ack is ignored as max queue size is %d\n", get_parodus_cfg()->max_queue_size );
+			}
+		    }
+		    #endif
                     break;
                 }
 

@@ -50,9 +50,9 @@ void setMessageHandlers()
     nopoll_conn_set_on_close(get_global_conn(), (noPollOnCloseHandler)listenerOnCloseMessage, NULL);
 }
 
-static int cloud_status_is_online (void)
+int cloud_status_is_online (void)
 {
-	const char *status = get_parodus_cfg()->cloud_status;
+	const char *status = get_cloud_status();
 	if (NULL == status)
 	  return false;
 	return (strcmp (status, CLOUD_STATUS_ONLINE) == 0);
@@ -60,14 +60,14 @@ static int cloud_status_is_online (void)
 
 /** To send upstream msgs to server ***/
 
-void sendMessage(noPollConn *conn, void *msg, size_t len)
+int sendMessage(noPollConn *conn, void *msg, size_t len)
 {
     int bytesWritten = 0;
 
     if (!cloud_status_is_online ()) {
         ParodusError("Failed to send msg upstream as connection is not OK\n");
         OnboardLog("Failed to send msg upstream as connection is not OK\n");
-		return;
+		return 1;
 	}
 
     ParodusInfo("sendMessage length %zu\n", len);
@@ -77,7 +77,9 @@ void sendMessage(noPollConn *conn, void *msg, size_t len)
     if (bytesWritten != (int) len) 
     {
         ParodusError("Failed to send bytes %zu, bytes written were=%d (errno=%d, %s)..\n", len, bytesWritten, errno, strerror(errno));
+	return 1;
     }
+	return 0;
 }
 
 int sendResponse(noPollConn * conn, void * buffer, size_t length)
