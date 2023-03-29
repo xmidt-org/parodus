@@ -226,27 +226,28 @@ ExternalProject_Add(cjwt
 add_library(libcjwt STATIC SHARED IMPORTED)
 add_dependencies(libcjwt cjwt)
 
-# libboringssl external dependency
+# libmsquic external dependency
 #-------------------------------------------------------------------------------
-ExternalProject_Add(boringssl
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/boringssl
-    GIT_REPOSITORY https://github.com/google/boringssl.git
-    #GIT_TAG "2e13e36e7477cfe2ef48312634b1c34103da4899"
+ExternalProject_Add(msquic
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/msquic
+    GIT_REPOSITORY https://github.com/microsoft/msquic.git
+    GIT_TAG "v2.1.8"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
-add_library(libboringssl STATIC SHARED IMPORTED)
-add_dependencies(libboringssl boringssl)
+add_library(libmsquic STATIC SHARED IMPORTED)
+add_dependencies(libmsquic msquic)
 
-# liblsquic external dependency
+# libnghttp3 external dependency
 #-------------------------------------------------------------------------------
-ExternalProject_Add(lsquic
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/lsquic
-    GIT_REPOSITORY https://github.com/litespeedtech/lsquic.git
-    GIT_TAG "v4.0.0"
+ExternalProject_Add(nghttp3
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nghttp3
+
+    GIT_REPOSITORY https://github.com/ngtcp2/nghttp3.git
+    GIT_TAG "v0.10.0"
     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
 )
-add_library(liblsquic STATIC SHARED IMPORTED)
-add_dependencies(liblsquic lsquic)
+add_library(libnghttp3 STATIC SHARED IMPORTED)
+add_dependencies(libnghttp3 nghttp3)
 
 if (FEATURE_DNS_QUERY)
 # libucresolv external dependency
