@@ -2,7 +2,7 @@
 FROM alpine:3.12
 
 RUN \
-    apk add --no-cache linux-headers cmake autoconf make musl-dev gcc g++ openssl openssl-dev git cunit cunit-dev automake libtool util-linux-dev && \
+    apk add --no-cache bsd-compat-headers linux-headers cmake autoconf make musl-dev gcc g++ openssl openssl-dev git cunit cunit-dev automake libtool util-linux-dev && \
     mkdir -p build
 
 

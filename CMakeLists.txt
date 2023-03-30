@@ -226,28 +226,41 @@ ExternalProject_Add(cjwt
 add_library(libcjwt STATIC SHARED IMPORTED)
 add_dependencies(libcjwt cjwt)
 
+# libmsh3 external dependency
+#-------------------------------------------------------------------------------
+ExternalProject_Add(msh3
+    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/msh3
+    GIT_REPOSITORY https://github.com/nibanks/msh3.git
+    GIT_TAG "v0.6.0"
+    GIT_SUBMODULES_RECURSE true
+    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -G "Unix Makefiles" -DBUILD_TESTING=OFF
+)
+add_library(libmsh3 STATIC SHARED IMPORTED)
+add_dependencies(libmsh3 msh3)
+
+
 # libmsquic external dependency
 #-------------------------------------------------------------------------------
-ExternalProject_Add(msquic
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/msquic
-    GIT_REPOSITORY https://github.com/microsoft/msquic.git
-    GIT_TAG "v2.1.8"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
-)
-add_library(libmsquic STATIC SHARED IMPORTED)
-add_dependencies(libmsquic msquic)
+# ExternalProject_Add(msquic
+#     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/msquic
+#     GIT_REPOSITORY https://github.com/microsoft/msquic.git
+#     GIT_TAG "v2.1.8"
+#     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+# )
+# add_library(libmsquic STATIC SHARED IMPORTED)
+# add_dependencies(libmsquic msquic)
 
-# libnghttp3 external dependency
-#-------------------------------------------------------------------------------
-ExternalProject_Add(nghttp3
-    PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nghttp3
+# # libnghttp3 external dependency
+# #-------------------------------------------------------------------------------
+# ExternalProject_Add(nghttp3
+#     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/_prefix/nghttp3
 
-    GIT_REPOSITORY https://github.com/ngtcp2/nghttp3.git
-    GIT_TAG "v0.10.0"
-    CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
-)
-add_library(libnghttp3 STATIC SHARED IMPORTED)
-add_dependencies(libnghttp3 nghttp3)
+#     GIT_REPOSITORY https://github.com/ngtcp2/nghttp3.git
+#     GIT_TAG "v0.10.0"
+#     CMAKE_ARGS += -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DBUILD_TESTING=OFF
+# )
+# add_library(libnghttp3 STATIC SHARED IMPORTED)
+# add_dependencies(libnghttp3 nghttp3)
 
 if (FEATURE_DNS_QUERY)
 # libucresolv external dependency
