@@ -80,7 +80,7 @@ bool higherPriorityLowQosCheck(int qos)
 	}
 	else
 	{
-		ParodusInfo("The qos is not higher priority low qos\n");
+		ParodusPrint("The qos is not higher priority low qos\n");
 	}
 
 	return false;
@@ -230,8 +230,15 @@ int xmidtQOptmize()
 			{
 				if(get_XmidtQsize() > 0 && get_XmidtQsize() == get_parodus_cfg()->max_queue_size)
 				{
-					ParodusInfo("Max queue size reached, delete low qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
-					del = 2;
+					if(higherPriorityLowQosCheck(tempMsg->u.event.qos))
+					{
+						ParodusInfo("Skip max queue size delete for qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+					}
+					else
+					{
+						ParodusInfo("Max queue size reached, delete low qos %d transid %s\n", tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
+						del = 2;
+					}
 				}
 			}
 		}
