@@ -114,8 +114,8 @@ void print_xmidMsg_list();
 int deleteCloudACKNode(char* trans_id);
 int deleteFromXmidtQ(XmidtMsg **next_node);
 int checkCloudConn();
-void checkMaxQandOptimize();
-void checkMsgExpiry();
+void checkMaxQandOptimize(XmidtMsg *xmdMsg);
+void checkMsgExpiry(XmidtMsg *xmdMsg);
 void mapXmidtStatusToStatusMessage(int status, char **message);
 int xmidtQOptmize();
 #ifdef __cplusplus

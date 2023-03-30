@@ -99,7 +99,9 @@ void createSocketConnection(void (* initKeypress)())
     #endif
 
     EventHandler();
-    
+    #ifdef WAN_FAILOVER_SUPPORTED
+    subscribeCurrentActiveInterfaceEvent();
+    #endif
     set_server_list_null (&server_list);
     create_conn_rtn = createNopollConnection(ctx, &server_list);
     if(!create_conn_rtn)
@@ -113,9 +115,6 @@ void createSocketConnection(void (* initKeypress)())
     UpStreamMsgQ = NULL;
     StartThread(handle_upstream, &upstream_tid);
     StartThread(processUpstreamMessage, &upstream_msg_tid);
-    #ifdef WAN_FAILOVER_SUPPORTED
-    subscribeCurrentActiveInterfaceEvent();
-    #endif 
     ParodusMsgQ = NULL;
     StartThread(messageHandlerTask, &downstream_tid);
     StartThread(serviceAliveTask, &svc_alive_tid);
