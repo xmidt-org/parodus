@@ -31,6 +31,7 @@
 #include "config.h"
 #include "time.h"
 #include "heartBeat.h"
+#include "close_retry.h"
 
 static pthread_t processThreadId = 0;
 static unsigned int XmidtQsize = 0;
@@ -138,9 +139,9 @@ void decrement_XmidtQsize()
 int checkCloudConn()
 {
 	int ret = 1;
-	if (!cloud_status_is_online ())
+	if (get_close_retry() || !cloud_status_is_online ())
 	{
-		ParodusInfo("cloud status is not online, wait till connection up\n");
+		ParodusInfo("close_retry is in progress or cloud status is not online, wait till connection up\n");
 
 		int  rv;
 		struct timespec ts;
@@ -771,8 +772,7 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 			ParodusError("sendXmidtEventToServer is Failed\n");
 			if((highQosValueCheck(qos)) || (higherPriorityLowQosCheck(qos)))
 			{
-				ParodusPrint("The event is having high qos retry again\n");
-				ParodusInfo("Wait till connection is Up\n");
+				ParodusPrint("The event is having high qos retry again, wait till connection is Up\n");
 				rv = checkCloudConn();
 				if(rv == 2)
 				{
@@ -780,7 +780,7 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 					break;
 				}
 				ParodusInfo("Received cloud status signal proceed to retry\n");
-                                printSendMsgData("send to server after cloud reconnect", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
+                               printSendMsgData("send to server after cloud reconnect", notif_wrp_msg->u.event.qos, notif_wrp_msg->u.event.dest, notif_wrp_msg->u.event.transaction_uuid);
 			}
 			else
 			{
