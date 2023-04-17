@@ -33,7 +33,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt-get -y install valgrind libcunit1 libcunit1-doc libcunit1-dev libmsgpack-dev gcovr libtool
-          pip install codecov
+          #pip install codecov
+          pip install coverage
 
       - name: Make Build Directory
         run: mkdir build
