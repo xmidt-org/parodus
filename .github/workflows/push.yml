@@ -20,7 +20,7 @@ on:
 jobs:
   test:
     name: Unit Tests
-    runs-on: [ ubuntu-latest ]
+    runs-on: [ ubuntu-20.04 ]
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
@@ -32,15 +32,15 @@ jobs:
         run: |
           sudo apt update
           sudo apt-get -y install valgrind libcunit1 libcunit1-doc libcunit1-dev libmsgpack-dev gcovr libtool
-          pip install codecov
+          pip install coverage
 
       - name: Make Build Directory
         run: mkdir build
 
       - name: Get Sonarcloud Binaries
-        working-directory: build
-        run: |
-          ../.github/scripts/get_sonarcloud.sh
+        uses: xmidt-org/sonarcloud-installer-action@v1
+        with:
+          working-directory: build
 
       - name: CMake
         working-directory: build
