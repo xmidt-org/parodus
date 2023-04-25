@@ -11,7 +11,7 @@
 
 using namespace std;
 
-char * host = "localhost";
+char * host = "nginx";
 //char * path = "/api/v2/devices"
 char * path = "/"
 
