@@ -11,12 +11,16 @@
 
 using namespace std;
 
+char * host = "localhost";
+//char * path = "/api/v2/devices"
+char * path = "/"
+
 struct Arguments {
-    const char* Host { nullptr };
+    const char* Host { host };
     MsH3Addr Address {443};
-    vector<const char*> Paths;
-    bool Unsecure { false };
-    bool Print { false };
+    vector<const char*> Paths {path};
+    bool Unsecure { true };
+    bool Print { true };
     uint32_t Count { 1 };
 } Args;
 
