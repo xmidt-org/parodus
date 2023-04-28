@@ -320,10 +320,7 @@ void *processUpstreamMessage()
                 }
                 else if(msgType == WRP_MSG_TYPE__EVENT)
                 {
-                    (msg->u.event.headers != NULL && msg->u.event.headers->headers[0] != NULL && msg->u.event.headers->headers[1] != NULL) ? ParodusInfo(" Received upstream event data: dest '%s' traceParent: %s traceState: %s\n", msg->u.event.dest, msg->u.event.headers->headers[0], msg->u.event.headers->headers[1]) : ParodusInfo(" Received upstream event data: dest '%s'\n", msg->u.event.dest);
-		    if(msg->u.event.transaction_uuid != NULL) {
-			    ParodusInfo("transaction_uuid in event: %s\n", msg->u.event.transaction_uuid);
-		    }	    
+                    ParodusInfo(" Received upstream event data: dest '%s'\n", msg->u.event.dest);    
                     partners_t *partnersList = NULL;
                     int j = 0;
 
@@ -382,7 +379,7 @@ void *processUpstreamMessage()
 					//Sending to server for msgTypes 3, 5, 6, 7, 8.
 					if( WRP_MSG_TYPE__REQ == msgType )
 					{
-						(msg->u.req.headers != NULL && msg->u.req.headers->headers[0] != NULL && msg->u.req.headers->headers[1] != NULL) ? ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s traceParent: %s traceState: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid, msg->u.req.headers->headers[0], msg->u.req.headers->headers[1]) : ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid);
+						ParodusInfo(" Received upstream data with MsgType: %d dest: '%s' transaction_uuid: %s\n", msgType, msg->u.req.dest, msg->u.req.transaction_uuid );
 						sendUpstreamMsgToServer(&message->msg, message->len);
 					}
 					else
