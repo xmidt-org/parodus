@@ -711,6 +711,26 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
     return 0;
 }
 
+void free_cfg(ParodusCfg *cfg)
+{
+    if (cfg->mtls_client_cert_path != NULL )
+         free(cfg->mtls_client_cert_path);
+    if(cfg->connection_health_file != NULL)
+        free(cfg->connection_health_file);
+    if(cfg->token_server_url != NULL)
+        free(cfg->token_server_url );
+    if(cfg->mtls_client_key_path != NULL)
+        free(cfg->mtls_client_key_path);
+    if(cfg->client_cert_path != NULL)
+        free(cfg->client_cert_path);
+    if(cfg->crud_config_file != NULL)
+        free(cfg->crud_config_file);
+    if(cfg->close_reason_file != NULL)
+        free(cfg->close_reason_file);
+    if(cfg->cloud_disconnect != NULL)
+        free(cfg->cloud_disconnect);
+}
+
 void setDefaultValuesToCfg(ParodusCfg *cfg)
 {
     if(cfg == NULL)
