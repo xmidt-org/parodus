@@ -113,7 +113,7 @@ int main( int argc, char **argv)
     curl_global_init(CURL_GLOBAL_DEFAULT);
      
     createSocketConnection( NULL);
-    
+    free_cfg(cfg);
     return 0;
 }
 

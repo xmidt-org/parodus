@@ -224,6 +224,9 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_ctx_unref(ctx);
     nopoll_cleanup_library();
     curl_global_cleanup();
+    clear_metadata();
+    rdk_logger_deinit();
+    free_server_list(&server_list);
 }
 
 void shutdownSocketConnection(char *reason) {
