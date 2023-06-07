@@ -320,6 +320,7 @@ void *processUpstreamMessage()
                 }
                 else if(msgType == WRP_MSG_TYPE__EVENT)
                 {
+                    ParodusInfo(" Received upstream event data: dest '%s'\n", msg->u.event.dest);			
                     (msg->u.event.headers != NULL && msg->u.event.headers->headers[0] != NULL && msg->u.event.headers->headers[1] != NULL) ? ParodusInfo(" Received upstream event data: dest '%s' traceParent: %s traceState: %s\n", msg->u.event.dest, msg->u.event.headers->headers[0], msg->u.event.headers->headers[1]) : ParodusInfo(" Received upstream event data: dest '%s'\n", msg->u.event.dest);
 		    if(msg->u.event.transaction_uuid != NULL) {
 			    ParodusInfo("transaction_uuid in event: %s\n", msg->u.event.transaction_uuid);
