@@ -713,22 +713,49 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 
 void free_cfg(ParodusCfg *cfg)
 {
-    if (cfg->mtls_client_cert_path != NULL )
-         free(cfg->mtls_client_cert_path);
-    if(cfg->connection_health_file != NULL)
-        free(cfg->connection_health_file);
-    if(cfg->token_server_url != NULL)
-        free(cfg->token_server_url );
-    if(cfg->mtls_client_key_path != NULL)
-        free(cfg->mtls_client_key_path);
-    if(cfg->client_cert_path != NULL)
-        free(cfg->client_cert_path);
-    if(cfg->crud_config_file != NULL)
-        free(cfg->crud_config_file);
-    if(cfg->close_reason_file != NULL)
-        free(cfg->close_reason_file);
-    if(cfg->cloud_disconnect != NULL)
-        free(cfg->cloud_disconnect);
+    if(cfg != NULL)
+    {
+	    if (cfg->mtls_client_cert_path != NULL )
+	    {
+		 free(cfg->mtls_client_cert_path);
+		 cfg->mtls_client_cert_path = NULL;
+	    }
+	    if(cfg->connection_health_file != NULL)
+	    {
+		free(cfg->connection_health_file);
+		cfg->connection_health_file = NULL;
+	    }
+	    if(cfg->token_server_url != NULL)
+	    {
+		free(cfg->token_server_url );
+		cfg->token_server_url = NULL;
+	    }
+	    if(cfg->mtls_client_key_path != NULL)
+	    {
+		free(cfg->mtls_client_key_path);
+		cfg->mtls_client_key_path = NULL;
+	    }
+	    if(cfg->client_cert_path != NULL)
+	    {
+		free(cfg->client_cert_path);
+		cfg->client_cert_path = NULL;
+	    }
+	    if(cfg->crud_config_file != NULL)
+	    {
+		free(cfg->crud_config_file);
+		cfg->crud_config_file = NULL;
+	    }
+	    if(cfg->close_reason_file != NULL)
+	    {
+		free(cfg->close_reason_file);
+		cfg->close_reason_file = NULL;
+	    }
+	    if(cfg->cloud_disconnect != NULL)
+	    {
+		free(cfg->cloud_disconnect);
+		cfg->cloud_disconnect = NULL;
+	    }
+    }
 }
 
 void setDefaultValuesToCfg(ParodusCfg *cfg)
