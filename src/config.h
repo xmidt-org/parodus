@@ -135,7 +135,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 *    or -1 if error
 */ 
 int parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
-
+void free_cfg(ParodusCfg *cfg);
 void setDefaultValuesToCfg(ParodusCfg *cfg); 
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);

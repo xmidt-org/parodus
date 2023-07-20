@@ -110,6 +110,11 @@ void packMetaData()
 	    ParodusError("Failed to encode metadata\n");
     }
 }
+
+void clear_metadata(){
+    if(metadataPack != NULL)
+         free(metadataPack);
+}
        
 /*
  * @brief To handle UpStream messages which is received from nanomsg server socket
