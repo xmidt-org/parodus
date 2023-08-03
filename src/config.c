@@ -1010,6 +1010,16 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     {
         ParodusPrint("token_server_url is NULL. set to empty\n");
     }
+#ifdef FEATURE_DNS_QUERY
+    if(config->record_jwt_file != NULL)
+    {
+        cfg->record_jwt_file = strdup(config->record_jwt_file);
+    }
+    else
+    {
+        ParodusPrint("record_jwt_file is NULL. set to empty\n");
+    }
+#endif
 }
 
 #ifdef WAN_FAILOVER_SUPPORTED

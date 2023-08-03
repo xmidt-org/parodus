@@ -554,6 +554,10 @@ int allow_insecure_conn(char **server_addr, unsigned int *port)
 		{
 			write_jwt_file(cfg->record_jwt_file, claim_str);
 		}
+		else
+		{
+			ParodusError("The record_jwt_file is NULL, failed to write jwt content to file\n");
+		}
 		free (claim_str);
 	}
 	cjwt_destroy(&jwt);
