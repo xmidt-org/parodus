@@ -457,6 +457,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"close-reason-file",  		required_argument, 0, 'R'},
 	{"mtls-client-key-path",    required_argument, 0, 'K'},
 	{"mtls-client-cert-path",    required_argument, 0,'M'},
+#ifdef FEATURE_DNS_QUERY
+	{"record-jwt-payload",      required_argument, 0,'W'},
+#endif
         {0, 0, 0, 0}
     };
     int c;
@@ -478,6 +481,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->token_server_url = NULL;
 	cfg->cloud_status = NULL;
 	cfg->cloud_disconnect = NULL;
+#ifdef FEATURE_DNS_QUERY
+	cfg->record_jwt_file = NULL;
+#endif
 	optind = 1;  /* We need this if parseCommandLine is called again */
     while (1)
     {
@@ -669,6 +675,12 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
           ParodusInfo("mtls_client_cert_path is %s\n", cfg->mtls_client_cert_path);
           break;
 
+#ifdef FEATURE_DNS_QUERY
+	case 'W':
+          cfg->record_jwt_file = strdup(optarg);
+          ParodusInfo("record_jwt_file is %s\n", cfg->record_jwt_file);
+          break;
+#endif
         case '?':
           /* getopt_long already printed an error message. */
           break;
@@ -755,6 +767,13 @@ void free_cfg(ParodusCfg *cfg)
 		free(cfg->cloud_disconnect);
 		cfg->cloud_disconnect = NULL;
 	    }
+#ifdef FEATURE_DNS_QUERY
+	    if(cfg->record_jwt_file != NULL)
+	    {
+		free(cfg->record_jwt_file);
+		cfg->record_jwt_file = NULL;
+	    }
+#endif
     }
 }
 
@@ -793,6 +812,9 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     cfg->close_reason_file = NULL;
     cfg->client_cert_path = NULL;
     cfg->token_server_url = NULL;
+#ifdef FEATURE_DNS_QUERY
+    cfg->record_jwt_file = NULL;
+#endif
 	
 	cfg->cloud_status = CLOUD_STATUS_OFFLINE;
 	ParodusInfo("Default cloud_status is %s\n", cfg->cloud_status);

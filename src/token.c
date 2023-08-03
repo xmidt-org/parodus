@@ -97,7 +97,25 @@ extern int __res_nquery(res_state statp,
 /*                             Internal functions                             */
 /*----------------------------------------------------------------------------*/
 
-
+void write_jwt_file(char* record_jwt_file, char* jwt_data)
+{
+	if(jwt_data != NULL)
+	{
+		FILE* fp = fopen(record_jwt_file, "w+");
+		if (fp == NULL)
+		{
+			ParodusError("Error opening %s\n", record_jwt_file);
+			return;
+		}
+		fprintf(fp, "%s\n", jwt_data);
+		ParodusInfo("JWT claims is Successfully written to %s\n", record_jwt_file);
+		fclose(fp);
+	}
+	else
+	{
+		ParodusError("JWT claims is Empty or NULL\n");
+	}
+}
 static void show_times (time_t exp_time, time_t cur_time)
 {
 	char exp_buf[30];
@@ -529,8 +547,13 @@ int allow_insecure_conn(char **server_addr, unsigned int *port)
 	}
 
 	if (insecure >= 0) {
+		ParodusCfg *cfg = get_parodus_cfg();
 		char *claim_str = cJSON_Print (jwt->private_claims);
 		ParodusInfo ("JWT claims: %s\n", claim_str);
+		if(cfg->record_jwt_file != NULL)
+		{
+			write_jwt_file(cfg->record_jwt_file, claim_str);
+		}
 		free (claim_str);
 	}
 	cjwt_destroy(&jwt);
