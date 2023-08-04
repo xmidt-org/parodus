@@ -235,7 +235,6 @@ void createSocketConnection(void (* initKeypress)())
 }
 
 void shutdownSocketConnection(char *reason) {
-   ParodusInfo ("shutdownSocketConnection:%s\n",reason);    
    set_global_shutdown_reason (reason);
    g_shutdown = true;
    reset_interface_down_event ();
