@@ -340,6 +340,13 @@ static int backoff_delay (backoff_timer_t *timer)
 
   calc_random_expiration (random(), random(), timer, &ts);
 
+  if (g_shutdown)
+  {
+    ParodusInfo("g_shutdown breaking delay\n");    
+    pthread_condattr_destroy(&backoff_delay_cond_attr);   
+    return BACKOFF_SHUTDOWN;
+  }
+	
   pthread_mutex_lock (&backoff_delay_mut);
   // The condition variable will only be set if we shut down.
   rtn = pthread_cond_timedwait (&backoff_delay_con, &backoff_delay_mut, &ts);
