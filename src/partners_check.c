@@ -171,6 +171,7 @@ int validate_partner_id(wrp_msg_t *msg, partners_t **partnerIds)
             {
                 count = (int) msg->u.req.partner_ids->count;
                 ParodusPrint("partner_ids count is %d\n",count);
+		ParodusInfo("Command line input is %s and msg partner_id is %s\n", temp,msg->u.req.partner_ids->partner_ids[0]);
                 for(i = 0; i < count; i++)
                 {
                     for(j = 0; j<partnersList->count; j++)
