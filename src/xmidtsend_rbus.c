@@ -1544,9 +1544,10 @@ int deleteFromXmidtQ(XmidtMsg **next_node)
 			if (xmdMsg)
 			{
 				ParodusInfo("Delete xmidt node with transid %s\n", xmdMsg->u.event.transaction_uuid);
+				wrp_free_struct( curr_node->msg);
+				curr_node->msg = NULL;
 			}
-			wrp_free_struct( curr_node->msg);
-			curr_node->msg = NULL;
+
 			if(curr_node !=NULL)
 			{
 				free( curr_node );
