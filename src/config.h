@@ -113,6 +113,9 @@ typedef struct
 	char *cloud_status;
 	char *cloud_disconnect;
 	unsigned int boot_retry_wait;
+#ifdef FEATURE_DNS_QUERY
+    char *record_jwt_file;
+#endif
 } ParodusCfg;
 
 #define FLAGS_IPV6_ONLY (1 << 0)
@@ -135,7 +138,7 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg);
 *    or -1 if error
 */ 
 int parseCommandLine(int argc,char **argv,ParodusCfg * cfg);
-
+void free_cfg(ParodusCfg *cfg);
 void setDefaultValuesToCfg(ParodusCfg *cfg); 
 // Accessor for the global config structure.
 ParodusCfg *get_parodus_cfg(void);
