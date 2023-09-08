@@ -250,20 +250,28 @@ int xmidtQOptmize()
 
 		if(del)
 		{
-			ParodusPrint("msg expired, updateXmidtState to DELETE\n");
-			updateXmidtState(temp, DELETE);
-			//rbus callback to caller
-			if(del == 1)
+			//if temp->state is already in DELETE then skip sending ack event 
+			if(temp->state != DELETE)
 			{
-				mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
-				ParodusPrint("statusMsg is %s\n",errorMsg);
-				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, NULL, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+				ParodusPrint("msg expired, updateXmidtState to DELETE\n");
+				updateXmidtState(temp, DELETE);
+				//rbus callback to caller
+				if(del == 1)
+				{
+					mapXmidtStatusToStatusMessage(MSG_EXPIRED, &errorMsg);
+					ParodusPrint("statusMsg is %s\n",errorMsg);
+					createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, MSG_EXPIRED, NULL, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+				}
+				else if(del == 2)
+				{
+					mapXmidtStatusToStatusMessage(QUEUE_OPTIMIZED, &errorMsg);
+					ParodusPrint("statusMsg is %s\n",errorMsg);
+					createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_OPTIMIZED, NULL, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);	
+				}
 			}
-			else if(del == 2)
+			else
 			{
-				mapXmidtStatusToStatusMessage(QUEUE_OPTIMIZED, &errorMsg);
-				ParodusPrint("statusMsg is %s\n",errorMsg);
-				createOutParamsandSendAck(temp->msg, temp->asyncHandle, errorMsg, QUEUE_OPTIMIZED, NULL, RBUS_ERROR_INVALID_RESPONSE_FROM_DESTINATION);
+				ParodusInfo("qos %d transid %s is already in DELETE state\n",tempMsg->u.event.qos, tempMsg->u.event.transaction_uuid);
 			}
 			status = deleteFromXmidtQ(&next_node);
 			temp = next_node;

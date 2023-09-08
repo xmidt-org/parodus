@@ -81,6 +81,16 @@ void __report_log (noPollCtx * ctx, noPollDebugLevel level, const char * log_msg
     function_called(); 
 }
 
+void clear_metadata()
+{
+	return;
+}
+
+void free_server_list (server_list_t *server_list)
+{
+	return;
+}
+
 void nopoll_thread_handlers	(	noPollMutexCreate 	mutex_create,
 noPollMutexDestroy 	mutex_destroy,
 noPollMutexLock 	mutex_lock,
