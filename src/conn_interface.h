@@ -46,6 +46,7 @@ extern UpStreamMsg *UpStreamMsgQ;
  */
 void createSocketConnection(void (* initKeypress)());
 void shutdownSocketConnection(char *reason);
+void free_server_list (server_list_t *server_list);
    
 #ifdef __cplusplus
 }
