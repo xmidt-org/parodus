@@ -232,7 +232,7 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_cleanup_library();
     curl_global_cleanup();
     clear_metadata();
-    rdk_logger_deinit();
+    //rdk_logger_deinit();
     free_server_list(&server_list);
 }
 
