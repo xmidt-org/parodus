@@ -59,10 +59,9 @@ jobs:
           gcovr --sonarqube coverage.xml -r ..
 
       - name: Upload Codecov.io
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        uses: codecov/codecov-action@v1 # v3.1.4
         with:
           directory:   .
-#          flags: unittests
           fail_ci_if_error: true
           
       - name: Upload SonarCloud
