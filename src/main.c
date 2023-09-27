@@ -95,6 +95,13 @@ int main( int argc, char **argv)
 	signal(SIGFPE, sig_handler);
 	signal(SIGILL, sig_handler);
 #endif	
+
+    FILE *pid_fd = fopen("/run/parodus.pid", "w+");
+    if (pid_fd != NULL) {
+        fprintf(pid_fd, "%d\n", getpid());
+	fclose(pid_fd);
+    }
+
     ParodusCfg *cfg;
 
 	ParodusInfo ("RAND_MAX is %ld (0x%lx)\n", RAND_MAX, RAND_MAX);
