@@ -21,7 +21,7 @@ on:
 jobs:
   test:
     name: Unit Tests
-    runs-on: [ ubuntu-latest ]
+    runs-on: [ ubuntu-20.04 ]
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
@@ -33,7 +33,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt-get -y install valgrind libcunit1 libcunit1-doc libcunit1-dev libmsgpack-dev gcovr libtool
-          pip install codecov
+          pip install coverage
 
       - name: Make Build Directory
         run: mkdir build
@@ -59,15 +59,9 @@ jobs:
         run: |
           gcovr --sonarqube coverage.xml -r ..
 
-      - name: Upload SonarCloud
-        run: |
-          build/sonar-scanner/bin/sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Upload Codecov.io
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        uses: codecov/codecov-action@v1
         with:
-          directory:   .
-          flags: unittests
+          directory:        .
           fail_ci_if_error: true
+
