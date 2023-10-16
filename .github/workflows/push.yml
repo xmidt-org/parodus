@@ -65,3 +65,9 @@ jobs:
           directory:        .
           fail_ci_if_error: true
 
+      - name: Upload SonarCloud
+        run: |
+          build/sonar-scanner/bin/sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          

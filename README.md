@@ -4,7 +4,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 # parodus
 
-[![Build Status](https://github.com/xmidt-org/parodus/workflows/CI/badge.svg)](https://github.com/xmidt-org/parodus/actions)
+[![Build Status](https://github.com/xmidt-org/parodus/workflows/CI/badge.svg)](https://github.com/xmidt-org/parodus/actions?branch=master)
 [![codecov.io](http://codecov.io/github/xmidt-org/parodus/coverage.svg?branch=master)](http://codecov.io/github/xmidt-org/parodus?branch=master)
 [![Coverity](https://img.shields.io/coverity/scan/11192.svg)](https://scan.coverity.com/projects/comcast-parodus)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=xmidt-org_parodus&metric=alert_status)](https://sonarcloud.io/dashboard?id=xmidt-org_parodus)
