@@ -39,9 +39,7 @@ jobs:
         run: mkdir build
 
       - name: Get Sonarcloud Binaries
-        uses: xmidt-org/sonarcloud-installer-action@v1
-        with:
-          working-directory: build
+        uses: xmidt-org/sonarcloud-installer-action@v2
 
       - name: CMake
         working-directory: build
@@ -52,7 +50,7 @@ jobs:
       - name: Build
         working-directory: build
         run: |
-          build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output make all test
+          build-wrapper-linux-x86-64 --out-dir bw-output make all test
 
       - name: Merge GCOV Reports for Sonarcloud
         working-directory: build
