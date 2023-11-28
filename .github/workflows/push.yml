@@ -41,7 +41,7 @@ jobs:
       - name: Get Sonarcloud Binaries
         working-directory: build
         run: |
-          tree ..
+          tree -a -I .git ..
           ../.github/scripts/get_sonarcloud.sh
 
       - name: CMake
