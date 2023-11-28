@@ -39,7 +39,7 @@ jobs:
         run: mkdir build
 
       - name: Get Sonarcloud Binaries
-        uses: xmidt-org/sonarcloud-installer-action@v2
+        uses: sonarsource/sonarcloud-github-c-cpp@v2
 
       - name: CMake
         working-directory: build
