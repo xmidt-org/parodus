@@ -38,12 +38,9 @@ jobs:
       - name: Make Build Directory
         run: mkdir build
 
-      - name: Get Sonarcloud Binaries
-        working-directory: build
-        run: |
-          tree -a -I .git ..
-          ../.github/scripts/get_sonarcloud.sh
-
+      - name:  Install sonar-scanner and build-wrapper
+        uses: sonarsource/sonarcloud-github-c-cpp@v2
+        
       - name: CMake
         working-directory: build
         run: |
