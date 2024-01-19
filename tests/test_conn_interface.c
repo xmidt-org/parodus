@@ -88,6 +88,7 @@ void clear_metadata()
 
 void free_server_list (server_list_t *server_list)
 {
+	UNUSED(server_list);
 	return;
 }
 
@@ -344,7 +345,6 @@ void test_createSocketConnection()
     expect_function_call(nopoll_log_set_handler);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
 
     expect_function_calls(StartThread, 5);
     expect_function_call(initKeypress);
@@ -381,7 +381,6 @@ void test_createSocketConnection1()
     expect_function_call(nopoll_log_set_handler);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
 
     expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
@@ -429,7 +428,6 @@ void test_PingMissIntervalTime()
     expect_function_call(nopoll_log_set_handler);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
 
     expect_function_calls(StartThread, 5);
     //Increment ping interval time to 1 sec for each nopoll_loop_wait call
@@ -470,7 +468,6 @@ void err_createSocketConnection()
     expect_function_call(nopoll_log_set_handler);
     will_return(createNopollConnection, nopoll_true);
     expect_function_call(createNopollConnection);
-    expect_function_call(packMetaData);
 
     expect_function_calls(StartThread, 5);
     will_return(nopoll_loop_wait, 1);
@@ -508,7 +505,6 @@ void test_createSocketConnection_cloud_disconn()
 	expect_function_call(nopoll_log_set_handler);
 	will_return(createNopollConnection, nopoll_true);
 	expect_function_call(createNopollConnection);
-	expect_function_call(packMetaData);
 
 	expect_function_calls(StartThread, 5);
 	will_return(nopoll_loop_wait, 1);
