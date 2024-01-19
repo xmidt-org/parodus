@@ -831,6 +831,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	ParodusPrint("LastReasonStatus reset after successful connection\n");
 	setMessageHandlers();
     stop_conn_in_progress ();
+        packMetaData();
 	ParodusPrint("set cloud_status\n");
 	set_cloud_status(CLOUD_STATUS_ONLINE);
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_cloud_status());

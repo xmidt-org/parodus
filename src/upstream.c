@@ -103,7 +103,7 @@ void packMetaData()
 
     if (metaPackSize > 0) 
     {
-	    ParodusPrint("metadata encoding is successful with size %zu\n", metaPackSize);
+	    ParodusInfo("metadata encoding is successful with size %zu\n", metaPackSize);
     }
     else
     {
