@@ -110,7 +110,6 @@ void createSocketConnection(void (* initKeypress)())
 		OnboardLog("Unrecovered error, terminating the process\n");
 		abort();
     }
-    packMetaData();
     
     UpStreamMsgQ = NULL;
     StartThread(handle_upstream, &upstream_tid);

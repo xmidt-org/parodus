@@ -121,6 +121,11 @@ int readFromFile(const char *file_name, char **data)
 	return 1;
 }
 
+void packMetaData()
+{
+  return;
+}
+
 noPollConn * nopoll_conn_new_opts (noPollCtx  * ctx, noPollConnOpts  * opts, const char  * host_ip, const char  * host_port, const char  * host_name,const char  * get_url,const char  * protocols, const char * origin)
 {
     UNUSED(host_port); UNUSED(host_name); UNUSED(get_url); UNUSED(protocols); 
