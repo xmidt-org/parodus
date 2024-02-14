@@ -231,8 +231,10 @@ void createSocketConnection(void (* initKeypress)())
     nopoll_cleanup_library();
     curl_global_cleanup();
     clear_metadata();
-    //disabling it due to local pc build failure
-    //rdk_logger_deinit();
+    //enabled for yocto buid, disabling for local pc due to build failure
+#ifdef BUILD_YOCTO
+    rdk_logger_deinit();
+#endif	
     free_server_list(&server_list);
 }
 
