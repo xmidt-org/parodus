@@ -270,17 +270,17 @@ void createCurlheader(struct curl_slist *list, struct curl_slist **header_list)
     char buf[MAX_BUF_SIZE];
     char *uuid = NULL;
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Mac-Address: %s", get_parodus_cfg()->hw_mac);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Mac-Address: %s", get_parodus_cfg()->hw_mac);
     ParodusPrint("mac_header formed %s\n", buf);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Serial-Number: %s", get_parodus_cfg()->hw_serial_number);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Serial-Number: %s", get_parodus_cfg()->hw_serial_number);
     ParodusPrint("serial_header formed %s\n", buf);
     list = curl_slist_append(list, buf);
 
     uuid = generate_trans_uuid();
     if(uuid !=NULL) {
-        snprintf(buf, MAX_BUF_SIZE, "X-Midt-Uuid: %s", uuid);
+        snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Uuid: %s", uuid);
         ParodusInfo("uuid_header formed %s\n", buf);
         list = curl_slist_append(list, buf);
         free(uuid);
@@ -288,32 +288,32 @@ void createCurlheader(struct curl_slist *list, struct curl_slist **header_list)
         ParodusError("Failed to generate transaction_uuid\n");
     }
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Partner-Id: %s", get_parodus_cfg()->partner_id);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Partner-Id: %s", get_parodus_cfg()->partner_id);
     ParodusInfo("partnerid_header formed %s\n", buf);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Hardware-Model: %s", get_parodus_cfg()->hw_model);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Hardware-Model: %s", get_parodus_cfg()->hw_model);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Hardware-Manufacturer: %s", get_parodus_cfg()->hw_manufacturer);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Hardware-Manufacturer: %s", get_parodus_cfg()->hw_manufacturer);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Firmware-Name: %s", get_parodus_cfg()->fw_name);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Firmware-Name: %s", get_parodus_cfg()->fw_name);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Protocol: %s", get_parodus_cfg()->webpa_protocol);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Protocol: %s", get_parodus_cfg()->webpa_protocol);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Interface-Used: %s", get_parodus_cfg()->webpa_interface_used);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Interface-Used: %s", get_parodus_cfg()->webpa_interface_used);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Last-Reboot-Reason: %s", get_parodus_cfg()->hw_last_reboot_reason);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Last-Reboot-Reason: %s", get_parodus_cfg()->hw_last_reboot_reason);
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Last-Reconnect-Reason: %s", get_global_reconnect_reason());
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Last-Reconnect-Reason: %s", get_global_reconnect_reason());
     list = curl_slist_append(list, buf);
 
-    snprintf(buf, MAX_BUF_SIZE, "X-Midt-Boot-Retry-Wait: %d", get_parodus_cfg()->boot_retry_wait);
+    snprintf(buf, MAX_BUF_SIZE, "X-Xmidt-Boot-Retry-Wait: %d", get_parodus_cfg()->boot_retry_wait);
     list = curl_slist_append(list, buf);
 
     *header_list = list;
