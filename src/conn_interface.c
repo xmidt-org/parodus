@@ -240,8 +240,15 @@ void createSocketConnection(void (* initKeypress)())
 
 void shutdownSocketConnection(char *reason) {
    set_global_shutdown_reason (reason);
-   g_shutdown = true;
-   reset_interface_down_event ();
-   terminate_backoff_delay ();
+   if(g_shutdown == false)
+   {
+    g_shutdown = true;
+    reset_interface_down_event ();
+    terminate_backoff_delay ();
+   }
+   else
+   {
+	ParodusInfo("Shutdown already in progress\n");
+   }
 }
 

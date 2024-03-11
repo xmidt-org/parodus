@@ -44,6 +44,12 @@ static int wait__ (unsigned int secs)
 
   clock_gettime(CLOCK_REALTIME, &svc_alive_timer);
   svc_alive_timer.tv_sec += secs;
+  if (g_shutdown)
+  {
+    ParodusInfo("g_shutdown breaking service alive wait\n");    
+    shutdown_flag = g_shutdown;	 
+    return shutdown_flag;
+  }
   pthread_mutex_lock(&svc_mut);
   pthread_cond_timedwait (&svc_con, &svc_mut, &svc_alive_timer);
   shutdown_flag = g_shutdown;
