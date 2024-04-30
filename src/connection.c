@@ -739,7 +739,8 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
   backoff_timer_t backoff_timer;
   static int init_conn_failure=1;
   struct sysinfo l_sSysInfo;
-  
+  int connection_init = 0;
+
   if(ctx == NULL) {
         return nopoll_false;
   }
@@ -818,6 +819,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 		sysinfo(&l_sSysInfo);
 		ParodusInfo("connect_time-diff-boot_time=%ld\n", l_sSysInfo.uptime);
 		init = 0; //set init to 0 so that this is logged only during process start up and not during reconnect
+		connection_init = 1; // set this flag to skip /tmp/webpanotifyready file creation during bootup
 	}
 
 	free_extra_headers (&conn_ctx);
@@ -836,6 +838,11 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	ParodusPrint("set cloud_status\n");
 	set_cloud_status(CLOUD_STATUS_ONLINE);
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_cloud_status());
+	if(!connection_init)
+	{
+		system("touch /tmp/webpanotifyready");
+		ParodusInfo("Created /tmp/webpanotifyready file as cloud status is online\n");
+	}
 	return nopoll_true;
 }          
 
@@ -922,6 +929,8 @@ void close_and_unref_connection(noPollConn *conn, bool is_shutting_down)
       close_conn (conn, is_shutting_down);
       set_cloud_status(CLOUD_STATUS_OFFLINE);
       ParodusInfo("cloud_status set as %s after connection close\n", get_cloud_status());
+      system("rm -f /tmp/webpanotifyready");
+      ParodusInfo("Removed /tmp/webpanotifyready file as cloud status is offline\n");     
     }
 }
 
