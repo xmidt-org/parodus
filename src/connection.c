@@ -840,8 +840,16 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_cloud_status());
 	if(!connection_init)
 	{
-		system("touch /tmp/webpanotifyready");
-		ParodusInfo("Created /tmp/webpanotifyready file as cloud status is online\n");
+		int chk_ret = creat("/tmp/webpanotifyready",S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+		if (chk_ret == -1)
+		{
+			ParodusError("Error creating the file /tmp/webpanotifyready\n");
+		}
+		else
+		{
+			ParodusInfo("Created /tmp/webpanotifyready file as cloud status is online\n");
+			close(chk_ret);
+		}
 	}
 	return nopoll_true;
 }          
@@ -929,8 +937,15 @@ void close_and_unref_connection(noPollConn *conn, bool is_shutting_down)
       close_conn (conn, is_shutting_down);
       set_cloud_status(CLOUD_STATUS_OFFLINE);
       ParodusInfo("cloud_status set as %s after connection close\n", get_cloud_status());
-      system("rm -f /tmp/webpanotifyready");
-      ParodusInfo("Removed /tmp/webpanotifyready file as cloud status is offline\n");     
+		int chk_ret = remove("/tmp/webpanotifyready");
+		if(chk_ret == 0)
+		{
+			ParodusInfo("Removed /tmp/webpanotifyready file as cloud status is offline\n");
+		}
+		else
+		{
+			ParodusError("Error removing the file /tmp/webpanotifyready\n");
+		}
     }
 }
 
