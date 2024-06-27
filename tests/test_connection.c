@@ -23,6 +23,7 @@
 #include <assert.h>
 #include <nopoll.h>
 #include <pthread.h>
+#include <rbus.h>
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
@@ -215,6 +216,11 @@ int kill(pid_t pid, int sig)
 
 void setMessageHandlers()
 {
+}
+
+rbusError_t SendRbusEventCloudConnOnline()
+{
+	return;
 }
 
 int allow_insecure_conn (char **server_addr, unsigned int *port)

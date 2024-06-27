@@ -26,6 +26,7 @@
 
 #include <pthread.h>
 #include <wrp-c.h>
+#include <rbus.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -43,7 +44,9 @@ typedef struct UpStreamMsg__
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
-
+int rbusRegCloudConnectionOnlineEvent();
+rbusError_t SendRbusEventCloudConnOnline();
+rbusError_t CloudConnectionSubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char* eventName, rbusFilter_t filter, int32_t interval, bool* autoPublish);
 void packMetaData();
 void *handle_upstream();
 void *processUpstreamMessage();
@@ -60,6 +63,7 @@ UpStreamMsg * get_global_UpStreamMsgQ(void);
 pthread_cond_t *get_global_nano_con(void);
 pthread_mutex_t *get_global_nano_mut(void);
 void clear_metadata();
+
 
 #ifdef __cplusplus
 }
