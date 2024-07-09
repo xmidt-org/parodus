@@ -48,6 +48,12 @@ int getGlobalResponseCode()
 {
 	return g_response_code;
 }
+
+void getConfigPwd(uint8_t **pPasswd, size_t *pPasswdSize)
+{
+	UNUSED(pPasswd);
+	UNUSED(pPasswdSize);
+}
 /*
 * @brief Initialize curl object with required options. create newToken using libcurl.
 * @param[out] newToken auth token string obtained from JWT curl response
@@ -67,6 +73,8 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 	char webpa_interface[64]={'\0'};
 	double total;
 
+	uint8_t *pPasswd=NULL;
+	size_t pPasswdSize;
 	struct token_data data;
 	data.size = 0;
 	data.data = newToken;
@@ -109,6 +117,30 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 		{
 			ParodusInfo("curl Ip resolve option set as default mode\n");
 			curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_WHATEVER);
+		}
+
+		/* Set the SSL engine and SSL certificate type for the CURL request */
+		if(get_parodus_cfg()->ssl_engine != NULL && strcmp(get_parodus_cfg()->ssl_engine, "NA") != 0)
+		{
+			curl_easy_setopt(curl, CURLOPT_SSLENGINE, get_parodus_cfg()->ssl_engine);
+		}
+
+		if(get_parodus_cfg()->ssl_cert_type != NULL)
+		{
+			curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, get_parodus_cfg()->ssl_cert_type);
+		}
+
+		if((get_parodus_cfg()->ssl_cert_type != NULL) && (strcmp(get_parodus_cfg()->ssl_cert_type, "pk12") == 0))
+		{
+			getConfigPwd(&pPasswd, &pPasswdSize);
+			if(pPasswd != NULL && pPasswdSize > 0)
+			{
+				curl_easy_setopt(curl, CURLOPT_KEYPASSWD, pPasswd);
+			}
+			else
+			{
+				ParodusError("Failed to get pPasswd for pk12\n");
+			}
 		}
 
 		/* set the cert for client authentication */

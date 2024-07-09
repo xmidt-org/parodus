@@ -104,6 +104,8 @@ typedef struct
     char token_acquisition_script[64];
     char token_read_script[64];
     char *client_cert_path;
+    char *ssl_engine;
+    char *ssl_cert_type;
     char *token_server_url;
     char *connection_health_file;
     char *close_reason_file;
