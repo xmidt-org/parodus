@@ -32,6 +32,12 @@
 #include <curl/curl.h>
 #include <uuid/uuid.h>
 
+#ifndef BUILD_YOCTO
+#include "rdkconfig_generic.h"
+#else
+#include "rdkconfig.h"
+#endif
+
 #define MAX_BUF_SIZE	        256
 #define CURL_TIMEOUT_SEC	25L
 #define MAX_CURL_RETRY_COUNT 	3
@@ -51,9 +57,43 @@ int getGlobalResponseCode()
 
 void getConfigPwd(uint8_t **pPasswd, size_t *pPasswdSize)
 {
-	UNUSED(pPasswd);
-	UNUSED(pPasswdSize);
+	uint8_t *temp=NULL;
+	size_t tempSize;
+	int index = -1;
+
+	if(rdkconfig_get(&temp, &tempSize, get_parodus_cfg()->ssl_reference_name))
+	{
+		ParodusError("%s, Extraction failure for cert reference \n",__FUNCTION__);
+		return;
+	}
+	else
+	{
+		ParodusInfo("The value is %s and size is %zu\n", temp, tempSize);
+		*pPasswd = malloc(tempSize);
+		if (*pPasswd != NULL)
+		{
+			memcpy(*pPasswd, temp, tempSize);
+			index = strcspn(*pPasswd, "\t\r\n");
+			ParodusInfo("The index size is %d\n", index);
+			if((index > 0) && (index <= tempSize))
+			{
+				ParodusInfo("index value is %d and password is %s\n", index, *pPasswd);
+				(*pPasswd)[index] = '\0';
+			}
+			*pPasswdSize = tempSize;
+
+			if (rdkconfig_free(&temp, tempSize)  == RDKCONFIG_FAIL)
+			{
+				ParodusError("%s, Memory deallocation failed \n",__FUNCTION__);
+			}
+		}
+		else
+		{
+			ParodusError("Failed to allocate memory for pPasswd\n");
+		}
+	}
 }
+
 /*
 * @brief Initialize curl object with required options. create newToken using libcurl.
 * @param[out] newToken auth token string obtained from JWT curl response
@@ -130,11 +170,13 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 			curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, get_parodus_cfg()->ssl_cert_type);
 		}
 
-		if((get_parodus_cfg()->ssl_cert_type != NULL) && (strcmp(get_parodus_cfg()->ssl_cert_type, "pk12") == 0))
+		if((get_parodus_cfg()->ssl_cert_type != NULL) && (strcmp(get_parodus_cfg()->ssl_cert_type, "P12") == 0))
 		{
+			ParodusInfo("Inside checking for P12\n");
 			getConfigPwd(&pPasswd, &pPasswdSize);
 			if(pPasswd != NULL && pPasswdSize > 0)
 			{
+				ParodusInfo("pPasswd value is %s and size is %zu\n", pPasswd, pPasswdSize);
 				curl_easy_setopt(curl, CURLOPT_KEYPASSWD, pPasswd);
 			}
 			else
@@ -142,6 +184,7 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 				ParodusError("Failed to get pPasswd for pk12\n");
 			}
 		}
+		ParodusInfo("After ssl part\n");
 
 		/* set the cert for client authentication */
 		curl_easy_setopt(curl, CURLOPT_SSLCERT, get_parodus_cfg()->client_cert_path);
@@ -181,12 +224,26 @@ int requestNewAuthToken(char *newToken, size_t len, int r_count)
 			{
 				ParodusError("Failed response from auth token server %s\n", data.data);
 				curl_easy_cleanup(curl);
+				if(pPasswd != NULL && pPasswdSize > 0)
+				{
+					if (rdkconfig_free(&pPasswd, pPasswdSize) == RDKCONFIG_FAIL)
+					{
+						ParodusError("%s, Memory deallocation failed \n",__FUNCTION__);
+					}
+				}
 				data.size = 0;
 				memset (data.data, 0, len);
 				return -1;
 			}
 		}
 		curl_easy_cleanup(curl);
+		if(pPasswd != NULL && pPasswdSize > 0)
+		{
+			if (rdkconfig_free(&pPasswd, pPasswdSize) == RDKCONFIG_FAIL)
+			{
+				ParodusError("%s, Memory deallocation failed \n",__FUNCTION__);
+			}
+		}
 	}
 	else
 	{
