@@ -23,7 +23,9 @@
 #include <assert.h>
 #include <nopoll.h>
 #include <pthread.h>
+#ifdef ENABLE_WEBCFGBIN
 #include <rbus.h>
+#endif
 
 #include "../src/ParodusInternal.h"
 #include "../src/connection.h"
@@ -218,11 +220,12 @@ void setMessageHandlers()
 {
 }
 
+#ifdef ENABLE_WEBCFGBIN
 rbusError_t SendRbusEventCloudConnOnline()
 {
 	return;
 }
-
+#endif
 int allow_insecure_conn (char **server_addr, unsigned int *port)
 {
   int rtn;
