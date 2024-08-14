@@ -47,8 +47,8 @@ typedef struct UpStreamMsg__
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
 #ifdef ENABLE_WEBCFGBIN
-int rbusRegCloudConnOnlineEvent();
-rbusError_t SendRbusEventCloudConnOnline();
+int regConnOnlineEvent();
+rbusError_t SendConnOnlineEvent();
 rbusError_t CloudConnSubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char* eventName, rbusFilter_t filter, int32_t interval, bool* autoPublish);
 #endif
 void packMetaData();

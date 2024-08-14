@@ -245,7 +245,7 @@ void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rb
 }
 #endif
 
-rbusError_t SendRbusEventCloudConnOnline()
+rbusError_t SendConnOnlineEvent()
 {
 	rbusError_t rc = RBUS_ERROR_BUS_ERROR;
 	if(cloud_online_subscribe)
@@ -285,12 +285,13 @@ rbusError_t CloudConnSubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t 
     (void)autoPublish;
     (void)interval;
 
-    ParodusInfo(
-        "CloudConnSubscribeHandler called:\n" \
-        "\taction=%s\n" \
-        "\teventName=%s\n",
-        action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribe" : "unsubscribe",
-        eventName);
+	if(eventName == NULL)
+	{
+		ParodusError("CloudConnSubscribeHandler: event name is NULL\n");
+		return RBUS_ERROR_INVALID_INPUT;
+	}
+
+    ParodusInfo("CloudConnSubscribeHandler: action=%s eventName=%s\n", action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribe" : "unsubscribe", eventName);
 
     if(!strcmp(CLOUD_CONN_ONLINE, eventName))
     {
@@ -305,15 +306,15 @@ rbusError_t CloudConnSubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t 
 }
 
 
-int rbusRegCloudConnOnlineEvent()
+int regConnOnlineEvent()
 {
 	rbusError_t ret = RBUS_ERROR_SUCCESS;
 	rbusDataElement_t SyncRetryElements[1] = {{CLOUD_CONN_ONLINE, RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, CloudConnSubscribeHandler, NULL}}};
 
-	ParodusInfo("Registering CloudConnectionOnlineEvent  %s\n", CLOUD_CONN_ONLINE);
+	ParodusInfo("Registering rbus event %s\n", CLOUD_CONN_ONLINE);
 	if(!rbus_Handle)
 	{
-		ParodusError("rbusRegCloudConnOnlineEvent failed as rbus_handle is empty\n");
+		ParodusError("regConnOnlineEvent failed as rbus_handle is empty\n");
 		return -1;
 	}
 	ret = rbus_regDataElements(rbus_Handle, 1, SyncRetryElements);

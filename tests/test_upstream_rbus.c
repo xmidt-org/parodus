@@ -33,25 +33,26 @@ int sendUpstreamMsgToServer(void **resp_bytes, size_t resp_size)
 	return;
 }
 //Test case for rbusRegCloudConnectionOnlineEventRbushandle failure 
-void test_rbusRegCloudConnectionOnlineEventRbushandle_failure()
+void test_regConnOnlineEventRbushandle_failure()
 {
-	int result = rbusRegCloudConnOnlineEvent();
+	int result = regConnOnlineEvent();
 	CU_ASSERT_EQUAL(result, -1);
 }
 
 //Test case for rbusRegCloudConnectionOnlineEvent success
-void test_rbusRegCloudConnectionOnlineEvent_success()
+void test_regConnOnlineEvent_success()
 {
 	subscribeRBUSevent();
-	int result = rbusRegCloudConnOnlineEvent();
+	int result = regConnOnlineEvent();
 	CU_ASSERT_EQUAL(result, 0);
 }
 
 //Test case for rbusRegCloudConnectionOnlineEvent failure
-void test_rbusRegCloudConnectionOnlineEvent_failure()
+void test_regConnOnlineEvent_failure()
 {
-	int result = rbusRegCloudConnOnlineEvent();
-	result = rbusRegCloudConnOnlineEvent();
+	//Register event two time and it will create error
+	int result = regConnOnlineEvent();
+	result = regConnOnlineEvent();
 	CU_ASSERT_NOT_EQUAL(result, 0);
 }
 
@@ -110,31 +111,31 @@ void rbushandleclose(char * name)
 }
 
 //Test case for SendRbusEventCloudConnOnline Success
-void test_SendRbusEventCloudConnOnline_success()
+void test_SendConnOnlineEvent_success()
 {
     	subscribe_to_event(CLOUD_CONN_ONLINE);
-	rbusError_t ret = SendRbusEventCloudConnOnline();
+	rbusError_t ret = SendConnOnlineEvent();
 	CU_ASSERT_EQUAL(ret, 0);
 	rbushandleclose(CLOUD_CONN_ONLINE);
 	sleep(1);
 }
 
 //Test case for SendRbusEventCloudConnOnline failure
-void test_SendRbusEventCloudConnOnline_failure()
+void test_SendConnOnlineEvent_failure()
 {
-	rbusError_t ret = SendRbusEventCloudConnOnline();
+	rbusError_t ret = SendConnOnlineEvent();
 	CU_ASSERT_NOT_EQUAL(ret, 0);
 }
 
 void add_suites( CU_pSuite *suite )
 {
 	*suite = CU_add_suite( "tests", NULL, NULL );
-	CU_add_test( *suite, "test rbusRegCloudConnOnlineEventRbushandle_failure", test_rbusRegCloudConnectionOnlineEventRbushandle_failure);
-	CU_add_test( *suite, "test rbusRegCloudConnOnlineEvent_success", test_rbusRegCloudConnectionOnlineEvent_success);
-	CU_add_test( *suite, "test rbusRegCloudConnOnlineEvent_failure", test_rbusRegCloudConnectionOnlineEvent_failure);
+	CU_add_test( *suite, "test regConnOnlineEventRbushandle_failure", test_regConnOnlineEventRbushandle_failure);
+	CU_add_test( *suite, "test regConnOnlineEvent_success", test_regConnOnlineEvent_success);
+	CU_add_test( *suite, "test regConnOnlineEvent_failure", test_regConnOnlineEvent_failure);
 	CU_add_test( *suite, "test CloudConnSubscribeHandler_success", test_CloudConnSubscribeHandler_success);
-	CU_add_test( *suite, "test SendRbusEventCloudConnOnlinesuccess", test_SendRbusEventCloudConnOnline_success);
-	CU_add_test( *suite, "test SendRbusEventCloudConnOnline_failure", test_SendRbusEventCloudConnOnline_failure);
+	CU_add_test( *suite, "test SendConnOnlineEvent_success", test_SendConnOnlineEvent_success);
+	CU_add_test( *suite, "test SendConnOnlineEvent_failure", test_SendConnOnlineEvent_failure);
 }
 
 

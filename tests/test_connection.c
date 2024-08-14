@@ -221,7 +221,7 @@ void setMessageHandlers()
 }
 
 #ifdef ENABLE_WEBCFGBIN
-rbusError_t SendRbusEventCloudConnOnline()
+rbusError_t SendConnOnlineEvent()
 {
 	return;
 }

@@ -843,7 +843,7 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 		#ifdef ENABLE_WEBCFGBIN
     		//Sending cloud connection online event only during reconnect
 		ParodusInfo("Sending cloud connection online event after reconnection\n");
-		SendRbusEventCloudConnOnline();
+		SendConnOnlineEvent();
 		#endif
 		int chk_ret = creat("/tmp/webpanotifyready",S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 		if (chk_ret == -1)
