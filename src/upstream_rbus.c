@@ -32,9 +32,12 @@
 #include "heartBeat.h"
 
 #define WEBCFG_UPSTREAM_EVENT "Webconfig.Upstream"
+#define CLOUD_CONN_ONLINE "cloud_conn_online_event"
 #ifdef WAN_FAILOVER_SUPPORTED
 #define WEBPA_INTERFACE "Device.X_RDK_WanManager.CurrentActiveInterface"
 #endif
+
+int cloud_online_subscribe = 0;
 
 rbusHandle_t rbus_Handle;
 rbusError_t err;
@@ -241,3 +244,88 @@ void eventReceiveHandler( rbusHandle_t rbus_Handle, rbusEvent_t const* event, rb
     }
 }
 #endif
+
+rbusError_t SendConnOnlineEvent()
+{
+	rbusError_t rc = RBUS_ERROR_BUS_ERROR;
+	if(cloud_online_subscribe)
+	{
+		rbusEvent_t event = {0};
+		rbusObject_t data;
+		rbusValue_t value;
+
+		ParodusInfo("publishing cloud connection online Event\n");
+
+		rbusValue_Init(&value);
+		rbusValue_SetInt32(value, 1);
+
+		rbusObject_Init(&data, NULL);
+		rbusObject_SetValue(data, "value", value);
+
+		event.name = CLOUD_CONN_ONLINE;
+		event.data = data;
+		event.type = RBUS_EVENT_GENERAL;
+
+		rc = rbusEvent_Publish(rbus_Handle, &event);
+
+		rbusValue_Release(value);
+		rbusObject_Release(data);
+
+		if(rc != RBUS_ERROR_SUCCESS)
+			ParodusError("provider: rbusEvent_Publish cloud connection online event failed: %d\n", rc);
+	}
+	return rc;
+}
+
+
+rbusError_t CloudConnSubscribeHandler(rbusHandle_t handle, rbusEventSubAction_t action, const char* eventName, rbusFilter_t filter, int32_t interval, bool* autoPublish)
+{
+    (void)handle;
+    (void)filter;
+    (void)autoPublish;
+    (void)interval;
+
+	if(eventName == NULL)
+	{
+		ParodusError("CloudConnSubscribeHandler: event name is NULL\n");
+		return RBUS_ERROR_INVALID_INPUT;
+	}
+
+    ParodusInfo("CloudConnSubscribeHandler: action=%s eventName=%s\n", action == RBUS_EVENT_ACTION_SUBSCRIBE ? "subscribe" : "unsubscribe", eventName);
+
+    if(!strcmp(CLOUD_CONN_ONLINE, eventName))
+    {
+        cloud_online_subscribe = action == RBUS_EVENT_ACTION_SUBSCRIBE ? 1 : 0;
+    }
+    else
+    {
+        ParodusError("provider: CloudConnSubscribeHandler unexpected eventName %s\n", eventName);
+    }
+
+    return RBUS_ERROR_SUCCESS;
+}
+
+
+int regConnOnlineEvent()
+{
+	rbusError_t ret = RBUS_ERROR_SUCCESS;
+	rbusDataElement_t SyncRetryElements[1] = {{CLOUD_CONN_ONLINE, RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, CloudConnSubscribeHandler, NULL}}};
+
+	ParodusInfo("Registering rbus event %s\n", CLOUD_CONN_ONLINE);
+	if(!rbus_Handle)
+	{
+		ParodusError("regConnOnlineEvent failed as rbus_handle is empty\n");
+		return -1;
+	}
+	ret = rbus_regDataElements(rbus_Handle, 1, SyncRetryElements);
+	if(ret == RBUS_ERROR_SUCCESS)
+	{
+		ParodusInfo("Registered cloud connection online event\n");
+	}
+	else
+	{
+		ParodusError("Failed to register cloud connection online event %d\n", ret);
+	}
+	return ret;
+}
+

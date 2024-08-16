@@ -263,6 +263,19 @@ target_link_libraries (test_upstream_sock -lcmocka gcov -lcunit -lcimplog
  -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll -lnanomsg
  -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
  -lssl -lcrypto -lrt -lm)
+ 
+#-------------------------------------------------------------------------------
+#   test_upstream_rbus
+#-------------------------------------------------------------------------------
+if(ENABLE_WEBCFGBIN)
+add_test(NAME test_upstream_rbus COMMAND ${MEMORY_CHECK} ./test_upstream_rbus)
+add_executable(test_upstream_rbus test_upstream_rbus.c ../src/upstream_rbus.c)
+target_link_libraries (test_upstream_rbus -lcmocka gcov -lcunit -lcimplog
+ -lwrp-c -luuid -lpthread -lmsgpackc -lnopoll
+ -Wl,--no-as-needed -lcjson -lcjwt -ltrower-base64
+ -lssl -lcrypto -lrt -lm -lnanomsg -lrbus)
+endif(ENABLE_WEBCFGBIN)
+
 
 #-------------------------------------------------------------------------------
 #   test_downstream

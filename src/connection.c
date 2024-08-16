@@ -840,6 +840,11 @@ int createNopollConnection(noPollCtx *ctx, server_list_t *server_list)
 	ParodusInfo("cloud_status set as %s after successful connection\n", get_cloud_status());
 	if(!connection_init)
 	{
+		#ifdef ENABLE_WEBCFGBIN
+    		//Sending cloud connection online event only during reconnect
+		ParodusInfo("Sending cloud connection online event after reconnection\n");
+		SendConnOnlineEvent();
+		#endif
 		int chk_ret = creat("/tmp/webpanotifyready",S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 		if (chk_ret == -1)
 		{
