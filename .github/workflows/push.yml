@@ -44,13 +44,31 @@ jobs:
       - name: CMake
         working-directory: build
         run: |
-          cmake .. -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=${DISABLE_VALGRIND} -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true
+          cmake .. -DBUILD_GIT:BOOL=true -DENABLE_WEBCFGBIN:BOOL=true -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=${DISABLE_VALGRIND} -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true
+      
+
+      - name: Get rtrouted  Binary
+        working-directory: build
+        run: |
+          ../.github/scripts/rtrouted.sh
 
 
       - name: Build
         working-directory: build
         run: |
+          ps aux 
+          export RBUS_ROOT=${HOME}/rbus
+          export RBUS_INSTALL_DIR=${RBUS_ROOT}/install && \
+          export LD_LIBRARY_PATH=${RBUS_INSTALL_DIR}/usr/lib/rbus_temp_lib:${LD_LIBRARY_PATH}            
+          export C_INCLUDE_PATH=${RBUS_INSTALL_DIR}/usr/include:${RBUS_INSTALL_DIR}/usr/include/rbus                   
+          mkdir _install
+          mkdir _install/lib
+          cp ${RBUS_INSTALL_DIR}/usr/lib/librbus* _install/lib         
           build-wrapper-linux-x86-64 --out-dir bw-output make all test
+
+      - name: Stop rtrouted
+        run: |
+          killall -9 rtrouted
 
       - name: Merge GCOV Reports for Sonarcloud
         working-directory: build
@@ -64,7 +82,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Codecov.io
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        #uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
         with:
           directory:        .
           flags:            unittests

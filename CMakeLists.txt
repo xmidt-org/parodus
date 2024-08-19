@@ -243,7 +243,8 @@ include_directories(${INCLUDE_DIR}
 
 endif (FEATURE_DNS_QUERY)
 
-if (ENABLE_WEBCFGBIN)
+#This RBUS already build from github actions rtrouted.sh script, So disabled in github workflow
+if (( NOT BUILD_GIT) AND  ENABLE_WEBCFGBIN)
 # rbus external dependency
 #-------------------------------------------------------------------------------
 ExternalProject_Add(rbus
