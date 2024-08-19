@@ -51,7 +51,7 @@ jobs:
       - name: Get rtrouted  Binary
         working-directory: build
         run: |
-          ../.github/scripts/rtrouted.sh
+          nohup ../.github/scripts/rtrouted.sh
 
           
       - name: Build
@@ -75,13 +75,7 @@ jobs:
         working-directory: build
         run: |
           gcovr --sonarqube coverage.xml -r ..
-
-      - name: Upload SonarCloud
-        run: |
-          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          
       - name: Upload Codecov.io
         #uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
         uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
@@ -89,3 +83,11 @@ jobs:
           directory:        .
           flags:            unittests
           fail_ci_if_error: true
+          
+      - name: Upload SonarCloud
+        run: |
+          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
