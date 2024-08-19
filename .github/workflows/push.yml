@@ -47,12 +47,13 @@ jobs:
           cmake .. -DBUILD_GIT:BOOL=true -DENABLE_WEBCFGBIN:BOOL=true -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=${DISABLE_VALGRIND} -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true
       
 
+
       - name: Get rtrouted  Binary
         working-directory: build
         run: |
           ../.github/scripts/rtrouted.sh
 
-
+          
       - name: Build
         working-directory: build
         run: |
