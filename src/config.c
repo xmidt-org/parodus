@@ -451,6 +451,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
         {"force-ipv6",              no_argument,       0, '6'},
         {"boot-time-retry-wait",    required_argument, 0, 'w'},
 	{"client-cert-path",        required_argument, 0, 'P'},
+	{"ssl-engine",        required_argument, 0, 'E'},
+	{"ssl-cert-type",        required_argument, 0, 'T'},
+	{"ssl-reference-name",        required_argument, 0, 'N'},
 	{"token-server-url",        required_argument, 0, 'U'},
 	{"crud-config-file",        required_argument, 0, 'C'},
 	{"connection-health-file",  required_argument, 0, 'S'},
@@ -478,6 +481,9 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	cfg->connection_health_file = NULL;
 	cfg->close_reason_file = NULL;
 	cfg->client_cert_path = NULL;
+	cfg->ssl_engine = NULL;
+	cfg->ssl_cert_type = NULL;
+	cfg->ssl_reference_name = NULL;
 	cfg->token_server_url = NULL;
 	cfg->cloud_status = NULL;
 	cfg->cloud_disconnect = NULL;
@@ -491,7 +497,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
       /* getopt_long stores the option index here. */
       int option_index = 0;
       c = getopt_long (argc, argv, 
-			"m:s:f:d:r:n:b:u:t:o:i:l:q:p:e:D:j:a:k:c:T:w:J:46:C:S:R:K:M",
+			"m:s:f:d:r:n:b:u:t:o:i:l:q:p:e:D:j:a:k:c:E:T:N:w:J:46:C:S:R:K:M",
 			long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -660,6 +666,21 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 		ParodusInfo("client_cert_path is %s\n", cfg->client_cert_path);
 		break;
 
+	case 'E':
+		cfg->ssl_engine = strdup(optarg);
+		ParodusInfo("ssl_engine is %s\n",cfg->ssl_engine);
+	break;
+
+	case 'T':
+		cfg->ssl_cert_type = strdup(optarg);
+		ParodusInfo("ssl_cert_type is %s\n",cfg->ssl_cert_type);
+	break;
+
+	case 'N':
+		cfg->ssl_reference_name = strdup(optarg);
+		ParodusInfo("ssl_reference_name is %s\n",cfg->ssl_reference_name);
+	break;
+
 	case 'U':
 		cfg->token_server_url = strdup(optarg);
 		ParodusInfo("token_server_url is %s\n", cfg->token_server_url);
@@ -752,6 +773,21 @@ void free_cfg(ParodusCfg *cfg)
 		free(cfg->client_cert_path);
 		cfg->client_cert_path = NULL;
 	    }
+	    if(cfg->ssl_engine != NULL)
+	    {
+		free(cfg->ssl_engine);
+		cfg->ssl_engine = NULL;
+	    }
+	    if(cfg->ssl_cert_type != NULL)
+	    {
+		free(cfg->ssl_cert_type);
+		cfg->ssl_cert_type = NULL;
+	    }
+	    if(cfg->ssl_reference_name != NULL)
+	    {
+		free(cfg->ssl_reference_name);
+		cfg->ssl_reference_name = NULL;
+	    }
 	    if(cfg->crud_config_file != NULL)
 	    {
 		free(cfg->crud_config_file);
@@ -811,6 +847,9 @@ void setDefaultValuesToCfg(ParodusCfg *cfg)
     cfg->connection_health_file = NULL;
     cfg->close_reason_file = NULL;
     cfg->client_cert_path = NULL;
+    cfg->ssl_engine = NULL;
+    cfg->ssl_cert_type = NULL;
+    cfg->ssl_reference_name = NULL;
     cfg->token_server_url = NULL;
 #ifdef FEATURE_DNS_QUERY
     cfg->record_jwt_file = NULL;
@@ -1000,6 +1039,33 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     else
     {
         ParodusPrint("client_cert_path is NULL. set to empty\n");
+    }
+
+    if(config->ssl_engine != NULL)
+    {
+        cfg->ssl_engine = strdup(config->ssl_engine);
+    }
+    else
+    {
+        ParodusPrint("ssl_engine is NULL. set to empty\n");
+    }
+
+    if(config->ssl_cert_type != NULL)
+    {
+        cfg->ssl_cert_type = strdup(config->ssl_cert_type);
+    }
+    else
+    {
+        ParodusPrint("ssl_cert_type is NULL. set to empty\n");
+    }
+
+    if(config->ssl_reference_name != NULL)
+    {
+        cfg->ssl_reference_name = strdup(config->ssl_reference_name);
+    }
+    else
+    {
+        ParodusPrint("ssl_reference_name is NULL. set to empty\n");
     }
 
     if(config->token_server_url != NULL)
