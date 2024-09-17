@@ -44,7 +44,7 @@ jobs:
       - name: CMake
         working-directory: build
         run: |
-          cmake .. -DBUILD_GIT:BOOL=true -DENABLE_WEBCFGBIN:BOOL=true -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=${DISABLE_VALGRIND} -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true
+          cmake .. -DBUILD_GIT:BOOL=true -DENABLE_WEBCFGBIN:BOOL=true -DINTEGRATION_TESTING:BOOL=false -DDISABLE_VALGRIND:BOOL=${DISABLE_VALGRIND} -DENABLE_SESHAT:BOOL=true -DFEATURE_DNS_QUERY:BOOL=true -DPARODUS_SECERT_ENABLE:BOOL=true
 
 
       - name: Get rtrouted  Binary
@@ -74,11 +74,11 @@ jobs:
         run: |
           gcovr --sonarqube coverage.xml -r ..
 
-      - name: Upload SonarCloud
-        run: |
-          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #- name: Upload SonarCloud
+      #  run: |
+      #    sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Codecov.io
         uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
