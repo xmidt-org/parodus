@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h> 
 
 #include "rdkconfig_generic.h"
 #include "parodus_log.h"
@@ -31,6 +32,22 @@ int rdkconfig_get( uint8_t **buf, size_t *buffsize, const char *reference )
 {
 	/* This is stub function, No need implemetation */
 	ParodusInfo("Inside rdkconfig_get stub function.\n");
+
+	if ( reference == NULL ) {
+		ParodusInfo( "rdkconfig_get: error, bad argument\n" );
+		return RDKCONFIG_FAIL;
+	}
+
+	if(strcmp(reference,"/tmp/.cfgStaticxpki") == 0)
+	{
+		*buf = strdup("xxx");
+        *buffsize = 3;
+	}
+	else
+	{
+		*buf = strdup("yyy\n");
+        *buffsize = 4;
+	}
 	return RDKCONFIG_OK;
 }
 
@@ -43,8 +60,13 @@ int rdkconfig_set( const char *reference, uint8_t *buf, size_t buffsize )
 
 int rdkconfig_free( uint8_t **buf, size_t buffsize )
 {
-	ParodusInfo("Inside rdkconfig_free stub function.\n");	
-	free(*buf );
-	*buf = NULL;
+	ParodusInfo("Inside rdkconfig_free stub function.\n");
+	if ( buf == NULL ) return RDKCONFIG_FAIL;
+	if ( *buf == NULL ) {
+		return RDKCONFIG_OK; // ok if pointer is null
+	}
+	memset( *buf, 0, buffsize );
+	free( *buf );
+	buf = NULL;
 	return RDKCONFIG_OK;
 }
