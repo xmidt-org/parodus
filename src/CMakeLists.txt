@@ -17,6 +17,10 @@ set(SOURCES main.c mutex.c networking.c nopoll_helpers.c heartBeat.c nopoll_hand
     upstream.c downstream.c thread_tasks.c partners_check.c token.c event_handler.c
 	crud_interface.c crud_tasks.c crud_internal.c close_retry.c auth_token.c privilege.c)
 
+if (NOT BUILD_YOCTO)
+set(SOURCES ${SOURCES} rdkconfig_generic.c)
+endif (NOT BUILD_YOCTO)
+
 if (ENABLE_SESHAT)
 set(SOURCES ${SOURCES} seshat_interface.c)
 else()
@@ -65,4 +69,10 @@ endif (ENABLE_SESHAT)
 if (ENABLE_WEBCFGBIN)
 target_link_libraries (parodus -lrbus)
 endif (ENABLE_WEBCFGBIN)
+
+if (BUILD_YOCTO)
+if (PARODUS_SECERT_ENABLE)
+target_link_libraries (parodus -lrdkconfig -lsecure_wrapper)
+endif (PARODUS_SECERT_ENABLE)
+endif (BUILD_YOCTO)
 install (TARGETS parodus DESTINATION bin)

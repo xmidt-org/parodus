@@ -131,6 +131,10 @@ set (CONN_SRC ../src/connection.c
   ../src/string_helpers.c ../src/mutex.c ../src/time.c 
   ../src/config.c ../src/auth_token.c ../src/spin_thread.c  ../src/heartBeat.c ../src/close_retry.c)
 #set(CONN_SRC ../src/connection.c ${PARODUS_COMMON_SRC})
+if (NOT BUILD_YOCTO)
+set(CONN_SRC ${CONN_SRC} ../src/rdkconfig_generic.c)
+endif (NOT BUILD_YOCTO)
+
 add_executable(test_connection test_connection.c ${CONN_SRC})
 target_link_libraries (test_connection ${PARODUS_COMMON_LIBS} -lcmocka -lcurl -luuid)
 
@@ -166,6 +170,10 @@ if (ENABLE_WEBCFGBIN)
 set(CLIST_SRC ${CLIST_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
 endif (ENABLE_WEBCFGBIN)
 
+if (NOT BUILD_YOCTO)
+set(CLIST_SRC ${CLIST_SRC} ../src/rdkconfig_generic.c)
+endif (NOT BUILD_YOCTO)
+
 add_executable(test_client_list ${CLIST_SRC})
 #target_link_libraries (test_client_list ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 target_link_libraries (test_client_list ${PARODUS_COMMON_LIBS} -lcurl -luuid)
@@ -187,6 +195,10 @@ if (ENABLE_WEBCFGBIN)
 set(SVA_SRC ${SVA_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
 endif (ENABLE_WEBCFGBIN)
 
+if (NOT BUILD_YOCTO)
+set(SVA_SRC ${SVA_SRC} ../src/rdkconfig_generic.c)
+endif (NOT BUILD_YOCTO)
+
 add_executable(test_service_alive ${SVA_SRC})
 #target_link_libraries (test_service_alive ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS})
 target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} -lcurl -luuid)
@@ -195,7 +207,10 @@ target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 #   test_config
 #-------------------------------------------------------------------------------
 add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
-add_executable(test_config test_config.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
+if (NOT BUILD_YOCTO)
+set(CON_SRC ${CON_SRC} ../src/rdkconfig_generic.c)
+endif (NOT BUILD_YOCTO)
+add_executable(test_config test_config.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c ${CON_SRC})
 target_link_libraries (test_config -lcmocka
  -Wl,--no-as-needed -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
@@ -205,17 +220,22 @@ target_link_libraries (test_config -lcmocka
 #   test_auth_token
 #-------------------------------------------------------------------------------
 add_test(NAME test_auth_token COMMAND ${MEMORY_CHECK} ./test_auth_token)
-add_executable(test_auth_token test_auth_token.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c)
+if (NOT BUILD_YOCTO)
+set(AUTH_SRC ${AUTH_SRC} ../src/rdkconfig_generic.c)
+endif (NOT BUILD_YOCTO)
+
+add_executable(test_auth_token test_auth_token.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c ${AUTH_SRC})
 target_link_libraries (test_auth_token -lcmocka
  -Wl,--no-as-needed -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
 )
 
+
 #-------------------------------------------------------------------------------
 #   test_auth_token_more
 #-------------------------------------------------------------------------------
 add_test(NAME test_auth_token_more COMMAND ${MEMORY_CHECK} ./test_auth_token_more)
-add_executable(test_auth_token_more test_auth_token_more.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c ../src/config.c)
+add_executable(test_auth_token_more test_auth_token_more.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c ../src/config.c ${AUTH_SRC})
 target_link_libraries (test_auth_token_more -lcmocka
  -Wl,--no-as-needed -lcimplog
  -lcjson -lcjwt -ltrower-base64 -lssl -lcrypto -lrt -lm -lcurl -luuid
@@ -375,6 +395,10 @@ endif (FEATURE_DNS_QUERY)
 if (ENABLE_WEBCFGBIN)
 set(TOKEN_SRC ${TOKEN_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
 endif (ENABLE_WEBCFGBIN)
+
+if (NOT BUILD_YOCTO)
+set(TOKEN_SRC ${TOKEN_SRC} ../src/rdkconfig_generic.c)
+endif (NOT BUILD_YOCTO)
 
 add_executable(test_token ${TOKEN_SRC} ) 
 #target_link_libraries (test_token ${PARODUS_COMMON_LIBS} ${PARODUS_JWT_LIBS} -lcmocka )
