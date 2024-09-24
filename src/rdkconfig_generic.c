@@ -23,6 +23,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h> 
 
 #include "rdkconfig_generic.h"
 #include "parodus_log.h"
@@ -43,8 +44,13 @@ int rdkconfig_set( const char *reference, uint8_t *buf, size_t buffsize )
 
 int rdkconfig_free( uint8_t **buf, size_t buffsize )
 {
-	ParodusInfo("Inside rdkconfig_free stub function.\n");	
-	free(*buf );
-	*buf = NULL;
+	ParodusInfo("Inside rdkconfig_free stub function.\n");
+	if ( buf == NULL ) return RDKCONFIG_FAIL;
+	if ( *buf == NULL ) {
+		return RDKCONFIG_OK; // ok if pointer is null
+	}
+	memset( *buf, 0, buffsize );
+	free( *buf );
+	buf = NULL;
 	return RDKCONFIG_OK;
 }

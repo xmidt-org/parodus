@@ -446,3 +446,16 @@ add_executable(simple ${SIMPLE_SRC})
 
 target_link_libraries (simple ${PARODUS_CONN_LIBS} ${PARODUS_COMMON_LIBS}  gcov -lnopoll )
 endif (INTEGRATION_TESTING)
+
+if (PARODUS_SECERT_ENABLE)
+#-------------------------------------------------------------------------------
+#   test_mqttcm_generic
+#-------------------------------------------------------------------------------
+
+add_test(NAME test_rdkconfig_generic COMMAND ${MEMORY_CHECK} ./test_rdkconfig_generic)
+set(SOURCES test_rdkconfig_generic.c ../src/rdkconfig_generic.c)
+add_executable(test_rdkconfig_generic ${SOURCES})
+target_link_libraries (test_rdkconfig_generic -lcunit  -lcimplog)
+
+target_link_libraries (test_rdkconfig_generic gcov -Wl,--no-as-needed )
+endif (PARODUS_SECERT_ENABLE)
