@@ -201,6 +201,7 @@ target_link_libraries (test_service_alive ${PARODUS_COMMON_LIBS} -lcurl -luuid)
 #   test_config
 #-------------------------------------------------------------------------------
 add_test(NAME test_config COMMAND ${MEMORY_CHECK} ./test_config)
+
 set(CON_SRC ${CON_SRC} ../src/rdkconfig_generic.c)
 add_executable(test_config test_config.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c ${CON_SRC})
 target_link_libraries (test_config -lcmocka
@@ -213,6 +214,7 @@ target_link_libraries (test_config -lcmocka
 #-------------------------------------------------------------------------------
 add_test(NAME test_auth_token COMMAND ${MEMORY_CHECK} ./test_auth_token)
 set(AUTH_SRC ${AUTH_SRC} ../src/rdkconfig_generic.c)
+
 
 add_executable(test_auth_token test_auth_token.c ../src/config.c ../src/auth_token.c ../src/string_helpers.c ${AUTH_SRC})
 target_link_libraries (test_auth_token -lcmocka
