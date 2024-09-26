@@ -203,6 +203,9 @@ void test_parseCommandLine()
 		"--jwt-algo=RS256",
 #endif
 		"--crud-config-file=parodus_cfg.json",
+		"--ssl-engine=NA",
+		"--ssl-cert-type=pem",
+		"--ssl-reference-name=xyz",        
 		NULL
 	};
 	int argc = (sizeof (command) / sizeof (char *)) - 1;
@@ -247,6 +250,9 @@ void test_parseCommandLine()
 #endif
 	assert_int_equal( (int) parodusCfg.boot_retry_wait, 10);
 	assert_string_equal(parodusCfg.crud_config_file, "parodus_cfg.json");
+	assert_string_equal(parodusCfg.ssl_engine,"NA");
+	assert_string_equal(parodusCfg.ssl_cert_type,"pem");
+	assert_string_equal(parodusCfg.ssl_reference_name,"xyz");    
 }
 
 void test_parseCommandLineNull()

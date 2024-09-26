@@ -412,6 +412,43 @@ void test_getAuthTokenFailure_non200 ()
 	free(cfg.token_server_url);
 }
 
+#ifdef PARODUS_SECERT_ENABLE
+void test_getConfigPwd ()
+{
+	uint8_t *pPasswd = NULL;
+	size_t pPasswdSize = 0;
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	cfg.ssl_reference_name = strdup("/tmp/.cfgStaticxpki");	
+	set_parodus_cfg(&cfg);
+	getConfigPwd(&pPasswd, &pPasswdSize);
+	assert_string_equal( pPasswd, "xxx");
+	assert_int_equal(pPasswdSize,4);
+	free(pPasswd);
+	free(cfg.ssl_reference_name);
+	cfg.ssl_reference_name = strdup("/tmp/.cfgDynamicSExpki");
+	set_parodus_cfg(&cfg);	
+	getConfigPwd(&pPasswd, &pPasswdSize);
+	assert_string_equal( pPasswd, "yyy");
+	assert_int_equal(pPasswdSize,4);
+	free(pPasswd);
+	free(cfg.ssl_reference_name);
+}
+void test_getConfigPwd_failure ()
+{
+	uint8_t *pPasswd = NULL;
+	size_t pPasswdSize = 0;
+	ParodusCfg cfg;
+	memset(&cfg,0,sizeof(cfg));
+	free(cfg.ssl_reference_name);
+	cfg.ssl_reference_name = NULL;
+	set_parodus_cfg(&cfg);
+	getConfigPwd(&pPasswd, &pPasswdSize);
+	assert_int_equal(pPasswdSize,0);
+	assert_null( pPasswd);	
+}
+#endif
+
 /*----------------------------------------------------------------------------*/
 /*                             External Functions                             */
 /*----------------------------------------------------------------------------*/
@@ -428,7 +465,11 @@ int main(void)
 	cmocka_unit_test(test_getAuthToken),
 	cmocka_unit_test(test_getAuthTokenFailure),
 	cmocka_unit_test(test_requestNewAuthToken_non200),
-	cmocka_unit_test(test_getAuthTokenFailure_non200)
+	cmocka_unit_test(test_getAuthTokenFailure_non200),
+#ifdef PARODUS_SECERT_ENABLE
+	cmocka_unit_test(test_getConfigPwd),
+	cmocka_unit_test(test_getConfigPwd_failure),
+#endif
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
