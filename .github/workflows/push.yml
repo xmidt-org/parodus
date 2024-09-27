@@ -17,6 +17,7 @@ on:
     branches:
       - main
       - master
+      - parodus_test
 
 jobs:
   test:
@@ -63,7 +64,8 @@ jobs:
           mkdir _install
           mkdir _install/lib
           cp ${RBUS_INSTALL_DIR}/usr/lib/librbus* _install/lib
-          build-wrapper-linux-x86-64 --out-dir bw-output make all test
+          build-wrapper-linux-x86-64 --out-dir bw-output make all
+          ./tests/test_token -a
 
       - name: Stop rtrouted
         run: |
