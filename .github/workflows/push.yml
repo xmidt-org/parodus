@@ -65,7 +65,10 @@ jobs:
           mkdir _install/lib
           cp ${RBUS_INSTALL_DIR}/usr/lib/librbus* _install/lib
           build-wrapper-linux-x86-64 --out-dir bw-output make all
-          ./tests/test_token -a
+          cd tests
+          ./test_token -a
+          cd ..
+          build-wrapper-linux-x86-64 --out-dir bw-output make all test
 
       - name: Stop rtrouted
         run: |
