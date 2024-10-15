@@ -769,9 +769,9 @@ int sendXmidtEventToServer(XmidtMsg *msgnode, wrp_msg_t * msg, rbusMethodAsyncHa
 					ParodusInfo("msg_bytes free\n");
 					free(msg_bytes);
 					msg_bytes = NULL;
-				}
+				}								
 				return rv;
-			}
+			}		
 		}
 		else
 		{
