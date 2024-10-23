@@ -939,8 +939,8 @@ static void close_conn ( noPollConn *conn, bool is_shutting_down)
 void close_and_unref_connection(noPollConn *conn, bool is_shutting_down)
 {
     if (conn) {
-      close_conn (conn, is_shutting_down);
       set_cloud_status(CLOUD_STATUS_OFFLINE);
+      close_conn (conn, is_shutting_down);
       ParodusInfo("cloud_status set as %s after connection close\n", get_cloud_status());
 		int chk_ret = remove("/tmp/webpanotifyready");
 		if(chk_ret == 0)
