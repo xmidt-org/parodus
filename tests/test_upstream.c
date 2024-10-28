@@ -109,6 +109,7 @@ ParodusCfg *get_parodus_cfg(void)
 {
 	ParodusCfg cfg;
 	memset(&cfg,0,sizeof(cfg));
+	cfg.cloud_status = CLOUD_STATUS_ONLINE;
 	parStrncpy(cfg.hw_mac , "14cfe2142xxx", sizeof(cfg.hw_mac));
 	if(deviceIDNull)
 	{
