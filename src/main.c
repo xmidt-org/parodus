@@ -123,7 +123,6 @@ int main( int argc, char **argv)
     registerRbusLogger();
     subscribeRBUSevent();
     regXmidtSendDataMethod();
-    regConnOnlineEvent();
     #endif
     setDefaultValuesToCfg(cfg);
     if (0 != parseCommandLine(argc,argv,cfg)) {
