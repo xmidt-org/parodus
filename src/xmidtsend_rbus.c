@@ -1587,7 +1587,12 @@ void checkMsgExpiry(XmidtMsg *xmdMsg)
 	temp = xmdMsg;
 
 	if(temp != NULL)
-	{
+	{       
+		if (temp->msg == NULL)
+                {
+		    ParodusError("temp->msg is NULL. Cannot check message expiry.\n");
+	            return;
+		}
 		getCurrentTime(&ts);
 		currTime= (long long)ts.tv_sec;
 		wrp_msg_t * tempMsg = temp->msg;
