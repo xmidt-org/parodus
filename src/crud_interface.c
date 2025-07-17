@@ -161,14 +161,14 @@ void addCRUDresponseToUpstreamQ(void *response_bytes, ssize_t response_size)
 		if(get_global_UpStreamMsgQ() == NULL)
 		{
 			set_global_UpStreamMsgQ(response);
-			ParodusPrint("Producer added CRUD response to UpStreamQ\n");
+			ParodusInfo("Producer added CRUD response to UpStreamQ\n");
 			pthread_cond_signal(get_global_nano_con());
 			pthread_mutex_unlock (get_global_nano_mut());
 			ParodusPrint("mutex unlock in CRUD response producer\n");
 		}
 		else
 		{
-			ParodusPrint("Producer adding CRUD response to UpStreamQ\n");
+			ParodusInfo("Producer adding CRUD response to UpStreamQ\n");
 			UpStreamMsg *temp = get_global_UpStreamMsgQ();
 			while(temp->next)
 			{

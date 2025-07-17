@@ -1783,3 +1783,118 @@ void mapXmidtStatusToStatusMessage(int status, char **message)
 	ParodusInfo("Xmidt status message: %s\n", result);
 	*message = result;
 }
+
+int rbus_methodHandler(const char *methodName, cJSON *payloadJson, char **methodResponseOut)
+{
+    rbusObject_t inParams = NULL, outParams = NULL;
+    rbusHandle_t rbus_handle = NULL;
+    rbusError_t rc;
+    *methodResponseOut = NULL;
+	int i = 0;
+
+
+    ParodusInfo("Invoking RBUS method: %s\n", methodName);
+
+    rbus_handle = get_parodus_rbus_Handle();
+    if (!rbus_handle)
+    {
+        ParodusError("rbus_methodHandler failed: rbus_handle is NULL\n");
+        return -1;
+    }
+
+    // Initialize inParams and fill with key-value pairs (excluding "Method")
+    rbusObject_Init(&inParams, "NULL");
+
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, payloadJson)
+    {
+        if (!item->string) continue;
+
+        // Skip the "Method" key
+        if (strcmp(item->string, "method") == 0) continue;
+
+        if (cJSON_IsObject(item) && strcmp(item->string, "params") == 0)
+		{
+			cJSON *inner = NULL;
+			cJSON_ArrayForEach(inner, item)
+			{
+				if (!inner->string) continue;
+
+				if (cJSON_IsString(inner))
+				{
+					rbusValue_t val;
+					rbusValue_Init(&val);
+					rbusValue_SetString(val, inner->valuestring);
+					rbusObject_SetValue(inParams, inner->string, val);
+					rbusValue_Release(val);
+				}
+				else if (cJSON_IsNumber(inner))
+				{
+					rbusValue_t val;
+					rbusValue_Init(&val);
+					rbusValue_SetDouble(val, inner->valuedouble);
+					rbusObject_SetValue(inParams, inner->string, val);
+					rbusValue_Release(val);
+				}
+				else if (cJSON_IsBool(inner))
+				{
+					rbusValue_t val;
+					rbusValue_Init(&val);
+					rbusValue_SetBoolean(val, cJSON_IsTrue(inner));
+					rbusObject_SetValue(inParams, inner->string, val);
+					rbusValue_Release(val);
+				}
+				else
+				{
+					ParodusInfo("[DEBUG] Skipping unsupported nested type for key: %s\n", inner->string);
+				}
+				i++;
+			}
+		}
+		else
+		{
+			ParodusInfo("[DEBUG] Skipping unsupported type for key: %s\n", item->string);
+		}
+
+    }
+    // Call the RBUS method
+    rc = rbusMethod_Invoke(rbus_handle, methodName, inParams, &outParams);
+    rbusObject_Release(inParams);
+
+	if(rc == RBUS_ERROR_SUCCESS)
+	{
+		ParodusInfo("rbusMethod_Invoke success. ret: %d %s\n", rc, rbusError_ToString(rc));
+	}
+	else if(rc == RBUS_ERROR_ASYNC_RESPONSE)
+	{
+		ParodusInfo("rbusMethod_Invoke waiting for async callback. ret: %d %s\n", rc, rbusError_ToString(rc));
+	}
+	else
+	{
+		ParodusError("rbusMethod_Invoke failed for %s. ret: %d %s\n", methodName, rc, rbusError_ToString(rc));
+        return -1;
+	}
+
+	const char *return_message = NULL;
+    int response_code = -1;
+
+    rbusValue_t outVal = NULL;
+
+    if ((outVal = rbusObject_GetValue(outParams, "ret_msg")) != NULL)
+        return_message = rbusValue_GetString(outVal, NULL);
+
+    if ((outVal = rbusObject_GetValue(outParams, "response_code")) != NULL)
+        response_code = rbusValue_GetInt32(outVal);
+
+    if (!return_message)
+        return_message = "Unknown";
+
+    char *buf = NULL;
+    int n = asprintf(&buf, "{\"ret_msg\":\"%s\", \"response_code\":%d}", return_message ? return_message : "NULL", response_code);
+    if (n > 0 && buf)
+        *methodResponseOut = buf;
+
+    rbusObject_Release(outParams);
+
+    return 0; // 0 for success
+}

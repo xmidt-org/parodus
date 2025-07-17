@@ -5,6 +5,7 @@
 #include <wrp-c.h>
 #include "crud_tasks.h"
 #include "crud_internal.h"
+#include "xmidtsend_rbus.h"
 
 
 int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
@@ -63,6 +64,22 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	case WRP_MSG_TYPE__UPDATE:
 	ParodusInfo( "UPDATE request\n" );
 
+	if (strstr(reqMsg->u.crud.dest, "/parodus/method"))
+	{
+		ParodusInfo("Processing method invocation request\n");
+		ret = processMethodRequest(reqMsg, &resp_msg);
+		if (ret != 0)
+		{
+			ParodusError("Failed to Invoke method\n");
+			resp_msg->u.crud.payload = NULL;
+			resp_msg->u.crud.payload_size = 0;
+			*responseMsg = resp_msg;
+			return -1;
+		}
+		*responseMsg = resp_msg;
+		break;
+	}
+
 	ret = updateObject( reqMsg, &resp_msg );
 	if(ret ==0)
 	{
@@ -107,3 +124,76 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
     return  0;
 }
 
+int processMethodRequest(wrp_msg_t *reqMsg, wrp_msg_t **response)
+{
+    int ret = 0;
+    char *methodResponse = NULL;
+
+    ParodusInfo("Processing method request\n");
+
+    if (!reqMsg || !reqMsg->u.crud.payload)
+    {
+        ParodusError("Invalid method request - missing payload\n");
+        if (response && *response)
+            (*response)->u.crud.status = 400;
+        return -1;
+    }
+
+    // Parse JSON payload from reqMsg
+    cJSON *jsonPayload = cJSON_Parse(reqMsg->u.crud.payload);
+    if (!jsonPayload)
+    {
+        ParodusError("Failed to parse method payload\n");
+        if (response && *response)
+            (*response)->u.crud.status = 400;
+        return -1;
+    }
+
+    // Extract the "Method" field (now expected to contain full RBUS method name)
+    cJSON *methodObj = cJSON_GetObjectItem(jsonPayload, "method");
+    if (!cJSON_IsString(methodObj) || methodObj->valuestring == NULL)
+    {
+        ParodusError("Missing or invalid 'Method' field in payload\n");
+        cJSON_Delete(jsonPayload);
+        if (response && *response)
+            (*response)->u.crud.status = 400;
+        return -1;
+    }
+
+    const char *methodName = methodObj->valuestring;
+	if (!methodName || !strstr(methodName, "()"))
+	{
+		ParodusError("Invalid RBUS method name. Must include (): %s\n", methodName ? methodName : "NULL");
+		return -1;
+	}
+    ParodusInfo("Received UPDATE method: '%s'\n", methodName);
+
+    // Call the RBUS method handler directly with the full payload
+    ret = rbus_methodHandler(methodName, jsonPayload, &methodResponse);
+
+    if (ret == 0)
+    {
+		ParodusInfo("rbus_methodHandler Success. ret: %d\n", ret);
+        if (response && *response)
+        {
+            (*response)->u.crud.status = 200;
+            if (methodResponse)
+            {
+                ParodusInfo("Response from method call:\n%s\n", methodResponse);
+                (*response)->u.crud.payload = strdup(methodResponse);
+                (*response)->u.crud.payload_size = strlen(methodResponse);
+            }
+        }
+    }
+    else
+    {
+        ParodusError("rbus_methodHandler failed. ret: %d\n", ret);
+        if (response && *response)
+            (*response)->u.crud.status = 500;
+    }
+
+    if (methodResponse)
+        free(methodResponse);
+    cJSON_Delete(jsonPayload);
+    return ret;
+}
