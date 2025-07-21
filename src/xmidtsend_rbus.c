@@ -1857,44 +1857,31 @@ int rbus_methodHandler(const char *methodName, cJSON *payloadJson, char **method
 		}
 
     }
+
     // Call the RBUS method
     rc = rbusMethod_Invoke(rbus_handle, methodName, inParams, &outParams);
     rbusObject_Release(inParams);
 
-	if(rc == RBUS_ERROR_SUCCESS)
-	{
-		ParodusInfo("rbusMethod_Invoke success. ret: %d %s\n", rc, rbusError_ToString(rc));
-	}
-	else if(rc == RBUS_ERROR_ASYNC_RESPONSE)
-	{
-		ParodusInfo("rbusMethod_Invoke waiting for async callback. ret: %d %s\n", rc, rbusError_ToString(rc));
-	}
-	else
-	{
+	if(rc != RBUS_ERROR_SUCCESS)
 		ParodusError("rbusMethod_Invoke failed for %s. ret: %d %s\n", methodName, rc, rbusError_ToString(rc));
-        return -1;
-	}
-
-	const char *return_message = NULL;
-    int response_code = -1;
+	else
+		ParodusInfo("rbusMethod_Invoke success. ret: %d %s\n", rc, rbusError_ToString(rc));
+	const char *return_message = "Success";
+    int status_code = 0;
 
     rbusValue_t outVal = NULL;
 
-    if ((outVal = rbusObject_GetValue(outParams, "ret_msg")) != NULL)
+    if ((outVal = rbusObject_GetValue(outParams, "message")) != NULL)
         return_message = rbusValue_GetString(outVal, NULL);
 
-    if ((outVal = rbusObject_GetValue(outParams, "response_code")) != NULL)
-        response_code = rbusValue_GetInt32(outVal);
-
-    if (!return_message)
-        return_message = "Unknown";
+    if ((outVal = rbusObject_GetValue(outParams, "statusCode")) != NULL)
+        status_code = rbusValue_GetInt32(outVal);
 
     char *buf = NULL;
-    int n = asprintf(&buf, "{\"ret_msg\":\"%s\", \"response_code\":%d}", return_message ? return_message : "NULL", response_code);
+    int n = asprintf(&buf, "{\"message\":\"%s\", \"statusCode\":%d}", return_message ? return_message : "NULL", status_code);
     if (n > 0 && buf)
         *methodResponseOut = buf;
 
     rbusObject_Release(outParams);
-
-    return 0; // 0 for success
+	return (rc == RBUS_ERROR_SUCCESS) ? 0 : -1;
 }

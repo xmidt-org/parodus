@@ -68,15 +68,12 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	{
 		ParodusInfo("Processing method invocation request\n");
 		ret = processMethodRequest(reqMsg, &resp_msg);
+		*responseMsg = resp_msg;
 		if (ret != 0)
 		{
 			ParodusError("Failed to Invoke method\n");
-			resp_msg->u.crud.payload = NULL;
-			resp_msg->u.crud.payload_size = 0;
-			*responseMsg = resp_msg;
 			return -1;
 		}
-		*responseMsg = resp_msg;
 		break;
 	}
 
@@ -149,7 +146,7 @@ int processMethodRequest(wrp_msg_t *reqMsg, wrp_msg_t **response)
         return -1;
     }
 
-    // Extract the "Method" field (now expected to contain full RBUS method name)
+    // Extract the "Method" field
     cJSON *methodObj = cJSON_GetObjectItem(jsonPayload, "method");
     if (!cJSON_IsString(methodObj) || methodObj->valuestring == NULL)
     {
@@ -168,29 +165,23 @@ int processMethodRequest(wrp_msg_t *reqMsg, wrp_msg_t **response)
 	}
     ParodusInfo("Received UPDATE method: '%s'\n", methodName);
 
-    // Call the RBUS method handler directly with the full payload
+    // Call the RBUS method handler with payload
     ret = rbus_methodHandler(methodName, jsonPayload, &methodResponse);
+	if (response && *response)
+	{
+		(*response)->u.crud.status = (ret == 0) ? 200 : 500;
+		if (methodResponse)
+		{
+			ParodusInfo("Response from method call:\n%s\n", methodResponse);
+			(*response)->u.crud.payload = strdup(methodResponse);
+			(*response)->u.crud.payload_size = strlen(methodResponse);
+		}
+	}
 
     if (ret == 0)
-    {
 		ParodusInfo("rbus_methodHandler Success. ret: %d\n", ret);
-        if (response && *response)
-        {
-            (*response)->u.crud.status = 200;
-            if (methodResponse)
-            {
-                ParodusInfo("Response from method call:\n%s\n", methodResponse);
-                (*response)->u.crud.payload = strdup(methodResponse);
-                (*response)->u.crud.payload_size = strlen(methodResponse);
-            }
-        }
-    }
     else
-    {
-        ParodusError("rbus_methodHandler failed. ret: %d\n", ret);
-        if (response && *response)
-            (*response)->u.crud.status = 500;
-    }
+		ParodusError("rbus_methodHandler failed. ret: %d\n", ret);
 
     if (methodResponse)
         free(methodResponse);
