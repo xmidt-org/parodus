@@ -1866,16 +1866,21 @@ int rbus_methodHandler(const char *methodName, cJSON *payloadJson, char **method
 		ParodusError("rbusMethod_Invoke failed for %s. ret: %d %s\n", methodName, rc, rbusError_ToString(rc));
 	else
 		ParodusInfo("rbusMethod_Invoke success. ret: %d %s\n", rc, rbusError_ToString(rc));
-	const char *return_message = "Success";
-    int status_code = 0;
 
-    rbusValue_t outVal = NULL;
+	int status_code = -1;
+	const char *return_message = NULL;
 
-    if ((outVal = rbusObject_GetValue(outParams, "message")) != NULL)
-        return_message = rbusValue_GetString(outVal, NULL);
+	rbusValue_t outVal = NULL;
+	if ((outVal = rbusObject_GetValue(outParams, "message")) != NULL)
+		return_message = rbusValue_GetString(outVal, NULL);
 
-    if ((outVal = rbusObject_GetValue(outParams, "statusCode")) != NULL)
-        status_code = rbusValue_GetInt32(outVal);
+	if ((outVal = rbusObject_GetValue(outParams, "statusCode")) != NULL)
+		status_code = rbusValue_GetInt32(outVal);
+
+	if (!return_message)
+		return_message = (rc == RBUS_ERROR_SUCCESS) ? "Success" : rbusError_ToString(rc);
+	if(status_code == -1)
+		status_code = (rc == RBUS_ERROR_SUCCESS) ? 0 : rc;
 
     char *buf = NULL;
     int n = asprintf(&buf, "{\"message\":\"%s\", \"statusCode\":%d}", return_message ? return_message : "NULL", status_code);
