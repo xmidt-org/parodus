@@ -1596,7 +1596,7 @@ void checkMsgExpiry(XmidtMsg *xmdMsg)
 		getCurrentTime(&ts);
 		currTime= (long long)ts.tv_sec;
 		wrp_msg_t * tempMsg = temp->msg;
-		ParodusPrint("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+		ParodusPrint("qos %d currTime %lld enqueueTime %lld\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
 		if(temp->state == DELETE)
 		{
 			ParodusPrint("msg is already in DELETE state and about to delete, skipping state update. transid %s\n", tempMsg->u.event.transaction_uuid);

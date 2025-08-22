@@ -311,7 +311,7 @@ static void createNewMsgForCRUD(wrp_msg_t *message, wrp_msg_t **crudMessage )
         msg->msg_type = message->msg_type;
         if(message->u.crud.source != NULL)
         {
-            ParodusInfo("createNewMsgForCRUD: message->u.crud.source = %s\n",message->u.crud.source);
+            ParodusPrint("message->u.crud.source = %s\n",message->u.crud.source);
             msg->u.crud.source = strdup(message->u.crud.source);
         }
 

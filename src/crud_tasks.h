@@ -18,7 +18,9 @@
  
 #include <wrp-c.h>
 #include "ParodusInternal.h"
+#ifdef ENABLE_WEBCFGBIN
 #include "xmidtsend_rbus.h"
+#endif
 
 /**
  * @brief processCrudRequest function to process CRUD operations.

@@ -243,9 +243,44 @@ target_link_libraries (test_crud_interface -lcmocka ${PARODUS_COMMON_LIBS} )
 #-------------------------------------------------------------------------------
 #   test_crud_tasks
 #-------------------------------------------------------------------------------
-# add_test(NAME test_crud_tasks COMMAND ${MEMORY_CHECK} ./test_crud_tasks)
-# add_executable(test_crud_tasks test_crud_tasks.c ../src/crud_tasks.c )
-# target_link_libraries (test_crud_tasks -lcmocka ${PARODUS_COMMON_LIBS} )
+add_test(NAME test_crud_tasks COMMAND ${MEMORY_CHECK} ./test_crud_tasks)
+set(XMIDT_SRC test_crud_tasks.c ../src/crud_tasks.c)
+set(XMIDT_SRC ${XMIDT_SRC}
+        ../src/close_retry.c
+        ../src/time.c
+        ../src/config.c
+        ../src/nopoll_helpers.c
+        ../src/nopoll_handlers.c
+        ../src/connection.c
+        ../src/heartBeat.c
+        ../src/conn_interface.c
+        ../src/upstream.c
+        ../src/downstream.c
+        ../src/string_helpers.c
+        ../src/auth_token.c
+        ../src/ParodusInternal.c
+        ../src/networking.c
+        ../src/mutex.c
+        ../src/event_handler.c
+        ../src/thread_tasks.c
+        ../src/crud_interface.c
+        ../src/service_alive.c
+        ../src/client_list.c
+        ../src/spin_thread.c
+        ../src/partners_check.c
+)
+if (ENABLE_WEBCFGBIN)
+set(XMIDT_SRC ${XMIDT_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
+endif (ENABLE_WEBCFGBIN)
+
+if (ENABLE_SESHAT)
+set(XMIDT_SRC ${XMIDT_SRC} ../src/seshat_interface.c)
+else()
+set(XMIDT_SRC ${XMIDT_SRC} ../src/seshat_interface_stub.c)
+endif (ENABLE_SESHAT)
+
+add_executable(test_crud_tasks ${XMIDT_SRC})
+target_link_libraries(test_crud_tasks -lcmocka -lcurl ${PARODUS_COMMON_LIBS} )
 
 #-------------------------------------------------------------------------------
 #   test_crud_internal

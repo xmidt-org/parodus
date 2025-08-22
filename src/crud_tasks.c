@@ -5,7 +5,6 @@
 #include <wrp-c.h>
 #include "crud_tasks.h"
 #include "crud_internal.h"
-#include "xmidtsend_rbus.h"
 
 
 int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
@@ -121,9 +120,10 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
     return  0;
 }
 
+
 int processMethodRequest(wrp_msg_t *reqMsg, wrp_msg_t **response)
 {
-    int ret = 0;
+    int ret = -1;
     char *methodResponse = NULL;
 
     ParodusInfo("Processing method request\n");
@@ -146,7 +146,7 @@ int processMethodRequest(wrp_msg_t *reqMsg, wrp_msg_t **response)
         return -1;
     }
 
-    // Extract the "Method" field
+    // Extract the Method name field
     cJSON *methodObj = cJSON_GetObjectItem(jsonPayload, "method");
     if (!cJSON_IsString(methodObj) || methodObj->valuestring == NULL)
     {
@@ -165,8 +165,9 @@ int processMethodRequest(wrp_msg_t *reqMsg, wrp_msg_t **response)
 	}
     ParodusInfo("Received UPDATE method: '%s'\n", methodName);
 
-    // Call the RBUS method handler with payload
-    ret = rbus_methodHandler(methodName, jsonPayload, &methodResponse);
+	#ifdef ENABLE_WEBCFGBIN
+    	ret = rbus_methodHandler(methodName, jsonPayload, &methodResponse);
+	#endif
 	if (response && *response)
 	{
 		(*response)->u.crud.status = (ret == 0) ? 200 : 500;
