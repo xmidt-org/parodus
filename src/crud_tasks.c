@@ -63,6 +63,19 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
 	case WRP_MSG_TYPE__UPDATE:
 	ParodusInfo( "UPDATE request\n" );
 
+	if (strstr(reqMsg->u.crud.dest, "/parodus/method"))
+	{
+		ParodusInfo("Processing method invocation request\n");
+		ret = processMethodRequest(reqMsg, &resp_msg);
+		*responseMsg = resp_msg;
+		if (ret != 0)
+		{
+			ParodusError("Failed to Invoke method\n");
+			return -1;
+		}
+		break;
+	}
+
 	ret = updateObject( reqMsg, &resp_msg );
 	if(ret ==0)
 	{
@@ -107,3 +120,72 @@ int processCrudRequest( wrp_msg_t *reqMsg, wrp_msg_t **responseMsg)
     return  0;
 }
 
+
+int processMethodRequest(wrp_msg_t *reqMsg, wrp_msg_t **response)
+{
+    int ret = -1;
+    char *methodResponse = NULL;
+
+    ParodusInfo("Processing method request\n");
+
+    if (!reqMsg || !reqMsg->u.crud.payload)
+    {
+        ParodusError("Invalid method request - missing payload\n");
+        if (response && *response)
+            (*response)->u.crud.status = 400;
+        return -1;
+    }
+
+    // Parse JSON payload from reqMsg
+    cJSON *jsonPayload = cJSON_Parse(reqMsg->u.crud.payload);
+    if (!jsonPayload)
+    {
+        ParodusError("Failed to parse method payload\n");
+        if (response && *response)
+            (*response)->u.crud.status = 400;
+        return -1;
+    }
+
+    // Extract the Method name field
+    cJSON *methodObj = cJSON_GetObjectItem(jsonPayload, "method");
+    if (!cJSON_IsString(methodObj) || methodObj->valuestring == NULL)
+    {
+        ParodusError("Missing or invalid 'Method' field in payload\n");
+        cJSON_Delete(jsonPayload);
+        if (response && *response)
+            (*response)->u.crud.status = 400;
+        return -1;
+    }
+
+    const char *methodName = methodObj->valuestring;
+	if (!methodName || !strstr(methodName, "()"))
+	{
+		ParodusError("Invalid RBUS method name. Methods Must include (): %s\n", methodName ? methodName : "NULL");
+		return -1;
+	}
+    ParodusInfo("Received UPDATE method: '%s'\n", methodName);
+
+	#ifdef ENABLE_WEBCFGBIN
+    	ret = rbus_methodHandler(methodName, jsonPayload, &methodResponse);
+	#endif
+	if (response && *response)
+	{
+		(*response)->u.crud.status = (ret == 0) ? 200 : 500;
+		if (methodResponse)
+		{
+			ParodusInfo("Response from method call:%s\n", methodResponse);
+			(*response)->u.crud.payload = strdup(methodResponse);
+			(*response)->u.crud.payload_size = strlen(methodResponse);
+		}
+	}
+
+    if (ret == 0)
+		ParodusInfo("rbus_methodHandler Success. ret: %d\n", ret);
+    else
+		ParodusError("rbus_methodHandler failed. ret: %d\n", ret);
+
+    if (methodResponse)
+        free(methodResponse);
+    cJSON_Delete(jsonPayload);
+    return ret;
+}
