@@ -1587,11 +1587,16 @@ void checkMsgExpiry(XmidtMsg *xmdMsg)
 	temp = xmdMsg;
 
 	if(temp != NULL)
-	{
+	{       
+		if (temp->msg == NULL)
+                {
+		    ParodusError("temp->msg is NULL. Cannot check message expiry.\n");
+	            return;
+		}
 		getCurrentTime(&ts);
 		currTime= (long long)ts.tv_sec;
 		wrp_msg_t * tempMsg = temp->msg;
-		ParodusPrint("qos %d currTime %lu enqueueTime %lu\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
+		ParodusPrint("qos %d currTime %lld enqueueTime %lld\n", tempMsg->u.event.qos, currTime, temp->enqueueTime);
 		if(temp->state == DELETE)
 		{
 			ParodusPrint("msg is already in DELETE state and about to delete, skipping state update. transid %s\n", tempMsg->u.event.transaction_uuid);
@@ -1777,4 +1782,111 @@ void mapXmidtStatusToStatusMessage(int status, char **message)
 	}
 	ParodusInfo("Xmidt status message: %s\n", result);
 	*message = result;
+}
+
+int rbus_methodHandler(const char *methodName, cJSON *payloadJson, char **methodResponseOut)
+{
+    rbusObject_t inParams = NULL, outParams = NULL;
+    rbusHandle_t rbus_handle = NULL;
+    rbusError_t rc;
+    *methodResponseOut = NULL;
+	int i = 0;
+
+
+    ParodusInfo("Invoking RBUS method: %s\n", methodName);
+
+    rbus_handle = get_parodus_rbus_Handle();
+    if (!rbus_handle)
+    {
+        ParodusError("rbus_methodHandler failed: rbus_handle is NULL\n");
+        return -1;
+    }
+
+    // Initialize inParams and fill with key-value pairs (excluding "Method")
+    rbusObject_Init(&inParams, "NULL");
+
+    cJSON *item = NULL;
+    cJSON_ArrayForEach(item, payloadJson)
+    {
+        if (!item->string) continue;
+
+        // Skip the "Method" key
+        if (strcmp(item->string, "method") == 0) continue;
+
+        if (cJSON_IsObject(item) && strcmp(item->string, "params") == 0)
+		{
+			cJSON *inner = NULL;
+			cJSON_ArrayForEach(inner, item)
+			{
+				if (!inner->string) continue;
+
+				if (cJSON_IsString(inner))
+				{
+					rbusValue_t val;
+					rbusValue_Init(&val);
+					rbusValue_SetString(val, inner->valuestring);
+					rbusObject_SetValue(inParams, inner->string, val);
+					rbusValue_Release(val);
+				}
+				else if (cJSON_IsNumber(inner))
+				{
+					rbusValue_t val;
+					rbusValue_Init(&val);
+					rbusValue_SetDouble(val, inner->valuedouble);
+					rbusObject_SetValue(inParams, inner->string, val);
+					rbusValue_Release(val);
+				}
+				else if (cJSON_IsBool(inner))
+				{
+					rbusValue_t val;
+					rbusValue_Init(&val);
+					rbusValue_SetBoolean(val, cJSON_IsTrue(inner));
+					rbusObject_SetValue(inParams, inner->string, val);
+					rbusValue_Release(val);
+				}
+				else
+				{
+					ParodusInfo("[DEBUG] Skipping unsupported nested type for key: %s\n", inner->string);
+				}
+				i++;
+			}
+		}
+		else
+		{
+			ParodusInfo("[DEBUG] Skipping unsupported type for key: %s\n", item->string);
+		}
+
+    }
+
+    // Call the RBUS method
+    rc = rbusMethod_Invoke(rbus_handle, methodName, inParams, &outParams);
+    rbusObject_Release(inParams);
+
+	if(rc != RBUS_ERROR_SUCCESS)
+		ParodusError("rbusMethod_Invoke failed for %s. ret: %d %s\n", methodName, rc, rbusError_ToString(rc));
+	else
+		ParodusInfo("rbusMethod_Invoke success. ret: %d %s\n", rc, rbusError_ToString(rc));
+
+	int status_code = -1;
+	const char *return_message = NULL;
+
+	rbusValue_t outVal = NULL;
+	if ((outVal = rbusObject_GetValue(outParams, "message")) != NULL)
+		return_message = rbusValue_GetString(outVal, NULL);
+
+	if ((outVal = rbusObject_GetValue(outParams, "statusCode")) != NULL)
+		status_code = rbusValue_GetInt32(outVal);
+
+	if (!return_message)
+		return_message = (rc == RBUS_ERROR_SUCCESS) ? "Success" : rbusError_ToString(rc);
+	if(status_code == -1)
+		status_code = (rc == RBUS_ERROR_SUCCESS) ? 0 : rc;
+
+    char *buf = NULL;
+    int n = asprintf(&buf, "{\"message\":\"%s\", \"statusCode\":%d}", return_message ? return_message : "NULL", status_code);
+    if (n > 0 && buf)
+        *methodResponseOut = buf;
+
+    rbusObject_Release(outParams);
+	return (rc == RBUS_ERROR_SUCCESS) ? 0 : -1;
 }
