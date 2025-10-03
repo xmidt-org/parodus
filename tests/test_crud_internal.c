@@ -142,6 +142,8 @@ void test_retrieveFromMemory()
     parStrncpy(cfg->webpa_url, "http://127.0.0.1", sizeof(cfg->webpa_url));
     parStrncpy(cfg->webpa_uuid, "1234567-345456546", sizeof(cfg->webpa_uuid));
     parStrncpy(cfg->webpa_protocol , "PARODUS-2.0", sizeof(cfg->webpa_protocol));
+    parStrncpy(cfg->webpa_interface_label, "Fixed", sizeof(cfg->webpa_interface_label));
+    parStrncpy(cfg->wan_ipv4_address , "10.10.0.189", sizeof(cfg->wan_ipv4_address));
     cfg->webpa_backoff_max=0;
     cfg->boot_time=1234;
 	set_parodus_cfg(cfg);
@@ -170,6 +172,10 @@ void test_retrieveFromMemory()
 	ret = retrieveFromMemory("webpa-interface-used", &jsonresponse );
 	assert_int_equal (ret, 0);
 	ret = retrieveFromMemory("webpa-backoff-max", &jsonresponse );
+	assert_int_equal (ret, 0);
+	ret = retrieveFromMemory("webpa-interface-label", &jsonresponse );
+	assert_int_equal (ret, 0);
+	ret = retrieveFromMemory("wan-ipv4-address", &jsonresponse );
 	assert_int_equal (ret, 0);
 	free(cfg);
 }
@@ -207,6 +213,10 @@ void test_retrieveFromMemoryFailure()
 	ret = retrieveFromMemory("webpa-backoff-max", &jsonresponse );
 	assert_int_equal (ret, 0);
 	ret = retrieveFromMemory("webpa-invalid", &jsonresponse );
+	assert_int_equal (ret, -1);
+	ret = retrieveFromMemory("webpa-interface-label", &jsonresponse );
+	assert_int_equal (ret, -1);
+	ret = retrieveFromMemory("wan-ipv4-address", &jsonresponse );
 	assert_int_equal (ret, -1);
 }
 

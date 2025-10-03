@@ -80,6 +80,8 @@ void test_setParodusConfig()
     parStrncpy(cfg.webpa_protocol , "WebPA-1.6", sizeof(cfg.webpa_protocol));
     parStrncpy(cfg.webpa_uuid , "1234567-345456546", sizeof(cfg.webpa_uuid));
     parStrncpy(cfg.partner_id , "mycom", sizeof(cfg.partner_id));
+    parStrncpy(cfg.webpa_interface_label , "Fixed", sizeof(cfg.webpa_interface_label));
+    parStrncpy(cfg.wan_ipv4_address , "10.10.0.189", sizeof(cfg.wan_ipv4_address));
 #ifdef ENABLE_SESHAT
     parStrncpy(cfg.seshat_url, "ipc://tmp/seshat_service.url", sizeof(cfg.seshat_url));
 #endif
@@ -108,6 +110,8 @@ void test_setParodusConfig()
     assert_string_equal(cfg.webpa_protocol, temp->webpa_protocol);
     assert_string_equal(cfg.webpa_uuid, temp->webpa_uuid);
     assert_string_equal(cfg.partner_id, temp->partner_id);
+    assert_string_equal(cfg.webpa_interface_label, temp->webpa_interface_label);
+    assert_string_equal(cfg.wan_ipv4_address, temp->wan_ipv4_address);
 #ifdef ENABLE_SESHAT
     assert_string_equal(cfg.seshat_url, temp->seshat_url);
 #endif
@@ -187,6 +191,8 @@ void test_parseCommandLine()
 		"--boot-time=1234",
 		"--parodus-local-url=tcp://127.0.0.1:6666",
 		"--partner-id=cox",
+        "--webpa-interface-label=Fixed",
+        "--wan-ipv4-address=10.10.0.189",
 #ifdef ENABLE_SESHAT
 		"--seshat-url=ipc://127.0.0.1:7777",
 #endif
@@ -231,6 +237,8 @@ void test_parseCommandLine()
     assert_int_equal( (int) parodusCfg.boot_time,1234);
     assert_string_equal(  parodusCfg.local_url,"tcp://127.0.0.1:6666");
     assert_string_equal(  parodusCfg.partner_id,"cox");
+    assert_string_equal(  parodusCfg.webpa_interface_label,"Fixed");
+    assert_string_equal(  parodusCfg.wan_ipv4_address,"10.10.0.189");
 #ifdef ENABLE_SESHAT
     assert_string_equal(  parodusCfg.seshat_url, "ipc://127.0.0.1:7777");
 #endif
@@ -328,6 +336,8 @@ void test_loadParodusCfg()
     parStrncpy(Cfg->webpa_protocol , protocol, sizeof(Cfg->webpa_protocol));
     parStrncpy(Cfg->local_url , "tcp://10.0.0.1:6000", sizeof(Cfg->local_url));
     parStrncpy(Cfg->partner_id , "shaw", sizeof(Cfg->partner_id));
+    parStrncpy(Cfg->webpa_interface_label , "Fixed", sizeof(Cfg->webpa_interface_label));
+    parStrncpy(Cfg->wan_ipv4_address , "10.10.0.189", sizeof(Cfg->wan_ipv4_address));
 #ifdef FEATURE_DNS_QUERY
 	Cfg->acquire_jwt = 1;
     parStrncpy(Cfg->dns_txt_url, "mydns",sizeof(Cfg->dns_txt_url));
