@@ -56,6 +56,8 @@ extern "C" {
 #define CLOUD_STATUS_OFFLINE    "offline"
 #define CLOUD_DISCONNECT_REASON "disconnection-reason"
 #define BOOT_RETRY_WAIT         "boot-time-retry-wait"
+#define WEBPA_INTERFACE_LABEL   "webpa-interface-label"
+#define WAN_IPV4_ADDRESS        "wan-ipv4-address"
 
 #define PROTOCOL_VALUE 					"PARODUS-2.0"
 #define WEBPA_PATH_URL                  "/api/v2/device"
@@ -116,6 +118,8 @@ typedef struct
 	char *cloud_status;
 	char *cloud_disconnect;
 	unsigned int boot_retry_wait;
+    char webpa_interface_label[64];
+    char wan_ipv4_address[64];
 #ifdef FEATURE_DNS_QUERY
     char *record_jwt_file;
 #endif

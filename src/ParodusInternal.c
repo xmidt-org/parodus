@@ -96,6 +96,23 @@ char* getWebpaConveyHeader()
 	{
 	    cJSON_AddNumberToObject(response, BOOT_RETRY_WAIT, get_parodus_cfg()->boot_retry_wait);
 	}
+
+    if(strlen(get_parodus_cfg()->webpa_interface_label)!=0)
+    {
+        cJSON_AddStringToObject(response, WEBPA_INTERFACE_LABEL, get_parodus_cfg()->webpa_interface_label);
+    }
+    else
+    {
+	    ParodusError("Failed to GET WebPA Interface label value\n");
+    }
+    if (strlen(get_parodus_cfg()->wan_ipv4_address) != 0)
+    {
+        cJSON_AddStringToObject(response, WAN_IPV4_ADDRESS, get_parodus_cfg()->wan_ipv4_address);
+    }
+    else
+    {
+        ParodusError("Failed to GET WAN IPv4 address value\n");
+    }
     buffer = cJSON_PrintUnformatted(response);
     ParodusInfo("X-WebPA-Convey Header: [%zd]%s\n", strlen(buffer), buffer);
 
