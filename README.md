@@ -67,6 +67,10 @@ make test
 
 - /crud-config-file -Config json file to store objects during create, retrieve, update and delete (CRUD) operations -optional argument 
 
+- /webpa-interface-label - can be configured with "Fixed" or "Mobile" values for representing primary or backup WAN respectively
+
+- /wan-ipv4-address - represent the ipv4 address of the current active interface being used to connect to the cloud
+
 
 # if ENABLE_SESHAT is enabled
 - /seshat-url - The seshat server url 
@@ -94,17 +98,17 @@ make test
 ```
 # Seshat & FEATURE_DNS_QUERY Enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-txt-url=somebody.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --seshat-url=tcp://127.0.0.1:7777 --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-txt-url=somebody.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --seshat-url=tcp://127.0.0.1:7777 --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json --webpa-interface-label=Fixed --wan-ipv4-address=10.10.0.189
 
 
 # Seshat is not enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-txt-url=somebody.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --acquire-jwt=1 --dns-txt-url=somebody.net --jwt-public-key-file=webpa-rs256.pem --jwt-algo=RS256 --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json --webpa-interface-label=Fixed --wan-ipv4-address=10.10.0.189
 
 
 # When both Seshat & FEATURE_DNS_QUERY not Enabled
 
-./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json
+./parodus --hw-model=TGXXX --hw-serial-number=E8GBUEXXXXXXXXX --hw-manufacturer=ARRIS --hw-mac=14cfexxxxxxx --hw-last-reboot-reason=unknown --fw-name=TG1682_DEV_master_20170512115046sdy --boot-time=1494590301 --webpa-ping-timeout=180 --webpa-interface-used=eth0 --webpa-url=https://somebody.net:8080 --webpa-backoff-max=9 --parodus-local-url=tcp://127.0.0.1:6666 --partner-id=comcast --ssl-cert-path=/etc/ssl/certs/ca-certificates.crt --client-cert-path=/tmp/clientcert.mch --token-server-url=https://somebody.net:8080/token --force-ipv4 --crud-config-file=/tmp/parodus_cfg.json --webpa-interface-label=Fixed --wan-ipv4-address=10.10.0.189
 
 ```
 

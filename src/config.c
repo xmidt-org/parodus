@@ -460,6 +460,8 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	{"close-reason-file",  		required_argument, 0, 'R'},
 	{"mtls-client-key-path",    required_argument, 0, 'K'},
 	{"mtls-client-cert-path",    required_argument, 0,'M'},
+	{"webpa-interface-label",    required_argument, 0, 'L'},
+	{"wan-ipv4-address",        required_argument, 0, 'I'},
 #ifdef FEATURE_DNS_QUERY
 	{"record-jwt-payload",      required_argument, 0,'W'},
 #endif
@@ -497,7 +499,7 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
       /* getopt_long stores the option index here. */
       int option_index = 0;
       c = getopt_long (argc, argv, 
-			"m:s:f:d:r:n:b:u:t:o:i:l:q:p:e:D:j:a:k:c:E:T:N:w:J:46:C:S:R:K:M",
+			"m:s:f:d:r:n:b:u:t:o:i:l:q:p:e:D:j:a:k:c:E:T:N:w:J:46:C:S:R:K:M:L:I",
 			long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -694,6 +696,16 @@ int parseCommandLine(int argc,char **argv,ParodusCfg * cfg)
 	case 'M':
           cfg->mtls_client_cert_path = strdup(optarg);
           ParodusInfo("mtls_client_cert_path is %s\n", cfg->mtls_client_cert_path);
+          break;
+
+	case 'L':
+          parStrncpy(cfg->webpa_interface_label, optarg, sizeof(cfg->webpa_interface_label));
+          ParodusInfo("webpa_interface_label is %s\n", cfg->webpa_interface_label);
+          break;
+
+	case 'I':
+          parStrncpy(cfg->wan_ipv4_address, optarg, sizeof(cfg->wan_ipv4_address));
+          ParodusInfo("wan_ipv4_address is %s\n", cfg->wan_ipv4_address);
           break;
 
 #ifdef FEATURE_DNS_QUERY
@@ -992,6 +1004,22 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     {
         parStrncpy(cfg->cert_path, "\0", sizeof(cfg->cert_path));
         ParodusPrint("cert_path is NULL. set to empty\n");
+    }
+    if(strlen(config->webpa_interface_label )!=0)
+    {
+        parStrncpy(cfg->webpa_interface_label, config->webpa_interface_label,sizeof(cfg->webpa_interface_label));
+    }
+    else
+    {
+        ParodusPrint("webpa_interface_label is NULL. read from tmp file\n");
+    }
+    if(strlen(config->wan_ipv4_address) !=0)
+    {
+        parStrncpy(cfg->wan_ipv4_address, config->wan_ipv4_address,sizeof(cfg->wan_ipv4_address));
+    }
+    else
+    {
+        ParodusPrint("wan_ipv4_address is NULL. read from tmp file\n");
     }
     #ifdef ENABLE_WEBCFGBIN
         cfg->max_queue_size =  config->max_queue_size;

@@ -537,13 +537,33 @@ int retrieveFromMemory(char *keyName, cJSON **jsonresponse)
 	}
 	else if(strcmp(WEBPA_INTERFACE, keyName)==0)
 	{
-		if((getWebpaInterface() !=NULL)&& (strlen(get_parodus_cfg()->fw_name)==0))
+		if((getWebpaInterface() !=NULL)&& (strlen(get_parodus_cfg()->webpa_interface_used)==0))
 		{
 			ParodusError("retrieveFromMemory: webpa_interface_used value is NULL\n");
 			return -1;
 		}
 		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,getWebpaInterface());
 		cJSON_AddItemToObject( *jsonresponse, WEBPA_INTERFACE , cJSON_CreateString(getWebpaInterface()));
+	}
+	else if(strcmp(WEBPA_INTERFACE_LABEL, keyName)==0)
+	{
+		if((get_parodus_cfg()->webpa_interface_label !=NULL)&& (strlen(get_parodus_cfg()->webpa_interface_label)==0))
+		{
+			ParodusError("retrieveFromMemory: webpa_interface_label value is NULL\n");
+			return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->webpa_interface_label);
+		cJSON_AddItemToObject( *jsonresponse, WEBPA_INTERFACE_LABEL , cJSON_CreateString(get_parodus_cfg()->webpa_interface_label));
+	}
+	else if(strcmp(WAN_IPV4_ADDRESS, keyName)==0)
+	{
+		if((get_parodus_cfg()->wan_ipv4_address !=NULL) && (strlen(get_parodus_cfg()->wan_ipv4_address)==0))
+		{
+			ParodusError("retrieveFromMemory: wan_ipv4_address value is NULL\n");
+			return -1;
+		}
+		ParodusInfo("retrieveFromMemory: keyName:%s value:%s\n",keyName,get_parodus_cfg()->wan_ipv4_address);
+		cJSON_AddItemToObject( *jsonresponse, WAN_IPV4_ADDRESS , cJSON_CreateString(get_parodus_cfg()->wan_ipv4_address));
 	}
 	else if(strcmp(WEBPA_URL, keyName)==0)
 	{
