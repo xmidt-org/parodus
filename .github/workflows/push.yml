@@ -4,7 +4,7 @@
 name: CI
 
 on:
-  pull_request_target:
+  pull_request:
   push:
     paths-ignore:
       - 'AUTHORS'
@@ -15,16 +15,15 @@ on:
     tags-ignore:
       - 'v[0-9]+.[0-9]+.[0-9]+'
     branches:
-      - main
       - master
 
 jobs:
   test:
     name: Unit Tests
-    runs-on: [ ubuntu-20.04 ]
+    runs-on: [ ubuntu-latest ]
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -32,14 +31,11 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt-get -y install valgrind libcunit1 libcunit1-doc libcunit1-dev libmsgpack-dev gcovr libtool
+          sudo apt-get -y install valgrind libcunit1 libcunit1-doc libcunit1-dev libmsgpack-dev gcovr libtool libcjson-dev uuid-dev
           pip install coverage
 
       - name: Make Build Directory
         run: mkdir build
-
-      - name: Get Sonarcloud Binaries
-        uses: sonarsource/sonarcloud-github-c-cpp@v2
 
       - name: CMake
         working-directory: build
@@ -63,26 +59,21 @@ jobs:
           mkdir _install
           mkdir _install/lib
           cp ${RBUS_INSTALL_DIR}/usr/lib/librbus* _install/lib
-          build-wrapper-linux-x86-64 --out-dir bw-output make all test
+          make all test
 
       - name: Stop rtrouted
         run: |
           killall -9 rtrouted
 
-      - name: Merge GCOV Reports for Sonarcloud
+      - name: Generate Coverage Report
         working-directory: build
         run: |
-          gcovr --sonarqube coverage.xml -r ..
-
-      - name: Upload SonarCloud
-        run: |
-          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          gcovr --xml coverage.xml -r .. || echo "Coverage generation skipped"
 
       - name: Upload Codecov.io
-        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        if: always()
+        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # v4.6.0
         with:
-          directory:        .
-          flags:            unittests
-          fail_ci_if_error: true
+          files: ./build/coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}

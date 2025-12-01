@@ -13,4 +13,3 @@ nohup rtrouted -f -l DEBUG > /tmp/rtrouted_log.txt &
 mkdir ${RBUS_INSTALL_DIR}/usr/lib/rbus_temp_lib
 cp ${RBUS_INSTALL_DIR}/usr/lib/librbuscore.so* ${RBUS_INSTALL_DIR}/usr/lib/rbus_temp_lib/
 cp ${RBUS_INSTALL_DIR}/usr/lib/librtMessage.so* ${RBUS_INSTALL_DIR}/usr/lib/rbus_temp_lib/
-cp ${RBUS_INSTALL_DIR}/usr/lib/libcjson.so ${RBUS_INSTALL_DIR}/usr/lib/rbus_temp_lib/

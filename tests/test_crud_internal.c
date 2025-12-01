@@ -184,7 +184,7 @@ void test_retrieveFromMemoryFailure()
 {
 	int ret = -1;
 	cJSON *jsonresponse;
-	ParodusCfg cfg;
+	ParodusCfg cfg={0};
 	set_parodus_cfg(&cfg);
 	ret = retrieveFromMemory("hw-model", &jsonresponse );
 	assert_int_equal (ret, -1);

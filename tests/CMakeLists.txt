@@ -268,7 +268,14 @@ set(XMIDT_SRC ${XMIDT_SRC}
         ../src/client_list.c
         ../src/spin_thread.c
         ../src/partners_check.c
+        ../src/token.c
+
 )
+
+if (PARODUS_SECERT_ENABLE)
+set(XMIDT_SRC ${XMIDT_SRC} ../src/rdkconfig_generic)
+endif (PARODUS_SECERT_ENABLE)
+
 if (ENABLE_WEBCFGBIN)
 set(XMIDT_SRC ${XMIDT_SRC} ../src/upstream_rbus.c ../src/xmidtsend_rbus.c)
 endif (ENABLE_WEBCFGBIN)
