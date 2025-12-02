@@ -18,9 +18,6 @@
  
 #include <wrp-c.h>
 #include "ParodusInternal.h"
-#ifdef ENABLE_WEBCFGBIN
-#include "xmidtsend_rbus.h"
-#endif
 
 /**
  * @brief processCrudRequest function to process CRUD operations.
@@ -32,4 +29,3 @@
  * @return  0 in success case and -1 in error case
  */
 int processCrudRequest(wrp_msg_t * reqMsg, wrp_msg_t **resMsg);
-int processMethodRequest(wrp_msg_t *reqMsg, wrp_msg_t **response);
