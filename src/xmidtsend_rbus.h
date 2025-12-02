@@ -89,8 +89,6 @@ typedef enum
     DELETE
 } MSG_STATUS;
 
-#define MAX_BUF_SIZE	        256
-
 /*----------------------------------------------------------------------------*/
 /*                             Function Prototypes                            */
 /*----------------------------------------------------------------------------*/
@@ -121,7 +119,6 @@ void checkMaxQandOptimize(XmidtMsg *xmdMsg);
 void checkMsgExpiry(XmidtMsg *xmdMsg);
 void mapXmidtStatusToStatusMessage(int status, char **message);
 int xmidtQOptmize();
-int rbus_methodHandler(const char *methodName, cJSON *payloadJson, char **methodResponseOut);
 #ifdef __cplusplus
 }
 #endif
