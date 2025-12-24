@@ -278,12 +278,12 @@ int parse_webpa_url__ (const char *full_url,
 	char *openBracket = NULL;
 	char *checkPort = NULL;
 
-	ParodusInfo ("full url: %s\n", full_url);
+	ParodusPrint ("full url: %s\n", full_url);
 	http_match = server_is_http (full_url, &server_ptr);
 	if (http_match < 0)
 		return http_match;
 
-	ParodusInfo ("server address copied from url\n");
+	ParodusPrint ("server address copied from url\n");
 	parStrncpy (server_addr, server_ptr, server_addr_buflen);
 	server_len = strlen(server_addr);
 	// If there's a '/' on end, null it out
@@ -350,7 +350,7 @@ int parse_webpa_url__ (const char *full_url,
 		parStrncpy (port_buf, port_val, port_buflen);
 	}
     }
-	ParodusInfo ("server %s, port %s, http_match %d\n", 
+	ParodusPrint ("server %s, port %s, http_match %d\n", 
 		server_addr, port_buf, http_match);
 	return http_match;
 
