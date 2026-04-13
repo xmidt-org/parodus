@@ -479,7 +479,7 @@ int query_dns(const char* dns_txt_record_id,char *jwt_ans)
 	ret = assemble_jwt_from_dns (&msg_handle, l, jwt_ans);
 	free (nsbuf);
 	if (ret == 0)
-		ParodusInfo ("query_dns JWT: %s\n", jwt_ans);
+		ParodusPrint ("query_dns JWT: %s\n", jwt_ans);
 	return ret;
 }
 
