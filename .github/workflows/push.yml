@@ -38,8 +38,8 @@ jobs:
       - name: Make Build Directory
         run: mkdir build
 
-      - name:  Install sonar-scanner and build-wrapper
-        uses: sonarsource/sonarcloud-github-c-cpp@v2
+      - name:  Install Build Wrapper
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v4
         
       - name: CMake
         working-directory: build
@@ -58,9 +58,13 @@ jobs:
           gcovr --sonarqube coverage.xml -r ..
 
       - name: Upload SonarCloud
-        run: |
-          build/sonar-scanner/bin/sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+        uses: SonarSource/sonarqube-scan-action@v4
+        with: 
+          args: >
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dproject.settings=.sonar-project.properties
         env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Codecov.io
