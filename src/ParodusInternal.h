@@ -161,6 +161,18 @@ int readFromFile(const char *file_name, char **data);
 void timespec_diff(struct timespec *start, struct timespec *stop,
                    struct timespec *result);
 
+#ifdef ENABLE_WEBCFGBIN
+void subscribeRBUSevent();
+int regXmidtSendDataMethod();
+void registerRbusLogger();
+#endif
+void setWebpaInterface(char *value);
+char* getWanType();
+char* getWanIPaddr(char *wanInterface);
+void setWanIpAddr(char *wanIP);
+void setWanInterfaceLabel(char *wanType);
+void _get_shell_output(FILE *fp, char *buf, int len);
+extern pthread_mutex_t config_mut;
 
 /*------------------------------------------------------------------------------*/
 /*                        For interface_down_event Flag                         */
