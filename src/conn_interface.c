@@ -98,7 +98,7 @@ void createSocketConnection(void (* initKeypress)())
     #endif
 
     EventHandler();
-    
+    subscribeCurrentActiveInterfaceEvent();
     set_server_list_null (&server_list);
     create_conn_rtn = createNopollConnection(ctx, &server_list);
     if(!create_conn_rtn)

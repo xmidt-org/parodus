@@ -29,6 +29,11 @@
 #include <stdlib.h>
 #include <curl/curl.h>
 #include <uuid/uuid.h>
+#include <sys/socket.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include "secure_wrapper.h"
 
 /*----------------------------------------------------------------------------*/
 /*                            File Scoped Variables                           */
@@ -848,4 +853,102 @@ void loadParodusCfg(ParodusCfg * config,ParodusCfg *cfg)
     }
 }
 
+<<<<<<< HEAD
+=======
+void setWebpaInterface(char *value)
+{
+	pthread_mutex_lock (&config_mut);
+	parStrncpy(get_parodus_cfg()->webpa_interface_used, value, sizeof(get_parodus_cfg()->webpa_interface_used));
+	pthread_mutex_unlock (&config_mut);
+}
+
+char *getWebpaInterface(void)
+{
+		ParodusPrint("WAN_FAILOVER_SUPPORTED mode \n");
+		pthread_mutex_lock (&config_mut);	
+		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
+		pthread_mutex_unlock (&config_mut);
+		parStrncpy(webpa_interface, get_parodus_cfg()->webpa_interface_used, sizeof(webpa_interface));
+		ParodusPrint("webpa_interface:%s\n", webpa_interface);
+		return webpa_interface;
+}
+setWanInterfaceLabel(char *wan_type)
+{
+        pthread_mutex_lock(&config_mut);
+        parStrncpy(get_parodus_cfg()->webpa_interface_label, wan_type, sizeof(get_parodus_cfg()->webpa_interface_label));
+        pthread_mutex_unlock(&config_mut);
+}
+
+setWanIpAddr(char *wan_ip_address)
+{
+        pthread_mutex_lock(&config_mut);
+        parStrncpy(get_parodus_cfg()->wan_ipv4_address, wan_ip_address, sizeof(get_parodus_cfg()->wan_ipv4_address));
+        pthread_mutex_unlock(&config_mut);
+}
+
+char* getWanType()
+{
+        char buf[64] = {'\0'};
+        char *p, *wanType;
+        FILE *f = NULL;
+        f = v_secure_popen("r","dmcli eRT getv Device.X_RDK_WanManager.WanType | grep value | awk '{print $5}'");
+        if(f == NULL)
+        {
+              ParodusError("Error in getting Wan Type\n");
+              return NULL;
+        }
+        _get_shell_output(f, buf, sizeof(buf));
+        if(buf[0] == '\0')
+        {
+               ParodusError("Error in getting Wan Type, returning empty value\n");
+               return strdup("");
+        }
+        wanType = strdup(buf);
+
+}
+
+char* getWanIPaddr(char *wan_interface)
+{
+    struct ifaddrs *ifaddr, *ifa;
+    struct sockaddr_in *addr;
+    char buf[INET_ADDRSTRLEN] = {'\0'};
+
+    // Get the list of network interfaces
+    if (getifaddrs(&ifaddr) == -1) {
+        ParodusError("getifaddrs");
+        return NULL;
+    }
+
+    // Loop through interfaces to find erouter0
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (strcmp(ifa->ifa_name, wan_interface) == 0 && ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_INET) {
+            addr = (struct sockaddr_in *)ifa->ifa_addr;
+            inet_ntop(AF_INET, &addr->sin_addr, buf, INET_ADDRSTRLEN);
+            break;
+        }
+    }
+    freeifaddrs(ifaddr);
+    if (buf[0] == '\0') {
+        ParodusError("Failed to get WAN IP address, returning empty value\n");
+        return strdup("");
+    }
+    return strdup(buf);
+}
+
+void _get_shell_output(FILE *fp, char *buf, int len)
+{
+    char * p;
+    if (fp)
+    {
+        if(fgets (buf, len-1, fp) != NULL)
+        {
+            buf[len-1] = '\0';
+            if ((p = strchr(buf, '\n'))) {
+                *p = '\0';
+            }
+        }
+    v_secure_pclose(fp);
+    }
+}
+>>>>>>> fd46454 (Parodus Multi-WAN integration checkpoint)
 
